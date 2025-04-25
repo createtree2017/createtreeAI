@@ -126,6 +126,7 @@ export default function AdminPage() {
 function PersonaManager() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isBatchImportOpen, setIsBatchImportOpen] = useState(false);
   const [editingPersona, setEditingPersona] = useState<InsertPersona | null>(null);
   const queryClient = useQueryClient();
   

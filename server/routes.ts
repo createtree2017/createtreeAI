@@ -584,6 +584,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Batch import persona (admin-only)
+  app.post("/api/admin/personas/batch", async (req, res) => {
+    try {
+      const validatedData = personaSchema.parse(req.body);
+      
+      // Check if persona with this ID already exists
+      const existingPersona = await db.query.personas.findFirst({
+        where: eq(personas.personaId, validatedData.personaId)
+      });
+      
+      let result;
+      
+      if (existingPersona) {
+        // Update existing persona
+        const [updatedPersona] = await db.update(personas)
+          .set({
+            name: validatedData.name,
+            avatarEmoji: validatedData.avatarEmoji,
+            description: validatedData.description,
+            welcomeMessage: validatedData.welcomeMessage,
+            systemPrompt: validatedData.systemPrompt,
+            primaryColor: validatedData.primaryColor,
+            secondaryColor: validatedData.secondaryColor,
+            personality: validatedData.personality,
+            tone: validatedData.tone,
+            usageContext: validatedData.usageContext,
+            emotionalKeywords: validatedData.emotionalKeywords,
+            timeOfDay: validatedData.timeOfDay,
+            isActive: validatedData.isActive,
+            isFeatured: validatedData.isFeatured,
+            order: validatedData.order,
+            categories: validatedData.categories,
+            updatedAt: new Date(),
+          })
+          .where(eq(personas.personaId, validatedData.personaId))
+          .returning();
+          
+        result = updatedPersona;
+      } else {
+        // Create new persona
+        const [newPersona] = await db.insert(personas).values({
+          personaId: validatedData.personaId,
+          name: validatedData.name,
+          avatarEmoji: validatedData.avatarEmoji,
+          description: validatedData.description,
+          welcomeMessage: validatedData.welcomeMessage,
+          systemPrompt: validatedData.systemPrompt,
+          primaryColor: validatedData.primaryColor,
+          secondaryColor: validatedData.secondaryColor,
+          personality: validatedData.personality,
+          tone: validatedData.tone,
+          usageContext: validatedData.usageContext,
+          emotionalKeywords: validatedData.emotionalKeywords,
+          timeOfDay: validatedData.timeOfDay,
+          isActive: validatedData.isActive,
+          isFeatured: validatedData.isFeatured,
+          order: validatedData.order,
+          useCount: 0,
+          categories: validatedData.categories,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }).returning();
+        
+        result = newPersona;
+      }
+      
+      return res.status(201).json({
+        success: true,
+        persona: result,
+        action: existingPersona ? 'updated' : 'created'
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      console.error("Error in batch import:", error);
+      return res.status(500).json({ error: "Failed to process persona in batch import" });
+    }
+  });
+  
   // Admin-only persona category management endpoints
   
   // Get all categories
