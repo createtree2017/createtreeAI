@@ -131,6 +131,43 @@ const personaCategorySchema = z.object({
   isActive: z.boolean().default(true),
 });
 
+// Schema for concept category creation/update
+const conceptCategorySchema = z.object({
+  categoryId: z.string().min(1, "Category ID is required"),
+  name: z.string().min(1, "Name is required"),
+  description: z.string().optional(),
+  order: z.number().int().default(0),
+  isActive: z.boolean().default(true),
+});
+
+// Schema for concept creation/update
+const conceptSchema = z.object({
+  conceptId: z.string().min(1, "Concept ID is required"),
+  title: z.string().min(1, "Title is required"),
+  description: z.string().optional(),
+  promptTemplate: z.string().min(1, "Prompt template is required"),
+  thumbnailUrl: z.string().optional(),
+  tagSuggestions: z.array(z.string()).optional(),
+  variables: z.array(
+    z.object({
+      name: z.string().min(1, "Variable name is required"),
+      description: z.string().optional(),
+      type: z.enum(["text", "number", "select", "color"]),
+      defaultValue: z.string().optional(),
+      options: z.array(
+        z.object({
+          label: z.string(),
+          value: z.string()
+        })
+      ).optional()
+    })
+  ).optional(),
+  categoryId: z.string().optional(),
+  isActive: z.boolean().default(true),
+  isFeatured: z.boolean().default(false),
+  order: z.number().int().default(0),
+});
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Serve embed script for iframe integration
   app.get('/embed.js', (req, res) => {
@@ -933,6 +970,274 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error getting persona recommendations:", error);
       return res.status(500).json({ error: "Failed to get persona recommendations" });
+    }
+  });
+
+  // AI Image Generation Concept Management
+  
+  // Get all concept categories
+  app.get("/api/admin/concept-categories", async (req, res) => {
+    try {
+      const allCategories = await db.select().from(conceptCategories).orderBy(asc(conceptCategories.order));
+      return res.json(allCategories);
+    } catch (error) {
+      console.error("Error fetching concept categories:", error);
+      return res.status(500).json({ error: "Failed to fetch concept categories" });
+    }
+  });
+  
+  // Get a specific concept category
+  app.get("/api/admin/concept-categories/:id", async (req, res) => {
+    try {
+      const categoryId = req.params.id;
+      
+      const category = await db.query.conceptCategories.findFirst({
+        where: eq(conceptCategories.categoryId, categoryId)
+      });
+      
+      if (!category) {
+        return res.status(404).json({ error: "Concept category not found" });
+      }
+      
+      return res.json(category);
+    } catch (error) {
+      console.error("Error fetching concept category:", error);
+      return res.status(500).json({ error: "Failed to fetch concept category" });
+    }
+  });
+  
+  // Create a new concept category
+  app.post("/api/admin/concept-categories", async (req, res) => {
+    try {
+      const validatedData = conceptCategorySchema.parse(req.body);
+      
+      // Check if category with this ID already exists
+      const existingCategory = await db.query.conceptCategories.findFirst({
+        where: eq(conceptCategories.categoryId, validatedData.categoryId)
+      });
+      
+      if (existingCategory) {
+        return res.status(409).json({ error: "A concept category with this ID already exists" });
+      }
+      
+      // Insert new category
+      const [newCategory] = await db.insert(conceptCategories).values({
+        categoryId: validatedData.categoryId,
+        name: validatedData.name,
+        description: validatedData.description,
+        order: validatedData.order,
+        isActive: validatedData.isActive,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }).returning();
+      
+      return res.status(201).json(newCategory);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      console.error("Error creating concept category:", error);
+      return res.status(500).json({ error: "Failed to create concept category" });
+    }
+  });
+  
+  // Update a concept category
+  app.put("/api/admin/concept-categories/:id", async (req, res) => {
+    try {
+      const categoryId = req.params.id;
+      const validatedData = conceptCategorySchema.parse(req.body);
+      
+      // Check if category exists
+      const existingCategory = await db.query.conceptCategories.findFirst({
+        where: eq(conceptCategories.categoryId, categoryId)
+      });
+      
+      if (!existingCategory) {
+        return res.status(404).json({ error: "Concept category not found" });
+      }
+      
+      // Update category
+      const [updatedCategory] = await db.update(conceptCategories)
+        .set({
+          name: validatedData.name,
+          description: validatedData.description,
+          order: validatedData.order,
+          isActive: validatedData.isActive,
+          updatedAt: new Date(),
+        })
+        .where(eq(conceptCategories.categoryId, categoryId))
+        .returning();
+      
+      return res.json(updatedCategory);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      console.error("Error updating concept category:", error);
+      return res.status(500).json({ error: "Failed to update concept category" });
+    }
+  });
+  
+  // Delete a concept category
+  app.delete("/api/admin/concept-categories/:id", async (req, res) => {
+    try {
+      const categoryId = req.params.id;
+      
+      // Check if category exists
+      const existingCategory = await db.query.conceptCategories.findFirst({
+        where: eq(conceptCategories.categoryId, categoryId)
+      });
+      
+      if (!existingCategory) {
+        return res.status(404).json({ error: "Concept category not found" });
+      }
+      
+      // Delete category
+      await db.delete(conceptCategories).where(eq(conceptCategories.categoryId, categoryId));
+      
+      return res.json({ success: true, message: "Concept category deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting concept category:", error);
+      return res.status(500).json({ error: "Failed to delete concept category" });
+    }
+  });
+  
+  // Get all concepts
+  app.get("/api/admin/concepts", async (req, res) => {
+    try {
+      const allConcepts = await db.select().from(concepts).orderBy(asc(concepts.order));
+      return res.json(allConcepts);
+    } catch (error) {
+      console.error("Error fetching concepts:", error);
+      return res.status(500).json({ error: "Failed to fetch concepts" });
+    }
+  });
+  
+  // Get a specific concept
+  app.get("/api/admin/concepts/:id", async (req, res) => {
+    try {
+      const conceptId = req.params.id;
+      
+      const concept = await db.query.concepts.findFirst({
+        where: eq(concepts.conceptId, conceptId)
+      });
+      
+      if (!concept) {
+        return res.status(404).json({ error: "Concept not found" });
+      }
+      
+      return res.json(concept);
+    } catch (error) {
+      console.error("Error fetching concept:", error);
+      return res.status(500).json({ error: "Failed to fetch concept" });
+    }
+  });
+  
+  // Create a new concept
+  app.post("/api/admin/concepts", async (req, res) => {
+    try {
+      const validatedData = conceptSchema.parse(req.body);
+      
+      // Check if concept with this ID already exists
+      const existingConcept = await db.query.concepts.findFirst({
+        where: eq(concepts.conceptId, validatedData.conceptId)
+      });
+      
+      if (existingConcept) {
+        return res.status(409).json({ error: "A concept with this ID already exists" });
+      }
+      
+      // Insert new concept
+      const [newConcept] = await db.insert(concepts).values({
+        conceptId: validatedData.conceptId,
+        title: validatedData.title,
+        description: validatedData.description,
+        promptTemplate: validatedData.promptTemplate,
+        thumbnailUrl: validatedData.thumbnailUrl,
+        tagSuggestions: validatedData.tagSuggestions,
+        variables: validatedData.variables,
+        categoryId: validatedData.categoryId,
+        isActive: validatedData.isActive,
+        isFeatured: validatedData.isFeatured,
+        order: validatedData.order,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }).returning();
+      
+      return res.status(201).json(newConcept);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      console.error("Error creating concept:", error);
+      return res.status(500).json({ error: "Failed to create concept" });
+    }
+  });
+  
+  // Update a concept
+  app.put("/api/admin/concepts/:id", async (req, res) => {
+    try {
+      const conceptId = req.params.id;
+      const validatedData = conceptSchema.parse(req.body);
+      
+      // Check if concept exists
+      const existingConcept = await db.query.concepts.findFirst({
+        where: eq(concepts.conceptId, conceptId)
+      });
+      
+      if (!existingConcept) {
+        return res.status(404).json({ error: "Concept not found" });
+      }
+      
+      // Update concept
+      const [updatedConcept] = await db.update(concepts)
+        .set({
+          title: validatedData.title,
+          description: validatedData.description,
+          promptTemplate: validatedData.promptTemplate,
+          thumbnailUrl: validatedData.thumbnailUrl,
+          tagSuggestions: validatedData.tagSuggestions,
+          variables: validatedData.variables,
+          categoryId: validatedData.categoryId,
+          isActive: validatedData.isActive,
+          isFeatured: validatedData.isFeatured,
+          order: validatedData.order,
+          updatedAt: new Date(),
+        })
+        .where(eq(concepts.conceptId, conceptId))
+        .returning();
+      
+      return res.json(updatedConcept);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      console.error("Error updating concept:", error);
+      return res.status(500).json({ error: "Failed to update concept" });
+    }
+  });
+  
+  // Delete a concept
+  app.delete("/api/admin/concepts/:id", async (req, res) => {
+    try {
+      const conceptId = req.params.id;
+      
+      // Check if concept exists
+      const existingConcept = await db.query.concepts.findFirst({
+        where: eq(concepts.conceptId, conceptId)
+      });
+      
+      if (!existingConcept) {
+        return res.status(404).json({ error: "Concept not found" });
+      }
+      
+      // Delete concept
+      await db.delete(concepts).where(eq(concepts.conceptId, conceptId));
+      
+      return res.json({ success: true, message: "Concept deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting concept:", error);
+      return res.status(500).json({ error: "Failed to delete concept" });
     }
   });
 

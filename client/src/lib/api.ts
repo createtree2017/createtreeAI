@@ -217,3 +217,65 @@ export const deleteCategory = async (id: string) => {
   const response = await apiRequest('DELETE', `/api/admin/categories/${id}`);
   return response.json();
 };
+
+// ===== Concept Management APIs =====
+
+// Get all concept categories
+export const getConceptCategories = async () => {
+  const response = await apiRequest('GET', '/api/admin/concept-categories');
+  return response.json();
+};
+
+// Get a specific concept category
+export const getConceptCategory = async (id: string) => {
+  const response = await apiRequest('GET', `/api/admin/concept-categories/${id}`);
+  return response.json();
+};
+
+// Create a new concept category
+export const createConceptCategory = async (categoryData: any) => {
+  const response = await apiRequest('POST', '/api/admin/concept-categories', categoryData);
+  return response.json();
+};
+
+// Update an existing concept category
+export const updateConceptCategory = async (id: string, categoryData: any) => {
+  const response = await apiRequest('PUT', `/api/admin/concept-categories/${id}`, categoryData);
+  return response.json();
+};
+
+// Delete a concept category
+export const deleteConceptCategory = async (id: string) => {
+  const response = await apiRequest('DELETE', `/api/admin/concept-categories/${id}`);
+  return response.json();
+};
+
+// Get all concepts
+export const getConcepts = async () => {
+  const response = await apiRequest('GET', '/api/admin/concepts');
+  return response.json();
+};
+
+// Get a specific concept
+export const getConcept = async (id: string) => {
+  const response = await apiRequest('GET', `/api/admin/concepts/${id}`);
+  return response.json();
+};
+
+// Create a new concept
+export const createConcept = async (conceptData: any) => {
+  const response = await apiRequest('POST', '/api/admin/concepts', conceptData);
+  return response.json();
+};
+
+// Update an existing concept
+export const updateConcept = async (id: string, conceptData: any) => {
+  const response = await apiRequest('PUT', `/api/admin/concepts/${id}`, conceptData);
+  return response.json();
+};
+
+// Delete a concept
+export const deleteConcept = async (id: string) => {
+  const response = await apiRequest('DELETE', `/api/admin/concepts/${id}`);
+  return response.json();
+};
