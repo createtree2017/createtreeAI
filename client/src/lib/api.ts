@@ -279,3 +279,17 @@ export const deleteConcept = async (id: string) => {
   const response = await apiRequest('DELETE', `/api/admin/concepts/${id}`);
   return response.json();
 };
+
+// ===== Internationalization (i18n) APIs =====
+
+// Get list of available languages
+export const getLanguages = async () => {
+  const response = await apiRequest('GET', '/api/languages');
+  return response.json();
+};
+
+// Upload translations for a specific language
+export const uploadTranslations = async (lang: string, translations: Record<string, string>) => {
+  const response = await apiRequest('POST', `/api/admin/translations/${lang}`, translations);
+  return response.json();
+};

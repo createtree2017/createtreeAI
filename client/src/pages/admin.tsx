@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -12,6 +12,8 @@ import {
   InsertConceptCategory 
 } from "@shared/schema";
 import BatchImportDialog from "@/components/BatchImportDialog";
+import { getLanguage, loadTranslations, setLanguage, t } from "@/lib/i18n";
+import { getLanguages, uploadTranslations } from "@/lib/api";
 
 import {
   Tabs,
@@ -67,7 +69,8 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
-import { CheckCircle, Edit, PlusCircle, Trash2, X, Download, Upload } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { CheckCircle, Edit, PlusCircle, Trash2, X, Download, Upload, Globe } from "lucide-react";
 
 // Define form validation schemas using Zod
 const personaFormSchema = z.object({
@@ -135,17 +138,18 @@ export default function AdminPage() {
   
   return (
     <div className="container py-10">
-      <h1 className="text-4xl font-bold mb-6">Admin Panel</h1>
+      <h1 className="text-4xl font-bold mb-6">{t('admin.title')}</h1>
       <p className="text-gray-500 mb-8">
-        Manage chat characters, image generation concepts, and categories
+        {t('admin.subtitle')}
       </p>
       
       <Tabs defaultValue="personas" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4 mb-8">
-          <TabsTrigger value="personas">Chat Characters</TabsTrigger>
-          <TabsTrigger value="categories">Chat Categories</TabsTrigger>
-          <TabsTrigger value="concepts">Image Concepts</TabsTrigger>
-          <TabsTrigger value="concept-categories">Image Categories</TabsTrigger>
+        <TabsList className="flex flex-wrap mb-8">
+          <TabsTrigger value="personas">{t('admin.tabs.personas')}</TabsTrigger>
+          <TabsTrigger value="categories">{t('admin.tabs.categories')}</TabsTrigger>
+          <TabsTrigger value="concepts">{t('admin.tabs.concepts')}</TabsTrigger>
+          <TabsTrigger value="concept-categories">{t('admin.tabs.conceptCategories')}</TabsTrigger>
+          <TabsTrigger value="languages">Languages</TabsTrigger>
         </TabsList>
         
         <TabsContent value="personas">
@@ -162,6 +166,10 @@ export default function AdminPage() {
         
         <TabsContent value="concept-categories">
           <ConceptCategoryManager />
+        </TabsContent>
+        
+        <TabsContent value="languages">
+          <LanguageSettings />
         </TabsContent>
       </Tabs>
     </div>
@@ -1689,22 +1697,1304 @@ function ConceptCategoryForm({ initialData, onSuccess }: ConceptCategoryFormProp
   );
 }
 
-// ConceptManager component (placeholder)
+// ConceptManager component for managing image generation concepts
 function ConceptManager() {
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingConcept, setEditingConcept] = useState<InsertConcept | null>(null);
+  const queryClient = useQueryClient();
+  
+  // Fetch concepts
+  const { data: concepts, isLoading, error } = useQuery({
+    queryKey: ["/api/admin/concepts"],
+  });
+  
+  // Fetch concept categories for select dropdown
+  const { data: categories } = useQuery({
+    queryKey: ["/api/admin/concept-categories"],
+  });
+  
+  // Handler for editing a concept
+  const handleEditConcept = (concept: InsertConcept) => {
+    setEditingConcept(concept);
+    setIsEditDialogOpen(true);
+  };
+  
+  // Delete concept mutation
+  const deleteConceptMutation = useMutation({
+    mutationFn: (conceptId: string) => apiRequest(`/api/admin/concepts/${conceptId}`, {
+      method: "DELETE",
+    }),
+    onSuccess: () => {
+      toast({
+        title: "Concept deleted",
+        description: "The concept has been deleted successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/concepts"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete concept. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Error deleting concept:", error);
+    },
+  });
+  
+  // Handler for deleting a concept
+  const handleDeleteConcept = (conceptId: string) => {
+    if (window.confirm("Are you sure you want to delete this concept? This action cannot be undone.")) {
+      deleteConceptMutation.mutate(conceptId);
+    }
+  };
+  
+  // Toggle active status mutation
+  const toggleActiveMutation = useMutation({
+    mutationFn: ({ conceptId, isActive }: { conceptId: string; isActive: boolean }) => {
+      const concept = concepts.find((c: any) => c.conceptId === conceptId);
+      return apiRequest(`/api/admin/concepts/${conceptId}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          ...concept,
+          isActive,
+        }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/concepts"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update concept status. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Error toggling concept status:", error);
+    },
+  });
+  
+  // Toggle featured status mutation
+  const toggleFeaturedMutation = useMutation({
+    mutationFn: ({ conceptId, isFeatured }: { conceptId: string; isFeatured: boolean }) => {
+      const concept = concepts.find((c: any) => c.conceptId === conceptId);
+      return apiRequest(`/api/admin/concepts/${conceptId}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          ...concept,
+          isFeatured,
+        }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/concepts"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update featured status. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Error toggling featured status:", error);
+    },
+  });
+  
+  // A/B Test tab state
+  const [abTestTabActive, setAbTestTabActive] = useState(false);
+  
+  if (isLoading) {
+    return <div className="text-center py-10">Loading concepts...</div>;
+  }
+  
+  if (error) {
+    return <div className="text-center py-10 text-red-500">Error loading concepts. Please refresh the page.</div>;
+  }
+  
   return (
     <div>
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <h2 className="text-2xl font-bold">Image Generation Concepts</h2>
-        <Button>
-          <PlusCircle className="h-4 w-4 mr-2" />
-          Add New Concept
-        </Button>
+        
+        <div className="flex flex-col sm:flex-row w-full md:w-auto gap-2">
+          <Tabs value={abTestTabActive ? "ab-test" : "concepts"} onValueChange={(val) => setAbTestTabActive(val === "ab-test")} className="w-full md:w-auto">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="concepts">Concepts</TabsTrigger>
+              <TabsTrigger value="ab-test">A/B Testing</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          
+          <Button onClick={() => setIsCreateDialogOpen(true)} className="w-full sm:w-auto">
+            <PlusCircle className="h-4 w-4 mr-2" />
+            Add New Concept
+          </Button>
+        </div>
       </div>
       
-      <div className="text-center py-10 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-        <p className="text-gray-500">Concept management interface is being implemented.</p>
-        <p className="text-gray-500 mt-2">Check back soon for the full functionality!</p>
+      {abTestTabActive ? (
+        <Card className="py-12">
+          <div className="text-center flex flex-col items-center justify-center gap-4 px-4">
+            <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-2">
+              <PlusCircle className="h-8 w-8 text-blue-600" />
+            </div>
+            <h3 className="text-xl font-semibold">Coming Soon: A/B Testing For Image Prompts</h3>
+            <p className="text-gray-500 max-w-xl">
+              Track image performance by prompt variation. Compare different prompts for the same concept and see which performs better with your users.
+            </p>
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl w-full">
+              <div className="border border-dashed rounded-lg p-4 bg-gray-50">
+                <p className="font-medium mb-2">Prompt A</p>
+                <p className="text-sm text-gray-500">Compare performance metrics for different prompt variations</p>
+              </div>
+              <div className="border border-dashed rounded-lg p-4 bg-gray-50">
+                <p className="font-medium mb-2">Prompt B</p>
+                <p className="text-sm text-gray-500">See which prompt generates images that users prefer</p>
+              </div>
+            </div>
+          </div>
+        </Card>
+      ) : concepts && concepts.length > 0 ? (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Variables</TableHead>
+                <TableHead>Active</TableHead>
+                <TableHead>Featured</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {concepts.map((concept: any) => {
+                const category = categories?.find((c: any) => c.categoryId === concept.categoryId);
+                
+                return (
+                  <TableRow key={concept.conceptId}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-start space-x-2">
+                        {concept.thumbnailUrl ? (
+                          <div className="group relative">
+                            <img 
+                              src={concept.thumbnailUrl} 
+                              alt={concept.title} 
+                              className="w-10 h-10 rounded object-cover cursor-pointer"
+                            />
+                            <div className="absolute left-0 -top-24 transform scale-0 group-hover:scale-100 transition-transform origin-bottom z-50 pointer-events-none">
+                              <img 
+                                src={concept.thumbnailUrl} 
+                                alt={concept.title} 
+                                className="w-40 h-40 rounded-md object-cover shadow-lg"
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
+                            <span className="text-gray-400 text-xs">No img</span>
+                          </div>
+                        )}
+                        <div>
+                          <div>{concept.title}</div>
+                          <div className="text-xs text-gray-500 truncate max-w-xs">{concept.description}</div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {category ? category.name : concept.categoryId}
+                    </TableCell>
+                    <TableCell>
+                      {concept.variables && Array.isArray(concept.variables) ? (
+                        <Badge variant="outline">{concept.variables.length} vars</Badge>
+                      ) : (
+                        <Badge variant="outline">0 vars</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Switch 
+                        checked={concept.isActive} 
+                        onCheckedChange={(checked) => 
+                          toggleActiveMutation.mutate({ conceptId: concept.conceptId, isActive: checked })
+                        }
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Switch 
+                        checked={concept.isFeatured} 
+                        onCheckedChange={(checked) => 
+                          toggleFeaturedMutation.mutate({ conceptId: concept.conceptId, isFeatured: checked })
+                        }
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <Button variant="ghost" size="sm" onClick={() => handleEditConcept(concept)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDeleteConcept(concept.conceptId)}>
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Card>
+      ) : (
+        <div className="text-center py-10 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+          <p className="text-gray-500">No concepts found. Create your first concept!</p>
+        </div>
+      )}
+      
+      {/* Create Concept Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create New Concept</DialogTitle>
+            <DialogDescription>
+              Add a new AI image generation concept.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <ConceptForm 
+            categories={categories || []} 
+            onSuccess={() => {
+              setIsCreateDialogOpen(false);
+              queryClient.invalidateQueries({ queryKey: ["/api/admin/concepts"] });
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+      
+      {/* Edit Concept Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Concept</DialogTitle>
+            <DialogDescription>
+              Modify this concept's details.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {editingConcept && (
+            <ConceptForm 
+              categories={categories || []} 
+              initialData={editingConcept}
+              onSuccess={() => {
+                setIsEditDialogOpen(false);
+                queryClient.invalidateQueries({ queryKey: ["/api/admin/concepts"] });
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// Form component for creating/editing concepts
+interface ConceptFormProps {
+  initialData?: InsertConcept;
+  categories: any[];
+  onSuccess: () => void;
+}
+
+function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
+  const queryClient = useQueryClient();
+  const [variableDialogOpen, setVariableDialogOpen] = useState(false);
+  const [editingVariableIndex, setEditingVariableIndex] = useState<number | null>(null);
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [previewValues, setPreviewValues] = useState<{[key: string]: string}>({});
+  
+  // Set up form
+  const form = useForm({
+    resolver: zodResolver(conceptSchema),
+    defaultValues: initialData || {
+      conceptId: "",
+      title: "",
+      description: "",
+      promptTemplate: "",
+      thumbnailUrl: "",
+      tagSuggestions: [],
+      variables: [],
+      categoryId: "",
+      isActive: true,
+      isFeatured: false,
+      order: 0,
+    },
+  });
+  
+  // Watch form values for prompt preview
+  const promptTemplate = form.watch("promptTemplate");
+  const variables = form.watch("variables") || [];
+  
+  // Extract variable names from the prompt template
+  const extractVariables = (template: string) => {
+    const regex = /{{([^{}]+)}}/g;
+    const matches = template.match(regex) || [];
+    return matches.map(match => match.slice(2, -2).trim());
+  };
+  
+  const promptVariables = extractVariables(promptTemplate);
+  
+  // Update preview values when variables change
+  useEffect(() => {
+    const newPreviewValues: {[key: string]: string} = {};
+    promptVariables.forEach(varName => {
+      // Find the variable in the variables array
+      const varDef = variables.find((v: any) => v.name === varName);
+      
+      // Set default preview value based on variable type
+      if (varDef) {
+        if (varDef.defaultValue !== undefined) {
+          newPreviewValues[varName] = String(varDef.defaultValue);
+        } else if (varDef.type === 'select' && varDef.options && varDef.options.length > 0) {
+          newPreviewValues[varName] = varDef.options[0];
+        } else if (varDef.type === 'number') {
+          newPreviewValues[varName] = '5';
+        } else if (varDef.type === 'boolean') {
+          newPreviewValues[varName] = 'true';
+        } else {
+          newPreviewValues[varName] = `[${varName}]`;
+        }
+      } else {
+        // For variables not defined yet
+        newPreviewValues[varName] = `[${varName}]`;
+      }
+    });
+    
+    setPreviewValues(newPreviewValues);
+  }, [promptTemplate, variables]);
+  
+  // Generate prompt preview with replaced variables
+  const getPromptPreview = () => {
+    let preview = promptTemplate;
+    
+    Object.entries(previewValues).forEach(([varName, value]) => {
+      preview = preview.replace(new RegExp(`{{\\s*${varName}\\s*}}`, 'g'), value);
+    });
+    
+    return preview;
+  };
+  
+  // Create/update mutation
+  const submitMutation = useMutation({
+    mutationFn: (values: z.infer<typeof conceptSchema>) => {
+      if (initialData) {
+        return apiRequest(`/api/admin/concepts/${initialData.conceptId}`, {
+          method: "PUT",
+          body: JSON.stringify(values),
+        });
+      } else {
+        return apiRequest("/api/admin/concepts", {
+          method: "POST",
+          body: JSON.stringify(values),
+        });
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: initialData ? "Concept updated" : "Concept created",
+        description: initialData ? 
+          "The concept has been updated successfully" : 
+          "The concept has been created successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/concepts"] });
+      onSuccess();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to ${initialData ? 'update' : 'create'} concept. Please try again.`,
+        variant: "destructive",
+      });
+      console.error(`Error ${initialData ? 'updating' : 'creating'} concept:`, error);
+    },
+  });
+  
+  function onSubmit(values: z.infer<typeof conceptSchema>) {
+    submitMutation.mutate(values);
+  }
+  
+  // Update variable form values and add missing variable definitions
+  useEffect(() => {
+    // For each variable found in the prompt
+    promptVariables.forEach(varName => {
+      // Check if it exists in the current variables array
+      const exists = variables.some((v: any) => v.name === varName);
+      
+      // If it doesn't exist, add it as a new variable
+      if (!exists) {
+        const newVariables = [...variables];
+        newVariables.push({
+          name: varName,
+          description: `Description for ${varName}`,
+          type: "text",
+          required: true
+        });
+        form.setValue("variables", newVariables);
+      }
+    });
+  }, [promptTemplate]);
+  
+  // Handle variable preview value change
+  const handlePreviewValueChange = (varName: string, value: string) => {
+    setPreviewValues({
+      ...previewValues,
+      [varName]: value
+    });
+  };
+  
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="conceptId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Concept ID</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="unique-id" 
+                    {...field} 
+                    disabled={!!initialData}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="title"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Title</FormLabel>
+                <FormControl>
+                  <Input placeholder="Concept name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="categoryId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Category</FormLabel>
+                <Select 
+                  onValueChange={field.onChange} 
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {categories.map((category: any) => (
+                      <SelectItem key={category.categoryId} value={category.categoryId}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="thumbnailUrl"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Thumbnail URL</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="https://example.com/image.jpg" 
+                    {...field} 
+                    value={field.value || ""}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="order"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Display Order</FormLabel>
+                <FormControl>
+                  <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <div className="flex gap-2">
+            <FormField
+              control={form.control}
+              name="isActive"
+              render={({ field }) => (
+                <FormItem className="flex-1 flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Active</FormLabel>
+                    <p className="text-sm text-gray-500">
+                      Enable or disable this concept
+                    </p>
+                  </div>
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="isFeatured"
+              render={({ field }) => (
+                <FormItem className="flex-1 flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Featured</FormLabel>
+                    <p className="text-sm text-gray-500">
+                      Show in featured section
+                    </p>
+                  </div>
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+        
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea placeholder="Describe this concept" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="promptTemplate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Prompt Template</FormLabel>
+              <FormControl>
+                <Textarea 
+                  placeholder="Create a watercolor style image of {{object}} with {{style_details}}" 
+                  className="min-h-32" 
+                  {...field} 
+                />
+              </FormControl>
+              <FormDescription>
+                Use double curly braces <code className="bg-gray-100 px-1 rounded">{'{{variable_name}}'}</code> to define variables that will be replaced.
+                Variables will be automatically added to the variables list below.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        {/* Prompt Preview Section */}
+        {promptTemplate && (
+          <div className="border rounded-md p-4 bg-gray-50">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="font-medium">Prompt Preview</h3>
+              <Button type="button" variant="outline" size="sm" onClick={() => setPreviewVisible(!previewVisible)}>
+                {previewVisible ? "Hide Preview" : "Show Preview"}
+              </Button>
+            </div>
+            
+            {previewVisible && (
+              <>
+                <div className="border bg-white rounded-md p-3 mb-3">
+                  <p className="whitespace-pre-wrap">{getPromptPreview()}</p>
+                </div>
+                
+                {promptVariables.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Customize Preview Values:</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {promptVariables.map(varName => {
+                        const varDef = variables.find((v: any) => v.name === varName);
+                        
+                        return (
+                          <div key={varName} className="flex items-center gap-2">
+                            <span className="text-sm font-medium min-w-24">{varName}:</span>
+                            {varDef && varDef.type === 'select' ? (
+                              <select 
+                                className="flex-1 px-2 py-1 border rounded text-sm"
+                                value={previewValues[varName] || ''}
+                                onChange={(e) => handlePreviewValueChange(varName, e.target.value)}
+                              >
+                                {(varDef.options || []).map((option: string) => (
+                                  <option key={option} value={option}>{option}</option>
+                                ))}
+                              </select>
+                            ) : varDef && varDef.type === 'boolean' ? (
+                              <select 
+                                className="flex-1 px-2 py-1 border rounded text-sm"
+                                value={previewValues[varName] || 'true'}
+                                onChange={(e) => handlePreviewValueChange(varName, e.target.value)}
+                              >
+                                <option value="true">Yes</option>
+                                <option value="false">No</option>
+                              </select>
+                            ) : (
+                              <input 
+                                type={varDef && varDef.type === 'number' ? 'number' : 'text'}
+                                className="flex-1 px-2 py-1 border rounded text-sm"
+                                value={previewValues[varName] || ''}
+                                onChange={(e) => handlePreviewValueChange(varName, e.target.value)}
+                                placeholder={`Value for ${varName}`}
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+        
+        <div>
+          <div className="flex justify-between items-center mb-2">
+            <FormLabel>Variables</FormLabel>
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                setEditingVariableIndex(null);
+                setVariableDialogOpen(true);
+              }}
+            >
+              <PlusCircle className="h-4 w-4 mr-2" />
+              Add Variable
+            </Button>
+          </div>
+          
+          {variables.length > 0 ? (
+            <div className="border rounded-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Required</TableHead>
+                    <TableHead>Used in Prompt</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {variables.map((variable: any, index: number) => {
+                    const isUsedInPrompt = promptVariables.includes(variable.name);
+                    
+                    return (
+                      <TableRow key={index} className={!isUsedInPrompt ? "bg-gray-50" : ""}>
+                        <TableCell className="font-medium">
+                          <div>
+                            <div>{variable.name}</div>
+                            <div className="text-xs text-gray-500">{variable.description}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{variable.type}</Badge>
+                          {variable.type === 'select' && variable.options?.length > 0 && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              {variable.options.length} options
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {variable.required ? 
+                            <CheckCircle className="h-4 w-4 text-green-500" /> : 
+                            <X className="h-4 w-4 text-gray-300" />
+                          }
+                        </TableCell>
+                        <TableCell>
+                          {isUsedInPrompt ? 
+                            <CheckCircle className="h-4 w-4 text-green-500" /> : 
+                            <Badge variant="outline" className="text-yellow-600 bg-yellow-50">Unused</Badge>
+                          }
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => {
+                                setEditingVariableIndex(index);
+                                setVariableDialogOpen(true);
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => {
+                                const newVariables = [...variables];
+                                newVariables.splice(index, 1);
+                                form.setValue("variables", newVariables);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="text-center py-6 border border-dashed rounded-md text-gray-500">
+              No variables defined. Add variables to make your concept customizable.
+            </div>
+          )}
+        </div>
+        
+        <div className="flex gap-2 justify-end">
+          <Button type="submit" disabled={submitMutation.isPending}>
+            {submitMutation.isPending ? (
+              <>
+                <span className="animate-spin mr-2">⏳</span>
+                {initialData ? "Updating..." : "Creating..."}
+              </>
+            ) : (
+              <>{initialData ? "Update" : "Create"} Concept</>
+            )}
+          </Button>
+        </div>
+      </form>
+      
+      {/* Variable Dialog */}
+      <Dialog open={variableDialogOpen} onOpenChange={setVariableDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editingVariableIndex !== null ? "Edit Variable" : "Add Variable"}
+            </DialogTitle>
+            <DialogDescription>
+              Define a variable for the prompt template.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <VariableForm 
+            initialData={editingVariableIndex !== null ? variables[editingVariableIndex] : undefined}
+            onSave={(variable) => {
+              const newVariables = [...variables];
+              if (editingVariableIndex !== null) {
+                newVariables[editingVariableIndex] = variable;
+              } else {
+                newVariables.push(variable);
+              }
+              form.setValue("variables", newVariables);
+              setVariableDialogOpen(false);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+    </Form>
+  );
+}
+
+// Form for variable editing
+interface VariableFormProps {
+  initialData?: any;
+  onSave: (variable: any) => void;
+}
+
+function VariableForm({ initialData, onSave }: VariableFormProps) {
+  const variableForm = useForm({
+    defaultValues: initialData || {
+      name: "",
+      description: "",
+      type: "text",
+      required: true,
+      options: [],
+      defaultValue: ""
+    }
+  });
+  
+  const variableType = variableForm.watch("type");
+  const [newOption, setNewOption] = useState("");
+  
+  function handleSubmit(values: any) {
+    // For select type, ensure options array is available
+    if (values.type === "select" && (!values.options || !Array.isArray(values.options))) {
+      values.options = [];
+    }
+    
+    // Convert defaultValue to the appropriate type
+    if (values.type === "number" && values.defaultValue !== undefined) {
+      values.defaultValue = Number(values.defaultValue);
+    } else if (values.type === "boolean" && values.defaultValue !== undefined) {
+      values.defaultValue = values.defaultValue === "true";
+    }
+    
+    onSave(values);
+  }
+  
+  return (
+    <form onSubmit={variableForm.handleSubmit(handleSubmit)} className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Name</label>
+          <Input 
+            placeholder="variable_name" 
+            {...variableForm.register("name", { required: true })}
+          />
+          {variableForm.formState.errors.name && (
+            <p className="text-red-500 text-xs">Name is required</p>
+          )}
+          <p className="text-xs text-gray-500">
+            Use only letters, numbers, and underscores (e.g., baby_name, bg_color)
+          </p>
+        </div>
+        
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Type</label>
+          <select 
+            className="w-full rounded-md border border-input bg-background px-3 py-2"
+            {...variableForm.register("type")}
+          >
+            <option value="text">Text</option>
+            <option value="select">Select (Dropdown)</option>
+            <option value="number">Number</option>
+            <option value="boolean">Boolean (Yes/No)</option>
+          </select>
+          <p className="text-xs text-gray-500">
+            Controls how users will input this value
+          </p>
+        </div>
       </div>
+      
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Description</label>
+        <Input 
+          placeholder="Describe what this variable is for" 
+          {...variableForm.register("description", { required: true })}
+        />
+        {variableForm.formState.errors.description && (
+          <p className="text-red-500 text-xs">Description is required</p>
+        )}
+        <p className="text-xs text-gray-500">
+          This will be shown to users as a tooltip or helper text
+        </p>
+      </div>
+      
+      {variableType === "select" && (
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Options</label>
+          <div className="flex space-x-2">
+            <Input 
+              placeholder="New option" 
+              value={newOption}
+              onChange={(e) => setNewOption(e.target.value)}
+            />
+            <Button 
+              type="button"
+              onClick={() => {
+                if (newOption.trim()) {
+                  const currentOptions = variableForm.getValues("options") || [];
+                  variableForm.setValue("options", [...currentOptions, newOption.trim()]);
+                  setNewOption("");
+                }
+              }}
+            >
+              Add
+            </Button>
+          </div>
+          
+          <div className="border rounded-md p-2 min-h-[100px] space-y-1">
+            {(variableForm.watch("options") || []).map((option: string, index: number) => (
+              <div key={index} className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                <span>{option}</span>
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => {
+                    const currentOptions = variableForm.getValues("options") || [];
+                    variableForm.setValue(
+                      "options", 
+                      currentOptions.filter((_, i) => i !== index)
+                    );
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            {(!variableForm.watch("options") || variableForm.watch("options").length === 0) && (
+              <p className="text-gray-400 text-center py-2">No options added yet</p>
+            )}
+          </div>
+          <p className="text-xs text-gray-500">
+            Users will select from these options in a dropdown menu
+          </p>
+        </div>
+      )}
+      
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Default Value</label>
+        {variableType === "text" && (
+          <Input 
+            placeholder="Default text" 
+            {...variableForm.register("defaultValue")}
+          />
+        )}
+        {variableType === "number" && (
+          <Input 
+            type="number" 
+            placeholder="0" 
+            {...variableForm.register("defaultValue")}
+          />
+        )}
+        {variableType === "select" && (
+          <select 
+            className="w-full rounded-md border border-input bg-background px-3 py-2"
+            {...variableForm.register("defaultValue")}
+          >
+            <option value="">Select a default option</option>
+            {(variableForm.watch("options") || []).map((option: string, index: number) => (
+              <option key={index} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        )}
+        {variableType === "boolean" && (
+          <select 
+            className="w-full rounded-md border border-input bg-background px-3 py-2"
+            {...variableForm.register("defaultValue")}
+          >
+            <option value="">No default</option>
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+          </select>
+        )}
+        <p className="text-xs text-gray-500">
+          Optional pre-filled value for this variable
+        </p>
+      </div>
+      
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id="required"
+          checked={variableForm.watch("required")}
+          onCheckedChange={(checked) => 
+            variableForm.setValue("required", checked === true)
+          }
+        />
+        <label 
+          htmlFor="required"
+          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+        >
+          Required field
+        </label>
+      </div>
+      
+      <DialogFooter>
+        <Button type="submit">Save Variable</Button>
+      </DialogFooter>
+    </form>
+  );
+}
+
+// Language Settings component
+function LanguageSettings() {
+  const [currentLanguage, setCurrentLanguage] = useState(getLanguage());
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
+  
+  // Fetch available languages
+  const { data: languages, isLoading } = useQuery({
+    queryKey: ["/api/languages"],
+    queryFn: getLanguages
+  });
+  
+  const handleLanguageChange = (lang: string) => {
+    setLanguage(lang);
+    setCurrentLanguage(lang);
+    toast({
+      title: "Language Changed",
+      description: `Application language has been changed to ${lang.toUpperCase()}`,
+    });
+  };
+  
+  const handleOpenUploadDialog = (lang: string) => {
+    setSelectedLanguage(lang);
+    setUploadDialogOpen(true);
+  };
+  
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Language Settings</h2>
+      </div>
+      
+      <Card className="p-6">
+        <div className="mb-6">
+          <h3 className="text-lg font-medium mb-2">Current Language</h3>
+          <p>The application is currently displayed in <strong>{currentLanguage.toUpperCase()}</strong></p>
+          
+          <div className="flex gap-2 mt-4">
+            {!isLoading && languages?.map((lang: any) => (
+              <Button 
+                key={lang.code}
+                variant={currentLanguage === lang.code ? "default" : "outline"}
+                onClick={() => handleLanguageChange(lang.code)}
+                className="flex items-center gap-2"
+              >
+                <Globe className="h-4 w-4" />
+                {lang.name}
+                {lang.isDefault && <Badge variant="outline" className="ml-1">Default</Badge>}
+              </Button>
+            ))}
+          </div>
+        </div>
+        
+        <Alert>
+          <Globe className="h-4 w-4" />
+          <AlertTitle>Translation Management</AlertTitle>
+          <AlertDescription>
+            Upload translation files for different languages.
+            Each file should be a JSON object with translation keys and their corresponding texts.
+          </AlertDescription>
+        </Alert>
+        
+        <div className="mt-6">
+          <h3 className="text-lg font-medium mb-2">Upload Translations</h3>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Language</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {!isLoading && languages?.map((lang: any) => (
+                <TableRow key={lang.code}>
+                  <TableCell>{lang.name} ({lang.code})</TableCell>
+                  <TableCell>
+                    {lang.isDefault ? (
+                      <Badge variant="outline" className="bg-green-50">Default Source</Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-yellow-50">Needs Translation</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleOpenUploadDialog(lang.code)}
+                      disabled={lang.isDefault}
+                      className="flex items-center gap-1"
+                    >
+                      <Upload className="h-4 w-4" />
+                      Upload
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
+      
+      {/* Upload Dialog */}
+      <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Upload Translations</DialogTitle>
+            <DialogDescription>
+              Upload translations for {selectedLanguage?.toUpperCase()}. 
+              The file should be a JSON object with translation keys and their corresponding texts.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <TranslationUploadForm 
+            language={selectedLanguage || ""}
+            onSuccess={() => setUploadDialogOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// Translation Upload Form
+interface TranslationUploadFormProps {
+  language: string;
+  onSuccess: () => void;
+}
+
+function TranslationUploadForm({ language, onSuccess }: TranslationUploadFormProps) {
+  const [fileContent, setFileContent] = useState<string | null>(null);
+  const [parsedTranslations, setParsedTranslations] = useState<Record<string, string> | null>(null);
+  const [parseError, setParseError] = useState<string | null>(null);
+  
+  // Upload mutation
+  const uploadMutation = useMutation({
+    mutationFn: () => {
+      if (!parsedTranslations) return Promise.reject("No translations to upload");
+      return uploadTranslations(language, parsedTranslations);
+    },
+    onSuccess: (response) => {
+      toast({
+        title: "Translations Uploaded",
+        description: `Successfully uploaded ${response.count} translations for ${language.toUpperCase()}`,
+      });
+      
+      // Load translations into the app
+      if (parsedTranslations) {
+        loadTranslations(language, parsedTranslations);
+      }
+      
+      onSuccess();
+    },
+    onError: (error) => {
+      toast({
+        title: "Upload Failed",
+        description: String(error),
+        variant: "destructive"
+      });
+    }
+  });
+  
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setParseError(null);
+    setParsedTranslations(null);
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const content = event.target?.result as string;
+        setFileContent(content);
+        
+        // Try to parse as JSON
+        const parsed = JSON.parse(content);
+        
+        // Validate it's a flat object with string values
+        if (typeof parsed !== 'object' || Array.isArray(parsed) || parsed === null) {
+          throw new Error("Translation file must be a JSON object with key-value pairs");
+        }
+        
+        // Check all values are strings
+        for (const [key, value] of Object.entries(parsed)) {
+          if (typeof value !== 'string') {
+            throw new Error(`Value for key "${key}" is not a string`);
+          }
+        }
+        
+        setParsedTranslations(parsed);
+      } catch (err) {
+        console.error("Error parsing translations file:", err);
+        setParseError(err instanceof Error ? err.message : "Unknown error parsing JSON");
+      }
+    };
+    
+    reader.readAsText(file);
+  };
+  
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Translation File (JSON)</label>
+        <Input 
+          type="file" 
+          accept=".json" 
+          onChange={handleFileChange} 
+        />
+        <p className="text-xs text-gray-500">
+          Upload a JSON file containing translations for {language.toUpperCase()}
+        </p>
+      </div>
+      
+      {parseError && (
+        <Alert variant="destructive" className="mt-4">
+          <AlertTitle>Error Parsing File</AlertTitle>
+          <AlertDescription>{parseError}</AlertDescription>
+        </Alert>
+      )}
+      
+      {parsedTranslations && (
+        <div>
+          <h3 className="text-sm font-medium mb-2">Preview</h3>
+          <div className="max-h-64 overflow-y-auto border rounded-md p-4">
+            <p className="text-sm mb-2">Found {Object.keys(parsedTranslations).length} translations</p>
+            <div className="space-y-1">
+              {Object.entries(parsedTranslations).slice(0, 10).map(([key, value]) => (
+                <div key={key} className="grid grid-cols-2 gap-2 text-sm">
+                  <span className="font-mono text-gray-500 truncate">{key}</span>
+                  <span className="truncate">{value}</span>
+                </div>
+              ))}
+              {Object.keys(parsedTranslations).length > 10 && (
+                <p className="text-xs text-gray-500 mt-2">
+                  (showing 10 of {Object.keys(parsedTranslations).length} translations)
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <DialogFooter>
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={onSuccess}
+        >
+          Cancel
+        </Button>
+        <Button 
+          type="button" 
+          onClick={() => uploadMutation.mutate()}
+          disabled={!parsedTranslations || uploadMutation.isPending}
+        >
+          {uploadMutation.isPending ? "Uploading..." : "Upload Translations"}
+        </Button>
+      </DialogFooter>
     </div>
   );
 }

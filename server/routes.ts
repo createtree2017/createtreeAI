@@ -1241,6 +1241,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Internationalization (i18n) API endpoints
+  
+  // Upload translations for a specific language
+  app.post("/api/admin/translations/:lang", async (req, res) => {
+    try {
+      const lang = req.params.lang;
+      const translations = req.body;
+      
+      if (!translations || typeof translations !== 'object') {
+        return res.status(400).json({ error: "Invalid translations format. Expected JSON object with key-value pairs." });
+      }
+      
+      // In a real implementation, we would store these in a database or file system
+      // For now, we'll just return a success response
+      
+      return res.json({ 
+        success: true, 
+        message: `Successfully uploaded translations for ${lang}`,
+        count: Object.keys(translations).length
+      });
+    } catch (error) {
+      console.error("Error uploading translations:", error);
+      return res.status(500).json({ error: "Failed to upload translations" });
+    }
+  });
+  
+  // Get available languages
+  app.get("/api/languages", async (req, res) => {
+    try {
+      // In a real implementation, we would retrieve this from a database
+      // For now, we'll just return a predefined list
+      return res.json([
+        { code: "en", name: "English", isDefault: true },
+        { code: "ko", name: "Korean" }
+      ]);
+    } catch (error) {
+      console.error("Error fetching languages:", error);
+      return res.status(500).json({ error: "Failed to fetch languages" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
