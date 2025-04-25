@@ -2,9 +2,86 @@ import { useState, useRef, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useEphemeralChatStore, useSendEphemeralMessage, suggestedTopics, type ChatMessage } from "@/lib/openai";
-import { Bot, Send, User, Trash2, RefreshCw } from "lucide-react";
+import { useEphemeralChatStore, useSendEphemeralMessage, suggestedTopics, chatPersonas, type ChatMessage, type ChatPersona } from "@/lib/openai";
+import { Bot, Send, User, Trash2, RefreshCw, Check } from "lucide-react";
 import { format } from 'date-fns';
+import { cn } from "@/lib/utils";
+
+// Persona selection component
+function PersonaSelector() {
+  const selectedPersona = useEphemeralChatStore((state) => state.selectedPersona);
+  const setPersona = useEphemeralChatStore((state) => state.setPersona);
+  const [isOpen, setIsOpen] = useState(false);
+  const { toast } = useToast();
+  
+  const handleSelectPersona = (persona: ChatPersona) => {
+    setPersona(persona.id);
+    setIsOpen(false);
+    toast({
+      title: `Now chatting with ${persona.name}`,
+      description: persona.description,
+    });
+  };
+  
+  return (
+    <div className="mb-6">
+      <h3 className="font-heading font-semibold text-lg mb-3">Choose Your Companion</h3>
+      
+      {/* Selected persona */}
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between bg-white p-4 rounded-lg shadow-soft border border-neutral-light hover:border-primary/50 transition-all mb-2"
+      >
+        <div className="flex items-center">
+          <div className="text-2xl mr-3">{selectedPersona.avatarEmoji}</div>
+          <div className="text-left">
+            <h4 className="font-medium">{selectedPersona.name}</h4>
+            <p className="text-xs text-neutral-dark line-clamp-1">{selectedPersona.description}</p>
+          </div>
+        </div>
+        <div className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+      </button>
+      
+      {/* Persona options */}
+      {isOpen && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3 animate-fadeIn">
+          {chatPersonas.map((persona) => (
+            <button
+              key={persona.id}
+              onClick={() => handleSelectPersona(persona)}
+              className={cn(
+                "flex items-start p-3 rounded-lg transition-all border",
+                persona.id === selectedPersona.id
+                  ? `bg-${persona.primaryColor}/10 border-${persona.primaryColor}/50 shadow-md`
+                  : "bg-white border-neutral-light hover:border-neutral"
+              )}
+              style={{ 
+                backgroundColor: persona.id === selectedPersona.id ? `${persona.secondaryColor}40` : '', 
+                borderColor: persona.id === selectedPersona.id ? persona.primaryColor : '' 
+              }}
+            >
+              <div className="text-2xl mr-3 mt-1">{persona.avatarEmoji}</div>
+              <div className="text-left flex-1">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium" 
+                    style={{ color: persona.id === selectedPersona.id ? persona.primaryColor : '' }}>
+                    {persona.name}
+                  </h4>
+                  {persona.id === selectedPersona.id && (
+                    <Check size={16} className="text-green-500" />
+                  )}
+                </div>
+                <p className="text-sm text-neutral-dark">{persona.description}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Chat() {
   const { toast } = useToast();
@@ -15,6 +92,7 @@ export default function Chat() {
   // Get ephemeral chat messages from local store
   const chatMessages = useEphemeralChatStore((state) => state.messages);
   const clearMessages = useEphemeralChatStore((state) => state.clearMessages);
+  const selectedPersona = useEphemeralChatStore((state) => state.selectedPersona);
   const isLoadingMessages = false; // Always false as messages are locally stored
   
   // Send ephemeral message mutation
@@ -98,11 +176,16 @@ export default function Chat() {
         <div className="p-4 border-b border-neutral-light bg-gradient-to-r from-primary-light/40 to-accent1-light/30">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="bg-white text-primary rounded-full p-2 w-11 h-11 flex items-center justify-center shadow-sm">
-                <Bot className="h-6 w-6" />
+              <div 
+                className="text-white rounded-full p-2 w-11 h-11 flex items-center justify-center shadow-sm"
+                style={{ backgroundColor: selectedPersona.primaryColor }}
+              >
+                <span className="text-xl">{selectedPersona.avatarEmoji}</span>
               </div>
               <div>
-                <h3 className="font-heading font-semibold text-primary-dark">Maternal Guide</h3>
+                <h3 className="font-heading font-semibold" style={{ color: selectedPersona.primaryColor }}>
+                  {selectedPersona.name}
+                </h3>
                 <p className="text-xs text-neutral-dark">
                   {isSending ? "Thinking..." : "Here to support you 24/7"}
                 </p>
@@ -131,17 +214,26 @@ export default function Chat() {
             chatMessages.map((msg: ChatMessage) => (
               msg.role === "assistant" ? (
                 <div key={msg.id} className="flex items-start space-x-2 animate-fadeIn">
-                  <div className="bg-primary-light text-primary rounded-full p-1.5 w-8 h-8 flex items-center justify-center mt-1">
-                    <Bot className="h-4 w-4" />
+                  <div 
+                    className="text-white rounded-full p-1.5 w-8 h-8 flex items-center justify-center mt-1"
+                    style={{ backgroundColor: selectedPersona.primaryColor }}
+                  >
+                    <span className="text-sm">{selectedPersona.avatarEmoji}</span>
                   </div>
-                  <div className="bg-neutral-lightest rounded-t-xl rounded-br-xl p-3 max-w-[85%] shadow-softer">
+                  <div 
+                    className="rounded-t-xl rounded-br-xl p-3 max-w-[85%] shadow-softer"
+                    style={{ backgroundColor: `${selectedPersona.secondaryColor}50` }}
+                  >
                     <p className="text-sm leading-relaxed">{msg.content}</p>
                     <p className="text-xs text-neutral-dark mt-1.5">{formatTime(msg.createdAt)}</p>
                   </div>
                 </div>
               ) : (
                 <div key={msg.id} className="flex items-start justify-end space-x-2 animate-fadeIn">
-                  <div className="bg-primary/10 rounded-t-xl rounded-bl-xl p-3 max-w-[85%] shadow-softer">
+                  <div 
+                    className="rounded-t-xl rounded-bl-xl p-3 max-w-[85%] shadow-softer"
+                    style={{ backgroundColor: "rgba(124, 58, 237, 0.1)" }}
+                  >
                     <p className="text-sm leading-relaxed">{msg.content}</p>
                     <p className="text-xs text-neutral-dark mt-1.5">{formatTime(msg.createdAt)}</p>
                   </div>

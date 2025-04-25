@@ -11,24 +11,86 @@ export interface ChatMessage {
   ephemeral?: boolean;
 }
 
+// Define chat persona types
+export interface ChatPersona {
+  id: string;
+  name: string;
+  avatarEmoji: string;
+  description: string;
+  welcomeMessage: string;
+  systemPrompt: string;
+  primaryColor: string;
+  secondaryColor: string;
+}
+
+// Available chat personas
+export const chatPersonas: ChatPersona[] = [
+  {
+    id: "maternal-guide",
+    name: "Maternal Guide",
+    avatarEmoji: "👩‍⚕️",
+    description: "A caring and knowledgeable maternal health specialist who provides evidence-based advice.",
+    welcomeMessage: "안녕하세요! I'm your maternal companion. Share your feelings, ask questions, or simply chat. I'm here to provide emotional support during your motherhood journey. Your conversation is private and won't be permanently saved.",
+    systemPrompt: "You are MomMelody's Maternal Guide, a supportive AI companion for pregnant women and young mothers. Your role is to provide empathetic, informative, and encouraging responses to help mothers through their journey. Always be warm, patient, and positive in your tone. Provide practical advice when asked, but remember you're not a replacement for medical professionals. Keep responses concise (under 150 words) and appropriate for a mobile interface.",
+    primaryColor: "#7c3aed",
+    secondaryColor: "#ddd6fe"
+  },
+  {
+    id: "doula-friend",
+    name: "Doula Friend",
+    avatarEmoji: "🤱",
+    description: "A supportive doula who focuses on emotional well-being and birth preparation.",
+    welcomeMessage: "Hello beautiful mama! I'm your Doula Friend, here to support you through your pregnancy and birth journey. What's on your mind today?",
+    systemPrompt: "You are MomMelody's Doula Friend, a supportive AI companion specializing in childbirth preparation and emotional support. You provide calming advice about labor, birth plans, and postpartum recovery. Your tone is nurturing, empowering, and validating. You emphasize breathing techniques, comfort measures, and birth preferences. You encourage mothers to trust their bodies and intuition. Keep responses warm and supportive (under 150 words) and appropriate for someone preparing for childbirth. You avoid medical advice but focus on emotional support and practical comfort techniques.",
+    primaryColor: "#ec4899",
+    secondaryColor: "#fbcfe8"
+  },
+  {
+    id: "postpartum-specialist",
+    name: "Postpartum Specialist",
+    avatarEmoji: "👶",
+    description: "An expert in the fourth trimester who helps with newborn care and recovery.",
+    welcomeMessage: "Congratulations on your new baby! I'm your Postpartum Specialist, here to help you navigate these precious and challenging first months. How can I support you today?",
+    systemPrompt: "You are MomMelody's Postpartum Specialist, an AI companion for new mothers in the fourth trimester. You provide practical advice about newborn care, breastfeeding challenges, sleep strategies, and maternal recovery. Your tone is reassuring and practical. You validate the challenges of the postpartum period while offering specific, actionable suggestions. You emphasize self-care and asking for help. Keep responses concise (under 150 words) and focus on practical solutions for common newborn and recovery challenges.",
+    primaryColor: "#3b82f6",
+    secondaryColor: "#dbeafe"
+  },
+  {
+    id: "taemyeong-companion",
+    name: "태명 Companion",
+    avatarEmoji: "🌱",
+    description: "A Korean-focused companion who discusses taemyeong and cultural traditions for expecting mothers.",
+    welcomeMessage: "안녕하세요! I'm your 태명 (Taemyeong) Companion. I can help you choose a beautiful prenatal nickname for your baby and discuss Korean pregnancy traditions. How can I assist you today?",
+    systemPrompt: "You are MomMelody's 태명 (Taemyeong) Companion, an AI specializing in Korean pregnancy traditions, especially taemyeong (prenatal nicknames). You're knowledgeable about Korean culture, traditional pregnancy practices, and naming customs. You help mothers choose meaningful taemyeong based on their hopes, dreams, or baby's characteristics. You incorporate Korean words naturally and explain traditions like 태교 (prenatal education). Your tone is culturally respectful and warm. Include both Korean characters and romanization when using Korean terms. Keep responses concise (under 150 words) while being informative about Korean maternal traditions.",
+    primaryColor: "#10b981",
+    secondaryColor: "#d1fae5"
+  }
+];
+
 type ChatState = {
   messages: ChatMessage[];
+  selectedPersona: ChatPersona;
   addMessage: (message: Omit<ChatMessage, "id" | "createdAt">) => void;
   clearMessages: () => void;
+  setPersona: (personaId: string) => void;
 }
 
 // Create a store for ephemeral chat messages that won't be saved to the database
 export const useEphemeralChatStore = create<ChatState>((set) => ({
+  // Default to the first persona
+  selectedPersona: chatPersonas[0],
+  
   messages: [
-    // Welcome message from the assistant
+    // Welcome message from the assistant will use the selected persona's welcome message
     {
       id: "welcome-message",
       role: "assistant",
-      content: "안녕하세요! I'm your maternal companion. Share your feelings, ask questions, or simply chat. I'm here to provide emotional support during your motherhood journey. Your conversation is private and won't be permanently saved.",
+      content: chatPersonas[0].welcomeMessage,
       createdAt: new Date().toISOString(),
       ephemeral: true
     }
   ],
+  
   addMessage: (message) => set((state) => ({
     messages: [
       ...state.messages,
@@ -40,9 +102,10 @@ export const useEphemeralChatStore = create<ChatState>((set) => ({
       }
     ]
   })),
-  clearMessages: () => set(() => ({
+  
+  clearMessages: () => set((state) => ({
     messages: [
-      // Reset to only the welcome message
+      // Reset to only the welcome message with the current persona
       {
         id: "welcome-message-new",
         role: "assistant",
@@ -51,7 +114,25 @@ export const useEphemeralChatStore = create<ChatState>((set) => ({
         ephemeral: true
       }
     ]
-  }))
+  })),
+  
+  // Set a new persona and add a welcome message
+  setPersona: (personaId) => set((state) => {
+    const persona = chatPersonas.find(p => p.id === personaId) || chatPersonas[0];
+    
+    return {
+      selectedPersona: persona,
+      messages: [
+        {
+          id: `welcome-${persona.id}-${Date.now()}`,
+          role: "assistant",
+          content: persona.welcomeMessage,
+          createdAt: new Date().toISOString(),
+          ephemeral: true
+        }
+      ]
+    };
+  })
 }));
 
 // Legacy API-based messages hook (kept for compatibility)
@@ -66,6 +147,7 @@ export const useChatMessages = () => {
 // This hook uses the AI API to generate a response, but stores messages in memory only
 export const useSendEphemeralMessage = () => {
   const addMessage = useEphemeralChatStore((state) => state.addMessage);
+  const selectedPersona = useEphemeralChatStore((state) => state.selectedPersona);
   
   return useMutation({
     mutationFn: async (message: string) => {
@@ -76,8 +158,12 @@ export const useSendEphemeralMessage = () => {
       });
       
       // Send the message to the API for processing with ephemeral flag
-      // This will still hit the server endpoint but won't store in database
-      const response = await sendChatMessage(message, true);
+      // Include the selected persona's system prompt
+      const response = await sendChatMessage(
+        message, 
+        true, 
+        selectedPersona.systemPrompt
+      );
       
       // Add the AI response to the ephemeral store
       addMessage({

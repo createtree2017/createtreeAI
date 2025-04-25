@@ -37,12 +37,20 @@ export const getImageList = async () => {
 };
 
 // Chat API endpoints
-export const sendChatMessage = async (message: string, ephemeral: boolean = false) => {
+export const sendChatMessage = async (
+  message: string, 
+  ephemeral: boolean = false,
+  personaSystemPrompt?: string
+) => {
   const url = ephemeral 
     ? '/api/chat/message?ephemeral=true'
     : '/api/chat/message';
   
-  const response = await apiRequest('POST', url, { message });
+  const payload = personaSystemPrompt 
+    ? { message, personaSystemPrompt } 
+    : { message };
+  
+  const response = await apiRequest('POST', url, payload);
   return response.json();
 };
 

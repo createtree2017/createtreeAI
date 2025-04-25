@@ -49,6 +49,7 @@ const musicGenerationSchema = z.object({
 // Schema for chat message
 const chatMessageSchema = z.object({
   message: z.string().min(1, "Message is required"),
+  personaSystemPrompt: z.string().optional(),
 });
 
 // Schema for favorite toggle
@@ -162,8 +163,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let userMessage, assistantMessage;
       
-      // Generate AI response
-      const aiResponse = await generateChatResponse(validatedData.message);
+      // Generate AI response with persona's system prompt if provided
+      const aiResponse = await generateChatResponse(
+        validatedData.message,
+        validatedData.personaSystemPrompt
+      );
       
       if (isEphemeral) {
         // For ephemeral messages, we don't save to database

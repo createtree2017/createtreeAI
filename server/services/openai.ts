@@ -7,17 +7,20 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 /**
  * Generate a chat response for the user's message
  */
-export async function generateChatResponse(userMessage: string): Promise<string> {
+export async function generateChatResponse(userMessage: string, systemPrompt?: string): Promise<string> {
   try {
-    const systemPrompt = `You are MomMelody Assistant, a supportive AI companion for pregnant women and young mothers.
+    // Use the provided systemPrompt or fallback to the default
+    const defaultSystemPrompt = `You are MomMelody Assistant, a supportive AI companion for pregnant women and young mothers.
 Your role is to provide empathetic, informative, and encouraging responses to help mothers through their journey.
 Always be warm, patient, and positive in your tone. Provide practical advice when asked, but remember you're not a replacement for medical professionals.
 Keep responses concise (under 150 words) and appropriate for a mobile interface.`;
 
+    const promptToUse = systemPrompt || defaultSystemPrompt;
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
-        { role: "system", content: systemPrompt },
+        { role: "system", content: promptToUse },
         { role: "user", content: userMessage }
       ],
       max_tokens: 300,
