@@ -4,9 +4,10 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/components/ui/file-upload";
-import { transformImage, getImageList, downloadMedia, shareMedia } from "@/lib/api";
+import { transformImage, getImageList, downloadMedia, shareMedia, getActiveAbTest } from "@/lib/api";
 import { queryClient } from "@/lib/queryClient";
 import { PaintbrushVertical, Download, Share2, Eye } from "lucide-react";
+import ABTestComparer from "@/components/ABTestComparer";
 
 interface ImageStyle {
   value: string;
@@ -30,6 +31,11 @@ export default function Image() {
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [transformedImage, setTransformedImage] = useState<TransformedImage | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  
+  // A/B Testing states
+  const [activeAbTest, setActiveAbTest] = useState<any>(null);
+  const [abTestImages, setAbTestImages] = useState<Record<string, string>>({});
+  const [showAbTest, setShowAbTest] = useState<boolean>(false);
 
   // Extract image ID from URL if any
   const query = new URLSearchParams(location.split("?")[1] || "");

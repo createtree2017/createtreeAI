@@ -329,6 +329,20 @@ export const getAbTest = async (testId: string) => {
   return response.json();
 };
 
+// Get active A/B test for a concept
+export const getActiveAbTest = async (conceptId: string) => {
+  const response = await fetch(`/api/concepts/${conceptId}/abtest`);
+  
+  if (!response.ok) {
+    if (response.status === 404) {
+      return null; // No active A/B test for this concept
+    }
+    throw new Error("Failed to fetch active A/B test");
+  }
+  
+  return response.json();
+};
+
 // Create a new A/B test
 export const createAbTest = async (testData: {
   testId: string;

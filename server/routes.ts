@@ -1445,6 +1445,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to record A/B test result" });
     }
   });
+  
+  // Get active A/B test for a concept
+  app.get("/api/concepts/:conceptId/abtest", async (req, res) => {
+    try {
+      const conceptId = req.params.conceptId;
+      
+      // Find active A/B test for the concept
+      const activeTest = await db.query.abTests.findFirst({
+        where: and(
+          eq(abTests.conceptId, conceptId),
+          eq(abTests.isActive, true)
+        ),
+      });
+      
+      if (!activeTest) {
+        return res.status(404).json({ error: "No active A/B test found for this concept" });
+      }
+      
+      // Get variants for the test
+      const variants = await db.query.abTestVariants.findMany({
+        where: eq(abTestVariants.testId, activeTest.testId),
+      });
+      
+      return res.json({
+        ...activeTest,
+        variants
+      });
+    } catch (error) {
+      console.error("Error fetching active A/B test:", error);
+      return res.status(500).json({ error: "Failed to fetch active A/B test" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
