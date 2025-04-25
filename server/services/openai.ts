@@ -78,8 +78,15 @@ export async function transformImageWithOpenAI(imageBuffer: Buffer, style: strin
       quality: "standard",
     });
 
-    // Return the URL of the generated image
-    return response.data[0].url;
+    // Extract the URL based on OpenAI API response structure
+    // Force type assertion since we know the structure but TS might not recognize it
+    const imageUrl = (response as any).data?.[0]?.url;
+    
+    if (!imageUrl) {
+      throw new Error("No valid image URL returned from OpenAI");
+    }
+    
+    return imageUrl;
   } catch (error) {
     console.error("Error transforming image with OpenAI:", error);
     

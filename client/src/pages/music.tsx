@@ -267,7 +267,7 @@ export default function Music() {
                 disabled={isGenerating}
               >
                 <MusicIcon className="mr-2 h-4 w-4" />
-                {isGenerating ? "Creating your lullaby..." : "Create Baby's Lullaby"}
+                {isGenerating ? "Creating your melody..." : "Create Your Special Melody"}
               </Button>
             </div>
           </form>
@@ -278,7 +278,7 @@ export default function Music() {
       {generatedMusic && (
         <div className="mt-8">
           <div className="flex items-center mb-3">
-            <h3 className="font-heading font-semibold text-lg">Your Baby's Lullaby</h3>
+            <h3 className="font-heading font-semibold text-lg">Your Musical Memory</h3>
             <div className="ml-2 bg-primary-light rounded-full px-2 py-0.5">
               <span className="text-xs font-medium text-primary-dark">New</span>
             </div>
@@ -287,7 +287,7 @@ export default function Music() {
           <div className="bg-white rounded-xl p-5 shadow-soft border border-neutral-light">
             <div className="text-center mb-4">
               <h4 className="font-medium text-lg">{generatedMusic.title}</h4>
-              <p className="text-sm text-neutral-dark">A special melody for your little one</p>
+              <p className="text-sm text-neutral-dark">A special melody for your family moments</p>
             </div>
             
             <AudioPlayer
@@ -301,20 +301,20 @@ export default function Music() {
             
             <div className="mt-4 text-center">
               <p className="text-sm text-neutral-dark">
-                This lullaby was created specially for your baby. Play it during bedtime, quiet time, or any moment you want to create a special memory together.
+                This melody was created specially for your family. Play it during special moments to create beautiful memories together.
               </p>
             </div>
           </div>
         </div>
       )}
       
-      {/* Previous Lullabies */}
+      {/* Previous Melodies */}
       <div className="mt-8">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="font-heading font-semibold text-lg">Your Lullaby Collection</h3>
+          <h3 className="font-heading font-semibold text-lg">Your Music Collection</h3>
           {musicList && musicList.length > 0 && (
             <span className="text-xs bg-neutral-lightest rounded-full px-3 py-1 text-neutral-dark">
-              {musicList.length} lullabies
+              {musicList.length} melodies
             </span>
           )}
         </div>
@@ -348,7 +348,7 @@ export default function Music() {
                 <button 
                   className="mr-3 p-2 rounded-full text-neutral-dark hover:text-primary hover:bg-primary-light/20 transition-colors"
                   onClick={() => handlePlayAudio(melody)}
-                  title="Play lullaby"
+                  title="Play melody"
                 >
                   <PlayCircle className="h-6 w-6" />
                 </button>
@@ -364,15 +364,15 @@ export default function Music() {
         ) : (
           <div className="text-center py-8 bg-neutral-lightest rounded-xl border border-dashed border-neutral-light">
             <MusicIcon className="h-8 w-8 mx-auto mb-2 text-neutral" />
-            <p className="text-neutral-dark font-medium">No lullabies created yet</p>
-            <p className="text-sm mt-1 mb-4 text-neutral-dark">Create your first lullaby to begin your collection</p>
+            <p className="text-neutral-dark font-medium">No melodies created yet</p>
+            <p className="text-sm mt-1 mb-4 text-neutral-dark">Create your first family melody to begin your collection</p>
             <Button
               variant="outline"
               size="sm"
               className="bg-white hover:bg-neutral-lightest"
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             >
-              Create a Lullaby
+              Create a Melody
             </Button>
           </div>
         )}
