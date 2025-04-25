@@ -14,10 +14,15 @@ import {
   personaCategories,
   concepts,
   conceptCategories,
+  abTests,
+  abTestVariants,
+  abTestResults,
   insertConceptSchema,
   insertConceptCategorySchema,
   eq,
-  asc
+  asc,
+  and,
+  sql
 } from "../shared/schema";
 import { db } from "../db";
 
@@ -1279,6 +1284,165 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching languages:", error);
       return res.status(500).json({ error: "Failed to fetch languages" });
+    }
+  });
+
+  // Thumbnail upload endpoint for concepts
+  app.post("/api/admin/upload/thumbnail", upload.single("thumbnail"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+      
+      // Generate a public URL for the uploaded file
+      const fileUrl = `/uploads/${req.file.filename}`;
+      
+      return res.json({
+        success: true,
+        url: fileUrl,
+        filename: req.file.filename
+      });
+    } catch (error) {
+      console.error("Error uploading thumbnail:", error);
+      return res.status(500).json({ error: "Failed to upload thumbnail" });
+    }
+  });
+  
+  // A/B Testing routes
+  // Get all A/B tests
+  app.get("/api/admin/abtests", async (req, res) => {
+    try {
+      const allTests = await db.query.abTests.findMany({
+        orderBy: [asc(abTests.name)],
+      });
+      
+      return res.json(allTests);
+    } catch (error) {
+      console.error("Error fetching A/B tests:", error);
+      return res.status(500).json({ error: "Failed to fetch A/B tests" });
+    }
+  });
+  
+  // Get a single A/B test with its variants
+  app.get("/api/admin/abtests/:id", async (req, res) => {
+    try {
+      const testId = req.params.id;
+      
+      const test = await db.query.abTests.findFirst({
+        where: eq(abTests.testId, testId),
+      });
+      
+      if (!test) {
+        return res.status(404).json({ error: "A/B test not found" });
+      }
+      
+      const variants = await db.query.abTestVariants.findMany({
+        where: eq(abTestVariants.testId, testId),
+      });
+      
+      return res.json({
+        ...test,
+        variants
+      });
+    } catch (error) {
+      console.error("Error fetching A/B test:", error);
+      return res.status(500).json({ error: "Failed to fetch A/B test" });
+    }
+  });
+  
+  // Create an A/B test
+  app.post("/api/admin/abtests", async (req, res) => {
+    try {
+      const abTestSchema = z.object({
+        testId: z.string().min(1, "Test ID is required"),
+        name: z.string().min(1, "Name is required"),
+        description: z.string().optional(),
+        conceptId: z.string().min(1, "Concept ID is required"),
+        isActive: z.boolean().default(true),
+        variants: z.array(z.object({
+          variantId: z.string().min(1, "Variant ID is required"),
+          name: z.string().min(1, "Name is required"),
+          promptTemplate: z.string().min(1, "Prompt template is required"),
+          variables: z.array(z.any()).optional(),
+        })).min(2, "At least two variants are required")
+      });
+      
+      const validatedData = abTestSchema.parse(req.body);
+      
+      // Check if concept exists
+      const concept = await db.query.concepts.findFirst({
+        where: eq(concepts.conceptId, validatedData.conceptId)
+      });
+      
+      if (!concept) {
+        return res.status(404).json({ error: "Concept not found" });
+      }
+      
+      // Create test
+      const [newTest] = await db.insert(abTests).values({
+        testId: validatedData.testId,
+        name: validatedData.name,
+        description: validatedData.description || null,
+        conceptId: validatedData.conceptId,
+        isActive: validatedData.isActive,
+        startDate: new Date(),
+      }).returning();
+      
+      // Create variants
+      const variants = await Promise.all(
+        validatedData.variants.map(async (variant) => {
+          const [newVariant] = await db.insert(abTestVariants).values({
+            testId: validatedData.testId,
+            variantId: variant.variantId,
+            name: variant.name,
+            promptTemplate: variant.promptTemplate,
+            variables: variant.variables || [],
+          }).returning();
+          
+          return newVariant;
+        })
+      );
+      
+      return res.status(201).json({
+        ...newTest,
+        variants
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      console.error("Error creating A/B test:", error);
+      return res.status(500).json({ error: "Failed to create A/B test" });
+    }
+  });
+  
+  // Record A/B test result
+  app.post("/api/abtests/result", async (req, res) => {
+    try {
+      const resultSchema = z.object({
+        testId: z.string().min(1, "Test ID is required"),
+        selectedVariantId: z.string().min(1, "Selected variant ID is required"),
+        userId: z.number().int().optional(),
+        context: z.record(z.any()).optional(),
+      });
+      
+      const validatedData = resultSchema.parse(req.body);
+      
+      // Record the result
+      const [result] = await db.insert(abTestResults).values({
+        testId: validatedData.testId,
+        selectedVariantId: validatedData.selectedVariantId,
+        userId: validatedData.userId || null,
+        context: validatedData.context || {},
+      }).returning();
+      
+      return res.status(201).json(result);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      console.error("Error recording A/B test result:", error);
+      return res.status(500).json({ error: "Failed to record A/B test result" });
     }
   });
 
