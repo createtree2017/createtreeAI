@@ -7,6 +7,7 @@ import path from "path";
 import fs from "fs";
 import { generateChatResponse } from "./services/openai";
 import { generateMusic } from "./services/replicate";
+import { music, images } from "../shared/schema";
 
 // Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), "uploads");
@@ -243,8 +244,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // For actual download, we'd stream the file or redirect to its URL
-      // For this example, we'll simply return the URL
-      return res.json({ downloadUrl: mediaItem.url });
+      // For this example, we'll return different URLs based on media type
+      const downloadUrl = type === "music" 
+        ? (mediaItem as typeof music.$inferSelect).url 
+        : (mediaItem as typeof images.$inferSelect).transformedUrl;
+      
+      return res.json({ downloadUrl });
     } catch (error) {
       console.error("Error downloading media:", error);
       return res.status(500).json({ error: "Failed to download media" });
