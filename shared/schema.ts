@@ -181,7 +181,6 @@ export const musicRelations = relations(music, ({ one }) => ({
     fields: [music.id],
     references: [favorites.itemId],
     relationName: 'music_favorite',
-    condition: (eq, { itemType }) => eq(itemType, 'music'),
   }),
 }));
 
@@ -190,7 +189,6 @@ export const imagesRelations = relations(images, ({ one }) => ({
     fields: [images.id],
     references: [favorites.itemId],
     relationName: 'image_favorite',
-    condition: (eq, { itemType }) => eq(itemType, 'image'),
   }),
 }));
 
@@ -199,14 +197,48 @@ export const favoritesRelations = relations(favorites, ({ one }) => ({
     fields: [favorites.itemId],
     references: [music.id],
     relationName: 'music_favorite',
-    condition: (eq, { itemType }) => eq(itemType, 'music'),
   }),
   image: one(images, {
     fields: [favorites.itemId],
     references: [images.id],
     relationName: 'image_favorite',
-    condition: (eq, { itemType }) => eq(itemType, 'image'),
   }),
+}));
+
+// A/B Testing relations
+export const abTestsRelations = relations(abTests, ({ one, many }) => ({
+  concept: one(concepts, {
+    fields: [abTests.conceptId],
+    references: [concepts.conceptId]
+  }),
+  variants: many(abTestVariants),
+  results: many(abTestResults)
+}));
+
+export const abTestVariantsRelations = relations(abTestVariants, ({ one, many }) => ({
+  test: one(abTests, {
+    fields: [abTestVariants.testId],
+    references: [abTests.testId]
+  }),
+  results: many(abTestResults, {
+    relationName: "variant_results"
+  })
+}));
+
+export const abTestResultsRelations = relations(abTestResults, ({ one }) => ({
+  test: one(abTests, {
+    fields: [abTestResults.testId],
+    references: [abTests.testId]
+  }),
+  variant: one(abTestVariants, {
+    fields: [abTestResults.testId, abTestResults.selectedVariantId],
+    references: [abTestVariants.testId, abTestVariants.variantId],
+    relationName: "variant_results"
+  }),
+  user: one(users, {
+    fields: [abTestResults.userId],
+    references: [users.id]
+  })
 }));
 
 // Insert schemas
@@ -269,4 +301,4 @@ export type InsertAbTestResult = z.infer<typeof insertAbTestResultSchema>;
 export type AbTestResult = typeof abTestResults.$inferSelect;
 
 // Export eq and desc for query building
-export { eq, desc, and, asc } from "drizzle-orm";
+export { eq, desc, and, asc, sql } from "drizzle-orm";
