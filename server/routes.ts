@@ -64,6 +64,11 @@ const mediaShareSchema = z.object({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Serve embed script for iframe integration
+  app.get('/embed.js', (req, res) => {
+    res.sendFile(path.join(process.cwd(), 'client/public/embed.js'));
+  });
+  
   // API routes
 
   // Music endpoints

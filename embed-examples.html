@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CreateTree AI Utilities - Embed Examples</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    h1 {
+      color: #e67e7e;
+      border-bottom: 2px solid #f0f0f0;
+      padding-bottom: 10px;
+    }
+    
+    h2 {
+      color: #5f9ea0;
+      margin-top: 30px;
+    }
+    
+    .example-section {
+      margin-bottom: 40px;
+      padding: 20px;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .code-block {
+      background-color: #f5f5f5;
+      border-left: 4px solid #e67e7e;
+      padding: 15px;
+      margin: 15px 0;
+      font-family: monospace;
+      white-space: pre-wrap;
+      overflow-x: auto;
+    }
+    
+    .demo-container {
+      margin-top: 20px;
+      border: 1px dashed #ccc;
+      padding: 10px;
+      border-radius: 8px;
+      min-height: 100px;
+    }
+    
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #ccc;
+      margin-bottom: 15px;
+    }
+    
+    .tab {
+      padding: 10px 15px;
+      cursor: pointer;
+      background-color: #f0f0f0;
+      margin-right: 5px;
+      border-radius: 5px 5px 0 0;
+    }
+    
+    .tab.active {
+      background-color: #e67e7e;
+      color: white;
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <h1>CreateTree AI Utilities - Embedding Guide</h1>
+  
+  <p>This guide shows how to embed the CreateTree AI Utilities into your PHP website. You can embed the entire app or individual features.</p>
+  
+  <div class="example-section">
+    <h2>1. Include the Embed Script</h2>
+    <p>First, add the embed script to your PHP page:</p>
+    
+    <div class="tabs">
+      <div class="tab active" data-tab="php">PHP</div>
+      <div class="tab" data-tab="html">HTML</div>
+    </div>
+    
+    <div class="tab-content active" data-tab="php">
+      <div class="code-block">&lt;?php
+// Your PHP code
+?&gt;
+&lt;!-- Add this before the closing body tag --&gt;
+&lt;script src="https://[YOUR-REPLIT-APP-URL]/embed.js"&gt;&lt;/script&gt;</div>
+    </div>
+    
+    <div class="tab-content" data-tab="html">
+      <div class="code-block">&lt;!-- Add this before the closing body tag --&gt;
+&lt;script src="https://[YOUR-REPLIT-APP-URL]/embed.js"&gt;&lt;/script&gt;</div>
+    </div>
+  </div>
+  
+  <div class="example-section">
+    <h2>2. Embedding the Complete Application</h2>
+    <p>To embed the entire application:</p>
+    
+    <div class="tabs">
+      <div class="tab active" data-tab="php-full">PHP</div>
+      <div class="tab" data-tab="html-full">HTML</div>
+    </div>
+    
+    <div class="tab-content active" data-tab="php-full">
+      <div class="code-block">&lt;?php
+// Your PHP code
+?&gt;
+
+&lt;div id="createtree-app"&gt;&lt;/div&gt;
+
+&lt;script&gt;
+  document.addEventListener('DOMContentLoaded', function() {
+    createTreeEmbed({
+      target: '#createtree-app',
+      height: '700px',
+      width: '100%',
+      maxWidth: '450px'
+    });
+  });
+&lt;/script&gt;</div>
+    </div>
+    
+    <div class="tab-content" data-tab="html-full">
+      <div class="code-block">&lt;div id="createtree-app"&gt;&lt;/div&gt;
+
+&lt;script&gt;
+  document.addEventListener('DOMContentLoaded', function() {
+    createTreeEmbed({
+      target: '#createtree-app',
+      height: '700px',
+      width: '100%',
+      maxWidth: '450px'
+    });
+  });
+&lt;/script&gt;</div>
+    </div>
+  </div>
+  
+  <div class="example-section">
+    <h2>3. Embedding Individual Features</h2>
+    
+    <h3>3.1 Embed the Lullaby Creator</h3>
+    <div class="tabs">
+      <div class="tab active" data-tab="php-lullaby">PHP</div>
+      <div class="tab" data-tab="html-lullaby">HTML</div>
+    </div>
+    
+    <div class="tab-content active" data-tab="php-lullaby">
+      <div class="code-block">&lt;?php
+// Your PHP code
+?&gt;
+
+&lt;div id="lullaby-creator"&gt;&lt;/div&gt;
+
+&lt;script&gt;
+  document.addEventListener('DOMContentLoaded', function() {
+    createTreeEmbed.lullaby({
+      target: '#lullaby-creator',
+      height: '700px'
+    });
+  });
+&lt;/script&gt;</div>
+    </div>
+    
+    <div class="tab-content" data-tab="html-lullaby">
+      <div class="code-block">&lt;div id="lullaby-creator"&gt;&lt;/div&gt;
+
+&lt;script&gt;
+  document.addEventListener('DOMContentLoaded', function() {
+    createTreeEmbed.lullaby({
+      target: '#lullaby-creator',
+      height: '700px'
+    });
+  });
+&lt;/script&gt;</div>
+    </div>
+    
+    <h3>3.2 Embed the Memory Art Creator</h3>
+    <div class="tabs">
+      <div class="tab active" data-tab="php-memory">PHP</div>
+      <div class="tab" data-tab="html-memory">HTML</div>
+    </div>
+    
+    <div class="tab-content active" data-tab="php-memory">
+      <div class="code-block">&lt;?php
+// Your PHP code
+?&gt;
+
+&lt;div id="memory-creator"&gt;&lt;/div&gt;
+
+&lt;script&gt;
+  document.addEventListener('DOMContentLoaded', function() {
+    createTreeEmbed.memory({
+      target: '#memory-creator',
+      height: '800px'
+    });
+  });
+&lt;/script&gt;</div>
+    </div>
+    
+    <div class="tab-content" data-tab="html-memory">
+      <div class="code-block">&lt;div id="memory-creator"&gt;&lt;/div&gt;
+
+&lt;script&gt;
+  document.addEventListener('DOMContentLoaded', function() {
+    createTreeEmbed.memory({
+      target: '#memory-creator',
+      height: '800px'
+    });
+  });
+&lt;/script&gt;</div>
+    </div>
+    
+    <h3>3.3 Embed the Support Chat</h3>
+    <div class="tabs">
+      <div class="tab active" data-tab="php-support">PHP</div>
+      <div class="tab" data-tab="html-support">HTML</div>
+    </div>
+    
+    <div class="tab-content active" data-tab="php-support">
+      <div class="code-block">&lt;?php
+// Your PHP code
+?&gt;
+
+&lt;div id="support-chat"&gt;&lt;/div&gt;
+
+&lt;script&gt;
+  document.addEventListener('DOMContentLoaded', function() {
+    createTreeEmbed.support({
+      target: '#support-chat',
+      height: '600px'
+    });
+  });
+&lt;/script&gt;</div>
+    </div>
+    
+    <div class="tab-content" data-tab="html-support">
+      <div class="code-block">&lt;div id="support-chat"&gt;&lt;/div&gt;
+
+&lt;script&gt;
+  document.addEventListener('DOMContentLoaded', function() {
+    createTreeEmbed.support({
+      target: '#support-chat',
+      height: '600px'
+    });
+  });
+&lt;/script&gt;</div>
+    </div>
+  </div>
+  
+  <div class="example-section">
+    <h2>4. Configuration Options</h2>
+    <p>The embed script accepts the following configuration options:</p>
+    
+    <div class="code-block">createTreeEmbed({
+  // Required
+  target: '#element-id',       // Target element selector or DOM element
+  
+  // Optional
+  feature: 'LULLABY',          // Feature to embed: 'LULLABY', 'MEMORY', 'SUPPORT'
+  height: '700px',             // Height of the iframe (default: '670px')
+  width: '100%',               // Width of the iframe (default: '100%')
+  maxWidth: '450px',           // Maximum width of the iframe (default: '450px')
+  showBorder: true,            // Whether to show a border (default: true)
+  showShadow: true             // Whether to show a shadow (default: true)
+});</div>
+  </div>
+  
+  <div class="example-section">
+    <h2>5. PHP Integration Examples</h2>
+    
+    <h3>Dynamic Feature Selection</h3>
+    <div class="code-block">&lt;?php
+// Determine which feature to show based on user preference or page
+$feature = $_GET['feature'] ?? 'lullaby';  // Default to lullaby
+$validFeatures = ['lullaby', 'memory', 'support'];
+
+// Validate input
+if (!in_array($feature, $validFeatures)) {
+  $feature = 'lullaby';
+}
+
+// Map feature to its constructor name
+$featureMap = [
+  'lullaby' => 'lullaby',
+  'memory' => 'memory',
+  'support' => 'support'
+];
+?&gt;
+
+&lt;div id="createtree-feature"&gt;&lt;/div&gt;
+
+&lt;script&gt;
+  document.addEventListener('DOMContentLoaded', function() {
+    createTreeEmbed.&lt;?php echo $featureMap[$feature]; ?&gt;({
+      target: '#createtree-feature',
+      height: '700px'
+    });
+  });
+&lt;/script&gt;</div>
+  </div>
+
+  <script>
+    // Simple tab functionality for the code examples
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const tabName = tab.getAttribute('data-tab');
+        
+        // Set active tab
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        
+        // Show active content
+        document.querySelectorAll('.tab-content').forEach(content => {
+          content.classList.remove('active');
+          if (content.getAttribute('data-tab') === tabName) {
+            content.classList.add('active');
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>
