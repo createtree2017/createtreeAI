@@ -1,0 +1,154 @@
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Nunito:wght@300;400;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Base colors */
+    --background: 0 0% 98%;
+    --foreground: 0 0% 33%;
+    
+    /* Card colors */
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 33%;
+    
+    /* Popover colors */
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 33%;
+    
+    /* Primary colors (coral) */
+    --primary: 0 80% 81%;
+    --primary-foreground: 0 0% 100%;
+    
+    /* Secondary colors (sage) */
+    --secondary: 120 20% 72%;
+    --secondary-foreground: 0 0% 100%;
+    
+    /* Muted colors */
+    --muted: 0 0% 94%;
+    --muted-foreground: 0 0% 62%;
+    
+    /* Accent colors (lavender) */
+    --accent: 270 50% 82%;
+    --accent-foreground: 0 0% 33%;
+    
+    /* Destructive colors */
+    --destructive: 0 80% 65%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* UI element colors */
+    --border: 0 0% 88%;
+    --input: 0 0% 88%;
+    --ring: 0 80% 81%;
+    
+    /* Chart colors */
+    --chart-1: 0 80% 81%;
+    --chart-2: 120 20% 72%;
+    --chart-3: 270 50% 82%;
+    --chart-4: 200 65% 79%;
+    --chart-5: 35 100% 75%;
+    
+    /* Sidebar colors */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 33%;
+    --sidebar-primary: 0 80% 81%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 270 50% 82%;
+    --sidebar-accent-foreground: 0 0% 33%;
+    --sidebar-border: 0 0% 88%;
+    --sidebar-ring: 0 80% 81%;
+    
+    /* Border radius */
+    --radius: 0.75rem;
+  }
+ 
+  .dark {
+    --background: 0 0% 10%;
+    --foreground: 0 0% 98%;
+    
+    --card: 0 0% 15%;
+    --card-foreground: 0 0% 98%;
+    
+    --popover: 0 0% 15%;
+    --popover-foreground: 0 0% 98%;
+    
+    --primary: 0 80% 73%;
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 120 20% 60%;
+    --secondary-foreground: 0 0% 100%;
+    
+    --muted: 0 0% 20%;
+    --muted-foreground: 0 0% 75%;
+    
+    --accent: 270 50% 69%;
+    --accent-foreground: 0 0% 100%;
+    
+    --destructive: 0 80% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 0 0% 30%;
+    --input: 0 0% 30%;
+    --ring: 0 80% 73%;
+    
+    --chart-1: 0 80% 73%;
+    --chart-2: 120 20% 60%;
+    --chart-3: 270 50% 69%;
+    --chart-4: 200 65% 70%;
+    --chart-5: 35 100% 68%;
+  }
+  
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-neutral-lightest text-neutral-darkest font-body;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading;
+  }
+}
+
+@layer components {
+  /* Animation keyframes */
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  
+  .animate-fadeIn {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  .animate-slideUp {
+    animation: slideUp 0.5s ease-in-out;
+  }
+  
+  /* Custom scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.03);
+    border-radius: 10px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.1);
+    border-radius: 10px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(0,0,0,0.15);
+  }
+}
