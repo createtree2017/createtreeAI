@@ -64,6 +64,24 @@ const mediaShareSchema = z.object({
   type: z.enum(["music", "image"]),
 });
 
+// Schema for saving chat
+const saveChatSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  personaId: z.string().min(1, "Persona ID is required"),
+  personaName: z.string().min(1, "Persona name is required"),
+  personaEmoji: z.string().min(1, "Persona emoji is required"),
+  messages: z.array(
+    z.object({
+      role: z.enum(["user", "assistant"]),
+      content: z.string(),
+      createdAt: z.string(),
+    })
+  ).min(1, "At least one message is required"),
+  summary: z.string().min(1, "Summary is required"),
+  userMemo: z.string().optional(),
+  mood: z.string().optional(),
+});
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Serve embed script for iframe integration
   app.get('/embed.js', (req, res) => {
@@ -305,6 +323,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.error("Error sharing media:", error);
       return res.status(500).json({ error: "Failed to share media" });
+    }
+  });
+  
+  // Saved chat endpoints
+  app.post("/api/chat/save", async (req, res) => {
+    try {
+      const validatedData = saveChatSchema.parse(req.body);
+      
+      // Save the chat to the database
+      const savedChat = await storage.saveChat(validatedData);
+      
+      return res.status(201).json(savedChat);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      console.error("Error saving chat:", error);
+      return res.status(500).json({ error: "Failed to save chat" });
+    }
+  });
+  
+  app.get("/api/chat/saved", async (req, res) => {
+    try {
+      const savedChats = await storage.getSavedChats();
+      return res.json(savedChats);
+    } catch (error) {
+      console.error("Error fetching saved chats:", error);
+      return res.status(500).json({ error: "Failed to fetch saved chats" });
+    }
+  });
+  
+  app.get("/api/chat/saved/:id", async (req, res) => {
+    try {
+      const chatId = parseInt(req.params.id);
+      if (isNaN(chatId)) {
+        return res.status(400).json({ error: "Invalid chat ID" });
+      }
+      
+      const savedChat = await storage.getSavedChat(chatId);
+      
+      if (!savedChat) {
+        return res.status(404).json({ error: "Saved chat not found" });
+      }
+      
+      return res.json(savedChat);
+    } catch (error) {
+      console.error("Error fetching saved chat:", error);
+      return res.status(500).json({ error: "Failed to fetch saved chat" });
+    }
+  });
+  
+  app.delete("/api/chat/saved/:id", async (req, res) => {
+    try {
+      const chatId = parseInt(req.params.id);
+      if (isNaN(chatId)) {
+        return res.status(400).json({ error: "Invalid chat ID" });
+      }
+      
+      const result = await storage.deleteSavedChat(chatId);
+      return res.json(result);
+    } catch (error) {
+      console.error("Error deleting saved chat:", error);
+      return res.status(500).json({ error: "Failed to delete saved chat" });
     }
   });
 

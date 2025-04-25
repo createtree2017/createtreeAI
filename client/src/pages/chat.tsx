@@ -3,9 +3,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useEphemeralChatStore, useSendEphemeralMessage, suggestedTopics, chatPersonas, type ChatMessage, type ChatPersona } from "@/lib/openai";
-import { Bot, Send, User, Trash2, RefreshCw, Check } from "lucide-react";
+import { Bot, Send, User, Trash2, RefreshCw, Check, BookmarkIcon, Heart } from "lucide-react";
 import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
+import SaveChatDialog from "@/components/SaveChatDialog";
 
 // Persona selection component
 function PersonaSelector() {
@@ -88,6 +89,7 @@ export default function Chat() {
   const [message, setMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [isSaveChatOpen, setIsSaveChatOpen] = useState(false);
   
   // Get ephemeral chat messages from local store
   const chatMessages = useEphemeralChatStore((state) => state.messages);
@@ -194,16 +196,30 @@ export default function Chat() {
                 </p>
               </div>
             </div>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              className="text-neutral-dark hover:text-red-500 hover:bg-red-50"
-              onClick={handleClearChat}
-              title="Clear conversation"
-            >
-              <Trash2 className="h-4 w-4 mr-1" />
-              <span className="text-xs">Clear chat</span>
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="text-neutral-dark hover:text-red-500 hover:bg-red-50"
+                onClick={handleClearChat}
+                title="Clear conversation"
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                <span className="text-xs">Clear</span>
+              </Button>
+              
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="text-neutral-dark hover:text-pink-500 hover:bg-pink-50"
+                onClick={() => setIsSaveChatOpen(true)}
+                title="Save meaningful conversation"
+                disabled={chatMessages.length < 2}
+              >
+                <Heart className="h-4 w-4 mr-1" />
+                <span className="text-xs">Save</span>
+              </Button>
+            </div>
           </div>
         </div>
         
@@ -326,6 +342,12 @@ export default function Chat() {
           ))}
         </div>
       </div>
+      
+      {/* Save Chat Dialog */}
+      <SaveChatDialog 
+        isOpen={isSaveChatOpen} 
+        onClose={() => setIsSaveChatOpen(false)} 
+      />
     </div>
   );
 }

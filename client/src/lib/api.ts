@@ -59,6 +59,36 @@ export const getChatHistory = async () => {
   return response.json();
 };
 
+// Saved chats API endpoints
+export const saveChat = async (chatData: {
+  title: string;
+  personaId: string;
+  personaName: string;
+  personaEmoji: string;
+  messages: any[];
+  summary: string;
+  userMemo?: string;
+  mood?: string;
+}) => {
+  const response = await apiRequest('POST', '/api/chat/save', chatData);
+  return response.json();
+};
+
+export const getSavedChats = async () => {
+  const response = await apiRequest('GET', '/api/chat/saved');
+  return response.json();
+};
+
+export const getSavedChat = async (id: number) => {
+  const response = await apiRequest('GET', `/api/chat/saved/${id}`);
+  return response.json();
+};
+
+export const deleteSavedChat = async (id: number) => {
+  const response = await apiRequest('DELETE', `/api/chat/saved/${id}`);
+  return response.json();
+};
+
 // Gallery API endpoints
 export const getGalleryItems = async (filter?: string) => {
   const url = filter && filter !== 'all' 
