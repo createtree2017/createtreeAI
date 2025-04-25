@@ -290,6 +290,70 @@ export const getLanguages = async () => {
 
 // Upload translations for a specific language
 export const uploadTranslations = async (lang: string, translations: Record<string, string>) => {
-  const response = await apiRequest('POST', `/api/admin/translations/${lang}`, translations);
+  const response = await apiRequest('POST', `/api/languages/${lang}`, translations);
+  return response.json();
+};
+
+// ===== Thumbnail Upload API =====
+
+// Upload a thumbnail for a concept
+export const uploadThumbnail = async (file: File) => {
+  const formData = new FormData();
+  formData.append('thumbnail', file);
+  
+  const response = await fetch('/api/admin/upload/thumbnail', {
+    method: 'POST',
+    body: formData,
+    credentials: 'include',
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || response.statusText);
+  }
+  
+  return response.json();
+};
+
+// ===== A/B Testing APIs =====
+
+// Get all A/B tests
+export const getAbTests = async () => {
+  const response = await apiRequest('GET', '/api/admin/abtests');
+  return response.json();
+};
+
+// Get a specific A/B test with its variants
+export const getAbTest = async (testId: string) => {
+  const response = await apiRequest('GET', `/api/admin/abtests/${testId}`);
+  return response.json();
+};
+
+// Create a new A/B test
+export const createAbTest = async (testData: {
+  testId: string;
+  name: string;
+  description?: string;
+  conceptId: string;
+  isActive: boolean;
+  variants: Array<{
+    variantId: string;
+    name: string;
+    promptTemplate: string;
+    variables?: Array<any>;
+  }>;
+}) => {
+  const response = await apiRequest('POST', '/api/admin/abtests', testData);
+  return response.json();
+};
+
+// Record an A/B test result
+export const recordAbTestResult = async (resultData: {
+  testId: string;
+  selectedVariantId: string;
+  userId?: number;
+  context?: Record<string, any>;
+}) => {
+  const response = await apiRequest('POST', '/api/abtests/result', resultData);
   return response.json();
 };

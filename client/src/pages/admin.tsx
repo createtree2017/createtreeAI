@@ -2280,14 +2280,61 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
             name="thumbnailUrl"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Thumbnail URL</FormLabel>
-                <FormControl>
-                  <Input 
-                    placeholder="https://example.com/image.jpg" 
-                    {...field} 
-                    value={field.value || ""}
-                  />
-                </FormControl>
+                <FormLabel>Thumbnail</FormLabel>
+                <div className="space-y-3">
+                  {field.value && (
+                    <div className="border rounded-md overflow-hidden w-32 h-32 relative">
+                      <img 
+                        src={field.value} 
+                        alt="Concept thumbnail"
+                        className="w-full h-full object-cover"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-1 right-1 rounded-full w-6 h-6"
+                        onClick={() => field.onChange("")}
+                        type="button"
+                      >
+                        <X size={12} />
+                      </Button>
+                    </div>
+                  )}
+                  
+                  <div className="flex flex-col space-y-2">
+                    <FormControl>
+                      <Input 
+                        placeholder="https://example.com/image.jpg" 
+                        {...field} 
+                        value={field.value || ""}
+                      />
+                    </FormControl>
+                    <div className="text-sm text-muted-foreground">
+                      Or upload a file:
+                    </div>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          try {
+                            const result = await uploadThumbnail(file);
+                            if (result.url) {
+                              field.onChange(result.url);
+                            }
+                          } catch (error) {
+                            toast({
+                              title: "Upload failed",
+                              description: error instanceof Error ? error.message : "Failed to upload image",
+                              variant: "destructive"
+                            });
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
                 <FormMessage />
               </FormItem>
             )}
