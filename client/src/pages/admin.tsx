@@ -61,7 +61,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
-import { CheckCircle, Edit, PlusCircle, Trash2, X } from "lucide-react";
+import { CheckCircle, Edit, PlusCircle, Trash2, X, Download, Upload } from "lucide-react";
 
 // Define form validation schemas using Zod
 const personaFormSchema = z.object({
@@ -237,10 +237,16 @@ function PersonaManager() {
     <div>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold">Chat Characters</h2>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
-          <PlusCircle className="h-4 w-4 mr-2" />
-          Add New Character
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsBatchImportOpen(true)}>
+            <Download className="h-4 w-4 mr-2" />
+            Batch Import
+          </Button>
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
+            <PlusCircle className="h-4 w-4 mr-2" />
+            Add New Character
+          </Button>
+        </div>
       </div>
       
       {personas && personas.length > 0 ? (
@@ -362,6 +368,26 @@ function PersonaManager() {
               }}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Batch Import Dialog */}
+      <Dialog open={isBatchImportOpen} onOpenChange={setIsBatchImportOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Batch Import Characters</DialogTitle>
+            <DialogDescription>
+              Import multiple characters from JSON or manually add them one by one.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <BatchImportDialog 
+            onSuccess={() => {
+              setIsBatchImportOpen(false);
+              queryClient.invalidateQueries({ queryKey: ["/api/admin/personas"] });
+            }}
+            categories={categories || []}
+          />
         </DialogContent>
       </Dialog>
     </div>

@@ -43,11 +43,11 @@ const personaJsonSchema = z.object({
 const personaBatchSchema = z.array(personaJsonSchema);
 
 interface BatchImportDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
+  onSuccess: () => void;
+  categories: any[];
 }
 
-export default function BatchImportDialog({ isOpen, onClose }: BatchImportDialogProps) {
+export default function BatchImportDialog({ onSuccess, categories }: BatchImportDialogProps) {
   const [jsonContent, setJsonContent] = useState("");
   const [activeTab, setActiveTab] = useState("json");
   const [validationStatus, setValidationStatus] = useState<"idle" | "validating" | "valid" | "invalid">("idle");
