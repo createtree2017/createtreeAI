@@ -331,7 +331,7 @@ export const getAbTest = async (testId: string) => {
 
 // Get active A/B test for a concept
 export const getActiveAbTest = async (conceptId: string) => {
-  const response = await fetch(`/api/concepts/${conceptId}/abtest`);
+  const response = await apiRequest('GET', `/api/abtests/active/${conceptId}`);
   
   if (!response.ok) {
     if (response.status === 404) {

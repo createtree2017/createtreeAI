@@ -1446,6 +1446,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get active A/B test for a specific concept/style
+  app.get("/api/abtests/active/:conceptId", async (req, res) => {
+    try {
+      const { conceptId } = req.params;
+      
+      const activeTest = await db.query.abTests.findFirst({
+        where: and(
+          eq(abTests.conceptId, conceptId),
+          eq(abTests.isActive, true)
+        ),
+        with: {
+          variants: true
+        }
+      });
+      
+      if (!activeTest) {
+        return res.status(404).json({ error: "No active A/B test found for this concept" });
+      }
+      
+      return res.json(activeTest);
+    } catch (error) {
+      console.error("Error fetching active A/B test:", error);
+      return res.status(500).json({ error: "Failed to fetch active A/B test" });
+    }
+  });
+  
   // Record A/B test result
   app.post("/api/abtests/result", async (req, res) => {
     try {
