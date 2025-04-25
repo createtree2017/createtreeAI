@@ -86,9 +86,9 @@ export default function Home() {
       <div className="mt-8">
         <h2 className="font-heading font-semibold text-lg mb-4">Recent Activity</h2>
         {isLoading ? (
-          <div className="space-y-3">
-            <div key="loading-1" className="bg-neutral-lightest h-16 rounded-lg animate-pulse"></div>
-            <div key="loading-2" className="bg-neutral-lightest h-16 rounded-lg animate-pulse"></div>
+          <div className="space-y-3" data-testid="loading-skeleton">
+            <div key="loading-skeleton-1" className="bg-neutral-lightest h-16 rounded-lg animate-pulse"></div>
+            <div key="loading-skeleton-2" className="bg-neutral-lightest h-16 rounded-lg animate-pulse"></div>
           </div>
         ) : recentActivities && recentActivities.length > 0 ? (
           <div className="space-y-3">
