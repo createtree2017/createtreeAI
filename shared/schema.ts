@@ -109,6 +109,36 @@ export const savedChats = pgTable("saved_chats", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Image Generation Concept Categories
+export const conceptCategories = pgTable("concept_categories", {
+  id: serial("id").primaryKey(),
+  categoryId: text("category_id").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  order: integer("order").default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Image Generation Concepts
+export const concepts = pgTable("concepts", {
+  id: serial("id").primaryKey(),
+  conceptId: text("concept_id").notNull().unique(),
+  title: text("title").notNull(),
+  description: text("description"),
+  promptTemplate: text("prompt_template").notNull(),
+  thumbnailUrl: text("thumbnail_url"),
+  tagSuggestions: jsonb("tag_suggestions"), // Array of strings
+  variables: jsonb("variables"), // Array of variable objects
+  categoryId: text("category_id").references(() => conceptCategories.categoryId),
+  isActive: boolean("is_active").notNull().default(true),
+  isFeatured: boolean("is_featured").notNull().default(false),
+  order: integer("order").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Define relations
 export const musicRelations = relations(music, ({ one }) => ({
   favorite: one(favorites, {
@@ -156,6 +186,8 @@ export const insertFavoriteSchema = createInsertSchema(favorites);
 export const insertSavedChatSchema = createInsertSchema(savedChats);
 export const insertPersonaSchema = createInsertSchema(personas);
 export const insertPersonaCategorySchema = createInsertSchema(personaCategories);
+export const insertConceptSchema = createInsertSchema(concepts);
+export const insertConceptCategorySchema = createInsertSchema(conceptCategories);
 
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -181,6 +213,12 @@ export type Persona = typeof personas.$inferSelect;
 
 export type InsertPersonaCategory = z.infer<typeof insertPersonaCategorySchema>;
 export type PersonaCategory = typeof personaCategories.$inferSelect;
+
+export type InsertConcept = z.infer<typeof insertConceptSchema>;
+export type Concept = typeof concepts.$inferSelect;
+
+export type InsertConceptCategory = z.infer<typeof insertConceptCategorySchema>;
+export type ConceptCategory = typeof conceptCategories.$inferSelect;
 
 // Export eq and desc for query building
 export { eq, desc, and, asc } from "drizzle-orm";

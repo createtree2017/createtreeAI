@@ -1,0 +1,58 @@
+Please implement the following two features in our platform:
+
+---
+
+🧩 1. Admin Interface for AI Image Generation Management
+
+Create a dedicated admin page to manage the concepts used in AI image generation. This will allow the content team to dynamically add or update visual themes for users without modifying the codebase.
+
+**Admin Page Requirements:**
+
+**Concept Management**
+- Add/Edit/Delete image generation concepts (e.g., “Zodiac Sticker”, “Baby Monthly Album”, “Ultrasound Frame”)
+- Each concept should include:
+  • Title  
+  • Description  
+  • Category (e.g., Cute, Emotional, Calendar, Horoscope, etc.)  
+  • Associated Prompt Template (text field)  
+  • Sample Thumbnail (image upload)  
+  • Tag Suggestions (comma-separated or JSON)  
+  • Active Toggle  
+
+**Prompt Template Variables**
+- Support defining variables (e.g., {baby_name}, {birth_month}) per concept
+- Auto-preview example prompt
+
+**Categorization System**
+- Add/Edit/Delete categories
+- Drag-and-drop to reorder category list
+
+**Concept Visibility**
+- Toggle to show/hide concepts on the frontend
+- Featured badge toggle
+
+**Future-Proofing**
+- Reserve layout space for “Prompt A/B Test Result” (integration later)
+
+**Optional Features**
+- Search bar for concepts  
+- Category filter tabs  
+- Thumbnail preview grid layout  
+
+---
+
+🌐 2. Internationalization (i18n) Setup
+
+Please prepare the system for multilingual support, including Korean, by implementing an internationalization structure.
+
+**i18n Requirements:**
+- Use a centralized translation format (e.g., `en.json`, `ko.json`, etc.)
+- Replace all hard-coded strings in the UI with translation keys
+- Keep the default UI in English for now
+- Korean translations will be provided after UI/UX implementation is completed
+
+This setup will help us scale to different language audiences without reworking the interface.
+
+---
+
+Let me know if you need design wireframes, sample data formats, or JSON examples. We're excited to test this as soon as it's ready.
