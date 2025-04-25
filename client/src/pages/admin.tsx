@@ -6,6 +6,7 @@ import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { InsertPersona, InsertPersonaCategory } from "@shared/schema";
+import BatchImportDialog from "@/components/BatchImportDialog";
 
 import {
   Tabs,
@@ -377,17 +378,19 @@ function PersonaManager() {
           <DialogHeader>
             <DialogTitle>Batch Import Characters</DialogTitle>
             <DialogDescription>
-              Import multiple characters from JSON or manually add them one by one.
+              Import multiple characters from JSON format.
             </DialogDescription>
           </DialogHeader>
           
-          <BatchImportDialog 
-            onSuccess={() => {
-              setIsBatchImportOpen(false);
-              queryClient.invalidateQueries({ queryKey: ["/api/admin/personas"] });
-            }}
-            categories={categories || []}
-          />
+          {isBatchImportOpen && (
+            <BatchImportDialog 
+              onSuccess={() => {
+                setIsBatchImportOpen(false);
+                queryClient.invalidateQueries({ queryKey: ["/api/admin/personas"] });
+              }}
+              categories={categories || []}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>

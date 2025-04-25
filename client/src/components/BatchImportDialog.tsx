@@ -76,7 +76,7 @@ export default function BatchImportDialog({ onSuccess, categories }: BatchImport
       });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/personas"] });
       resetForm();
-      onClose();
+      onSuccess();
     },
     onError: (error) => {
       toast({
@@ -148,14 +148,13 @@ export default function BatchImportDialog({ onSuccess, categories }: BatchImport
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl">
-        <DialogHeader>
-          <DialogTitle>Batch Import Characters</DialogTitle>
-          <DialogDescription>
-            Import multiple chat characters at once using JSON format.
-          </DialogDescription>
-        </DialogHeader>
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-medium">Batch Import Characters</h3>
+        <p className="text-sm text-gray-500">
+          Import multiple chat characters at once using JSON format.
+        </p>
+      </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-1">
@@ -234,10 +233,7 @@ export default function BatchImportDialog({ onSuccess, categories }: BatchImport
           </TabsContent>
         </Tabs>
 
-        <DialogFooter className="flex space-x-2 justify-end">
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
+        <div className="flex space-x-2 justify-end mt-6">
           <Button 
             onClick={handleImport}
             disabled={validationStatus !== "valid" || validPersonas.length === 0 || batchImportMutation.isPending}
@@ -248,8 +244,7 @@ export default function BatchImportDialog({ onSuccess, categories }: BatchImport
               ? "Importing..." 
               : `Import ${validPersonas.length} Character${validPersonas.length !== 1 ? 's' : ''}`}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+    </div>
   );
 }
