@@ -157,14 +157,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = chatMessageSchema.parse(req.body);
       
-      // Save user message
-      const userMessage = await storage.saveUserMessage(validatedData.message);
+      // Check if this is an ephemeral request
+      const isEphemeral = req.query.ephemeral === 'true';
+      
+      let userMessage, assistantMessage;
       
       // Generate AI response
       const aiResponse = await generateChatResponse(validatedData.message);
       
-      // Save AI response
-      const assistantMessage = await storage.saveAssistantMessage(aiResponse);
+      if (isEphemeral) {
+        // For ephemeral messages, we don't save to database
+        // Just create response objects with the content
+        userMessage = {
+          id: Date.now(),
+          role: "user",
+          content: validatedData.message,
+          createdAt: new Date().toISOString(),
+        };
+        
+        assistantMessage = {
+          id: Date.now() + 1,
+          role: "assistant",
+          content: aiResponse,
+          createdAt: new Date().toISOString(),
+        };
+      } else {
+        // Save user message
+        userMessage = await storage.saveUserMessage(validatedData.message);
+        
+        // Save AI response
+        assistantMessage = await storage.saveAssistantMessage(aiResponse);
+      }
       
       return res.json({
         userMessage,

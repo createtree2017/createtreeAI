@@ -37,8 +37,12 @@ export const getImageList = async () => {
 };
 
 // Chat API endpoints
-export const sendChatMessage = async (message: string) => {
-  const response = await apiRequest('POST', '/api/chat/message', { message });
+export const sendChatMessage = async (message: string, ephemeral: boolean = false) => {
+  const url = ephemeral 
+    ? '/api/chat/message?ephemeral=true'
+    : '/api/chat/message';
+  
+  const response = await apiRequest('POST', url, { message });
   return response.json();
 };
 

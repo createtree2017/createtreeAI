@@ -75,9 +75,9 @@ export const useSendEphemeralMessage = () => {
         content: message,
       });
       
-      // Send the message to the API for processing
+      // Send the message to the API for processing with ephemeral flag
       // This will still hit the server endpoint but won't store in database
-      const response = await sendChatMessage(message);
+      const response = await sendChatMessage(message, true);
       
       // Add the AI response to the ephemeral store
       addMessage({
