@@ -29,6 +29,7 @@ export default function Image() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [transformedImage, setTransformedImage] = useState<TransformedImage | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // Extract image ID from URL if any
   const query = new URLSearchParams(location.split("?")[1] || "");
@@ -72,6 +73,13 @@ export default function Image() {
 
   const handleFileSelected = (file: File) => {
     setSelectedFile(file);
+    
+    // Create a preview URL for the selected image
+    const fileReader = new FileReader();
+    fileReader.onload = (e) => {
+      setPreviewUrl(e.target?.result as string);
+    };
+    fileReader.readAsDataURL(file);
   };
 
   const handleStyleSelected = (style: string) => {
@@ -124,32 +132,32 @@ export default function Image() {
     { 
       value: "ghibli", 
       label: "Studio Ghibli", 
-      thumbnailUrl: "https://images.unsplash.com/photo-1612177178197-c233467e0ba2?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" 
+      thumbnailUrl: "https://placehold.co/300x200/FFD5AA/333?text=Ghibli+Style" 
     },
     { 
       value: "disney", 
       label: "Disney Animation", 
-      thumbnailUrl: "https://images.unsplash.com/photo-1608848461950-0fe51dfc41cb?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" 
+      thumbnailUrl: "https://placehold.co/300x200/B6E1FF/333?text=Disney+Style" 
     },
     { 
       value: "korean_webtoon", 
       label: "Korean Webtoon", 
-      thumbnailUrl: "https://images.unsplash.com/photo-1595750296587-295246b2dd5d?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" 
+      thumbnailUrl: "https://placehold.co/300x200/FFD6E7/333?text=Korean+Webtoon" 
     },
     { 
       value: "watercolor", 
       label: "Soft Watercolor", 
-      thumbnailUrl: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" 
+      thumbnailUrl: "https://placehold.co/300x200/E1FFE2/333?text=Watercolor" 
     },
     { 
       value: "fairytale", 
       label: "Fairytale", 
-      thumbnailUrl: "https://images.unsplash.com/photo-1518998053901-5348d3961a04?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" 
+      thumbnailUrl: "https://placehold.co/300x200/DCBEFF/333?text=Fairytale" 
     },
     { 
       value: "storybook", 
       label: "Baby Storybook", 
-      thumbnailUrl: "https://images.unsplash.com/photo-1516683037151-9a17603a8dc7?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" 
+      thumbnailUrl: "https://placehold.co/300x200/FFFACD/333?text=Storybook" 
     },
   ];
 
@@ -174,6 +182,21 @@ export default function Image() {
 
         <div className="mb-6">
           <label className="block font-medium mb-3 text-neutral-darkest">Upload Your Photo</label>
+          
+          {/* Image preview */}
+          {previewUrl && (
+            <div className="mb-4 rounded-lg overflow-hidden border border-neutral-light">
+              <img 
+                src={previewUrl} 
+                alt="Selected image preview" 
+                className="w-full max-h-64 object-contain"
+              />
+              <div className="bg-neutral-lightest p-2 text-xs text-neutral-dark">
+                <p className="font-medium">File selected: {selectedFile?.name}</p>
+              </div>
+            </div>
+          )}
+          
           <FileUpload 
             onFileSelect={handleFileSelected} 
             accept="image/*"
