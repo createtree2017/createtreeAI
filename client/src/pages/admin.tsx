@@ -5,7 +5,12 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { InsertPersona, InsertPersonaCategory } from "@shared/schema";
+import { 
+  InsertPersona, 
+  InsertPersonaCategory, 
+  InsertConcept, 
+  InsertConceptCategory 
+} from "@shared/schema";
 import BatchImportDialog from "@/components/BatchImportDialog";
 
 import {
@@ -94,6 +99,36 @@ const categoryFormSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
+// Define validation schemas for concept management
+const conceptCategorySchema = z.object({
+  categoryId: z.string().min(1, "ID is required"),
+  name: z.string().min(1, "Name is required"),
+  description: z.string().min(1, "Description is required"),
+  order: z.number().int().default(0),
+  isActive: z.boolean().default(true),
+});
+
+const conceptSchema = z.object({
+  conceptId: z.string().min(1, "ID is required"),
+  title: z.string().min(1, "Title is required"),
+  description: z.string().min(1, "Description is required"),
+  promptTemplate: z.string().min(1, "Prompt template is required"),
+  thumbnailUrl: z.string().optional(),
+  tagSuggestions: z.array(z.string()).optional().default([]),
+  variables: z.array(z.object({
+    name: z.string().min(1, "Variable name is required"),
+    description: z.string().min(1, "Variable description is required"),
+    type: z.enum(["text", "select", "number", "boolean"]),
+    required: z.boolean().default(true),
+    options: z.array(z.string()).optional(),
+    defaultValue: z.union([z.string(), z.number(), z.boolean()]).optional(),
+  })).optional().default([]),
+  categoryId: z.string().min(1, "Category is required"),
+  isActive: z.boolean().default(true),
+  isFeatured: z.boolean().default(false),
+  order: z.number().int().default(0),
+});
+
 // Main admin component
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("personas");
@@ -102,13 +137,15 @@ export default function AdminPage() {
     <div className="container py-10">
       <h1 className="text-4xl font-bold mb-6">Admin Panel</h1>
       <p className="text-gray-500 mb-8">
-        Manage chat characters and categories
+        Manage chat characters, image generation concepts, and categories
       </p>
       
       <Tabs defaultValue="personas" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2 mb-8">
+        <TabsList className="grid w-full grid-cols-4 mb-8">
           <TabsTrigger value="personas">Chat Characters</TabsTrigger>
-          <TabsTrigger value="categories">Categories</TabsTrigger>
+          <TabsTrigger value="categories">Chat Categories</TabsTrigger>
+          <TabsTrigger value="concepts">Image Concepts</TabsTrigger>
+          <TabsTrigger value="concept-categories">Image Categories</TabsTrigger>
         </TabsList>
         
         <TabsContent value="personas">
@@ -117,6 +154,14 @@ export default function AdminPage() {
         
         <TabsContent value="categories">
           <CategoryManager />
+        </TabsContent>
+        
+        <TabsContent value="concepts">
+          <ConceptManager />
+        </TabsContent>
+        
+        <TabsContent value="concept-categories">
+          <ConceptCategoryManager />
         </TabsContent>
       </Tabs>
     </div>
@@ -1294,5 +1339,372 @@ function CategoryForm({ initialData, onSuccess }: CategoryFormProps) {
         </DialogFooter>
       </form>
     </Form>
+  );
+}
+// ConceptCategoryManager component
+function ConceptCategoryManager() {
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<InsertConceptCategory | null>(null);
+  const queryClient = useQueryClient();
+  
+  // Fetch concept categories
+  const { data: categories, isLoading, error } = useQuery({
+    queryKey: ["/api/admin/concept-categories"],
+  });
+  
+  // Handler for editing a category
+  const handleEditCategory = (category: InsertConceptCategory) => {
+    setEditingCategory(category);
+    setIsEditDialogOpen(true);
+  };
+  
+  // Delete concept category mutation
+  const deleteCategoryMutation = useMutation({
+    mutationFn: (categoryId: string) => apiRequest(`/api/admin/concept-categories/${categoryId}`, {
+      method: "DELETE",
+    }),
+    onSuccess: () => {
+      toast({
+        title: "Category deleted",
+        description: "The image concept category has been deleted successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/concept-categories"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete category. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Error deleting concept category:", error);
+    },
+  });
+  
+  // Handler for deleting a category
+  const handleDeleteCategory = (categoryId: string) => {
+    if (window.confirm("Are you sure you want to delete this category? This action cannot be undone and may affect associated concepts.")) {
+      deleteCategoryMutation.mutate(categoryId);
+    }
+  };
+  
+  // Toggle active status mutation
+  const toggleActiveMutation = useMutation({
+    mutationFn: ({ categoryId, isActive }: { categoryId: string; isActive: boolean }) => {
+      const category = categories.find((c: any) => c.categoryId === categoryId);
+      return apiRequest(`/api/admin/concept-categories/${categoryId}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          ...category,
+          isActive,
+        }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/concept-categories"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update category status. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Error toggling category status:", error);
+    },
+  });
+  
+  if (isLoading) {
+    return <div className="text-center py-10">Loading concept categories...</div>;
+  }
+  
+  if (error) {
+    return <div className="text-center py-10 text-red-500">Error loading concept categories. Please refresh the page.</div>;
+  }
+  
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold">Image Generation Categories</h2>
+        <Button onClick={() => setIsCreateDialogOpen(true)}>
+          <PlusCircle className="h-4 w-4 mr-2" />
+          Add New Category
+        </Button>
+      </div>
+      
+      {categories && categories.length > 0 ? (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Order</TableHead>
+                <TableHead>Active</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {categories.map((category: any) => (
+                <TableRow key={category.categoryId}>
+                  <TableCell className="font-medium">
+                    {category.name}
+                  </TableCell>
+                  <TableCell className="max-w-xs truncate">
+                    {category.description}
+                  </TableCell>
+                  <TableCell>{category.order}</TableCell>
+                  <TableCell>
+                    <Switch 
+                      checked={category.isActive} 
+                      onCheckedChange={(checked) => 
+                        toggleActiveMutation.mutate({ categoryId: category.categoryId, isActive: checked })
+                      }
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center space-x-2">
+                      <Button variant="ghost" size="sm" onClick={() => handleEditCategory(category)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleDeleteCategory(category.categoryId)}>
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      ) : (
+        <div className="text-center py-10 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+          <p className="text-gray-500">No concept categories found. Create your first category!</p>
+        </div>
+      )}
+      
+      {/* Create Category Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Concept Category</DialogTitle>
+            <DialogDescription>
+              Add a new category for AI image generation concepts.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <ConceptCategoryForm 
+            onSuccess={() => {
+              setIsCreateDialogOpen(false);
+              queryClient.invalidateQueries({ queryKey: ["/api/admin/concept-categories"] });
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+      
+      {/* Edit Category Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Concept Category</DialogTitle>
+            <DialogDescription>
+              Modify this concept category's details.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {editingCategory && (
+            <ConceptCategoryForm 
+              initialData={editingCategory}
+              onSuccess={() => {
+                setIsEditDialogOpen(false);
+                queryClient.invalidateQueries({ queryKey: ["/api/admin/concept-categories"] });
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// Form component for creating/editing concept categories
+interface ConceptCategoryFormProps {
+  initialData?: InsertConceptCategory;
+  onSuccess: () => void;
+}
+
+function ConceptCategoryForm({ initialData, onSuccess }: ConceptCategoryFormProps) {
+  const queryClient = useQueryClient();
+  
+  // Set up form
+  const form = useForm({
+    resolver: zodResolver(conceptCategorySchema),
+    defaultValues: initialData || {
+      categoryId: "",
+      name: "",
+      description: "",
+      order: 0,
+      isActive: true,
+    },
+  });
+  
+  // Create/update mutation
+  const submitMutation = useMutation({
+    mutationFn: (values: z.infer<typeof conceptCategorySchema>) => {
+      if (initialData) {
+        return apiRequest(`/api/admin/concept-categories/${initialData.categoryId}`, {
+          method: "PUT",
+          body: JSON.stringify(values),
+        });
+      } else {
+        return apiRequest("/api/admin/concept-categories", {
+          method: "POST",
+          body: JSON.stringify(values),
+        });
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: initialData ? "Category updated" : "Category created",
+        description: initialData ? 
+          "The concept category has been updated successfully" : 
+          "The concept category has been created successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/concept-categories"] });
+      onSuccess();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to ${initialData ? 'update' : 'create'} concept category. Please try again.`,
+        variant: "destructive",
+      });
+      console.error(`Error ${initialData ? 'updating' : 'creating'} concept category:`, error);
+    },
+  });
+  
+  function onSubmit(values: z.infer<typeof conceptCategorySchema>) {
+    submitMutation.mutate(values);
+  }
+  
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="categoryId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Category ID</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="unique-id" 
+                    {...field} 
+                    disabled={!!initialData}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="Category name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="order"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Display Order</FormLabel>
+                <FormControl>
+                  <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="isActive"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel>Active</FormLabel>
+                  <p className="text-sm text-gray-500">
+                    Enable or disable this category
+                  </p>
+                </div>
+              </FormItem>
+            )}
+          />
+        </div>
+        
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea placeholder="Describe this concept category" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <div className="flex gap-2 justify-end">
+          <Button type="submit" disabled={submitMutation.isPending}>
+            {submitMutation.isPending ? (
+              <>
+                <span className="animate-spin mr-2">⏳</span>
+                {initialData ? "Updating..." : "Creating..."}
+              </>
+            ) : (
+              <>{initialData ? "Update" : "Create"} Category</>
+            )}
+          </Button>
+        </div>
+      </form>
+    </Form>
+  );
+}
+
+// ConceptManager component (placeholder)
+function ConceptManager() {
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold">Image Generation Concepts</h2>
+        <Button>
+          <PlusCircle className="h-4 w-4 mr-2" />
+          Add New Concept
+        </Button>
+      </div>
+      
+      <div className="text-center py-10 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+        <p className="text-gray-500">Concept management interface is being implemented.</p>
+        <p className="text-gray-500 mt-2">Check back soon for the full functionality!</p>
+      </div>
+    </div>
   );
 }
