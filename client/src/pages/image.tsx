@@ -29,17 +29,17 @@ export default function Image() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [transformedImage, setTransformedImage] = useState<TransformedImage | null>(null);
-  
+
   // Extract image ID from URL if any
   const query = new URLSearchParams(location.split("?")[1] || "");
   const imageId = query.get("id");
-  
+
   // Fetch image list
   const { data: imageList, isLoading: isLoadingImages } = useQuery({
     queryKey: ["/api/image"],
     queryFn: getImageList,
   });
-  
+
   // Fetch individual image if ID is provided
   useEffect(() => {
     if (imageId && imageList) {
@@ -49,7 +49,7 @@ export default function Image() {
       }
     }
   }, [imageId, imageList]);
-  
+
   // Transform image mutation
   const { mutate: transformImageMutation, isPending: isTransforming } = useMutation({
     mutationFn: (data: FormData) => transformImage(data),
@@ -69,15 +69,15 @@ export default function Image() {
       });
     },
   });
-  
+
   const handleFileSelected = (file: File) => {
     setSelectedFile(file);
   };
-  
+
   const handleStyleSelected = (style: string) => {
     setSelectedStyle(style);
   };
-  
+
   const handleTransformImage = () => {
     if (!selectedFile || !selectedStyle) {
       toast({
@@ -87,18 +87,18 @@ export default function Image() {
       });
       return;
     }
-    
+
     const formData = new FormData();
     formData.append("image", selectedFile);
     formData.append("style", selectedStyle);
-    
+
     transformImageMutation(formData);
   };
-  
+
   const handleDownload = (id: number) => {
     downloadMedia(id, "image");
   };
-  
+
   const handleShare = async (id: number) => {
     try {
       const shareData = await shareMedia(id, "image");
@@ -114,11 +114,11 @@ export default function Image() {
       });
     }
   };
-  
+
   const handleViewImage = (image: TransformedImage) => {
     setTransformedImage(image);
   };
-  
+
   // Art styles data - optimized for maternity/baby photos
   const artStyles: ImageStyle[] = [
     { 
@@ -152,14 +152,14 @@ export default function Image() {
       thumbnailUrl: "https://images.unsplash.com/photo-1516683037151-9a17603a8dc7?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" 
     },
   ];
-  
+
   return (
     <div className="p-5 animate-fadeIn">
       <div className="text-center mb-6">
         <h2 className="font-heading font-bold text-2xl mb-2">Maternity Art Magic</h2>
         <p className="text-neutral-dark">Transform your pregnancy and baby photos into beautiful memories</p>
       </div>
-      
+
       {/* Image Upload Section */}
       <div className="bg-white rounded-xl p-5 shadow-soft border border-neutral-light">
         <div className="text-center mb-5">
@@ -171,7 +171,7 @@ export default function Image() {
             Turn your maternity photos, ultrasound images, or baby pictures into enchanting artworks to cherish forever.
           </p>
         </div>
-        
+
         <div className="mb-6">
           <label className="block font-medium mb-3 text-neutral-darkest">Upload Your Photo</label>
           <FileUpload 
@@ -183,7 +183,7 @@ export default function Image() {
             Supported: Ultrasound images, maternity photos, baby pictures, family moments
           </p>
         </div>
-        
+
         {/* Style Selection */}
         {selectedFile && (
           <div>
@@ -213,7 +213,7 @@ export default function Image() {
                 ))}
               </div>
             </div>
-            
+
             <Button
               type="button"
               className="w-full bg-primary hover:bg-primary-dark text-white font-medium py-3 px-4 rounded-lg transition-colors shadow-sm"
@@ -226,7 +226,7 @@ export default function Image() {
           </div>
         )}
       </div>
-      
+
       {/* Generated Art Section */}
       {transformedImage && (
         <div className="mt-8">
@@ -236,7 +236,7 @@ export default function Image() {
               <span className="text-xs font-medium text-primary-dark">New</span>
             </div>
           </div>
-          
+
           <div className="bg-white rounded-xl p-5 shadow-soft border border-neutral-light">
             <div className="mb-5">
               <div className="rounded-lg overflow-hidden shadow-sm">
@@ -256,7 +256,7 @@ export default function Image() {
                 </p>
               </div>
             </div>
-            
+
             <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
               <Button
                 className="bg-neutral-light hover:bg-neutral text-neutral-darkest font-medium py-2.5 px-4 rounded-lg transition-colors"
@@ -276,7 +276,7 @@ export default function Image() {
           </div>
         </div>
       )}
-      
+
       {/* Previous Art */}
       <div className="mt-8">
         <div className="flex justify-between items-center mb-4">
@@ -287,7 +287,7 @@ export default function Image() {
             </span>
           )}
         </div>
-        
+
         {isLoadingImages ? (
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-neutral-lightest h-52 rounded-xl animate-pulse"></div>

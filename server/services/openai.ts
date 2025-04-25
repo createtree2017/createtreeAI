@@ -38,7 +38,7 @@ export async function transformImageWithOpenAI(imageBuffer: Buffer, style: strin
   try {
     // Convert buffer to base64
     const base64Image = imageBuffer.toString('base64');
-    
+
     // Create a prompt based on the selected style
     const stylePrompts: Record<string, string> = {
       watercolor: "Transform this image into a beautiful watercolor painting with soft, flowing colors and gentle brush strokes",
@@ -48,9 +48,9 @@ export async function transformImageWithOpenAI(imageBuffer: Buffer, style: strin
       fantasy: "Transform this image into a magical fantasy art style with ethereal lighting and dreamlike qualities",
       storybook: "Convert this image into a sweet children's storybook illustration style with gentle colors and charming details"
     };
-    
+
     const promptText = stylePrompts[style] || "Transform this image into a beautiful artistic style";
-    
+
     // Use DALL-E to generate the transformed image
     const response = await openai.images.edit({
       model: "dall-e-2", // Using DALL-E for image generation
@@ -59,7 +59,7 @@ export async function transformImageWithOpenAI(imageBuffer: Buffer, style: strin
       n: 1,
       size: "1024x1024",
     });
-    
+
     // Return the URL of the generated image
     return response.data[0].url;
   } catch (error) {
