@@ -16,7 +16,7 @@ import { AudioPlayer } from "@/components/ui/audio-player";
 import { generateMusic, getMusicList, downloadMedia, shareMedia } from "@/lib/api";
 
 const formSchema = z.object({
-  babyName: z.string().min(1, "Baby's name is required"),
+  babyName: z.string().min(1, "Name or theme is required"),
   musicStyle: z.string().min(1, "Please select a music style"),
   duration: z.string().min(1, "Please select a duration"),
 });
@@ -123,9 +123,11 @@ export default function Music() {
   // Music styles data
   const musicStyles = [
     { value: "lullaby", label: "Lullaby" },
+    { value: "taegyo", label: "태교 (Prenatal)" },
+    { value: "celebration", label: "Celebration" },
+    { value: "love", label: "Love Song" },
     { value: "playful", label: "Playful" },
     { value: "classical", label: "Classical" },
-    { value: "nature", label: "Nature Sounds" },
   ];
   
   // Duration options
@@ -139,8 +141,8 @@ export default function Music() {
   return (
     <div className="p-5 animate-fadeIn">
       <div className="text-center mb-6">
-        <h2 className="font-heading font-bold text-2xl mb-2">Lullaby Creator</h2>
-        <p className="text-neutral-dark">Create a personalized song that carries your baby's name and love</p>
+        <h2 className="font-heading font-bold text-2xl mb-2">Family Music Creator</h2>
+        <p className="text-neutral-dark">Create personalized songs for special family moments and memories</p>
       </div>
       
       {/* Music Form */}
@@ -154,7 +156,7 @@ export default function Music() {
           </div>
           <h3 className="font-heading font-semibold text-lg text-primary-dark">Create a Musical Memory</h3>
           <p className="text-sm text-neutral-dark mt-1 max-w-md mx-auto">
-            Our AI will compose a beautiful melody featuring your baby's name - perfect for bedtime or bonding moments
+            Our AI will compose a beautiful melody for family memories - from lullabies to celebration songs
           </p>
         </div>
         
@@ -166,17 +168,17 @@ export default function Music() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="block font-medium mb-2 text-neutral-darkest">
-                    Baby's Name or Nickname
+                    Name or Theme
                   </FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="e.g., Minjun, Little Star, Baby Bean"
+                      placeholder="e.g., 'To my wife', 'Welcome baby', '태명으로 만든 음악'"
                       className="w-full p-3 rounded-lg border border-neutral focus:border-primary-dark focus:ring focus:ring-primary-light focus:ring-opacity-50 outline-none transition"
                       {...field}
                     />
                   </FormControl>
                   <p className="text-xs text-neutral-dark mt-1">
-                    This name will be repeated in the lullaby to create a personal connection
+                    Enter a name, message, or theme for your special melody
                   </p>
                   <FormMessage />
                 </FormItem>
@@ -203,9 +205,11 @@ export default function Music() {
                           field.value === style.value ? "bg-primary-light text-primary-dark" : "bg-neutral-lightest text-neutral-dark"
                         }`}>
                           {style.value === "lullaby" && <span className="block text-lg">🌙</span>}
+                          {style.value === "taegyo" && <span className="block text-lg">👶</span>}
+                          {style.value === "celebration" && <span className="block text-lg">🎉</span>}
+                          {style.value === "love" && <span className="block text-lg">❤️</span>}
                           {style.value === "playful" && <span className="block text-lg">🎪</span>}
                           {style.value === "classical" && <span className="block text-lg">🎻</span>}
-                          {style.value === "nature" && <span className="block text-lg">🌿</span>}
                         </div>
                         <input
                           type="radio"
