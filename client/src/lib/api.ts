@@ -149,6 +149,12 @@ export const deletePersona = async (id: string) => {
   return response.json();
 };
 
+// Batch import personas
+export const batchImportPersonas = async (personaList: any[]) => {
+  const response = await apiRequest('POST', '/api/admin/personas/batch', personaList);
+  return response.json();
+};
+
 // Track persona usage
 export const incrementPersonaUse = async (id: string) => {
   const response = await apiRequest('POST', `/api/personas/${id}/use`);

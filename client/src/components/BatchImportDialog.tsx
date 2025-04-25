@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { batchImportPersonas } from "@/lib/api";
 import { z } from "zod";
 
 import {
@@ -57,17 +58,8 @@ export default function BatchImportDialog({ onSuccess, categories }: BatchImport
 
   // Mutation for batch importing personas
   const batchImportMutation = useMutation({
-    mutationFn: async (personas: any[]) => {
-      const results = [];
-      // Process each persona sequentially
-      for (const persona of personas) {
-        const result = await apiRequest("/api/admin/personas/batch", {
-          method: "POST",
-          body: JSON.stringify(persona),
-        });
-        results.push(result);
-      }
-      return results;
+    mutationFn: (personas: any[]) => {
+      return batchImportPersonas(personas);
     },
     onSuccess: () => {
       toast({
