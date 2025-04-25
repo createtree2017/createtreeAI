@@ -2006,6 +2006,8 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
   const [editingVariableIndex, setEditingVariableIndex] = useState<number | null>(null);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewValues, setPreviewValues] = useState<{[key: string]: string}>({});
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(initialData?.thumbnailUrl || null);
   
   // Set up form
   const form = useForm({
@@ -2031,17 +2033,40 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
   
   // Extract variable names from the prompt template
   const extractVariables = (template: string) => {
-    const regex = /{{([^{}]+)}}/g;
+    const regex = /\{([^{}]+)\}/g;
     const matches = template.match(regex) || [];
-    return matches.map(match => match.slice(2, -2).trim());
+    return matches.map(match => match.slice(1, -1).trim());
   };
   
   const promptVariables = extractVariables(promptTemplate);
+  
+  const sampleValues: {[key: string]: string} = {
+    baby_name: "Minjun",
+    mother_name: "Jiyoung",
+    father_name: "Sungho",
+    birth_month: "May",
+    birth_year: "2024",
+    pregnancy_week: "28",
+    gender: "boy",
+    zodiac_sign: "Taurus",
+    nickname: "Little Dragon",
+    taemyeong: "하늘이", // Korean nickname for unborn baby
+    color: "pastel blue",
+    season: "spring",
+    emotion: "joyful",
+    animal: "rabbit"
+  };
   
   // Update preview values when variables change
   useEffect(() => {
     const newPreviewValues: {[key: string]: string} = {};
     promptVariables.forEach(varName => {
+      // First check if we have a sample value
+      if (sampleValues[varName]) {
+        newPreviewValues[varName] = sampleValues[varName];
+        return;
+      }
+      
       // Find the variable in the variables array
       const varDef = variables.find((v: any) => v.name === varName);
       
@@ -2059,7 +2084,7 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
           newPreviewValues[varName] = `[${varName}]`;
         }
       } else {
-        // For variables not defined yet
+        // For variables not defined yet, try to use a sample value or a placeholder
         newPreviewValues[varName] = `[${varName}]`;
       }
     });
@@ -2072,10 +2097,50 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
     let preview = promptTemplate;
     
     Object.entries(previewValues).forEach(([varName, value]) => {
-      preview = preview.replace(new RegExp(`{{\\s*${varName}\\s*}}`, 'g'), value);
+      preview = preview.replace(new RegExp(`\\{\\s*${varName}\\s*\\}`, 'g'), value);
     });
     
     return preview;
+  };
+  
+  // Handle thumbnail image upload
+  const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setUploadingThumbnail(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append("thumbnail", file);
+      
+      const response = await fetch("/api/admin/upload/thumbnail", {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to upload thumbnail");
+      }
+      
+      const data = await response.json();
+      setThumbnailUrl(data.url);
+      form.setValue("thumbnailUrl", data.url);
+      
+      toast({
+        title: "Thumbnail uploaded",
+        description: "The thumbnail has been uploaded successfully",
+      });
+    } catch (error) {
+      console.error("Error uploading thumbnail:", error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload thumbnail image. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingThumbnail(false);
+    }
   };
   
   // Create/update mutation

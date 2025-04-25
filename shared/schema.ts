@@ -139,6 +139,42 @@ export const concepts = pgTable("concepts", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// A/B Testing tables
+export const abTests = pgTable("ab_tests", {
+  id: serial("id").primaryKey(),
+  testId: text("test_id").notNull().unique(),
+  conceptId: text("concept_id").references(() => concepts.conceptId),
+  name: text("name").notNull(),
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  startDate: timestamp("start_date").defaultNow().notNull(),
+  endDate: timestamp("end_date"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const abTestVariants = pgTable("ab_test_variants", {
+  id: serial("id").primaryKey(),
+  testId: text("test_id").references(() => abTests.testId).notNull(),
+  variantId: text("variant_id").notNull(),
+  name: text("name").notNull(), // e.g., "Variant A", "Variant B"
+  promptTemplate: text("prompt_template").notNull(),
+  variables: jsonb("variables"), // Array of variable objects (same structure as in concepts)
+  impressions: integer("impressions").default(0),
+  conversions: integer("conversions").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const abTestResults = pgTable("ab_test_results", {
+  id: serial("id").primaryKey(),
+  testId: text("test_id").references(() => abTests.testId).notNull(),
+  selectedVariantId: text("selected_variant_id").notNull(),
+  userId: integer("user_id").references(() => users.id),
+  context: jsonb("context"), // Additional info (device, browser, etc.)
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Define relations
 export const musicRelations = relations(music, ({ one }) => ({
   favorite: one(favorites, {
@@ -188,6 +224,9 @@ export const insertPersonaSchema = createInsertSchema(personas);
 export const insertPersonaCategorySchema = createInsertSchema(personaCategories);
 export const insertConceptSchema = createInsertSchema(concepts);
 export const insertConceptCategorySchema = createInsertSchema(conceptCategories);
+export const insertAbTestSchema = createInsertSchema(abTests);
+export const insertAbTestVariantSchema = createInsertSchema(abTestVariants);
+export const insertAbTestResultSchema = createInsertSchema(abTestResults);
 
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -219,6 +258,15 @@ export type Concept = typeof concepts.$inferSelect;
 
 export type InsertConceptCategory = z.infer<typeof insertConceptCategorySchema>;
 export type ConceptCategory = typeof conceptCategories.$inferSelect;
+
+export type InsertAbTest = z.infer<typeof insertAbTestSchema>;
+export type AbTest = typeof abTests.$inferSelect;
+
+export type InsertAbTestVariant = z.infer<typeof insertAbTestVariantSchema>;
+export type AbTestVariant = typeof abTestVariants.$inferSelect;
+
+export type InsertAbTestResult = z.infer<typeof insertAbTestResultSchema>;
+export type AbTestResult = typeof abTestResults.$inferSelect;
 
 // Export eq and desc for query building
 export { eq, desc, and, asc } from "drizzle-orm";
