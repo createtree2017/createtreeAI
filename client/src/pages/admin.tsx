@@ -2879,7 +2879,533 @@ function VariableForm({ initialData, onSave }: VariableFormProps) {
   );
 }
 
-// Language Settings component
+// A/B Test Manager Component
+function ABTestManager() {
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedTest, setSelectedTest] = useState<any>(null);
+  const queryClient = useQueryClient();
+
+  // Fetch A/B tests
+  const { data: tests, isLoading, error } = useQuery({
+    queryKey: ["/api/admin/abtests"],
+  });
+
+  // Fetch concepts for dropdown
+  const { data: concepts } = useQuery({
+    queryKey: ["/api/admin/concepts"],
+  });
+
+  // Delete test mutation
+  const deleteTestMutation = useMutation({
+    mutationFn: (testId: string) => apiRequest(`/api/admin/abtests/${testId}`, {
+      method: "DELETE",
+    }),
+    onSuccess: () => {
+      toast({
+        title: "Test deleted",
+        description: "The A/B test has been deleted successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/abtests"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete A/B test. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Error deleting A/B test:", error);
+    },
+  });
+
+  // Handle deleting a test
+  const handleDeleteTest = (testId: string) => {
+    if (window.confirm("Are you sure you want to delete this A/B test? This action cannot be undone.")) {
+      deleteTestMutation.mutate(testId);
+    }
+  };
+
+  // Toggle test active status mutation
+  const toggleActiveMutation = useMutation({
+    mutationFn: ({ testId, isActive }: { testId: string; isActive: boolean }) => {
+      const test = tests?.find((t: any) => t.testId === testId);
+      return apiRequest(`/api/admin/abtests/${testId}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          ...test,
+          isActive,
+        }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/abtests"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update test status. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Error toggling test status:", error);
+    },
+  });
+
+  if (isLoading) {
+    return <div className="text-center py-10">Loading A/B tests...</div>;
+  }
+
+  if (error) {
+    return <div className="text-center py-10 text-red-500">Error loading A/B tests. Please refresh the page.</div>;
+  }
+
+  // Format date to a readable string
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('default', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+  };
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold">A/B Testing</h2>
+        <Button onClick={() => setIsCreateDialogOpen(true)}>
+          <PlusCircle className="h-4 w-4 mr-2" />
+          Create New Test
+        </Button>
+      </div>
+
+      {tests && tests.length > 0 ? (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Test Name</TableHead>
+                <TableHead>Concept</TableHead>
+                <TableHead>Variants</TableHead>
+                <TableHead>Start Date</TableHead>
+                <TableHead>Active</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {tests.map((test: any) => (
+                <TableRow key={test.testId}>
+                  <TableCell className="font-medium">
+                    <div>
+                      <div>{test.name}</div>
+                      {test.description && (
+                        <div className="text-xs text-gray-500">{test.description.substring(0, 50)}{test.description.length > 50 ? '...' : ''}</div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {concepts?.find((c: any) => c.conceptId === test.conceptId)?.title || test.conceptId}
+                  </TableCell>
+                  <TableCell>
+                    <Badge>{test.variantCount || 'N/A'} variants</Badge>
+                  </TableCell>
+                  <TableCell>
+                    {test.startDate ? formatDate(test.startDate) : 'Not started'}
+                  </TableCell>
+                  <TableCell>
+                    <Switch
+                      checked={test.isActive}
+                      onCheckedChange={(checked) =>
+                        toggleActiveMutation.mutate({ testId: test.testId, isActive: checked })
+                      }
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center space-x-2">
+                      <Button variant="ghost" size="sm" onClick={() => {
+                        setSelectedTest(test);
+                        setIsEditDialogOpen(true);
+                      }}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleDeleteTest(test.testId)}>
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      ) : (
+        <div className="text-center py-10 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+          <p className="text-gray-500">No A/B tests found. Create your first test!</p>
+        </div>
+      )}
+
+      {/* Create AB Test Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create New A/B Test</DialogTitle>
+            <DialogDescription>
+              Create a new A/B test to compare different prompt versions for a concept.
+            </DialogDescription>
+          </DialogHeader>
+
+          <ABTestForm
+            concepts={concepts || []}
+            onSuccess={() => {
+              setIsCreateDialogOpen(false);
+              queryClient.invalidateQueries({ queryKey: ["/api/admin/abtests"] });
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit AB Test Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit A/B Test</DialogTitle>
+            <DialogDescription>
+              Modify this A/B test's settings and variants.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedTest && (
+            <ABTestForm
+              concepts={concepts || []}
+              initialData={selectedTest}
+              onSuccess={() => {
+                setIsEditDialogOpen(false);
+                queryClient.invalidateQueries({ queryKey: ["/api/admin/abtests"] });
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// Form component for creating/editing A/B tests
+interface ABTestFormProps {
+  initialData?: any;
+  concepts: any[];
+  onSuccess: () => void;
+}
+
+function ABTestForm({ initialData, concepts, onSuccess }: ABTestFormProps) {
+  const queryClient = useQueryClient();
+  const [variants, setVariants] = useState<any[]>(initialData?.variants || [
+    { variantId: 'variant-a', name: 'Variant A', promptTemplate: '', variables: [] },
+    { variantId: 'variant-b', name: 'Variant B', promptTemplate: '', variables: [] }
+  ]);
+
+  // Fetch selected test with variants if we have an initialData
+  const { data: testWithVariants } = useQuery({
+    queryKey: ["/api/admin/abtests", initialData?.testId],
+    enabled: !!initialData?.testId,
+  });
+
+  // Update variants when test data is loaded
+  useEffect(() => {
+    if (testWithVariants?.variants && testWithVariants.variants.length > 0) {
+      setVariants(testWithVariants.variants);
+    }
+  }, [testWithVariants]);
+
+  // Set up form
+  const form = useForm({
+    defaultValues: initialData || {
+      testId: '',
+      name: '',
+      description: '',
+      conceptId: '',
+      isActive: true,
+    },
+  });
+
+  // Create/update A/B test mutation
+  const mutation = useMutation({
+    mutationFn: (values: any) => {
+      // Add variants to the submission
+      const dataToSubmit = {
+        ...values,
+        variants,
+      };
+
+      if (initialData) {
+        // Update existing test
+        return apiRequest(`/api/admin/abtests/${initialData.testId}`, {
+          method: "PUT",
+          body: JSON.stringify(dataToSubmit),
+        });
+      } else {
+        // Create new test
+        return apiRequest('/api/admin/abtests', {
+          method: "POST",
+          body: JSON.stringify(dataToSubmit),
+        });
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: initialData ? "A/B Test updated" : "A/B Test created",
+        description: initialData 
+          ? "The A/B test has been updated successfully" 
+          : "A new A/B test has been created successfully",
+      });
+      onSuccess();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to ${initialData ? 'update' : 'create'} A/B test. Please try again.`,
+        variant: "destructive",
+      });
+      console.error(`Error ${initialData ? 'updating' : 'creating'} A/B test:`, error);
+    },
+  });
+
+  function onSubmit(values: any) {
+    if (variants.length < 2) {
+      toast({
+        title: "Error",
+        description: "You need at least two variants for an A/B test.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    mutation.mutate(values);
+  }
+
+  // Add a new variant
+  const addVariant = () => {
+    const newVariantId = `variant-${String.fromCharCode(97 + variants.length)}`;
+    const newVariantName = `Variant ${String.fromCharCode(65 + variants.length)}`;
+    
+    setVariants([
+      ...variants,
+      { variantId: newVariantId, name: newVariantName, promptTemplate: '', variables: [] }
+    ]);
+  };
+
+  // Remove a variant
+  const removeVariant = (index: number) => {
+    if (variants.length <= 2) {
+      toast({
+        title: "Error",
+        description: "A/B tests require at least two variants.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const newVariants = [...variants];
+    newVariants.splice(index, 1);
+    setVariants(newVariants);
+  };
+
+  // Update a variant
+  const updateVariant = (index: number, field: string, value: any) => {
+    const newVariants = [...variants];
+    newVariants[index] = {
+      ...newVariants[index],
+      [field]: value
+    };
+    setVariants(newVariants);
+  };
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="testId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Test ID</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g., lullaby-comparison" {...field} disabled={!!initialData} />
+                </FormControl>
+                <FormDescription>
+                  A unique identifier for this test.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Test Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g., Lullaby Prompt Comparison" {...field} />
+                </FormControl>
+                <FormDescription>
+                  A descriptive name for this A/B test.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="e.g., Testing different prompt structures for generating lullabies"
+                  className="min-h-[100px]"
+                  {...field}
+                />
+              </FormControl>
+              <FormDescription>
+                Optional description explaining what this test is comparing.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="conceptId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Concept</FormLabel>
+              <Select
+                value={field.value}
+                onValueChange={field.onChange}
+                disabled={!!initialData}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a concept" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {concepts.map((concept: any) => (
+                    <SelectItem key={concept.conceptId} value={concept.conceptId}>
+                      {concept.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormDescription>
+                The concept for which you're testing different prompt variations.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="isActive"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+              <FormControl>
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel>Active</FormLabel>
+                <FormDescription>
+                  When active, this test will be used in the application.
+                </FormDescription>
+              </div>
+            </FormItem>
+          )}
+        />
+
+        {/* Variants Section */}
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-medium">Variants</h3>
+            <Button type="button" variant="outline" size="sm" onClick={addVariant}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Variant
+            </Button>
+          </div>
+
+          {variants.map((variant, index) => (
+            <Card key={index} className="p-4">
+              <div className="flex justify-between items-start mb-4">
+                <div className="space-y-1">
+                  <h4 className="font-medium">{variant.name}</h4>
+                  <Input
+                    placeholder="Variant ID"
+                    value={variant.variantId}
+                    onChange={(e) => updateVariant(index, 'variantId', e.target.value)}
+                    className="w-[200px]"
+                    disabled={!!initialData}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Variant Name"
+                    value={variant.name}
+                    onChange={(e) => updateVariant(index, 'name', e.target.value)}
+                    className="w-[200px]"
+                  />
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => removeVariant(index)}
+                    disabled={variants.length <= 2}
+                  >
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor={`variant-${index}-prompt`}>Prompt Template</Label>
+                <Textarea
+                  id={`variant-${index}-prompt`}
+                  placeholder="Enter the prompt template..."
+                  className="min-h-[150px] font-mono text-sm"
+                  value={variant.promptTemplate}
+                  onChange={(e) => updateVariant(index, 'promptTemplate', e.target.value)}
+                />
+                <p className="text-xs text-gray-500">
+                  Use variable placeholders like {'{baby_name}'} that will be replaced when the prompt is used.
+                </p>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        <Button type="submit" disabled={mutation.isPending}>
+          {mutation.isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : initialData ? "Update A/B Test" : "Create A/B Test"}
+        </Button>
+      </form>
+    </Form>
+  );
+}
+
 function LanguageSettings() {
   const [currentLanguage, setCurrentLanguage] = useState(getLanguage());
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
