@@ -215,6 +215,41 @@ export default function Image() {
         <p className="text-neutral-dark">Transform your pregnancy and baby photos into beautiful memories</p>
       </div>
 
+      {/* Preview Styles Section (NEW) */}
+      <div className="bg-white rounded-xl p-5 shadow-soft border border-neutral-light mb-6">
+        <div className="text-center mb-5">
+          <h3 className="font-heading font-semibold text-lg mb-2">Choose from these magical styles!</h3>
+          <p className="text-neutral-dark mb-4 max-w-md mx-auto">
+            See how your special moments can be transformed. Click on a style that speaks to you.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+          {artStyles.map((style) => (
+            <div 
+              key={style.value}
+              className={`cursor-pointer rounded-xl overflow-hidden shadow-sm transition-all duration-200 hover:shadow-md ${
+                selectedStyle === style.value ? 'ring-2 ring-primary' : ''
+              }`}
+              onClick={() => handleStyleSelected(style.value)}
+            >
+              <div className="relative">
+                <img 
+                  src={style.thumbnailUrl} 
+                  alt={style.label} 
+                  className="w-full h-32 object-cover"
+                />
+                <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                  <span className="bg-white/80 px-3 py-1 rounded-full text-sm font-medium text-primary-dark">
+                    {style.label}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Image Upload Section */}
       <div className="bg-white rounded-xl p-5 shadow-soft border border-neutral-light">
         <div className="text-center mb-5">
@@ -254,41 +289,37 @@ export default function Image() {
           </p>
         </div>
 
-        {/* Style Selection */}
+        {/* Transform Button */}
         {selectedFile && (
           <div>
             <div className="mb-5">
-              <label className="block font-medium mb-3 text-neutral-darkest">Choose Your Magical Style</label>
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-                {artStyles.map((style) => (
-                  <label key={style.value} className="cursor-pointer">
-                    <input 
-                      type="radio" 
-                      name="artStyle" 
-                      value={style.value} 
-                      className="hidden" 
-                      onChange={() => handleStyleSelected(style.value)}
+              <label className="block font-medium mb-3 text-neutral-darkest">Selected Style</label>
+              {selectedStyle ? (
+                <div className="flex items-center p-3 bg-neutral-lightest rounded-lg">
+                  <div className="w-16 h-16 rounded-lg overflow-hidden mr-4">
+                    <img 
+                      src={artStyles.find(s => s.value === selectedStyle)?.thumbnailUrl || ''} 
+                      alt={artStyles.find(s => s.value === selectedStyle)?.label || ''}
+                      className="w-full h-full object-cover"
                     />
-                    <div className={`art-style-option border-2 ${
-                      selectedStyle === style.value ? 'border-primary' : 'border-transparent'
-                    } hover:border-primary rounded-xl overflow-hidden transition-all duration-200 p-1 shadow-sm hover:shadow-soft`}>
-                      <img 
-                        src={style.thumbnailUrl} 
-                        alt={style.label} 
-                        className="rounded-lg w-full h-24 object-cover"
-                      />
-                      <p className="text-center font-medium text-sm mt-2">{style.label}</p>
-                    </div>
-                  </label>
-                ))}
-              </div>
+                  </div>
+                  <div>
+                    <p className="font-medium">{artStyles.find(s => s.value === selectedStyle)?.label}</p>
+                    <p className="text-xs text-neutral-dark mt-1">Click any style above to change your selection</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 bg-neutral-lightest rounded-lg text-neutral-dark text-center">
+                  <p>Please select a style from the options above</p>
+                </div>
+              )}
             </div>
 
             <Button
               type="button"
               className="w-full bg-primary hover:bg-primary-dark text-white font-medium py-3 px-4 rounded-lg transition-colors shadow-sm"
               onClick={handleTransformImage}
-              disabled={isTransforming}
+              disabled={isTransforming || !selectedStyle}
             >
               <PaintbrushVertical className="mr-2 h-4 w-4" />
               {isTransforming ? "Creating your memory art..." : "Transform My Photo"}
