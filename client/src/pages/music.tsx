@@ -172,13 +172,13 @@ export default function Music() {
                   </FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="e.g., 'To my wife', 'Welcome baby', '태명으로 만든 음악'"
+                      placeholder="Enter your baby's taemyeong (태명), e.g. 'Sarang-i', 'Mini-Mom'"
                       className="w-full p-3 rounded-lg border border-neutral focus:border-primary-dark focus:ring focus:ring-primary-light focus:ring-opacity-50 outline-none transition"
                       {...field}
                     />
                   </FormControl>
                   <p className="text-xs text-neutral-dark mt-1">
-                    Enter a name, message, or theme for your special melody
+                    In Korea, many parents use a taemyeong to connect emotionally with their baby before birth. You can enter that name or any special theme you want.
                   </p>
                   <FormMessage />
                 </FormItem>
