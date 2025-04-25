@@ -8,6 +8,7 @@ import fs from "fs";
 import { generateChatResponse } from "./services/openai";
 import { generateMusic } from "./services/replicate";
 import { music, images, personas, personaCategories, eq } from "../shared/schema";
+import { db } from "../db";
 
 // Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), "uploads");

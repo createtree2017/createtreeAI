@@ -116,3 +116,98 @@ export const shareMedia = async (id: number, type: string) => {
   const response = await apiRequest('POST', '/api/media/share', { id, type });
   return response.json();
 };
+
+// ===== Persona Management APIs =====
+
+// Get all personas
+export const getPersonas = async () => {
+  const response = await apiRequest('GET', '/api/admin/personas');
+  return response.json();
+};
+
+// Get a specific persona
+export const getPersona = async (id: string) => {
+  const response = await apiRequest('GET', `/api/admin/personas/${id}`);
+  return response.json();
+};
+
+// Create a new persona
+export const createPersona = async (personaData: any) => {
+  const response = await apiRequest('POST', '/api/admin/personas', personaData);
+  return response.json();
+};
+
+// Update an existing persona
+export const updatePersona = async (id: string, personaData: any) => {
+  const response = await apiRequest('PUT', `/api/admin/personas/${id}`, personaData);
+  return response.json();
+};
+
+// Delete a persona
+export const deletePersona = async (id: string) => {
+  const response = await apiRequest('DELETE', `/api/admin/personas/${id}`);
+  return response.json();
+};
+
+// Track persona usage
+export const incrementPersonaUse = async (id: string) => {
+  const response = await apiRequest('POST', `/api/personas/${id}/use`);
+  return response.json();
+};
+
+// Get persona recommendations
+export const getPersonaRecommendations = async (params?: {
+  timeOfDay?: string;
+  emotions?: string[];
+}) => {
+  let url = '/api/personas/recommend';
+  
+  if (params) {
+    const queryParams = [];
+    if (params.timeOfDay) {
+      queryParams.push(`timeOfDay=${params.timeOfDay}`);
+    }
+    if (params.emotions && params.emotions.length > 0) {
+      queryParams.push(`emotions=${params.emotions.join(',')}`);
+    }
+    
+    if (queryParams.length > 0) {
+      url += `?${queryParams.join('&')}`;
+    }
+  }
+  
+  const response = await apiRequest('GET', url);
+  return response.json();
+};
+
+// ===== Category Management APIs =====
+
+// Get all categories
+export const getCategories = async () => {
+  const response = await apiRequest('GET', '/api/admin/categories');
+  return response.json();
+};
+
+// Get a specific category
+export const getCategory = async (id: string) => {
+  const response = await apiRequest('GET', `/api/admin/categories/${id}`);
+  return response.json();
+};
+
+// Create a new category
+export const createCategory = async (categoryData: any) => {
+  const response = await apiRequest('POST', '/api/admin/categories', categoryData);
+  return response.json();
+};
+
+// Update an existing category
+export const updateCategory = async (id: string, categoryData: any) => {
+  const response = await apiRequest('PUT', `/api/admin/categories/${id}`, categoryData);
+  return response.json();
+};
+
+// Delete a category
+export const deleteCategory = async (id: string) => {
+  const response = await apiRequest('DELETE', `/api/admin/categories/${id}`);
+  return response.json();
+};

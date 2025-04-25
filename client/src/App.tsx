@@ -9,6 +9,7 @@ import Music from "@/pages/music";
 import Image from "@/pages/image";
 import Chat from "@/pages/chat";
 import Gallery from "@/pages/gallery";
+import Admin from "@/pages/admin";
 import Header from "@/components/Header";
 import BottomNavigation from "@/components/BottomNavigation";
 import { useMobile } from "./hooks/use-mobile";
@@ -75,6 +76,11 @@ function Router() {
         <Layout>
           <Gallery />
         </Layout>
+      )} />
+      <Route path="/admin" component={() => (
+        <div className="w-full max-w-7xl mx-auto">
+          <Admin />
+        </div>
       )} />
       <Route component={NotFound} />
     </Switch>
