@@ -13,7 +13,32 @@ import {
 } from "@shared/schema";
 import BatchImportDialog from "@/components/BatchImportDialog";
 import { getLanguage, loadTranslations, setLanguage, t } from "@/lib/i18n";
-import { getLanguages, uploadTranslations } from "@/lib/api";
+import { 
+  getLanguages, 
+  uploadTranslations,
+  getPersonas,
+  createPersona,
+  updatePersona,
+  deletePersona,
+  batchImportPersonas,
+  getCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  getConcepts,
+  createConcept,
+  updateConcept,
+  deleteConcept,
+  getConceptCategories,
+  createConceptCategory,
+  updateConceptCategory,
+  deleteConceptCategory,
+  uploadThumbnail,
+  getAbTests,
+  getAbTest,
+  createAbTest,
+  recordAbTestResult
+} from "@/lib/api";
 
 import {
   Tabs,
@@ -32,6 +57,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -149,6 +175,7 @@ export default function AdminPage() {
           <TabsTrigger value="categories">{t('admin.tabs.categories')}</TabsTrigger>
           <TabsTrigger value="concepts">{t('admin.tabs.concepts')}</TabsTrigger>
           <TabsTrigger value="concept-categories">{t('admin.tabs.conceptCategories')}</TabsTrigger>
+          <TabsTrigger value="abtests">A/B Testing</TabsTrigger>
           <TabsTrigger value="languages">Languages</TabsTrigger>
         </TabsList>
         
@@ -166,6 +193,10 @@ export default function AdminPage() {
         
         <TabsContent value="concept-categories">
           <ConceptCategoryManager />
+        </TabsContent>
+        
+        <TabsContent value="abtests">
+          <ABTestManager />
         </TabsContent>
         
         <TabsContent value="languages">
