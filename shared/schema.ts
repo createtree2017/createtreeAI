@@ -43,7 +43,21 @@ export const chatMessages = pgTable("chat_messages", {
 export const favorites = pgTable("favorites", {
   id: serial("id").primaryKey(),
   itemId: integer("item_id").notNull(),
-  itemType: text("item_type").notNull(), // 'music' or 'image'
+  itemType: text("item_type").notNull(), // 'music', 'image', or 'chat'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Saved chats table
+export const savedChats = pgTable("saved_chats", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  personaId: text("persona_id").notNull(),
+  personaName: text("persona_name").notNull(),
+  personaEmoji: text("persona_emoji").notNull(),
+  messages: jsonb("messages").notNull(), // Store chat messages as JSON
+  summary: text("summary").notNull(),
+  userMemo: text("user_memo"),
+  mood: text("mood"), // Emoji representing the mood
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -91,6 +105,7 @@ export const insertMusicSchema = createInsertSchema(music);
 export const insertImageSchema = createInsertSchema(images);
 export const insertChatMessageSchema = createInsertSchema(chatMessages);
 export const insertFavoriteSchema = createInsertSchema(favorites);
+export const insertSavedChatSchema = createInsertSchema(savedChats);
 
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -107,6 +122,9 @@ export type ChatMessage = typeof chatMessages.$inferSelect;
 
 export type InsertFavorite = z.infer<typeof insertFavoriteSchema>;
 export type Favorite = typeof favorites.$inferSelect;
+
+export type InsertSavedChat = z.infer<typeof insertSavedChatSchema>;
+export type SavedChat = typeof savedChats.$inferSelect;
 
 // Export eq and desc for query building
 export { eq, desc, and, asc } from "drizzle-orm";

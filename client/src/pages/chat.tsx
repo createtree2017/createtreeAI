@@ -170,6 +170,9 @@ export default function Chat() {
         <p className="text-neutral-dark">Your personal companion throughout your motherhood journey</p>
       </div>
       
+      {/* Persona Selector Component */}
+      <PersonaSelector />
+      
       {/* Chat Interface */}
       <div className="bg-white rounded-xl shadow-soft border border-neutral-light overflow-hidden flex flex-col" style={{ height: "65vh", maxHeight: "550px" }}>
         {/* Chat Header */}

@@ -1,5 +1,5 @@
 import { db } from "@db";
-import { music, images, chatMessages, favorites, eq, desc, and } from "@shared/schema";
+import { music, images, chatMessages, favorites, savedChats, eq, desc, and } from "@shared/schema";
 import fs from "fs";
 import path from "path";
 import { transformImageWithOpenAI } from "./services/openai";
@@ -265,5 +265,44 @@ export const storage = {
     // and create a shareable link. For this example, we'll just create a simple URL.
     const baseUrl = process.env.BASE_URL || "https://mommelody.app";
     return `${baseUrl}/share/${type}/${id}`;
+  },
+  
+  // Saved chat functions
+  async saveChat(chatData: {
+    title: string;
+    personaId: string;
+    personaName: string;
+    personaEmoji: string;
+    messages: any[];
+    summary: string;
+    userMemo?: string;
+    mood?: string;
+  }) {
+    const [savedChat] = await db
+      .insert(savedChats)
+      .values(chatData)
+      .returning();
+      
+    return savedChat;
+  },
+  
+  async getSavedChats() {
+    return db.query.savedChats.findMany({
+      orderBy: [desc(savedChats.createdAt)],
+    });
+  },
+  
+  async getSavedChat(id: number) {
+    return db.query.savedChats.findFirst({
+      where: eq(savedChats.id, id),
+    });
+  },
+  
+  async deleteSavedChat(id: number) {
+    await db
+      .delete(savedChats)
+      .where(eq(savedChats.id, id));
+      
+    return { success: true };
   },
 };
