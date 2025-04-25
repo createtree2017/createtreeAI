@@ -1,0 +1,48 @@
+Please continue enhancing the Maternity AI utility platform with the following prioritized improvements:
+
+---
+
+🌟 1. Show Available Styles Before Image Upload
+
+📌 Problem:
+Currently, the user can’t see the available image transformation styles until they upload a photo. This reduces user engagement and hides a key selling point of the service.
+
+📌 Required Changes:
+- Move the “Choose Your Magical Style” section above the image upload box.
+- Always display style options (e.g., Ghibli, Watercolor, Korean Webtoon), even before a photo is uploaded.
+- Include visual thumbnails or mini previews for each style.
+- Add a carousel with sample transformed images to help inspire users.
+- Keep the “Transform My Photo” button disabled until a file is uploaded, with a tooltip like: “Please upload an image to continue.”
+
+---
+
+🌐 2. Add Korean Translation Support (ko.json)
+
+- Generate and upload a `ko.json` file with Korean translations for all UI labels, tooltips, and messages.
+- When the user’s browser language is set to Korean (`ko`), default to using `ko.json` as the interface language.
+- This completes the internationalization functionality for bilingual support.
+
+---
+
+🧪 3. Complete A/B Testing Functionality
+
+- The A/B testing UI tab exists, but the functionality is not yet active.
+- Add the ability to:
+  - Store and manage two prompt variations per concept (Prompt A and Prompt B).
+  - Record user selection or preference between the two.
+  - Display side-by-side previews with voting buttons or toggle UI.
+- This helps evaluate which prompt version produces better visual results.
+
+---
+
+🧼 4. Validate i18n Translation Key Coverage
+
+- Check all UI elements across the platform and make sure they use proper translation keys.
+- Remove any hardcoded English strings.
+- This ensures full scalability for future languages and localization efforts.
+
+---
+
+These upgrades improve user experience before upload, increase international accessibility, and enable data-driven improvement of visual content generation.
+
+Please confirm when each step is complete so I can review the results and guide the next iteration.
