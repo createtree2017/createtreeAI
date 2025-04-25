@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useEphemeralChatStore, useSendEphemeralMessage, suggestedTopics, chatPersonas, type ChatMessage, type ChatPersona } from "@/lib/openai";
+import { useEphemeralChatStore, useSendEphemeralMessage, suggestedTopics, chatPersonas, personaCategories, type ChatMessage, type ChatPersona, type PersonaCategory } from "@/lib/openai";
 import { Bot, Send, User, Trash2, RefreshCw, Check, BookmarkIcon, Heart } from "lucide-react";
 import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
@@ -13,6 +13,8 @@ function PersonaSelector() {
   const selectedPersona = useEphemeralChatStore((state) => state.selectedPersona);
   const setPersona = useEphemeralChatStore((state) => state.setPersona);
   const [isOpen, setIsOpen] = useState(false);
+  const [activeCategory, setActiveCategory] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
   
   const handleSelectPersona = (persona: ChatPersona) => {
@@ -23,6 +25,24 @@ function PersonaSelector() {
       description: persona.description,
     });
   };
+  
+  // Filter personas by category and search query
+  const filteredPersonas = useMemo(() => {
+    return chatPersonas.filter(persona => {
+      // Filter by category
+      const matchesCategory = 
+        activeCategory === "all" || 
+        (persona.categories && persona.categories.includes(activeCategory));
+      
+      // Filter by search query
+      const matchesSearch = 
+        searchQuery === "" || 
+        persona.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        persona.description.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      return matchesCategory && matchesSearch;
+    });
+  }, [activeCategory, searchQuery]);
   
   return (
     <div className="mb-6">
@@ -45,39 +65,117 @@ function PersonaSelector() {
         </div>
       </button>
       
-      {/* Persona options */}
+      {/* Expanded persona selector */}
       {isOpen && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3 animate-fadeIn">
-          {chatPersonas.map((persona) => (
-            <button
-              key={persona.id}
-              onClick={() => handleSelectPersona(persona)}
-              className={cn(
-                "flex items-start p-3 rounded-lg transition-all border",
-                persona.id === selectedPersona.id
-                  ? `bg-${persona.primaryColor}/10 border-${persona.primaryColor}/50 shadow-md`
-                  : "bg-white border-neutral-light hover:border-neutral"
-              )}
-              style={{ 
-                backgroundColor: persona.id === selectedPersona.id ? `${persona.secondaryColor}40` : '', 
-                borderColor: persona.id === selectedPersona.id ? persona.primaryColor : '' 
-              }}
-            >
-              <div className="text-2xl mr-3 mt-1">{persona.avatarEmoji}</div>
-              <div className="text-left flex-1">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium" 
-                    style={{ color: persona.id === selectedPersona.id ? persona.primaryColor : '' }}>
-                    {persona.name}
-                  </h4>
-                  {persona.id === selectedPersona.id && (
-                    <Check size={16} className="text-green-500" />
+        <div className="bg-white rounded-lg shadow-soft border border-neutral-light p-4 mt-3 animate-fadeIn">
+          {/* Search bar */}
+          <div className="mb-4">
+            <Input
+              type="text"
+              placeholder="Search companions..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full"
+            />
+          </div>
+          
+          {/* Category tabs */}
+          <div className="flex flex-wrap gap-2 mb-4 overflow-x-auto pb-2">
+            {personaCategories.map((category) => (
+              <button
+                key={category.id}
+                onClick={() => setActiveCategory(category.id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${
+                  activeCategory === category.id
+                    ? "bg-primary text-white"
+                    : "bg-neutral-lightest hover:bg-neutral-light/50 text-neutral-dark"
+                }`}
+              >
+                <span>{category.emoji}</span>
+                <span>{category.name}</span>
+              </button>
+            ))}
+          </div>
+          
+          {/* Category description */}
+          <div className="mb-4 text-sm text-neutral-dark">
+            {personaCategories.find(c => c.id === activeCategory)?.description || "Browse all available companion characters"}
+          </div>
+          
+          {/* Divider */}
+          <div className="h-px bg-neutral-light mb-4"></div>
+          
+          {/* Persona grid with pagination (max 6 per page) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-[500px] overflow-y-auto pr-1 custom-scrollbar">
+            {filteredPersonas.length > 0 ? (
+              filteredPersonas.map((persona) => (
+                <button
+                  key={persona.id}
+                  onClick={() => handleSelectPersona(persona)}
+                  className={cn(
+                    "flex flex-col items-center text-center p-4 rounded-lg transition-all border group",
+                    persona.id === selectedPersona.id
+                      ? `bg-${persona.primaryColor}/10 border-${persona.primaryColor}/50 shadow-md`
+                      : "bg-white border-neutral-light hover:border-neutral hover:shadow-md"
                   )}
-                </div>
-                <p className="text-sm text-neutral-dark">{persona.description}</p>
+                  style={{ 
+                    backgroundColor: persona.id === selectedPersona.id ? `${persona.secondaryColor}40` : '', 
+                    borderColor: persona.id === selectedPersona.id ? persona.primaryColor : '' 
+                  }}
+                >
+                  {/* Persona emoji avatar */}
+                  <div 
+                    className="text-4xl mb-3 p-3 rounded-full transition-transform group-hover:scale-110"
+                    style={{ 
+                      backgroundColor: `${persona.secondaryColor}30`,
+                      color: persona.primaryColor
+                    }}
+                  >
+                    {persona.avatarEmoji}
+                  </div>
+                  
+                  {/* Persona name */}
+                  <div className="flex items-center justify-center gap-1.5 mb-1">
+                    <h4 className="font-medium" 
+                      style={{ color: persona.id === selectedPersona.id ? persona.primaryColor : '' }}>
+                      {persona.name}
+                    </h4>
+                    {persona.id === selectedPersona.id && (
+                      <Check size={16} className="text-green-500" />
+                    )}
+                  </div>
+                  
+                  {/* Persona description */}
+                  <p className="text-sm text-neutral-dark line-clamp-2 mb-2">
+                    {persona.description}
+                  </p>
+                  
+                  {/* Category tags */}
+                  {persona.categories && (
+                    <div className="flex flex-wrap justify-center gap-1.5 mt-auto">
+                      {persona.categories.map(catId => {
+                        const category = personaCategories.find(c => c.id === catId);
+                        return category ? (
+                          <span 
+                            key={catId}
+                            className="text-xs bg-neutral-lightest px-2 py-0.5 rounded-full"
+                          >
+                            {category.emoji} {category.name}
+                          </span>
+                        ) : null;
+                      })}
+                    </div>
+                  )}
+                </button>
+              ))
+            ) : (
+              <div className="col-span-full text-center p-8 text-neutral-dark">
+                <div className="text-3xl mb-2">🔍</div>
+                <p>No companions found for this search.</p>
+                <p className="text-sm">Try another search term or category.</p>
               </div>
-            </button>
-          ))}
+            )}
+          </div>
         </div>
       )}
     </div>
