@@ -7,7 +7,7 @@ import path from "path";
 import fs from "fs";
 import { generateChatResponse } from "./services/openai";
 import { generateMusic } from "./services/replicate";
-import { music, images } from "../shared/schema";
+import { music, images, personas, personaCategories, eq } from "../shared/schema";
 
 // Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), "uploads");
@@ -80,6 +80,43 @@ const saveChatSchema = z.object({
   summary: z.string().min(1, "Summary is required"),
   userMemo: z.string().optional(),
   mood: z.string().optional(),
+});
+
+// Schema for persona creation/update
+const personaSchema = z.object({
+  personaId: z.string().min(1, "Persona ID is required"),
+  name: z.string().min(1, "Name is required"),
+  avatarEmoji: z.string().min(1, "Avatar emoji is required"),
+  description: z.string().min(1, "Description is required"),
+  welcomeMessage: z.string().min(1, "Welcome message is required"),
+  systemPrompt: z.string().min(1, "System prompt is required"),
+  primaryColor: z.string().min(1, "Primary color is required"),
+  secondaryColor: z.string().min(1, "Secondary color is required"),
+  
+  // Additional fields (optional)
+  personality: z.string().optional(),
+  tone: z.string().optional(),
+  usageContext: z.string().optional(),
+  emotionalKeywords: z.array(z.string()).optional(),
+  timeOfDay: z.enum(["morning", "afternoon", "evening", "night", "all"]).default("all"),
+  
+  // Admin fields (optional with defaults)
+  isActive: z.boolean().default(true),
+  isFeatured: z.boolean().default(false),
+  order: z.number().int().default(0),
+  
+  // Categories
+  categories: z.array(z.string()).optional(),
+});
+
+// Schema for persona category creation/update
+const personaCategorySchema = z.object({
+  categoryId: z.string().min(1, "Category ID is required"),
+  name: z.string().min(1, "Name is required"),
+  description: z.string().min(1, "Description is required"),
+  emoji: z.string().min(1, "Emoji is required"),
+  order: z.number().int().default(0),
+  isActive: z.boolean().default(true),
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -386,6 +423,400 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting saved chat:", error);
       return res.status(500).json({ error: "Failed to delete saved chat" });
+    }
+  });
+
+  // Admin-only persona management endpoints
+  // Note: In a production app, these would need authentication/authorization
+  
+  // Get all personas
+  app.get("/api/admin/personas", async (req, res) => {
+    try {
+      const allPersonas = await db.query.personas.findMany({
+        orderBy: (personas, { asc }) => [asc(personas.order)]
+      });
+      return res.json(allPersonas);
+    } catch (error) {
+      console.error("Error fetching personas:", error);
+      return res.status(500).json({ error: "Failed to fetch personas" });
+    }
+  });
+  
+  // Get a specific persona
+  app.get("/api/admin/personas/:id", async (req, res) => {
+    try {
+      const personaId = req.params.id;
+      
+      const persona = await db.query.personas.findFirst({
+        where: eq(personas.personaId, personaId)
+      });
+      
+      if (!persona) {
+        return res.status(404).json({ error: "Persona not found" });
+      }
+      
+      return res.json(persona);
+    } catch (error) {
+      console.error("Error fetching persona:", error);
+      return res.status(500).json({ error: "Failed to fetch persona" });
+    }
+  });
+  
+  // Create a new persona
+  app.post("/api/admin/personas", async (req, res) => {
+    try {
+      const validatedData = personaSchema.parse(req.body);
+      
+      // Check if persona with this ID already exists
+      const existingPersona = await db.query.personas.findFirst({
+        where: eq(personas.personaId, validatedData.personaId)
+      });
+      
+      if (existingPersona) {
+        return res.status(409).json({ error: "A persona with this ID already exists" });
+      }
+      
+      // Insert new persona
+      const [newPersona] = await db.insert(personas).values({
+        personaId: validatedData.personaId,
+        name: validatedData.name,
+        avatarEmoji: validatedData.avatarEmoji,
+        description: validatedData.description,
+        welcomeMessage: validatedData.welcomeMessage,
+        systemPrompt: validatedData.systemPrompt,
+        primaryColor: validatedData.primaryColor,
+        secondaryColor: validatedData.secondaryColor,
+        personality: validatedData.personality,
+        tone: validatedData.tone,
+        usageContext: validatedData.usageContext,
+        emotionalKeywords: validatedData.emotionalKeywords,
+        timeOfDay: validatedData.timeOfDay,
+        isActive: validatedData.isActive,
+        isFeatured: validatedData.isFeatured,
+        order: validatedData.order,
+        categories: validatedData.categories,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }).returning();
+      
+      return res.status(201).json(newPersona);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      console.error("Error creating persona:", error);
+      return res.status(500).json({ error: "Failed to create persona" });
+    }
+  });
+  
+  // Update an existing persona
+  app.put("/api/admin/personas/:id", async (req, res) => {
+    try {
+      const personaId = req.params.id;
+      const validatedData = personaSchema.parse(req.body);
+      
+      // Check if persona exists
+      const existingPersona = await db.query.personas.findFirst({
+        where: eq(personas.personaId, personaId)
+      });
+      
+      if (!existingPersona) {
+        return res.status(404).json({ error: "Persona not found" });
+      }
+      
+      // Update persona
+      const [updatedPersona] = await db.update(personas)
+        .set({
+          personaId: validatedData.personaId,
+          name: validatedData.name,
+          avatarEmoji: validatedData.avatarEmoji,
+          description: validatedData.description,
+          welcomeMessage: validatedData.welcomeMessage,
+          systemPrompt: validatedData.systemPrompt,
+          primaryColor: validatedData.primaryColor,
+          secondaryColor: validatedData.secondaryColor,
+          personality: validatedData.personality,
+          tone: validatedData.tone,
+          usageContext: validatedData.usageContext,
+          emotionalKeywords: validatedData.emotionalKeywords,
+          timeOfDay: validatedData.timeOfDay,
+          isActive: validatedData.isActive,
+          isFeatured: validatedData.isFeatured,
+          order: validatedData.order,
+          categories: validatedData.categories,
+          updatedAt: new Date(),
+        })
+        .where(eq(personas.personaId, personaId))
+        .returning();
+      
+      return res.json(updatedPersona);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      console.error("Error updating persona:", error);
+      return res.status(500).json({ error: "Failed to update persona" });
+    }
+  });
+  
+  // Delete a persona
+  app.delete("/api/admin/personas/:id", async (req, res) => {
+    try {
+      const personaId = req.params.id;
+      
+      // Check if persona exists
+      const existingPersona = await db.query.personas.findFirst({
+        where: eq(personas.personaId, personaId)
+      });
+      
+      if (!existingPersona) {
+        return res.status(404).json({ error: "Persona not found" });
+      }
+      
+      // Delete persona
+      await db.delete(personas).where(eq(personas.personaId, personaId));
+      
+      return res.json({ success: true, message: "Persona deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting persona:", error);
+      return res.status(500).json({ error: "Failed to delete persona" });
+    }
+  });
+  
+  // Admin-only persona category management endpoints
+  
+  // Get all categories
+  app.get("/api/admin/categories", async (req, res) => {
+    try {
+      const allCategories = await db.query.personaCategories.findMany({
+        orderBy: (personaCategories, { asc }) => [asc(personaCategories.order)]
+      });
+      return res.json(allCategories);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      return res.status(500).json({ error: "Failed to fetch categories" });
+    }
+  });
+  
+  // Get a specific category
+  app.get("/api/admin/categories/:id", async (req, res) => {
+    try {
+      const categoryId = req.params.id;
+      
+      const category = await db.query.personaCategories.findFirst({
+        where: eq(personaCategories.categoryId, categoryId)
+      });
+      
+      if (!category) {
+        return res.status(404).json({ error: "Category not found" });
+      }
+      
+      return res.json(category);
+    } catch (error) {
+      console.error("Error fetching category:", error);
+      return res.status(500).json({ error: "Failed to fetch category" });
+    }
+  });
+  
+  // Create a new category
+  app.post("/api/admin/categories", async (req, res) => {
+    try {
+      const validatedData = personaCategorySchema.parse(req.body);
+      
+      // Check if category with this ID already exists
+      const existingCategory = await db.query.personaCategories.findFirst({
+        where: eq(personaCategories.categoryId, validatedData.categoryId)
+      });
+      
+      if (existingCategory) {
+        return res.status(409).json({ error: "A category with this ID already exists" });
+      }
+      
+      // Insert new category
+      const [newCategory] = await db.insert(personaCategories).values({
+        categoryId: validatedData.categoryId,
+        name: validatedData.name,
+        description: validatedData.description,
+        emoji: validatedData.emoji,
+        order: validatedData.order,
+        isActive: validatedData.isActive,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }).returning();
+      
+      return res.status(201).json(newCategory);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      console.error("Error creating category:", error);
+      return res.status(500).json({ error: "Failed to create category" });
+    }
+  });
+  
+  // Update an existing category
+  app.put("/api/admin/categories/:id", async (req, res) => {
+    try {
+      const categoryId = req.params.id;
+      const validatedData = personaCategorySchema.parse(req.body);
+      
+      // Check if category exists
+      const existingCategory = await db.query.personaCategories.findFirst({
+        where: eq(personaCategories.categoryId, categoryId)
+      });
+      
+      if (!existingCategory) {
+        return res.status(404).json({ error: "Category not found" });
+      }
+      
+      // Update category
+      const [updatedCategory] = await db.update(personaCategories)
+        .set({
+          categoryId: validatedData.categoryId,
+          name: validatedData.name,
+          description: validatedData.description,
+          emoji: validatedData.emoji,
+          order: validatedData.order,
+          isActive: validatedData.isActive,
+          updatedAt: new Date(),
+        })
+        .where(eq(personaCategories.categoryId, categoryId))
+        .returning();
+      
+      return res.json(updatedCategory);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      console.error("Error updating category:", error);
+      return res.status(500).json({ error: "Failed to update category" });
+    }
+  });
+  
+  // Delete a category
+  app.delete("/api/admin/categories/:id", async (req, res) => {
+    try {
+      const categoryId = req.params.id;
+      
+      // Check if category exists
+      const existingCategory = await db.query.personaCategories.findFirst({
+        where: eq(personaCategories.categoryId, categoryId)
+      });
+      
+      if (!existingCategory) {
+        return res.status(404).json({ error: "Category not found" });
+      }
+      
+      // Delete category
+      await db.delete(personaCategories).where(eq(personaCategories.categoryId, categoryId));
+      
+      return res.json({ success: true, message: "Category deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      return res.status(500).json({ error: "Failed to delete category" });
+    }
+  });
+  
+  // API to increment usage count for a persona (for recommendation engine)
+  app.post("/api/personas/:id/use", async (req, res) => {
+    try {
+      const personaId = req.params.id;
+      
+      // Check if persona exists
+      const existingPersona = await db.query.personas.findFirst({
+        where: eq(personas.personaId, personaId)
+      });
+      
+      if (!existingPersona) {
+        return res.status(404).json({ error: "Persona not found" });
+      }
+      
+      // Increment use count
+      const [updatedPersona] = await db.update(personas)
+        .set({
+          useCount: (existingPersona.useCount || 0) + 1,
+          updatedAt: new Date(),
+        })
+        .where(eq(personas.personaId, personaId))
+        .returning();
+      
+      return res.json({ success: true, useCount: updatedPersona.useCount });
+    } catch (error) {
+      console.error("Error incrementing persona use count:", error);
+      return res.status(500).json({ error: "Failed to increment persona use count" });
+    }
+  });
+  
+  // API to recommend personas based on various factors
+  app.get("/api/personas/recommend", async (req, res) => {
+    try {
+      // Get query parameters
+      const timeOfDay = req.query.timeOfDay as string || 
+                        (() => {
+                          const hour = new Date().getHours();
+                          if (hour >= 5 && hour < 12) return "morning";
+                          if (hour >= 12 && hour < 17) return "afternoon";
+                          if (hour >= 17 && hour < 21) return "evening";
+                          return "night";
+                        })();
+      
+      // Get emotion keywords from query if provided
+      const emotions = req.query.emotions 
+                      ? (req.query.emotions as string).split(',') 
+                      : [];
+      
+      // Get all active personas
+      const allPersonas = await db.query.personas.findMany({
+        where: eq(personas.isActive, true)
+      });
+      
+      // Score each persona based on recommendation factors
+      const scoredPersonas = allPersonas.map(persona => {
+        let score = 0;
+        
+        // Factor 1: Time of day match
+        if (persona.timeOfDay === timeOfDay || persona.timeOfDay === "all") {
+          score += 10;
+        }
+        
+        // Factor 2: Emotional keyword match
+        const personaEmotions = persona.emotionalKeywords as string[] || [];
+        emotions.forEach(emotion => {
+          if (personaEmotions.includes(emotion)) {
+            score += 5;
+          }
+        });
+        
+        // Factor 3: Featured status
+        if (persona.isFeatured) {
+          score += 15;
+        }
+        
+        // Factor 4: Popularity (use count)
+        score += Math.min(persona.useCount || 0, 50) / 5;
+        
+        return { persona, score };
+      });
+      
+      // Sort by score (descending) and return top results
+      scoredPersonas.sort((a, b) => b.score - a.score);
+      
+      // Return top recommendations with scores
+      return res.json({
+        timeOfDay,
+        emotions,
+        recommendations: scoredPersonas.slice(0, 5).map(({ persona, score }) => ({
+          id: persona.personaId,
+          name: persona.name,
+          avatarEmoji: persona.avatarEmoji,
+          description: persona.description,
+          score: Math.round(score),
+          categories: persona.categories as string[] || [],
+        }))
+      });
+    } catch (error) {
+      console.error("Error getting persona recommendations:", error);
+      return res.status(500).json({ error: "Failed to get persona recommendations" });
     }
   });
 

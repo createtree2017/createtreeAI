@@ -19,7 +19,7 @@ export interface PersonaCategory {
   emoji: string;
 }
 
-// Define chat persona types
+// Define chat persona types with expanded attributes
 export interface ChatPersona {
   id: string;
   name: string;
@@ -30,6 +30,23 @@ export interface ChatPersona {
   primaryColor: string;
   secondaryColor: string;
   categories?: string[]; // Categories this persona belongs to
+  
+  // Enhanced character attributes
+  personality?: string; // e.g., "Warm, empathetic, gentle"
+  tone?: string; // e.g., "Reassuring and calm"
+  usageContext?: string; // e.g., "For moms struggling emotionally after birth"
+  emotionalKeywords?: string[]; // e.g., ["anxious", "overwhelmed", "tired"]
+  timeOfDay?: "morning" | "afternoon" | "evening" | "night" | "all"; // When this character is most relevant
+  
+  // Admin fields
+  isActive?: boolean; // Whether this character is visible to users
+  isFeatured?: boolean; // Whether to promote this character
+  createdAt?: string; // When this character was created
+  updatedAt?: string; // When this character was last updated
+  order?: number; // Order to display in the list (lower first)
+  
+  // Usage statistics (for recommendations)
+  useCount?: number; // How many times this character has been used
 }
 
 // Define persona categories

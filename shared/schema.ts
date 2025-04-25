@@ -47,6 +47,54 @@ export const favorites = pgTable("favorites", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Personas table for character management
+export const personas = pgTable("personas", {
+  id: serial("id").primaryKey(),
+  personaId: text("persona_id").notNull().unique(), // String identifier like "maternal-guide"
+  name: text("name").notNull(),
+  avatarEmoji: text("avatar_emoji").notNull(),
+  description: text("description").notNull(),
+  welcomeMessage: text("welcome_message").notNull(),
+  systemPrompt: text("system_prompt").notNull(),
+  primaryColor: text("primary_color").notNull(),
+  secondaryColor: text("secondary_color").notNull(),
+  
+  // Additional fields from the expanded structure
+  personality: text("personality"),
+  tone: text("tone"),
+  usageContext: text("usage_context"),
+  emotionalKeywords: jsonb("emotional_keywords"), // Array of strings
+  timeOfDay: text("time_of_day").default("all"),
+  
+  // Admin fields
+  isActive: boolean("is_active").notNull().default(true),
+  isFeatured: boolean("is_featured").notNull().default(false),
+  order: integer("order").default(0),
+  
+  // Usage statistics
+  useCount: integer("use_count").notNull().default(0),
+  
+  // Categories as JSON array
+  categories: jsonb("categories"), // Array of category IDs
+  
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Persona categories table
+export const personaCategories = pgTable("persona_categories", {
+  id: serial("id").primaryKey(),
+  categoryId: text("category_id").notNull().unique(), // String identifier like "pregnancy"
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  emoji: text("emoji").notNull(),
+  order: integer("order").default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Saved chats table
 export const savedChats = pgTable("saved_chats", {
   id: serial("id").primaryKey(),
@@ -106,6 +154,8 @@ export const insertImageSchema = createInsertSchema(images);
 export const insertChatMessageSchema = createInsertSchema(chatMessages);
 export const insertFavoriteSchema = createInsertSchema(favorites);
 export const insertSavedChatSchema = createInsertSchema(savedChats);
+export const insertPersonaSchema = createInsertSchema(personas);
+export const insertPersonaCategorySchema = createInsertSchema(personaCategories);
 
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -125,6 +175,12 @@ export type Favorite = typeof favorites.$inferSelect;
 
 export type InsertSavedChat = z.infer<typeof insertSavedChatSchema>;
 export type SavedChat = typeof savedChats.$inferSelect;
+
+export type InsertPersona = z.infer<typeof insertPersonaSchema>;
+export type Persona = typeof personas.$inferSelect;
+
+export type InsertPersonaCategory = z.infer<typeof insertPersonaCategorySchema>;
+export type PersonaCategory = typeof personaCategories.$inferSelect;
 
 // Export eq and desc for query building
 export { eq, desc, and, asc } from "drizzle-orm";
