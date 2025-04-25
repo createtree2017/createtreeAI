@@ -233,16 +233,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No style selected" });
       }
       
+      // Check if this is a specific variant request for A/B testing
+      const variantId = req.body.variant;
+      let promptTemplate = null;
+      
+      if (variantId) {
+        // Get the active test for this concept/style
+        const activeTest = await db.query.abTests.findFirst({
+          where: and(
+            eq(abTests.conceptId, style),
+            eq(abTests.isActive, true)
+          ),
+        });
+        
+        if (activeTest) {
+          // Find the requested variant
+          const variant = await db.query.abTestVariants.findFirst({
+            where: and(
+              eq(abTestVariants.testId, activeTest.testId),
+              eq(abTestVariants.variantId, variantId)
+            ),
+          });
+          
+          if (variant) {
+            promptTemplate = variant.promptTemplate;
+          }
+        }
+      }
+      
       // Process image using AI service (transforming to specified art style)
       const filePath = req.file.path;
-      const transformedImageUrl = await storage.transformImage(filePath, style);
+      // Pass the variant's prompt template if available
+      const transformedImageUrl = await storage.transformImage(filePath, style, promptTemplate);
       
       // Save to database
       const savedImage = await storage.saveImageTransformation(
         req.file.originalname,
         style,
         filePath,
-        transformedImageUrl
+        transformedImageUrl,
+        variantId // Store which variant was used, if any
       );
       
       return res.status(201).json(savedImage);

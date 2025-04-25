@@ -57,16 +57,57 @@ export default function Image() {
     }
   }, [imageId, imageList]);
 
+  // Fetch active A/B test for the current concept
+  const fetchActiveAbTest = async (conceptId: string) => {
+    try {
+      const testData = await getActiveAbTest(conceptId);
+      if (testData) {
+        setActiveAbTest(testData);
+        // Reset A/B test images since we have a new test
+        setAbTestImages({});
+      }
+    } catch (error) {
+      console.error("Error fetching A/B test:", error);
+    }
+  };
+
   // Transform image mutation
   const { mutate: transformImageMutation, isPending: isTransforming } = useMutation({
     mutationFn: (data: FormData) => transformImage(data),
     onSuccess: (data) => {
       setTransformedImage(data);
       queryClient.invalidateQueries({ queryKey: ["/api/image"] });
+      
+      // Check if there's an active A/B test for this style and show it if available
+      if (selectedStyle) {
+        fetchActiveAbTest(selectedStyle);
+        setShowAbTest(true);
+      }
+      
       toast({
         title: "Success!",
         description: "Your image has been transformed",
       });
+      
+      // If we have an active test, let's also transform the image with each variant
+      if (activeAbTest && activeAbTest.variants && activeAbTest.variants.length >= 2) {
+        activeAbTest.variants.forEach(async (variant: any) => {
+          try {
+            const formData = new FormData();
+            formData.append("image", selectedFile as File);
+            formData.append("style", selectedStyle as string);
+            formData.append("variant", variant.variantId);
+            
+            const variantResult = await transformImage(formData);
+            setAbTestImages(prev => ({
+              ...prev,
+              [variant.variantId]: variantResult.transformedUrl
+            }));
+          } catch (error) {
+            console.error(`Error transforming with variant ${variant.variantId}:`, error);
+          }
+        });
+      }
     },
     onError: (error) => {
       toast({
@@ -304,6 +345,17 @@ export default function Image() {
             </div>
           </div>
         </div>
+      )}
+      
+      {/* A/B Test Comparison Section */}
+      {showAbTest && activeAbTest && activeAbTest.variants && activeAbTest.variants.length >= 2 && (
+        <ABTestComparer
+          testId={activeAbTest.testId}
+          variants={activeAbTest.variants}
+          originalImage={transformedImage?.originalUrl || ''}
+          transformedImages={abTestImages}
+          onVoteComplete={() => setShowAbTest(false)}
+        />
       )}
 
       {/* Previous Art */}

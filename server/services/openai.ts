@@ -37,7 +37,11 @@ Keep responses concise (under 150 words) and appropriate for a mobile interface.
 /**
  * Transform an image using OpenAI's DALL-E or a fallback demo mode
  */
-export async function transformImageWithOpenAI(imageBuffer: Buffer, style: string): Promise<string> {
+export async function transformImageWithOpenAI(
+  imageBuffer: Buffer, 
+  style: string,
+  customPromptTemplate?: string | null
+): Promise<string> {
   try {
     // Check if we have a valid API key - if not use demo mode
     const apiKey = process.env.OPENAI_API_KEY;
@@ -52,7 +56,11 @@ export async function transformImageWithOpenAI(imageBuffer: Buffer, style: strin
         cartoon: "https://placehold.co/1024x1024/FFEA87/333?text=Cartoon+Style",
         oil: "https://placehold.co/1024x1024/916C47/FFF?text=Oil+Painting",
         fantasy: "https://placehold.co/1024x1024/C1A7E2/FFF?text=Fantasy+Style",
-        storybook: "https://placehold.co/1024x1024/A7E2C3/333?text=Storybook+Style"
+        storybook: "https://placehold.co/1024x1024/A7E2C3/333?text=Storybook+Style",
+        ghibli: "https://placehold.co/1024x1024/FFD5AA/333?text=Ghibli+Style",
+        disney: "https://placehold.co/1024x1024/B6E1FF/333?text=Disney+Style",
+        korean_webtoon: "https://placehold.co/1024x1024/FFD6E7/333?text=Korean+Webtoon",
+        fairytale: "https://placehold.co/1024x1024/DCBEFF/333?text=Fairytale"
       };
       
       // Return the placeholder for this style or a default one
@@ -66,10 +74,20 @@ export async function transformImageWithOpenAI(imageBuffer: Buffer, style: strin
       cartoon: "Transform this image into a charming cartoon style with bold outlines and vibrant colors",
       oil: "Convert this image into a classic oil painting style with rich textures and depth",
       fantasy: "Transform this image into a magical fantasy art style with ethereal lighting and dreamlike qualities",
-      storybook: "Convert this image into a sweet children's storybook illustration style with gentle colors and charming details"
+      storybook: "Convert this image into a sweet children's storybook illustration style with gentle colors and charming details",
+      ghibli: "Transform this image into a Studio Ghibli anime style with delicate details, soft expressions, and warm colors",
+      disney: "Transform this image into a Disney animation style with expressive characters, vibrant colors, and enchanting details",
+      korean_webtoon: "Transform this image into a Korean webtoon style with clean lines, pastel colors, and expressive characters",
+      fairytale: "Transform this image into a fairytale illustration with magical elements, dreamy atmosphere, and storybook aesthetics"
     };
 
-    const promptText = stylePrompts[style] || "Transform this image into a beautiful artistic style";
+    // Use the custom prompt template if provided, otherwise use the default style prompt
+    let promptText;
+    if (customPromptTemplate) {
+      promptText = customPromptTemplate;
+    } else {
+      promptText = stylePrompts[style] || "Transform this image into a beautiful artistic style";
+    }
 
     // Use DALL-E for actual image generation with API key
     // We use createImage instead of edit which has fewer requirements

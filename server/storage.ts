@@ -35,12 +35,12 @@ export const storage = {
   },
   
   // Image related functions
-  async transformImage(filePath: string, style: string) {
+  async transformImage(filePath: string, style: string, customPromptTemplate?: string | null) {
     // Read the file
     const imageBuffer = fs.readFileSync(filePath);
     
-    // Transform the image using OpenAI
-    const transformedImageUrl = await transformImageWithOpenAI(imageBuffer, style);
+    // Transform the image using OpenAI with optional custom prompt template
+    const transformedImageUrl = await transformImageWithOpenAI(imageBuffer, style, customPromptTemplate);
     
     return transformedImageUrl;
   },
@@ -49,7 +49,8 @@ export const storage = {
     originalFilename: string,
     style: string,
     originalPath: string,
-    transformedUrl: string
+    transformedUrl: string,
+    variantId?: string | null
   ) {
     // Extract name without extension
     const nameWithoutExt = path.basename(
@@ -60,6 +61,9 @@ export const storage = {
     // Create a title
     const title = `${style.charAt(0).toUpperCase() + style.slice(1)} ${nameWithoutExt}`;
     
+    // Include the variant ID if it exists (for A/B testing)
+    const metadata = variantId ? { variantId } : {};
+    
     const [savedImage] = await db
       .insert(images)
       .values({
@@ -67,6 +71,7 @@ export const storage = {
         style,
         originalUrl: originalPath,
         transformedUrl,
+        metadata: JSON.stringify(metadata),
       })
       .returning();
     
