@@ -2,8 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useChatMessages, useSendMessage, suggestedTopics, type ChatMessage } from "@/lib/openai";
-import { Bot, Send, User } from "lucide-react";
+import { useEphemeralChatStore, useSendEphemeralMessage, suggestedTopics, type ChatMessage } from "@/lib/openai";
+import { Bot, Send, User, Trash2, RefreshCw } from "lucide-react";
 import { format } from 'date-fns';
 
 export default function Chat() {
@@ -12,11 +12,13 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   
-  // Get chat messages
-  const { data: chatMessages, isLoading: isLoadingMessages } = useChatMessages();
+  // Get ephemeral chat messages from local store
+  const chatMessages = useEphemeralChatStore((state) => state.messages);
+  const clearMessages = useEphemeralChatStore((state) => state.clearMessages);
+  const isLoadingMessages = false; // Always false as messages are locally stored
   
-  // Send message mutation
-  const { mutate: sendMessage, isPending: isSending } = useSendMessage();
+  // Send ephemeral message mutation
+  const { mutate: sendMessage, isPending: isSending } = useSendEphemeralMessage();
   
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -38,6 +40,14 @@ export default function Chat() {
     if (inputRef.current) {
       inputRef.current.focus();
     }
+  };
+  
+  const handleClearChat = () => {
+    clearMessages();
+    toast({
+      title: "Conversation cleared",
+      description: "Your chat history has been erased.",
+    });
   };
   
   const handleTopicSelect = (topic: string) => {
@@ -86,16 +96,28 @@ export default function Chat() {
       <div className="bg-white rounded-xl shadow-soft border border-neutral-light overflow-hidden flex flex-col" style={{ height: "65vh", maxHeight: "550px" }}>
         {/* Chat Header */}
         <div className="p-4 border-b border-neutral-light bg-gradient-to-r from-primary-light/40 to-accent1-light/30">
-          <div className="flex items-center space-x-3">
-            <div className="bg-white text-primary rounded-full p-2 w-11 h-11 flex items-center justify-center shadow-sm">
-              <Bot className="h-6 w-6" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="bg-white text-primary rounded-full p-2 w-11 h-11 flex items-center justify-center shadow-sm">
+                <Bot className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="font-heading font-semibold text-primary-dark">Maternal Guide</h3>
+                <p className="text-xs text-neutral-dark">
+                  {isSending ? "Thinking..." : "Here to support you 24/7"}
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-heading font-semibold text-primary-dark">Maternal Guide</h3>
-              <p className="text-xs text-neutral-dark">
-                {isSending ? "Thinking..." : "Here to support you 24/7"}
-              </p>
-            </div>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="text-neutral-dark hover:text-red-500 hover:bg-red-50"
+              onClick={handleClearChat}
+              title="Clear conversation"
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              <span className="text-xs">Clear chat</span>
+            </Button>
           </div>
         </div>
         
