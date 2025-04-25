@@ -151,4 +151,38 @@
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(0,0,0,0.15);
   }
+  
+  /* Safe area and iframe optimization */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0.5rem);
+  }
+  
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top, 0.5rem);
+  }
+  
+  /* Mobile optimization */
+  @media (max-width: 480px) {
+    html {
+      font-size: 14px;
+    }
+    
+    input, select, textarea, button {
+      font-size: 16px; /* Prevents zoom on iOS */
+    }
+  }
+  
+  /* Iframe optimization */
+  html.in-iframe {
+    overflow-x: hidden;
+    height: 100%;
+    width: 100%;
+  }
+  
+  html.in-iframe body {
+    overflow-x: hidden;
+    height: 100%;
+    width: 100%;
+    overscroll-behavior: none;
+  }
 }

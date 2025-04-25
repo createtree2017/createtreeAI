@@ -73,7 +73,7 @@ export default function Chat() {
       emoji: "💆‍♀️",
       topics: ["Time management", "Healthy meal ideas", "Stress relief", "Partner relationships"]
     }
-  ];
+  ] as const;
   
   return (
     <div className="p-5 animate-fadeIn">
@@ -105,7 +105,7 @@ export default function Chat() {
             <div className="flex items-center justify-center h-full">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
-          ) : chatMessages && chatMessages.length > 0 ? (
+          ) : chatMessages && Array.isArray(chatMessages) && chatMessages.length > 0 ? (
             chatMessages.map((msg: ChatMessage) => (
               msg.role === "assistant" ? (
                 <div key={msg.id} className="flex items-start space-x-2 animate-fadeIn">
