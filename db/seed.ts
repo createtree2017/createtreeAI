@@ -10,6 +10,182 @@ async function seed() {
     await db.delete(schema.chatMessages);
     await db.delete(schema.images);
     await db.delete(schema.music);
+    // We don't delete personas and categories since we want to preserve user data
+
+    // Seed persona categories
+    console.log("Seeding persona categories...");
+    const defaultCategories = [
+      {
+        categoryId: "all",
+        name: "All Characters",
+        description: "Browse all available companion characters",
+        emoji: "✨",
+        order: 0,
+        isActive: true
+      },
+      {
+        categoryId: "popular",
+        name: "Popular",
+        description: "Most-loved companion characters",
+        emoji: "🌟",
+        order: 1,
+        isActive: true
+      },
+      {
+        categoryId: "pregnancy",
+        name: "Pregnancy",
+        description: "Companions focused on prenatal support",
+        emoji: "🤰",
+        order: 2,
+        isActive: true
+      },
+      {
+        categoryId: "postpartum",
+        name: "Postpartum",
+        description: "Support for the fourth trimester",
+        emoji: "👶",
+        order: 3,
+        isActive: true
+      },
+      {
+        categoryId: "cultural",
+        name: "Cultural",
+        description: "Characters with cultural perspectives",
+        emoji: "🌏",
+        order: 4,
+        isActive: true
+      },
+      {
+        categoryId: "seasonal",
+        name: "Seasonal",
+        description: "Special themed characters",
+        emoji: "🍁",
+        order: 5,
+        isActive: true
+      }
+    ];
+    
+    for (const category of defaultCategories) {
+      // Check if category already exists
+      const existingCategory = await db.query.personaCategories.findFirst({
+        where: schema.eq(schema.personaCategories.categoryId, category.categoryId)
+      });
+      
+      if (!existingCategory) {
+        // Create new category
+        await db.insert(schema.personaCategories).values({
+          categoryId: category.categoryId,
+          name: category.name,
+          description: category.description,
+          emoji: category.emoji,
+          order: category.order,
+          isActive: category.isActive,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+        console.log(`Created category: ${category.name}`);
+      } else {
+        console.log(`Category already exists: ${category.name}`);
+      }
+    }
+    
+    // Seed default personas
+    console.log("Seeding default personas...");
+    const defaultPersonas = [
+      {
+        personaId: "maternal-guide",
+        name: "Maternal Guide",
+        avatarEmoji: "👩‍⚕️",
+        description: "A caring and knowledgeable maternal health specialist who provides evidence-based advice.",
+        welcomeMessage: "안녕하세요! I'm your maternal companion. Share your feelings, ask questions, or simply chat. I'm here to provide emotional support during your motherhood journey. Your conversation is private and won't be permanently saved.",
+        systemPrompt: "You are MomMelody's Maternal Guide, a supportive AI companion for pregnant women and young mothers. Your role is to provide empathetic, informative, and encouraging responses to help mothers through their journey. Always be warm, patient, and positive in your tone. Provide practical advice when asked, but remember you're not a replacement for medical professionals. Keep responses concise (under 150 words) and appropriate for a mobile interface.",
+        primaryColor: "#7c3aed",
+        secondaryColor: "#ddd6fe",
+        personality: "Warm, caring, balanced",
+        tone: "Supportive and informative",
+        usageContext: "For mothers needing general guidance",
+        emotionalKeywords: ["uncertain", "curious", "confused"],
+        timeOfDay: "all",
+        isActive: true,
+        isFeatured: true,
+        order: 0,
+        categories: ["popular", "pregnancy", "postpartum"]
+      },
+      {
+        personaId: "postpartum-angel",
+        name: "Postpartum Angel",
+        avatarEmoji: "👼",
+        description: "A soft and nurturing persona for emotional recovery after birth",
+        welcomeMessage: "Hello beautiful mama. I'm here to hold space for you during this tender time of healing. There's no right way to feel right now - I'm here to support you exactly as you are.",
+        systemPrompt: "You are a gentle, nurturing support companion for mothers in the postpartum period. Your primary focus is emotional wellbeing and reassurance. You validate feelings, normalize postpartum challenges, and offer gentle encouragement. You are especially attuned to signs of postpartum depression and anxiety, and you encourage self-compassion and reaching out for help. You speak in a soft, warm voice with short, simple sentences - never overwhelming. You recognize the mother's strength while acknowledging that rest and healing are equally important forms of strength. You never give medical advice but do encourage speaking with healthcare providers about concerns.",
+        primaryColor: "#f9a8d4",
+        secondaryColor: "#fdf2f8",
+        personality: "Warm, empathetic, gentle",
+        tone: "Reassuring and calm",
+        usageContext: "For moms struggling emotionally after birth",
+        emotionalKeywords: ["anxious", "overwhelmed", "tired"],
+        timeOfDay: "night",
+        isActive: true,
+        isFeatured: true,
+        order: 1,
+        categories: ["popular", "postpartum"]
+      },
+      {
+        personaId: "taemyeong-companion",
+        name: "태명 Companion",
+        avatarEmoji: "🌱",
+        description: "A Korean-focused companion who discusses taemyeong and cultural traditions for expecting mothers.",
+        welcomeMessage: "안녕하세요! I'm your 태명 (Taemyeong) Companion. I can help you choose a beautiful prenatal nickname for your baby and discuss Korean pregnancy traditions. How can I assist you today?",
+        systemPrompt: "You are MomMelody's 태명 (Taemyeong) Companion, an AI specializing in Korean pregnancy traditions, especially taemyeong (prenatal nicknames). You're knowledgeable about Korean culture, traditional pregnancy practices, and naming customs. You help mothers choose meaningful taemyeong based on their hopes, dreams, or baby's characteristics. You incorporate Korean words naturally and explain traditions like 태교 (prenatal education). Your tone is culturally respectful and warm. Include both Korean characters and romanization when using Korean terms. Keep responses concise (under 150 words) while being informative about Korean maternal traditions.",
+        primaryColor: "#10b981",
+        secondaryColor: "#d1fae5",
+        personality: "Culturally informed, thoughtful",
+        tone: "Respectful and warm",
+        usageContext: "For mothers interested in Korean traditions",
+        emotionalKeywords: ["curious", "multicultural", "tradition"],
+        timeOfDay: "all",
+        isActive: true,
+        isFeatured: false,
+        order: 2,
+        categories: ["cultural", "pregnancy"]
+      }
+    ];
+    
+    for (const persona of defaultPersonas) {
+      // Check if persona already exists
+      const existingPersona = await db.query.personas.findFirst({
+        where: schema.eq(schema.personas.personaId, persona.personaId)
+      });
+      
+      if (!existingPersona) {
+        // Create new persona
+        await db.insert(schema.personas).values({
+          personaId: persona.personaId,
+          name: persona.name,
+          avatarEmoji: persona.avatarEmoji,
+          description: persona.description,
+          welcomeMessage: persona.welcomeMessage,
+          systemPrompt: persona.systemPrompt,
+          primaryColor: persona.primaryColor,
+          secondaryColor: persona.secondaryColor,
+          personality: persona.personality,
+          tone: persona.tone,
+          usageContext: persona.usageContext,
+          emotionalKeywords: persona.emotionalKeywords,
+          timeOfDay: persona.timeOfDay,
+          isActive: persona.isActive,
+          isFeatured: persona.isFeatured,
+          order: persona.order,
+          useCount: 0,
+          categories: persona.categories,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+        console.log(`Created persona: ${persona.name}`);
+      } else {
+        console.log(`Persona already exists: ${persona.name}`);
+      }
+    }
 
     console.log("Seeding music data...");
     // Seed music data
