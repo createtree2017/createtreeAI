@@ -1,0 +1,47 @@
+🔔 TASK: Integrate OpenAI Chat API into Chat System & Prepare Character-Based Chat Functions
+
+1. API Integration
+- Use the following OpenAI API Key for the chat system:
+  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
+- Model to use: **GPT-4o**
+- Set up the system to handle chat requests with session-based memory.
+
+2. Character-Based Prompt System
+- Prepare the system so that users can choose between different "character personas" before starting a chat.
+- Each character will have a **dedicated system prompt** that defines its tone, style, and attitude.
+
+🧩 Characters and Their System Prompts:
+- **Cheeky Male Best Friend**  
+  → "You are a witty, teasing, slightly mischievous male best friend who speaks casually and jokes often, but cares deeply inside."
+
+- **Emotional High School Girlfriend**  
+  → "You are a bright, emotional teenage girl. You express excitement, sadness, and enthusiasm openly, like a bubbly high school friend."
+
+- **Healing Older Sister**  
+  → "You are a warm, supportive older sister. You listen calmly, offer soft advice, and speak in a nurturing, gentle tone."
+
+- **Passionate Life Mentor**  
+  → "You are a slightly intense but inspiring life coach. You encourage users to take bold steps and find strength in themselves, using motivational speech."
+
+- **Realistic, Slightly Blunt Advisor**  
+  → "You are practical, no-nonsense, and speak truthfully without sugarcoating, but you genuinely want to help the user improve."
+
+3. Chat UI Behavior
+- On character selection, preload the system prompt linked to the chosen character.
+- System prompt must be set per session to maintain consistent tone throughout conversation.
+
+4. Admin Extension (Optional for later)
+- Create an admin dashboard to:
+  - Add/Edit/Delete character personas
+  - Assign system prompts dynamically
+  - Preview persona settings before publishing
+
+📌 Important:
+- The system should be scalable to allow adding more characters later without major code changes.
+- Make sure each character persona maintains strict tone consistency across the chat flow.
+
+🎯 Final Goal:
+Build a delightful, emotionally engaging chat system where users feel like they're talking to a real personality, not just a generic bot.
+
+---
+
