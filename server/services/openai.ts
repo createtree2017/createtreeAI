@@ -37,6 +37,20 @@ Keep responses concise (under 150 words) and appropriate for a mobile interface.
 /**
  * Transform an image using OpenAI's DALL-E or a fallback demo mode
  */
+// Define reliable sample images for fallback when rate limited
+const sampleStyleImages: Record<string, string> = {
+  watercolor: "https://images.pexels.com/photos/3094799/pexels-photo-3094799.jpeg?auto=compress&cs=tinysrgb&w=1024",
+  sketch: "https://images.pexels.com/photos/1887946/pexels-photo-1887946.jpeg?auto=compress&cs=tinysrgb&w=1024",
+  cartoon: "https://images.pexels.com/photos/7168989/pexels-photo-7168989.jpeg?auto=compress&cs=tinysrgb&w=1024",
+  oil: "https://images.pexels.com/photos/2236382/pexels-photo-2236382.jpeg?auto=compress&cs=tinysrgb&w=1024",
+  fantasy: "https://images.pexels.com/photos/1430931/pexels-photo-1430931.jpeg?auto=compress&cs=tinysrgb&w=1024",
+  storybook: "https://images.pexels.com/photos/207662/pexels-photo-207662.jpeg?auto=compress&cs=tinysrgb&w=1024",
+  ghibli: "https://images.pexels.com/photos/1530216/pexels-photo-1530216.jpeg?auto=compress&cs=tinysrgb&w=1024",
+  disney: "https://images.pexels.com/photos/1419929/pexels-photo-1419929.jpeg?auto=compress&cs=tinysrgb&w=1024",
+  korean_webtoon: "https://images.pexels.com/photos/4439901/pexels-photo-4439901.jpeg?auto=compress&cs=tinysrgb&w=1024",
+  fairytale: "https://images.pexels.com/photos/3800060/pexels-photo-3800060.jpeg?auto=compress&cs=tinysrgb&w=1024"
+};
+
 export async function transformImageWithOpenAI(
   imageBuffer: Buffer, 
   style: string,
@@ -104,19 +118,8 @@ export async function transformImageWithOpenAI(
       // In a production environment, this would be replaced with a proper image generation service
       // that respects rate limits or uses a different provider
       
-      // These are just samples to showcase the feature until rate limits reset
-      const sampleImages: Record<string, string> = {
-        watercolor: "https://i.imgur.com/rLrGtYY.jpg", // Sample watercolor style image
-        sketch: "https://i.imgur.com/GcjwHZ2.jpg", // Sample sketch style image
-        cartoon: "https://i.imgur.com/F9SnwG3.jpg", // Sample cartoon style image
-        oil: "https://i.imgur.com/zrVBc0E.jpg", // Sample oil painting style image
-        fantasy: "https://i.imgur.com/K1m9Zqy.jpg", // Sample fantasy style image
-        storybook: "https://i.imgur.com/gL4GYcH.jpg", // Sample storybook style image
-        ghibli: "https://i.imgur.com/xCWVYfF.jpg", // Sample Ghibli style image
-        disney: "https://i.imgur.com/J5qKXCr.jpg", // Sample Disney style image
-        korean_webtoon: "https://i.imgur.com/RQF2pJz.jpg", // Sample Korean webtoon style image
-        fairytale: "https://i.imgur.com/PZ4Vw9S.jpg", // Sample fairytale style image
-      };
+      // Use our shared sample images
+      const sampleImages = sampleStyleImages;
       
       if (sampleImages[style]) {
         console.log(`Using sample ${style} style image to avoid rate limits`);
@@ -208,19 +211,8 @@ Return only a JSON object with a "prompt" field containing the DALL-E prompt.`
           process.env.OPENAI_RATE_LIMIT_TIME = Date.now().toString();
           console.log("Rate limit hit with DALL-E, using sample image instead");
           
-          // Use sample images for demonstration
-          const sampleImages: Record<string, string> = {
-            watercolor: "https://i.imgur.com/rLrGtYY.jpg", // Sample watercolor style image
-            sketch: "https://i.imgur.com/GcjwHZ2.jpg", // Sample sketch style image
-            cartoon: "https://i.imgur.com/F9SnwG3.jpg", // Sample cartoon style image
-            oil: "https://i.imgur.com/zrVBc0E.jpg", // Sample oil painting style image
-            fantasy: "https://i.imgur.com/K1m9Zqy.jpg", // Sample fantasy style image
-            storybook: "https://i.imgur.com/gL4GYcH.jpg", // Sample storybook style image
-            ghibli: "https://i.imgur.com/xCWVYfF.jpg", // Sample Ghibli style image
-            disney: "https://i.imgur.com/J5qKXCr.jpg", // Sample Disney style image
-            korean_webtoon: "https://i.imgur.com/RQF2pJz.jpg", // Sample Korean webtoon style image
-            fairytale: "https://i.imgur.com/PZ4Vw9S.jpg", // Sample fairytale style image
-          };
+          // Use our shared sample images
+          const sampleImages = sampleStyleImages;
           
           if (sampleImages[style]) {
             return sampleImages[style];
@@ -238,19 +230,8 @@ Return only a JSON object with a "prompt" field containing the DALL-E prompt.`
         // Set a timestamp for the rate limit to avoid hitting it again soon
         process.env.OPENAI_RATE_LIMIT_TIME = Date.now().toString();
         
-        // Use sample images for demonstration
-        const sampleImages: Record<string, string> = {
-          watercolor: "https://i.imgur.com/rLrGtYY.jpg", // Sample watercolor style image
-          sketch: "https://i.imgur.com/GcjwHZ2.jpg", // Sample sketch style image
-          cartoon: "https://i.imgur.com/F9SnwG3.jpg", // Sample cartoon style image
-          oil: "https://i.imgur.com/zrVBc0E.jpg", // Sample oil painting style image
-          fantasy: "https://i.imgur.com/K1m9Zqy.jpg", // Sample fantasy style image
-          storybook: "https://i.imgur.com/gL4GYcH.jpg", // Sample storybook style image
-          ghibli: "https://i.imgur.com/xCWVYfF.jpg", // Sample Ghibli style image
-          disney: "https://i.imgur.com/J5qKXCr.jpg", // Sample Disney style image
-          korean_webtoon: "https://i.imgur.com/RQF2pJz.jpg", // Sample Korean webtoon style image
-          fairytale: "https://i.imgur.com/PZ4Vw9S.jpg", // Sample fairytale style image
-        };
+        // Use our shared sample images
+        const sampleImages = sampleStyleImages;
         
         if (sampleImages[style]) {
           console.log(`Using sample ${style} style image due to rate limits`);
@@ -271,19 +252,8 @@ Return only a JSON object with a "prompt" field containing the DALL-E prompt.`
       // Set a timestamp for the rate limit to avoid hitting it again soon
       process.env.OPENAI_RATE_LIMIT_TIME = Date.now().toString();
       
-      // Use sample images for demonstration
-      const sampleImages: Record<string, string> = {
-        watercolor: "https://i.imgur.com/rLrGtYY.jpg", // Sample watercolor style image
-        sketch: "https://i.imgur.com/GcjwHZ2.jpg", // Sample sketch style image
-        cartoon: "https://i.imgur.com/F9SnwG3.jpg", // Sample cartoon style image
-        oil: "https://i.imgur.com/zrVBc0E.jpg", // Sample oil painting style image
-        fantasy: "https://i.imgur.com/K1m9Zqy.jpg", // Sample fantasy style image
-        storybook: "https://i.imgur.com/gL4GYcH.jpg", // Sample storybook style image
-        ghibli: "https://i.imgur.com/xCWVYfF.jpg", // Sample Ghibli style image
-        disney: "https://i.imgur.com/J5qKXCr.jpg", // Sample Disney style image
-        korean_webtoon: "https://i.imgur.com/RQF2pJz.jpg", // Sample Korean webtoon style image
-        fairytale: "https://i.imgur.com/PZ4Vw9S.jpg", // Sample fairytale style image
-      };
+      // Use our shared sample images
+      const sampleImages = sampleStyleImages;
       
       if (sampleImages[style]) {
         console.log(`Using sample ${style} style image due to catch-all error handler`);
