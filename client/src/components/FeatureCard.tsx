@@ -29,45 +29,47 @@ export default function FeatureCard({
           ${bgColor} ${textColor}
         `}
       >
-        <div className="absolute top-0 right-0 w-16 h-16 opacity-10">
-          <Icon size={64} />
+        <div className="absolute top-0 right-0 w-20 h-20 opacity-20">
+          <Icon size={80} />
         </div>
         
         <div className="p-5 flex flex-col h-full">
           <div className="flex items-center mb-3">
-            <div className="bg-white/20 p-2 rounded-lg mr-3">
-              <Icon size={20} />
+            <div className="bg-white/30 p-2.5 rounded-lg mr-3 shadow-soft">
+              <Icon size={22} strokeWidth={2.5} />
             </div>
-            <h3 className="font-medium text-lg">{title}</h3>
+            <h3 className="font-semibold text-lg">{title}</h3>
           </div>
           
-          <p className="text-sm opacity-90 mb-4">{description}</p>
+          <p className="text-sm font-medium mb-4 opacity-95">{description}</p>
           
-          <div className="mt-auto text-sm font-medium flex items-center">
-            <span>Explore</span>
-            <svg 
-              width="16" 
-              height="16" 
-              viewBox="0 0 16 16" 
-              fill="none" 
-              xmlns="http://www.w3.org/2000/svg"
-              className="ml-1"
-            >
-              <path 
-                d="M3.33334 8H12.6667" 
-                stroke="currentColor" 
-                strokeWidth="1.5" 
-                strokeLinecap="round" 
-                strokeLinejoin="round"
-              />
-              <path 
-                d="M8 3.33337L12.6667 8.00004L8 12.6667" 
-                stroke="currentColor" 
-                strokeWidth="1.5" 
-                strokeLinecap="round" 
-                strokeLinejoin="round"
-              />
-            </svg>
+          <div className="mt-auto">
+            <div className="bg-white/20 hover:bg-white/30 transition-colors rounded-lg py-2 px-3 text-sm font-semibold inline-flex items-center shadow-soft">
+              <span>Explore</span>
+              <svg 
+                width="16" 
+                height="16" 
+                viewBox="0 0 16 16" 
+                fill="none" 
+                xmlns="http://www.w3.org/2000/svg"
+                className="ml-1.5"
+              >
+                <path 
+                  d="M3.33334 8H12.6667" 
+                  stroke="currentColor" 
+                  strokeWidth="1.5" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round"
+                />
+                <path 
+                  d="M8 3.33337L12.6667 8.00004L8 12.6667" 
+                  stroke="currentColor" 
+                  strokeWidth="1.5" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
           </div>
         </div>
       </div>

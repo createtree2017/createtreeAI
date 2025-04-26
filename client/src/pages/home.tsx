@@ -40,7 +40,7 @@ export default function Home() {
       title: "Memory Art",
       description: "Transform photos into beautiful artworks",
       icon: PaintbrushVertical,
-      bgColor: "bg-accent1-DEFAULT",
+      bgColor: "bg-accent1-dark",
       textColor: "text-white",
       href: "/image",
     },
