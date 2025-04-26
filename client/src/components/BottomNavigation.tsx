@@ -1,41 +1,64 @@
-import { useLocation, Link } from "wouter";
-import { Home, Music, PaintbrushVertical, MessageCircle, Images } from "lucide-react";
+import React from 'react';
+import { Link, useLocation } from 'wouter';
+import { Home, Image, MessageCircle, Grid, User } from 'lucide-react';
 
 export default function BottomNavigation() {
   const [location] = useLocation();
   
   const navItems = [
-    { name: "Home", icon: Home, path: "/" },
-    { name: "Lullaby", icon: Music, path: "/music" },
-    { name: "Memory", icon: PaintbrushVertical, path: "/image" },
-    { name: "Support", icon: MessageCircle, path: "/chat" },
-    { name: "Gallery", icon: Images, path: "/gallery" },
+    {
+      path: '/',
+      icon: Home,
+      label: 'Home',
+    },
+    {
+      path: '/programs',
+      icon: Grid,
+      label: 'Programs',
+    },
+    {
+      path: '/chat',
+      icon: MessageCircle,
+      label: 'AI Chat',
+    },
+    {
+      path: '/gallery',
+      icon: Image,
+      label: 'Gallery',
+    },
+    {
+      path: '/profile',
+      icon: User,
+      label: 'My Page',
+    },
   ];
 
   return (
-    <nav className="bg-white border-t border-neutral-light py-2 fixed bottom-0 left-0 right-0 z-10 shadow-soft safe-area-bottom">
-      <div className="flex justify-around max-w-md mx-auto px-1">
+    <div className="fixed bottom-0 left-0 right-0 z-50 safe-area-bottom">
+      <nav className="flex items-center justify-between bg-white border-t border-gray-100 px-2 h-16 shadow-lg">
         {navItems.map((item) => {
-          const isActive = 
-            (item.path === "/" && location === "/") || 
-            (item.path !== "/" && location.startsWith(item.path));
-            
+          const isActive = location === item.path;
           return (
             <Link 
               key={item.path} 
               href={item.path}
-              className={`flex flex-col items-center p-2 rounded-lg transition-colors ${
-                isActive 
-                  ? "text-primary bg-primary-light/10" 
-                  : "text-neutral-dark hover:bg-neutral-lightest"
-              }`}
+              className={`
+                flex flex-col items-center justify-center flex-1 py-1 px-2 
+                ${isActive 
+                  ? 'text-primary-lavender bg-gradient-to-t from-transparent to-primary-lavender/10'
+                  : 'text-gray-500 hover:text-primary-lavender'}
+                transition-colors duration-200 rounded-lg
+              `}
             >
-              <item.icon className={`h-5 w-5 ${isActive ? "text-primary" : "text-neutral-dark"}`} />
-              <span className="text-xs font-medium mt-1">{item.name}</span>
+              <item.icon size={20} className={isActive ? 'mb-1' : 'mb-1'} />
+              <span className="text-xs font-medium">{item.label}</span>
+              {isActive && (
+                <div className="absolute bottom-0 w-6 h-1 rounded-t-full bg-primary-lavender" />
+              )}
             </Link>
           );
         })}
-      </div>
-    </nav>
+      </nav>
+    </div>
   );
 }

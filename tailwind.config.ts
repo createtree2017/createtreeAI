@@ -11,14 +11,16 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        heading: ['Quicksand', 'sans-serif'],
-        body: ['Nunito', 'sans-serif'],
-        sans: ['Nunito', 'sans-serif'],
-        display: ['Quicksand', 'sans-serif'],
+        heading: ['Poppins', 'sans-serif'],
+        body: ['Noto Sans', 'sans-serif'],
+        sans: ['Noto Sans', 'sans-serif'],
+        display: ['Poppins', 'sans-serif'],
       },
       boxShadow: {
-        'soft': '0 2px 8px rgba(0, 0, 0, 0.05)',
-        'softer': '0 1px 4px rgba(0, 0, 0, 0.03)',
+        'soft': '0 4px 12px rgba(0, 0, 0, 0.04)',
+        'softer': '0 2px 8px rgba(0, 0, 0, 0.02)',
+        'button': '0 2px 10px rgba(216, 201, 237, 0.4)',
+        'card': '0 4px 16px rgba(0, 0, 0, 0.05)',
       },
       colors: {
         background: "hsl(var(--background))",
@@ -34,8 +36,8 @@ export default {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
-          light: "#f8d4d4",
-          dark: "#e95252",
+          lavender: "#D9CAEE",
+          mint: "#C2E6DA",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -43,24 +45,29 @@ export default {
         },
         neutral: {
           DEFAULT: "#d1d5db",
-          lightest: "#f8f8f8",
-          light: "#e5e7eb",
-          dark: "#6b7280",
-          darkest: "#374151",
+          lightest: "#FFFFFF",
+          light: "#F8F9FA",
+          dark: "#666666",
+          darkest: "#333333",
         },
         muted: {
           DEFAULT: "hsl(var(--muted))",
           foreground: "hsl(var(--muted-foreground))",
         },
         accent1: {
-          DEFAULT: "#d9c2f0",
-          light: "#ece3f7",
-          dark: "#8a5db6",
+          DEFAULT: "#A8C7B5", // Sage
+          light: "#E3EDE6", 
+          dark: "#7A9B87",
         },
         accent2: {
-          DEFAULT: "#a7e0f4",
-          light: "#e0f4fa",
-          dark: "#4da6be",
+          DEFAULT: "#F7EEE2", // Beige
+          light: "#FBF6F0",
+          dark: "#E5D9C8",
+        },
+        accent3: {
+          DEFAULT: "#C9DEF0", // Sky blue
+          light: "#E6F0F9",
+          dark: "#95BFE1", 
         },
         accent: {
           DEFAULT: "hsl(var(--accent))",

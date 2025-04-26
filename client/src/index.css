@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Nunito:wght@300;400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Noto+Sans:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,97 +7,97 @@
 @layer base {
   :root {
     /* Base colors */
-    --background: 0 0% 98%;
-    --foreground: 0 0% 33%;
+    --background: 0 0% 100%;
+    --foreground: 0 0% 20%;
     
     /* Card colors */
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 33%;
+    --card-foreground: 0 0% 20%;
     
     /* Popover colors */
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 33%;
+    --popover-foreground: 0 0% 20%;
     
-    /* Primary colors (coral) */
-    --primary: 0 80% 81%;
-    --primary-foreground: 0 0% 100%;
+    /* Primary colors (lavender) */
+    --primary: 270 40% 86%;
+    --primary-foreground: 0 0% 20%;
     
-    /* Secondary colors (sage) */
-    --secondary: 120 20% 72%;
-    --secondary-foreground: 0 0% 100%;
+    /* Secondary colors (mint) */
+    --secondary: 158 40% 83%;
+    --secondary-foreground: 0 0% 20%;
     
     /* Muted colors */
-    --muted: 0 0% 94%;
-    --muted-foreground: 0 0% 62%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 60%;
     
-    /* Accent colors (lavender) */
-    --accent: 270 50% 82%;
-    --accent-foreground: 0 0% 33%;
+    /* Accent colors (sage) */
+    --accent: 145 23% 72%;
+    --accent-foreground: 0 0% 20%;
     
     /* Destructive colors */
-    --destructive: 0 80% 65%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 65% 85%;
+    --destructive-foreground: 0 0% 20%;
     
     /* UI element colors */
-    --border: 0 0% 88%;
-    --input: 0 0% 88%;
-    --ring: 0 80% 81%;
+    --border: 0 0% 92%;
+    --input: 0 0% 92%;
+    --ring: 270 40% 86%;
     
-    /* Chart colors */
-    --chart-1: 0 80% 81%;
-    --chart-2: 120 20% 72%;
-    --chart-3: 270 50% 82%;
-    --chart-4: 200 65% 79%;
-    --chart-5: 35 100% 75%;
+    /* Chart colors - using our pastel palette */
+    --chart-1: 270 40% 86%; /* Lavender */
+    --chart-2: 158 40% 83%; /* Mint */
+    --chart-3: 145 23% 72%; /* Sage */
+    --chart-4: 35 60% 92%;  /* Beige */
+    --chart-5: 208 50% 87%; /* Sky blue */
     
     /* Sidebar colors */
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 0 0% 33%;
-    --sidebar-primary: 0 80% 81%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 270 50% 82%;
-    --sidebar-accent-foreground: 0 0% 33%;
-    --sidebar-border: 0 0% 88%;
-    --sidebar-ring: 0 80% 81%;
+    --sidebar-foreground: 0 0% 20%;
+    --sidebar-primary: 270 40% 86%;
+    --sidebar-primary-foreground: 0 0% 20%;
+    --sidebar-accent: 158 40% 83%;
+    --sidebar-accent-foreground: 0 0% 20%;
+    --sidebar-border: 0 0% 92%;
+    --sidebar-ring: 270 40% 86%;
     
     /* Border radius */
-    --radius: 0.75rem;
+    --radius: 1rem;
   }
  
   .dark {
     --background: 0 0% 10%;
-    --foreground: 0 0% 98%;
+    --foreground: 0 0% 95%;
     
-    --card: 0 0% 15%;
-    --card-foreground: 0 0% 98%;
+    --card: 0 0% 13%;
+    --card-foreground: 0 0% 95%;
     
-    --popover: 0 0% 15%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 0 0% 13%;
+    --popover-foreground: 0 0% 95%;
     
-    --primary: 0 80% 73%;
+    --primary: 270 30% 75%;
     --primary-foreground: 0 0% 100%;
     
-    --secondary: 120 20% 60%;
+    --secondary: 158 30% 70%;
     --secondary-foreground: 0 0% 100%;
     
     --muted: 0 0% 20%;
-    --muted-foreground: 0 0% 75%;
+    --muted-foreground: 0 0% 70%;
     
-    --accent: 270 50% 69%;
+    --accent: 145 15% 62%;
     --accent-foreground: 0 0% 100%;
     
-    --destructive: 0 80% 60%;
+    --destructive: 0 55% 75%;
     --destructive-foreground: 0 0% 100%;
     
-    --border: 0 0% 30%;
-    --input: 0 0% 30%;
-    --ring: 0 80% 73%;
+    --border: 0 0% 25%;
+    --input: 0 0% 25%;
+    --ring: 270 30% 75%;
     
-    --chart-1: 0 80% 73%;
-    --chart-2: 120 20% 60%;
-    --chart-3: 270 50% 69%;
-    --chart-4: 200 65% 70%;
-    --chart-5: 35 100% 68%;
+    --chart-1: 270 30% 75%;
+    --chart-2: 158 30% 70%;
+    --chart-3: 145 15% 62%;
+    --chart-4: 35 50% 82%;
+    --chart-5: 208 40% 77%;
   }
   
   * {
@@ -109,7 +109,23 @@
   }
   
   h1, h2, h3, h4, h5, h6 {
-    @apply font-heading;
+    @apply font-heading font-medium tracking-tight;
+  }
+
+  h1 {
+    @apply text-3xl sm:text-4xl;
+  }
+
+  h2 {
+    @apply text-2xl sm:text-3xl;
+  }
+
+  h3 {
+    @apply text-xl sm:text-2xl;
+  }
+
+  p {
+    @apply leading-relaxed;
   }
 }
 
