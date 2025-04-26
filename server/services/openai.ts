@@ -92,58 +92,122 @@ export async function transformImageWithOpenAI(
     // Convert image buffer to base64 for the vision API
     const base64Image = imageBuffer.toString('base64');
     
-    // First, use GPT-4o with vision to analyze the image and create a detailed description
-    console.log("Using GPT-4o with vision to analyze the image");
-    const visionResponse = await openai.chat.completions.create({
-      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-      messages: [
-        {
-          role: "system",
-          content: "You are an expert image analyzer. Generate a detailed description of the image that captures all important visual elements, subjects, expressions, and composition. Focus on details that would be important to include when creating a stylized version of this image."
-        },
-        {
-          role: "user",
-          content: [
-            {
-              type: "text", 
-              text: "Please analyze this image and provide a detailed description of what you see. Focus on the subjects, expressions, arrangement, and key visual elements."
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:image/jpeg;base64,${base64Image}`
+    // Use a single-step approach with GPT-4o vision to avoid rate limits
+    console.log("Using single-step approach with GPT-4o vision");
+    
+    try {
+      const visionResponse = await openai.chat.completions.create({
+        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+        messages: [
+          {
+            role: "system",
+            content: `You are a vision analysis assistant that helps generate detailed image descriptions to be used for image transformations.
+            
+When provided with an image, analyze it carefully and provide a DALL-E 3 compatible prompt that will recreate the image in the requested style.
+            
+Format your response as a JSON object with a single field "prompt" containing the detailed DALL-E prompt.`
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "text", 
+                text: `I want to transform this image into the following style: "${promptText}".
+                
+Please create a detailed DALL-E 3 prompt that describes the key elements of this image and how they should be transformed into the ${style} style. Focus on subjects, expressions, composition, colors, and mood.
+                
+Return only a JSON object with a "prompt" field containing the DALL-E prompt.`
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: `data:image/jpeg;base64,${base64Image}`
+                }
               }
-            }
-          ]
+            ]
+          }
+        ],
+        max_tokens: 500,
+        response_format: { type: "json_object" }
+      });
+
+      // Extract the prompt from GPT-4o's response
+      let generatedPrompt;
+      try {
+        const jsonResponse = JSON.parse(visionResponse.choices[0].message.content || "{}");
+        generatedPrompt = jsonResponse.prompt;
+        console.log("Generated DALL-E prompt:", generatedPrompt);
+      } catch (parseError) {
+        console.error("Error parsing GPT-4o JSON response:", parseError);
+        generatedPrompt = `${promptText} based on the uploaded image. The image should be suitable for pregnancy and baby photos.`;
+      }
+      
+      if (!generatedPrompt) {
+        generatedPrompt = `${promptText} based on the uploaded image. The image should be suitable for pregnancy and baby photos.`;
+      }
+
+      // Add a delay to avoid rate limits
+      console.log("Adding a short delay before DALL-E request to avoid rate limits...");
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Use DALL-E 3 to create a new image based on the description and style
+      console.log("Generating image with DALL-E 3");
+      const response = await openai.images.generate({
+        model: "dall-e-3", // Use DALL-E 3 for transformations
+        prompt: generatedPrompt,
+        n: 1,
+        size: "1024x1024",
+        quality: "standard",
+      });
+
+      // Extract the URL from the response
+      const imageData = response?.data;
+      if (!imageData || !imageData[0] || !imageData[0].url) {
+        throw new Error("No valid image URL returned from OpenAI");
+      }
+      const imageUrl = imageData[0].url;
+      
+      return imageUrl;
+    } catch (apiError: any) {
+      // Handle rate limit errors specifically
+      if (apiError.status === 429) {
+        console.log("Encountered rate limit error, trying alternative approach");
+        
+        // If we hit a rate limit, try the simplified approach with just DALL-E
+        const simplePrompt = `Transform this image into the ${style} style: A photo showing ${style === 'ghibli' ? 'Studio Ghibli anime style with warm colors, soft expressions, and delicate details' : stylePrompts[style]}. The image should maintain the essence of the original.`;
+        
+        // Add a longer delay for rate limits
+        console.log("Adding a longer delay to avoid rate limits...");
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        
+        const fallbackResponse = await openai.images.generate({
+          model: "dall-e-3",
+          prompt: simplePrompt,
+          n: 1,
+          size: "1024x1024",
+          quality: "standard",
+        });
+        
+        const fallbackData = fallbackResponse?.data;
+        if (!fallbackData || !fallbackData[0] || !fallbackData[0].url) {
+          throw new Error("No valid image URL returned from fallback OpenAI approach");
         }
-      ],
-      max_tokens: 300
-    });
-
-    // Extract the image description
-    const imageDescription = visionResponse.choices[0].message.content || "";
-    
-    console.log("Image description generated, now creating DALL-E prompt");
-    
-    // Then use DALL-E 3 to create a new image based on the description and style
-    const response = await openai.images.generate({
-      model: "dall-e-3", // Use DALL-E 3 for transformations
-      prompt: `${promptText}. Based on this image: ${imageDescription}. The image should be suitable for pregnancy and baby photos.`,
-      n: 1,
-      size: "1024x1024",
-      quality: "standard",
-    });
-
-    // Extract the URL from the response
-    const imageUrl = response.data[0].url;
-    
-    if (!imageUrl) {
-      throw new Error("No valid image URL returned from OpenAI");
+        const fallbackUrl = fallbackData[0].url;
+        
+        return fallbackUrl;
+      } else {
+        // Re-throw other errors
+        throw apiError;
+      }
     }
-    
-    return imageUrl;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error transforming image with OpenAI:", error);
+    
+    // Check if this is a rate limit error
+    const isRateLimit = error && error.status === 429;
+    if (isRateLimit) {
+      console.log("Rate limit reached with OpenAI API. Please try again later.");
+    }
     
     // Fallback to demo mode if API fails
     const demoImages: Record<string, string> = {
