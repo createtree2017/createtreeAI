@@ -414,13 +414,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Media not found" });
       }
       
-      const downloadUrl = type === "music" 
-        ? (mediaItem as typeof music.$inferSelect).url 
-        : (mediaItem as typeof images.$inferSelect).transformedUrl;
+      let url = '';
+      let filename = '';
+      
+      if (type === "music") {
+        const musicItem = mediaItem as typeof music.$inferSelect;
+        url = musicItem.url;
+        filename = `${musicItem.title || 'music'}.mp3`;
+      } else {
+        const imageItem = mediaItem as typeof images.$inferSelect;
+        url = imageItem.transformedUrl;
+        filename = `${imageItem.title || 'transformed_image'}.jpg`;
+      }
+      
+      // Set headers for download
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
       
       // For a direct download, redirect to the URL
       // This is more efficient than proxying the content through our server
-      return res.redirect(downloadUrl);
+      return res.redirect(url);
     } catch (error) {
       console.error("Error downloading media:", error);
       return res.status(500).json({ error: "Failed to download media" });

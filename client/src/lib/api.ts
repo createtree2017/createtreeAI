@@ -110,14 +110,19 @@ export const toggleFavorite = async (itemId: number, type: string) => {
 // Media management endpoints
 export const downloadMedia = async (id: number, type: string) => {
   try {
+    const downloadUrl = `/api/media/download/${type}/${id}`;
+    
     // Create an invisible link element
     const link = document.createElement('a');
     
     // Set the link's href to the download endpoint
-    link.href = `/api/media/download/${type}/${id}`;
+    link.href = downloadUrl;
     
-    // Make the browser download the file when the link is clicked
-    link.setAttribute('download', ''); // This makes it download instead of navigate
+    // Make the browser download the file (the server will set Content-Disposition)
+    link.setAttribute('download', '');
+    
+    // Set to open in current window to avoid popup blockers
+    link.target = '_self';
     
     // Add the link to the document
     document.body.appendChild(link);
@@ -125,12 +130,18 @@ export const downloadMedia = async (id: number, type: string) => {
     // Trigger a click on the link
     link.click();
     
+    // Give the browser a moment to process the download
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     // Remove the link from the document
     document.body.removeChild(link);
+    
+    return { success: true };
   } catch (error) {
     console.error('Error downloading media:', error);
     // Fallback to the simple redirect if the programmatic download fails
     window.location.href = `/api/media/download/${type}/${id}`;
+    throw error;
   }
 };
 
