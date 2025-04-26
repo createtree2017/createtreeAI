@@ -113,40 +113,15 @@ export const downloadMedia = async (id: number, type: string) => {
     // Direct navigation approach - server will proxy the content and handle download
     const downloadUrl = `/api/media/download/${type}/${id}`;
     
-    // Attempt to fetch from our proxy first to check if it's working
-    const checkResponse = await fetch(downloadUrl, { method: 'HEAD' });
+    // The simplest approach is to just navigate to the download URL
+    // This generally works best across different browsers and devices
+    window.location.href = downloadUrl;
     
-    if (checkResponse.ok) {
-      // If check is successful, navigate to download
-      window.location.href = downloadUrl;
-      return { success: true };
-    } else {
-      // If proxy check fails, attempt direct download from the server's JSON fallback
-      const response = await fetch(downloadUrl);
-      const data = await response.json();
-      
-      if (data.url) {
-        // If server sent back the original URL, try direct download
-        try {
-          // Create a link element to trigger the download
-          const link = document.createElement('a');
-          link.href = data.url;
-          link.target = '_blank'; // Try opening in new tab
-          link.download = data.filename || 'download';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          return { success: true, message: 'Direct download attempted' };
-        } catch (dlError) {
-          console.error('Error with direct download fallback:', dlError);
-          // As last resort, just open the URL
-          window.open(data.url, '_blank');
-          return { success: true, message: 'Opened in new window' };
-        }
-      } else {
-        throw new Error(data.error || 'Unknown error with download proxy');
-      }
-    }
+    // Add a small delay before returning to allow the navigation to start
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Return success - we've started the download process
+    return { success: true };
   } catch (error) {
     console.error('Error downloading media:', error);
     // Let the UI know about the error

@@ -471,12 +471,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           error: "Failed to proxy media from source",
           url: url,
           filename: filename,
-          message: error.message
+          message: error instanceof Error ? error.message : String(error)
         });
       }
     } catch (error) {
       console.error("Error downloading media:", error);
-      return res.status(500).json({ error: "Failed to download media" });
+      return res.status(500).json({ 
+        error: "Failed to download media", 
+        message: error instanceof Error ? error.message : String(error) 
+      });
     }
   });
 
