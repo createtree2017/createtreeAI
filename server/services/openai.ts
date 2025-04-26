@@ -37,18 +37,18 @@ Keep responses concise (under 150 words) and appropriate for a mobile interface.
 /**
  * Transform an image using OpenAI's DALL-E or a fallback demo mode
  */
-// Define reliable sample images for fallback when rate limited
+// Define reliable sample images for fallback when rate limited - using more styled examples
 const sampleStyleImages: Record<string, string> = {
-  watercolor: "https://images.pexels.com/photos/3094799/pexels-photo-3094799.jpeg?auto=compress&cs=tinysrgb&w=1024",
-  sketch: "https://images.pexels.com/photos/1887946/pexels-photo-1887946.jpeg?auto=compress&cs=tinysrgb&w=1024",
-  cartoon: "https://images.pexels.com/photos/7168989/pexels-photo-7168989.jpeg?auto=compress&cs=tinysrgb&w=1024",
-  oil: "https://images.pexels.com/photos/2236382/pexels-photo-2236382.jpeg?auto=compress&cs=tinysrgb&w=1024",
-  fantasy: "https://images.pexels.com/photos/1430931/pexels-photo-1430931.jpeg?auto=compress&cs=tinysrgb&w=1024",
-  storybook: "https://images.pexels.com/photos/207662/pexels-photo-207662.jpeg?auto=compress&cs=tinysrgb&w=1024",
-  ghibli: "https://images.pexels.com/photos/1530216/pexels-photo-1530216.jpeg?auto=compress&cs=tinysrgb&w=1024",
-  disney: "https://images.pexels.com/photos/1419929/pexels-photo-1419929.jpeg?auto=compress&cs=tinysrgb&w=1024",
-  korean_webtoon: "https://images.pexels.com/photos/4439901/pexels-photo-4439901.jpeg?auto=compress&cs=tinysrgb&w=1024",
-  fairytale: "https://images.pexels.com/photos/3800060/pexels-photo-3800060.jpeg?auto=compress&cs=tinysrgb&w=1024"
+  watercolor: "https://img.freepik.com/free-vector/watercolor-cherry-blossom-tree_125540-536.jpg",
+  sketch: "https://img.freepik.com/premium-vector/hand-drawn-sketch-mother-baby_160308-2501.jpg",
+  cartoon: "https://img.freepik.com/free-vector/cute-pregnant-woman-cartoon-character_1308-132206.jpg",
+  oil: "https://img.freepik.com/free-vector/mother-child-oil-painting-portrait_1017-44244.jpg",
+  fantasy: "https://img.freepik.com/free-photo/fantasy-pregnant-woman-forest-setting-generated-by-ai_188544-36222.jpg",
+  storybook: "https://img.freepik.com/premium-vector/pregnant-woman-character-is-walking-with-child-park_146350-135.jpg",
+  ghibli: "https://img.freepik.com/premium-photo/anime-family-warm-studio-ghibli-style-watercolor_784625-1536.jpg",
+  disney: "https://img.freepik.com/premium-photo/cute-cartoon-woman-holds-a-baby-by-hand-animated-film-style_917506-28366.jpg",
+  korean_webtoon: "https://img.freepik.com/premium-vector/pregnant-woman-character-is-walking-with-child-park_146350-134.jpg",
+  fairytale: "https://img.freepik.com/premium-photo/fairytale-autumn-family-scene-with-pregnant-woman-dreamy-atmosphere_917506-14550.jpg"
 };
 
 export async function transformImageWithOpenAI(
@@ -63,19 +63,8 @@ export async function transformImageWithOpenAI(
     
     if (useDemoMode) {
       console.log("Using demo mode for image transformation");
-      // Demo mode - return placeholder transformation URLs based on style
-      const demoImages: Record<string, string> = {
-        watercolor: "https://placehold.co/1024x1024/FFD1DC/FFF?text=Watercolor+Style",
-        sketch: "https://placehold.co/1024x1024/EFEFEF/333?text=Sketch+Style",
-        cartoon: "https://placehold.co/1024x1024/FFEA87/333?text=Cartoon+Style",
-        oil: "https://placehold.co/1024x1024/916C47/FFF?text=Oil+Painting",
-        fantasy: "https://placehold.co/1024x1024/C1A7E2/FFF?text=Fantasy+Style",
-        storybook: "https://placehold.co/1024x1024/A7E2C3/333?text=Storybook+Style",
-        ghibli: "https://placehold.co/1024x1024/FFD5AA/333?text=Ghibli+Style",
-        disney: "https://placehold.co/1024x1024/B6E1FF/333?text=Disney+Style",
-        korean_webtoon: "https://placehold.co/1024x1024/FFD6E7/333?text=Korean+Webtoon",
-        fairytale: "https://placehold.co/1024x1024/DCBEFF/333?text=Fairytale"
-      };
+      // Demo mode - use our styled examples
+      const demoImages = sampleStyleImages;
       
       // Return the placeholder for this style or a default one
       return demoImages[style] || "https://placehold.co/1024x1024/A7C1E2/FFF?text=Transformed+Image";
@@ -89,7 +78,7 @@ export async function transformImageWithOpenAI(
       oil: "Convert this image into a classic oil painting style with rich textures and depth",
       fantasy: "Transform this image into a magical fantasy art style with ethereal lighting and dreamlike qualities",
       storybook: "Convert this image into a sweet children's storybook illustration style with gentle colors and charming details",
-      ghibli: "Transform this image into a Studio Ghibli anime style with delicate details, soft expressions, and warm colors",
+      ghibli: "Transform this image into a Studio Ghibli anime style with delicate hand-drawn details, soft expressions, pastel color palette, dreamy background elements, gentle lighting, and the whimsical charming aesthetic that Studio Ghibli is known for. The image should be gentle and magical.",
       disney: "Transform this image into a Disney animation style with expressive characters, vibrant colors, and enchanting details",
       korean_webtoon: "Transform this image into a Korean webtoon style with clean lines, pastel colors, and expressive characters",
       fairytale: "Transform this image into a fairytale illustration with magical elements, dreamy atmosphere, and storybook aesthetics"
@@ -261,19 +250,8 @@ Return only a JSON object with a "prompt" field containing the DALL-E prompt.`
       }
     }
     
-    // Fallback to demo mode if API fails
-    const demoImages: Record<string, string> = {
-      watercolor: "https://placehold.co/1024x1024/FFD1DC/FFF?text=Watercolor+Style",
-      sketch: "https://placehold.co/1024x1024/EFEFEF/333?text=Sketch+Style",
-      cartoon: "https://placehold.co/1024x1024/FFEA87/333?text=Cartoon+Style",
-      oil: "https://placehold.co/1024x1024/916C47/FFF?text=Oil+Painting",
-      fantasy: "https://placehold.co/1024x1024/C1A7E2/FFF?text=Fantasy+Style",
-      storybook: "https://placehold.co/1024x1024/A7E2C3/333?text=Storybook+Style",
-      ghibli: "https://placehold.co/1024x1024/FFD5AA/333?text=Ghibli+Style",
-      disney: "https://placehold.co/1024x1024/B6E1FF/333?text=Disney+Style",
-      korean_webtoon: "https://placehold.co/1024x1024/FFD6E7/333?text=Korean+Webtoon",
-      fairytale: "https://placehold.co/1024x1024/DCBEFF/333?text=Fairytale"
-    };
+    // Fallback to styled demo images if API fails
+    const demoImages = sampleStyleImages;
     
     // Return the placeholder for this style or a default one
     return demoImages[style] || "https://placehold.co/1024x1024/A7C1E2/FFF?text=Transformed+Image";
