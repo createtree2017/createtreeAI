@@ -36,8 +36,10 @@ export default {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
-          lavender: "#D9CAEE",
-          mint: "#C2E6DA",
+          lavender: "#E6E6FA", // Lavender from style guide
+          mint: "#98FF98", // Mint green from style guide
+          peach: "#FFE5B4", // Peach from style guide 
+          beige: "#F5F5DC", // Beige from style guide
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",

@@ -40,7 +40,7 @@ export default function Home() {
       title: "Memory Art",
       description: "Transform photos into beautiful artworks",
       icon: PaintbrushVertical,
-      bgColor: "bg-[#e9779d]", // Bright coral pink that stands out but remains in pastel family
+      bgColor: "bg-gradient-to-br from-[#ff9fb5] to-[#ff8aa3]", // Soft pink gradient
       textColor: "text-white",
       href: "/image",
       highlight: true,  // Special property to mark this as the highlighted card
@@ -65,7 +65,7 @@ export default function Home() {
       title: "My Gallery",
       description: "View all your creations and memories",
       icon: Images,
-      bgColor: "bg-accent3-DEFAULT",
+      bgColor: "bg-primary-beige",
       textColor: "text-neutral-darkest",
       href: "/gallery",
     },
@@ -84,8 +84,8 @@ export default function Home() {
       title: "Prenatal Care",
       description: "Essential guidance for expectant mothers",
       icon: Sparkles,
-      bgColor: "bg-[#ff9480]", // Bright peach color for high visibility
-      textColor: "text-white",
+      bgColor: "bg-gradient-to-br from-[#FFD1B3] to-[#FFBF99]", // Peach gradient based on style guide
+      textColor: "text-neutral-darkest",
       href: "/programs/prenatal",
       highlight: true, // Add highlight to make it stand out
     },
@@ -124,10 +124,10 @@ export default function Home() {
       
       <div className="px-4">
         {/* AI Tools Section */}
-        <section className="mb-8 bg-gradient-to-r from-primary-lavender/20 to-primary-mint/20 p-5 rounded-xl shadow-soft">
+        <section className="mb-8 bg-gradient-to-r from-primary-lavender/30 to-primary-mint/30 p-5 rounded-xl shadow-soft">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="font-semibold text-2xl text-neutral-darkest">AI Tools</h2>
-            <a href="/all-tools" className="text-sm font-medium bg-primary-lavender text-white px-4 py-2 rounded-full shadow-button hover:bg-primary-lavender/90 transition-colors">
+            <h2 className="font-semibold text-2xl text-neutral-darkest font-heading">AI Tools</h2>
+            <a href="/all-tools" className="text-sm font-medium bg-primary-lavender text-white px-4 py-2 rounded-full shadow-button hover:opacity-90 transition-all">
               View All
             </a>
           </div>
@@ -146,10 +146,10 @@ export default function Home() {
         </section>
         
         {/* Programs Section */}
-        <section className="mb-8 bg-gradient-to-r from-[#fff5f2] to-[#ffefe8] p-5 rounded-xl shadow-soft">
+        <section className="mb-8 bg-gradient-to-r from-primary-peach/30 to-primary-beige/50 p-5 rounded-xl shadow-soft">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="font-semibold text-2xl text-neutral-darkest">Programs</h2>
-            <a href="/programs" className="text-sm font-medium bg-[#ff9480] text-white px-4 py-2 rounded-full shadow-button hover:bg-[#ff8c70] transition-colors">
+            <h2 className="font-semibold text-2xl text-neutral-darkest font-heading">Programs</h2>
+            <a href="/programs" className="text-sm font-medium bg-gradient-to-r from-[#FFD1B3] to-[#FFBF99] text-neutral-darkest px-4 py-2 rounded-full shadow-button hover:opacity-90 transition-all">
               View All
             </a>
           </div>
@@ -165,7 +165,7 @@ export default function Home() {
         
         {/* Recent Activity */}
         <section className="mb-8 bg-white p-5 rounded-xl shadow-soft border border-neutral-light">
-          <h2 className="font-semibold text-2xl text-neutral-darkest mb-5">Recent Activity</h2>
+          <h2 className="font-semibold text-2xl text-neutral-darkest mb-5 font-heading">Recent Activity</h2>
           {isLoading ? (
             <div className="space-y-3" data-testid="loading-skeleton">
               <div key="loading-skeleton-1" className="bg-neutral-light h-16 rounded-lg animate-pulse"></div>
@@ -196,14 +196,14 @@ export default function Home() {
         
         {/* Daily Tip */}
         <section>
-          <div className="bg-accent3-light p-5 rounded-xl border border-accent3-DEFAULT shadow-card">
+          <div className="bg-gradient-to-r from-primary-mint/40 to-primary-mint/20 p-5 rounded-xl border border-primary-mint/30 shadow-card">
             <div className="flex items-start">
-              <div className="bg-white rounded-full p-3 text-accent1-DEFAULT mr-4 shadow-soft">
+              <div className="bg-primary-mint text-white rounded-full p-3 mr-4 shadow-soft">
                 <Lightbulb className="h-6 w-6" />
               </div>
               <div>
-                <h3 className="font-semibold text-xl mb-2">Daily Tip</h3>
-                <p className="text-neutral-dark">{dailyTip}</p>
+                <h3 className="font-semibold text-xl mb-2 font-heading">Daily Tip</h3>
+                <p className="text-neutral-dark font-body">{dailyTip}</p>
               </div>
             </div>
           </div>

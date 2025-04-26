@@ -31,27 +31,27 @@ export default function FeatureCard({
           ${bgColor} ${textColor}
         `}
       >
-        <div className="absolute top-1 right-1 w-24 h-24 opacity-25">
-          <Icon size={96} strokeWidth={1.8} />
+        <div className="absolute top-1 right-1 w-24 h-24 opacity-20">
+          <Icon size={96} strokeWidth={1.5} />
         </div>
         
         <div className="p-5 flex flex-col h-full">
           <div className="flex items-center mb-3">
             <div className="bg-white/40 p-3 rounded-lg mr-3.5 shadow-card">
-              <Icon size={24} strokeWidth={2.8} />
+              <Icon size={24} strokeWidth={2} />
             </div>
-            <h3 className="font-semibold text-lg tracking-wide">{title}</h3>
+            <h3 className="font-semibold text-lg tracking-wide font-heading">{title}</h3>
           </div>
           
-          <p className="text-sm font-medium mb-4 opacity-95">{description}</p>
+          <p className="text-sm font-medium mb-4 opacity-95 font-body">{description}</p>
           
           <div className="mt-auto">
             <div className={`
               ${highlight 
-                ? 'bg-white/90 text-[#e9779d] hover:bg-white py-2 px-4 shadow-card' 
-                : 'bg-white/20 hover:bg-white/30 py-2 px-3 shadow-soft'
+                ? 'bg-white/90 hover:bg-white py-2.5 px-5 shadow-card font-medium' 
+                : 'bg-white/25 hover:bg-white/35 py-2 px-3.5 shadow-soft'
               } 
-              transition-all duration-300 rounded-lg text-sm font-semibold inline-flex items-center
+              transition-all duration-300 rounded-full text-sm inline-flex items-center font-body
             `}>
               <span>{highlight ? 'Start Now' : 'Explore'}</span>
               <svg 
