@@ -110,16 +110,46 @@ export const toggleFavorite = async (itemId: number, type: string) => {
 // Media management endpoints
 export const downloadMedia = async (id: number, type: string) => {
   try {
-    // In this approach, we just navigate to the download URL
-    // The server will proxy the content and set proper headers
+    // Direct navigation approach - server will proxy the content and handle download
     const downloadUrl = `/api/media/download/${type}/${id}`;
     
-    // Open in the same window to ensure it works on mobile browsers
-    window.location.href = downloadUrl;
+    // Attempt to fetch from our proxy first to check if it's working
+    const checkResponse = await fetch(downloadUrl, { method: 'HEAD' });
     
-    return { success: true };
+    if (checkResponse.ok) {
+      // If check is successful, navigate to download
+      window.location.href = downloadUrl;
+      return { success: true };
+    } else {
+      // If proxy check fails, attempt direct download from the server's JSON fallback
+      const response = await fetch(downloadUrl);
+      const data = await response.json();
+      
+      if (data.url) {
+        // If server sent back the original URL, try direct download
+        try {
+          // Create a link element to trigger the download
+          const link = document.createElement('a');
+          link.href = data.url;
+          link.target = '_blank'; // Try opening in new tab
+          link.download = data.filename || 'download';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          return { success: true, message: 'Direct download attempted' };
+        } catch (dlError) {
+          console.error('Error with direct download fallback:', dlError);
+          // As last resort, just open the URL
+          window.open(data.url, '_blank');
+          return { success: true, message: 'Opened in new window' };
+        }
+      } else {
+        throw new Error(data.error || 'Unknown error with download proxy');
+      }
+    }
   } catch (error) {
-    console.error('Error initiating download:', error);
+    console.error('Error downloading media:', error);
+    // Let the UI know about the error
     throw error;
   }
 };

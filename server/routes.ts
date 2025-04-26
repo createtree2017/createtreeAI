@@ -427,15 +427,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         filename = `${imageItem.title || 'transformed_image'}.jpg`;
       }
       
-      // Instead of sending JSON, we'll proxy the request directly
-      // This avoids CORS issues with fetching external resources
+      // Try to download directly from source and stream to client
       try {
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch from source URL: ${response.statusText}`);
+        console.log(`Attempting to download from URL: ${url} for ${type} with ID ${id}`);
+        
+        // Validate URL (add http/https if missing)
+        if (!url.startsWith('http')) {
+          url = `https://${url}`;
         }
         
-        // Read content type from response
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Accept': 'image/*,audio/*,*/*',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch from source URL: ${response.statusText} (${response.status})`);
+        }
+        
+        // Get content type from response or use default
         const contentType = response.headers.get('content-type') || 
                           (type === 'image' ? 'image/jpeg' : 'audio/mpeg');
         
@@ -443,12 +456,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.setHeader('Content-Type', contentType);
         res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
         
-        // Pipe the response directly
+        // Stream the response
         const arrayBuffer = await response.arrayBuffer();
-        res.send(Buffer.from(arrayBuffer));
+        const buffer = Buffer.from(arrayBuffer);
+        
+        console.log(`Successfully downloaded ${buffer.length} bytes from ${url}`);
+        
+        return res.send(buffer);
       } catch (error) {
         console.error("Error proxying media:", error);
-        return res.status(502).json({ error: "Failed to proxy media from source" });
+        
+        // Fallback to just returning the URL for the client to try directly
+        return res.status(502).json({ 
+          error: "Failed to proxy media from source",
+          url: url,
+          filename: filename,
+          message: error.message
+        });
       }
     } catch (error) {
       console.error("Error downloading media:", error);
