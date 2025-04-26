@@ -40,9 +40,10 @@ export default function Home() {
       title: "Memory Art",
       description: "Transform photos into beautiful artworks",
       icon: PaintbrushVertical,
-      bgColor: "bg-accent1-dark",
+      bgColor: "bg-[#e9779d]", // Bright coral pink that stands out but remains in pastel family
       textColor: "text-white",
       href: "/image",
+      highlight: true,  // Special property to mark this as the highlighted card
     },
     {
       title: "Lullaby Creator",
@@ -131,7 +132,13 @@ export default function Home() {
           </div>
           
           <div className="grid grid-cols-2 gap-4">
-            {features.map((feature, index) => (
+            {/* First card with special styling to make it stand out */}
+            <div className="transform hover:scale-[1.03] transition-all duration-300 shadow-lg relative z-10 ring-4 ring-[#e9779d]/30 rounded-xl">
+              <FeatureCard {...features[0]} />
+            </div>
+            
+            {/* Remaining cards */}
+            {features.slice(1).map((feature, index) => (
               <FeatureCard key={index} {...feature} />
             ))}
           </div>

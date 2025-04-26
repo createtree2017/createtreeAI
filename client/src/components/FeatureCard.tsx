@@ -9,6 +9,7 @@ interface FeatureCardProps {
   bgColor: string;
   textColor: string;
   href: string;
+  highlight?: boolean;
 }
 
 export default function FeatureCard({
@@ -18,6 +19,7 @@ export default function FeatureCard({
   bgColor,
   textColor,
   href,
+  highlight = false,
 }: FeatureCardProps) {
   return (
     <Link href={href}>
@@ -29,30 +31,36 @@ export default function FeatureCard({
           ${bgColor} ${textColor}
         `}
       >
-        <div className="absolute top-0 right-0 w-20 h-20 opacity-20">
-          <Icon size={80} />
+        <div className="absolute top-1 right-1 w-24 h-24 opacity-25">
+          <Icon size={96} strokeWidth={1.8} />
         </div>
         
         <div className="p-5 flex flex-col h-full">
           <div className="flex items-center mb-3">
-            <div className="bg-white/30 p-2.5 rounded-lg mr-3 shadow-soft">
-              <Icon size={22} strokeWidth={2.5} />
+            <div className="bg-white/40 p-3 rounded-lg mr-3.5 shadow-card">
+              <Icon size={24} strokeWidth={2.8} />
             </div>
-            <h3 className="font-semibold text-lg">{title}</h3>
+            <h3 className="font-semibold text-lg tracking-wide">{title}</h3>
           </div>
           
           <p className="text-sm font-medium mb-4 opacity-95">{description}</p>
           
           <div className="mt-auto">
-            <div className="bg-white/20 hover:bg-white/30 transition-colors rounded-lg py-2 px-3 text-sm font-semibold inline-flex items-center shadow-soft">
-              <span>Explore</span>
+            <div className={`
+              ${highlight 
+                ? 'bg-white/90 text-[#e9779d] hover:bg-white py-2 px-4 shadow-card' 
+                : 'bg-white/20 hover:bg-white/30 py-2 px-3 shadow-soft'
+              } 
+              transition-all duration-300 rounded-lg text-sm font-semibold inline-flex items-center
+            `}>
+              <span>{highlight ? 'Start Now' : 'Explore'}</span>
               <svg 
-                width="16" 
-                height="16" 
+                width={highlight ? "18" : "16"} 
+                height={highlight ? "18" : "16"} 
                 viewBox="0 0 16 16" 
                 fill="none" 
                 xmlns="http://www.w3.org/2000/svg"
-                className="ml-1.5"
+                className={highlight ? "ml-2 animate-pulse" : "ml-1.5"}
               >
                 <path 
                   d="M3.33334 8H12.6667" 
