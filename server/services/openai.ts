@@ -1,8 +1,15 @@
 import OpenAI from "openai";
 import fs from "fs";
 
-// Initialize OpenAI client
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Initialize OpenAI client with additional configuration for project-based API keys
+const openai = new OpenAI({ 
+  apiKey: process.env.OPENAI_API_KEY,
+  baseURL: "https://api.openai.com/v1",
+  defaultHeaders: {
+    "OpenAI-Beta": "assistants=v1"
+  },
+  dangerouslyAllowBrowser: false
+});
 
 /**
  * Generate a chat response for the user's message
@@ -17,17 +24,50 @@ Keep responses concise (under 150 words) and appropriate for a mobile interface.
 
     const promptToUse = systemPrompt || defaultSystemPrompt;
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-      messages: [
-        { role: "system", content: promptToUse },
-        { role: "user", content: userMessage }
-      ],
-      max_tokens: 300,
-      temperature: 0.7,
-    });
+    // Try sending the request with the OpenAI SDK first
+    try {
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+        messages: [
+          { role: "system", content: promptToUse },
+          { role: "user", content: userMessage }
+        ],
+        max_tokens: 300,
+        temperature: 0.7,
+      });
 
-    return response.choices[0].message.content || "I'm here to support you.";
+      return response.choices[0].message.content || "I'm here to support you.";
+    } catch (sdkError) {
+      // If the SDK approach fails, try a direct fetch request as a fallback
+      console.log("OpenAI SDK error, trying direct fetch approach:", sdkError);
+      
+      const apiKey = process.env.OPENAI_API_KEY;
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+          "OpenAI-Beta": "assistants=v1"
+        },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          messages: [
+            { role: "system", content: promptToUse },
+            { role: "user", content: userMessage }
+          ],
+          max_tokens: 300,
+          temperature: 0.7
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`API request failed: ${JSON.stringify(errorData)}`);
+      }
+
+      const data = await response.json();
+      return data.choices[0].message.content || "I'm here to support you.";
+    }
   } catch (error) {
     console.error("Error generating OpenAI chat response:", error);
     return "I'm having trouble responding right now. Please try again in a moment.";
