@@ -40,10 +40,10 @@ export default function HeroSection({
         
         <a 
           href={ctaLink} 
-          className="inline-flex items-center justify-center bg-white text-primary-lavender rounded-full px-5 py-2.5 text-sm font-medium w-fit shadow-button hover:bg-neutral-lightest transition-colors"
+          className="inline-flex items-center justify-center bg-accent1-DEFAULT text-white rounded-full px-6 py-3 text-base font-semibold w-fit shadow-button hover:bg-accent1-dark transition-colors"
         >
           {ctaText}
-          <ArrowRight size={16} className="ml-1.5" />
+          <ArrowRight size={18} className="ml-2" />
         </a>
       </div>
     </div>

@@ -48,7 +48,7 @@ export default function Home() {
       title: "Lullaby Creator",
       description: "Create personalized music for your baby",
       icon: Music,
-      bgColor: "bg-primary-lavender",
+      bgColor: "bg-primary-mint",
       textColor: "text-neutral-darkest",
       href: "/music",
     },
@@ -56,7 +56,7 @@ export default function Home() {
       title: "AI Companion",
       description: "Chat with your supportive mom advisor",
       icon: MessageCircle,
-      bgColor: "bg-accent3-DEFAULT",
+      bgColor: "bg-primary-lavender",
       textColor: "text-neutral-darkest",
       href: "/chat",
     },
@@ -64,7 +64,7 @@ export default function Home() {
       title: "My Gallery",
       description: "View all your creations and memories",
       icon: Images,
-      bgColor: "bg-accent2-DEFAULT",
+      bgColor: "bg-accent3-DEFAULT",
       textColor: "text-neutral-darkest",
       href: "/gallery",
     },
@@ -72,26 +72,26 @@ export default function Home() {
 
   const programs = [
     {
-      title: "Baby Sleep",
-      description: "Techniques for better sleep routines",
+      title: "Magical Memories",
+      description: "Create special moments with your little one",
       icon: Baby,
-      bgColor: "bg-primary-mint",
+      bgColor: "bg-primary-lavender",
       textColor: "text-neutral-darkest",
-      href: "/programs/sleep",
+      href: "/programs/memories",
     },
     {
       title: "Prenatal Care",
       description: "Essential guidance for expectant mothers",
       icon: Sparkles,
-      bgColor: "bg-accent2-DEFAULT",
-      textColor: "text-neutral-darkest",
+      bgColor: "bg-accent1-DEFAULT",
+      textColor: "text-white",
       href: "/programs/prenatal",
     },
     {
       title: "Mom Stories",
       description: "Inspiring stories from other mothers",
       icon: BookOpen,
-      bgColor: "bg-accent3-DEFAULT",
+      bgColor: "bg-primary-mint",
       textColor: "text-neutral-darkest",
       href: "/programs/stories",
     },
@@ -122,10 +122,10 @@ export default function Home() {
       
       <div className="px-4">
         {/* AI Tools Section */}
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-medium text-xl text-neutral-darkest">AI Tools</h2>
-            <a href="/all-tools" className="text-sm font-medium text-primary-lavender">
+        <section className="mb-8 bg-gradient-to-r from-primary-lavender/20 to-primary-mint/20 p-5 rounded-xl shadow-soft">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="font-semibold text-2xl text-neutral-darkest">AI Tools</h2>
+            <a href="/all-tools" className="text-sm font-medium bg-primary-lavender text-white px-4 py-2 rounded-full shadow-button hover:bg-primary-lavender/90 transition-colors">
               View All
             </a>
           </div>
@@ -138,10 +138,10 @@ export default function Home() {
         </section>
         
         {/* Programs Section */}
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-medium text-xl text-neutral-darkest">Programs</h2>
-            <a href="/programs" className="text-sm font-medium text-primary-lavender">
+        <section className="mb-8 bg-gradient-to-r from-accent2-light to-accent3-light p-5 rounded-xl shadow-soft">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="font-semibold text-2xl text-neutral-darkest">Programs</h2>
+            <a href="/programs" className="text-sm font-medium bg-accent1-DEFAULT text-white px-4 py-2 rounded-full shadow-button hover:bg-accent1-dark transition-colors">
               View All
             </a>
           </div>
@@ -154,8 +154,8 @@ export default function Home() {
         </section>
         
         {/* Recent Activity */}
-        <section className="mb-8">
-          <h2 className="font-medium text-xl text-neutral-darkest mb-4">Recent Activity</h2>
+        <section className="mb-8 bg-white p-5 rounded-xl shadow-soft border border-neutral-light">
+          <h2 className="font-semibold text-2xl text-neutral-darkest mb-5">Recent Activity</h2>
           {isLoading ? (
             <div className="space-y-3" data-testid="loading-skeleton">
               <div key="loading-skeleton-1" className="bg-neutral-light h-16 rounded-lg animate-pulse"></div>
@@ -167,8 +167,8 @@ export default function Home() {
                 <ActivityItem
                   key={activity.id}
                   icon={activity.type === "music" ? Music : PaintbrushVertical}
-                  bgColor={activity.type === "music" ? "bg-primary-lavender" : "bg-accent1-DEFAULT"}
-                  textColor={activity.type === "music" ? "text-neutral-darkest" : "text-white"}
+                  bgColor={activity.type === "music" ? "bg-primary-lavender" : "bg-primary-mint"}
+                  textColor="text-neutral-darkest"
                   title={activity.title}
                   timestamp={activity.timestamp}
                   type={activity.type}
@@ -186,13 +186,13 @@ export default function Home() {
         
         {/* Daily Tip */}
         <section>
-          <div className="bg-accent3-light p-5 rounded-xl border border-accent3-DEFAULT shadow-soft">
+          <div className="bg-accent3-light p-5 rounded-xl border border-accent3-DEFAULT shadow-card">
             <div className="flex items-start">
-              <div className="bg-white rounded-full p-2.5 text-accent1-DEFAULT mr-3">
-                <Lightbulb className="h-5 w-5" />
+              <div className="bg-white rounded-full p-3 text-accent1-DEFAULT mr-4 shadow-soft">
+                <Lightbulb className="h-6 w-6" />
               </div>
               <div>
-                <h3 className="font-medium text-lg mb-1">Daily Tip</h3>
+                <h3 className="font-semibold text-xl mb-2">Daily Tip</h3>
                 <p className="text-neutral-dark">{dailyTip}</p>
               </div>
             </div>
