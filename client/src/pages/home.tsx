@@ -84,9 +84,10 @@ export default function Home() {
       title: "Prenatal Care",
       description: "Essential guidance for expectant mothers",
       icon: Sparkles,
-      bgColor: "bg-accent1-DEFAULT",
+      bgColor: "bg-[#ff9480]", // Bright peach color for high visibility
       textColor: "text-white",
       href: "/programs/prenatal",
+      highlight: true, // Add highlight to make it stand out
     },
     {
       title: "Mom Stories",
@@ -145,17 +146,19 @@ export default function Home() {
         </section>
         
         {/* Programs Section */}
-        <section className="mb-8 bg-gradient-to-r from-accent2-light to-accent3-light p-5 rounded-xl shadow-soft">
+        <section className="mb-8 bg-gradient-to-r from-[#fff5f2] to-[#ffefe8] p-5 rounded-xl shadow-soft">
           <div className="flex items-center justify-between mb-5">
             <h2 className="font-semibold text-2xl text-neutral-darkest">Programs</h2>
-            <a href="/programs" className="text-sm font-medium bg-accent1-DEFAULT text-white px-4 py-2 rounded-full shadow-button hover:bg-accent1-dark transition-colors">
+            <a href="/programs" className="text-sm font-medium bg-[#ff9480] text-white px-4 py-2 rounded-full shadow-button hover:bg-[#ff8c70] transition-colors">
               View All
             </a>
           </div>
           
-          <div className="space-y-4">
+          <div className="space-y-5">
             {programs.map((program, index) => (
-              <FeatureCard key={index} {...program} />
+              <div key={index} className={`${program.highlight ? 'shadow-lg transform hover:scale-[1.01] transition-all duration-300 rounded-xl ring-4 ring-[#ff9480]/30' : 'hover:scale-[1.01] transition-all duration-300'}`}>
+                <FeatureCard {...program} />
+              </div>
             ))}
           </div>
         </section>
