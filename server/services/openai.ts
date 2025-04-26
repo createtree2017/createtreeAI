@@ -89,19 +89,53 @@ export async function transformImageWithOpenAI(
       promptText = stylePrompts[style] || "Transform this image into a beautiful artistic style";
     }
 
-    // Use DALL-E for actual image generation with API key
-    // We use createImage instead of edit which has fewer requirements
+    // Convert image buffer to base64 for the vision API
+    const base64Image = imageBuffer.toString('base64');
+    
+    // First, use GPT-4o with vision to analyze the image and create a detailed description
+    console.log("Using GPT-4o with vision to analyze the image");
+    const visionResponse = await openai.chat.completions.create({
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert image analyzer. Generate a detailed description of the image that captures all important visual elements, subjects, expressions, and composition. Focus on details that would be important to include when creating a stylized version of this image."
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "text", 
+              text: "Please analyze this image and provide a detailed description of what you see. Focus on the subjects, expressions, arrangement, and key visual elements."
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${base64Image}`
+              }
+            }
+          ]
+        }
+      ],
+      max_tokens: 300
+    });
+
+    // Extract the image description
+    const imageDescription = visionResponse.choices[0].message.content || "";
+    
+    console.log("Image description generated, now creating DALL-E prompt");
+    
+    // Then use DALL-E 3 to create a new image based on the description and style
     const response = await openai.images.generate({
-      model: "dall-e-3", // Use DALL-E 3 for better transformations
-      prompt: `${promptText}. The image should be suitable for pregnancy and baby photos.`,
+      model: "dall-e-3", // Use DALL-E 3 for transformations
+      prompt: `${promptText}. Based on this image: ${imageDescription}. The image should be suitable for pregnancy and baby photos.`,
       n: 1,
       size: "1024x1024",
       quality: "standard",
     });
 
-    // Extract the URL based on OpenAI API response structure
-    // Force type assertion since we know the structure but TS might not recognize it
-    const imageUrl = (response as any).data?.[0]?.url;
+    // Extract the URL from the response
+    const imageUrl = response.data[0].url;
     
     if (!imageUrl) {
       throw new Error("No valid image URL returned from OpenAI");
@@ -118,7 +152,11 @@ export async function transformImageWithOpenAI(
       cartoon: "https://placehold.co/1024x1024/FFEA87/333?text=Cartoon+Style",
       oil: "https://placehold.co/1024x1024/916C47/FFF?text=Oil+Painting",
       fantasy: "https://placehold.co/1024x1024/C1A7E2/FFF?text=Fantasy+Style",
-      storybook: "https://placehold.co/1024x1024/A7E2C3/333?text=Storybook+Style"
+      storybook: "https://placehold.co/1024x1024/A7E2C3/333?text=Storybook+Style",
+      ghibli: "https://placehold.co/1024x1024/FFD5AA/333?text=Ghibli+Style",
+      disney: "https://placehold.co/1024x1024/B6E1FF/333?text=Disney+Style",
+      korean_webtoon: "https://placehold.co/1024x1024/FFD6E7/333?text=Korean+Webtoon",
+      fairytale: "https://placehold.co/1024x1024/DCBEFF/333?text=Fairytale"
     };
     
     // Return the placeholder for this style or a default one
