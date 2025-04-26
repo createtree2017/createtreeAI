@@ -414,13 +414,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Media not found" });
       }
       
-      // For actual download, we'd stream the file or redirect to its URL
-      // For this example, we'll return different URLs based on media type
       const downloadUrl = type === "music" 
         ? (mediaItem as typeof music.$inferSelect).url 
         : (mediaItem as typeof images.$inferSelect).transformedUrl;
       
-      return res.json({ downloadUrl });
+      // For a direct download, redirect to the URL
+      // This is more efficient than proxying the content through our server
+      return res.redirect(downloadUrl);
     } catch (error) {
       console.error("Error downloading media:", error);
       return res.status(500).json({ error: "Failed to download media" });

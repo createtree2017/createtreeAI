@@ -150,8 +150,20 @@ export default function Image() {
     transformImageMutation(formData);
   };
 
-  const handleDownload = (id: number) => {
-    downloadMedia(id, "image");
+  const handleDownload = async (id: number) => {
+    try {
+      await downloadMedia(id, "image");
+      toast({
+        title: "Download started",
+        description: "Your image is being downloaded"
+      });
+    } catch (error) {
+      toast({
+        title: "Download failed",
+        description: "Please try again",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleShare = async (id: number) => {
