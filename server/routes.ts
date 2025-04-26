@@ -427,12 +427,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         filename = `${imageItem.title || 'transformed_image'}.jpg`;
       }
       
-      // Instead of redirecting, return the direct URL to the client
-      // The client will handle the download logic
-      return res.json({ 
-        url: url,
-        filename: filename
-      });
+      // Instead of sending JSON, we'll proxy the request directly
+      // This avoids CORS issues with fetching external resources
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch from source URL: ${response.statusText}`);
+        }
+        
+        // Read content type from response
+        const contentType = response.headers.get('content-type') || 
+                          (type === 'image' ? 'image/jpeg' : 'audio/mpeg');
+        
+        // Set appropriate headers for download
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+        
+        // Pipe the response directly
+        const arrayBuffer = await response.arrayBuffer();
+        res.send(Buffer.from(arrayBuffer));
+      } catch (error) {
+        console.error("Error proxying media:", error);
+        return res.status(502).json({ error: "Failed to proxy media from source" });
+      }
     } catch (error) {
       console.error("Error downloading media:", error);
       return res.status(500).json({ error: "Failed to download media" });
