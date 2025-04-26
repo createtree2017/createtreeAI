@@ -427,12 +427,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         filename = `${imageItem.title || 'transformed_image'}.jpg`;
       }
       
-      // Set headers for download
-      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
-      
-      // For a direct download, redirect to the URL
-      // This is more efficient than proxying the content through our server
-      return res.redirect(url);
+      // Instead of redirecting, return the direct URL to the client
+      // The client will handle the download logic
+      return res.json({ 
+        url: url,
+        filename: filename
+      });
     } catch (error) {
       console.error("Error downloading media:", error);
       return res.status(500).json({ error: "Failed to download media" });

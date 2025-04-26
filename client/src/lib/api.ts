@@ -110,19 +110,33 @@ export const toggleFavorite = async (itemId: number, type: string) => {
 // Media management endpoints
 export const downloadMedia = async (id: number, type: string) => {
   try {
-    const downloadUrl = `/api/media/download/${type}/${id}`;
+    // Fetch the media download info
+    const response = await fetch(`/api/media/download/${type}/${id}`);
+    if (!response.ok) {
+      throw new Error(`Failed to get download information: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    const { url, filename } = data;
+    
+    if (!url) {
+      throw new Error('No URL returned from the server');
+    }
+    
+    // Create a blob from the URL (this will work for cross-origin resources)
+    const blob = await fetch(url).then(r => r.blob());
+    
+    // Create a URL for the blob
+    const blobUrl = URL.createObjectURL(blob);
     
     // Create an invisible link element
     const link = document.createElement('a');
     
-    // Set the link's href to the download endpoint
-    link.href = downloadUrl;
+    // Set the link to the blob URL
+    link.href = blobUrl;
     
-    // Make the browser download the file (the server will set Content-Disposition)
-    link.setAttribute('download', '');
-    
-    // Set to open in current window to avoid popup blockers
-    link.target = '_self';
+    // Set the download filename
+    link.download = filename || 'download';
     
     // Add the link to the document
     document.body.appendChild(link);
@@ -133,14 +147,14 @@ export const downloadMedia = async (id: number, type: string) => {
     // Give the browser a moment to process the download
     await new Promise(resolve => setTimeout(resolve, 100));
     
-    // Remove the link from the document
+    // Clean up
     document.body.removeChild(link);
+    URL.revokeObjectURL(blobUrl);
     
     return { success: true };
   } catch (error) {
     console.error('Error downloading media:', error);
-    // Fallback to the simple redirect if the programmatic download fails
-    window.location.href = `/api/media/download/${type}/${id}`;
+    // Return the error so the UI can handle it
     throw error;
   }
 };
