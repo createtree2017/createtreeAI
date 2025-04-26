@@ -1,0 +1,57 @@
+Please update the UI design to align with the following detailed style guide, ensuring a cohesive and modern aesthetic suitable for a maternity lifestyle service targeting women in their 20s and 30s:
+
+1. **Color Palette**:
+   - Utilize a harmonious blend of soft and warm colors to evoke a sense of comfort and trust.
+   - Suggested colors include:
+     - Lavender (#E6E6FA)
+     - Mint Green (#98FF98)
+     - Peach (#FFE5B4)
+     - Beige (#F5F5DC)
+   - Ensure sufficient contrast between text and background for readability.
+
+2. **Typography**:
+   - Primary Font: Noto Sans KR for Korean text to maintain readability and a clean appearance.
+   - Secondary Font: Poppins for English text to provide a modern and friendly look.
+   - Maintain consistent font sizes and weights to establish a clear hierarchy.
+
+3. **Iconography**:
+   - Implement simple line icons that are intuitive and consistent throughout the interface.
+   - Icons should be easily recognizable and support the accompanying text.
+
+4. **Buttons**:
+   - Design rounded buttons with subtle shadow effects to enhance clickability and visual appeal.
+   - Use color variations to indicate different button states (e.g., hover, active).
+
+5. **Layout**:
+   - Adopt a card-based layout to clearly delineate different sections and improve content organization.
+   - Ensure adequate spacing between elements to prevent a cluttered appearance.
+   - Utilize a responsive grid system to maintain consistency across various screen sizes.
+
+6. **Imagery**:
+   - Incorporate soft, emotional visuals that resonate with the target audience.
+   - Images should reflect themes of motherhood, care, and community.
+   - Ensure images are optimized for fast loading without compromising quality.
+
+7. **Navigation**:
+   - Implement a sticky top navigation bar that remains visible as users scroll.
+   - Include clear labels and intuitive icons for each menu item.
+   - Ensure the navigation is responsive and functions seamlessly on mobile devices.
+
+8. **Accessibility**:
+   - Ensure all text has sufficient contrast against its background.
+   - Provide alternative text for all images.
+   - Design interactive elements to be easily navigable via keyboard.
+
+**Reference Designs for Inspiration**:
+
+- Mooders Portfolio:
+  - URL: https://mobile.x.com/awwwards/status/1830516576996483138
+  - Notable Features: Soft color palette, clean typography, and intuitive navigation.
+
+- Gianluca Gradogna Portfolio:
+  - URL: https://x.com/awwwards/status/1882353086099792131
+  - Notable Features: Minimalist design, effective use of whitespace, and responsive layout.
+
+Please use these references to guide the aesthetic and functional aspects of the design. The goal is to create a user interface that is both aesthetically pleasing and functionally intuitive, providing a seamless experience for users seeking maternity lifestyle services.
+
+Ensure that the design is adaptable for future integration into the broader Chanjotree Cultural Center website redesign.
