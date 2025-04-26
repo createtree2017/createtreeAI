@@ -1,4 +1,5 @@
-import { LucideIcon, Play, Eye } from "lucide-react";
+import React from 'react';
+import { LucideIcon } from 'lucide-react';
 
 interface ActivityItemProps {
   icon: LucideIcon;
@@ -20,24 +21,28 @@ export default function ActivityItem({
   onAction,
 }: ActivityItemProps) {
   return (
-    <div className="bg-white rounded-lg p-3 shadow-softer flex items-center space-x-3 border border-neutral-light">
-      <div className={`${bgColor} rounded-full p-2 ${textColor}`}>
-        <Icon className="h-4 w-4" />
+    <div className="rounded-lg overflow-hidden shadow-soft bg-white mb-4">
+      <div className="flex items-center p-4">
+        <div className={`w-10 h-10 rounded-lg ${bgColor} ${textColor} flex items-center justify-center mr-3 flex-shrink-0`}>
+          <Icon size={20} />
+        </div>
+        
+        <div className="flex-1 min-w-0">
+          <h4 className="font-medium text-sm text-neutral-darkest truncate">
+            {title}
+          </h4>
+          <p className="text-xs text-neutral-dark mt-0.5">
+            {timestamp}
+          </p>
+        </div>
+        
+        <button 
+          onClick={onAction}
+          className="ml-2 text-sm font-medium text-primary-lavender hover:text-primary-lavender/80 transition-colors"
+        >
+          {type === 'music' ? 'Listen' : 'View'}
+        </button>
       </div>
-      <div className="flex-1">
-        <p className="font-medium">{title}</p>
-        <p className="text-xs text-neutral-dark">{timestamp}</p>
-      </div>
-      <button
-        className={`text-neutral-dark hover:${textColor}`}
-        onClick={onAction}
-      >
-        {type === "music" ? (
-          <Play className="h-5 w-5" />
-        ) : (
-          <Eye className="h-5 w-5" />
-        )}
-      </button>
     </div>
   );
 }

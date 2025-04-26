@@ -3,7 +3,17 @@ import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import FeatureCard from "@/components/FeatureCard";
 import ActivityItem from "@/components/ActivityItem";
-import { Music, PaintbrushVertical, MessageCircle, Images, Lightbulb } from "lucide-react";
+import HeroSection from "@/components/HeroSection";
+import { 
+  Music, 
+  PaintbrushVertical, 
+  MessageCircle, 
+  Images, 
+  Lightbulb, 
+  Sparkles, 
+  Baby,
+  BookOpen
+} from "lucide-react";
 import { getGalleryItems } from "@/lib/api";
 
 interface RecentActivity {
@@ -27,36 +37,63 @@ export default function Home() {
 
   const features = [
     {
-      title: "Baby Melody",
-      description: "Create music with your baby's name",
-      icon: Music,
-      bgColor: "bg-primary-light",
-      textColor: "text-primary-dark",
-      href: "/music",
-    },
-    {
       title: "Memory Art",
-      description: "Transform photos into artworks",
+      description: "Transform photos into beautiful artworks",
       icon: PaintbrushVertical,
-      bgColor: "bg-secondary-light",
-      textColor: "text-secondary-dark",
+      bgColor: "bg-accent1-DEFAULT",
+      textColor: "text-white",
       href: "/image",
     },
     {
-      title: "Mom Companion",
-      description: "Chat with your supportive AI friend",
+      title: "Lullaby Creator",
+      description: "Create personalized music for your baby",
+      icon: Music,
+      bgColor: "bg-primary-lavender",
+      textColor: "text-neutral-darkest",
+      href: "/music",
+    },
+    {
+      title: "AI Companion",
+      description: "Chat with your supportive mom advisor",
       icon: MessageCircle,
-      bgColor: "bg-accent1-light",
-      textColor: "text-accent1-dark",
+      bgColor: "bg-accent3-DEFAULT",
+      textColor: "text-neutral-darkest",
       href: "/chat",
     },
     {
       title: "My Gallery",
-      description: "Your creations and memories",
+      description: "View all your creations and memories",
       icon: Images,
-      bgColor: "bg-accent2-light",
-      textColor: "text-accent2-dark",
+      bgColor: "bg-accent2-DEFAULT",
+      textColor: "text-neutral-darkest",
       href: "/gallery",
+    },
+  ];
+
+  const programs = [
+    {
+      title: "Baby Sleep",
+      description: "Techniques for better sleep routines",
+      icon: Baby,
+      bgColor: "bg-primary-mint",
+      textColor: "text-neutral-darkest",
+      href: "/programs/sleep",
+    },
+    {
+      title: "Prenatal Care",
+      description: "Essential guidance for expectant mothers",
+      icon: Sparkles,
+      bgColor: "bg-accent2-DEFAULT",
+      textColor: "text-neutral-darkest",
+      href: "/programs/prenatal",
+    },
+    {
+      title: "Mom Stories",
+      description: "Inspiring stories from other mothers",
+      icon: BookOpen,
+      bgColor: "bg-accent3-DEFAULT",
+      textColor: "text-neutral-darkest",
+      href: "/programs/stories",
     },
   ];
 
@@ -68,62 +105,99 @@ export default function Home() {
     }
   };
 
+  // Hero section image should be a real, emotional mother and baby image
+  // Here we're using a placeholder URL - this should be replaced with an actual image URL
+  const heroImageUrl = "https://images.pexels.com/photos/3662833/pexels-photo-3662833.jpeg";
+
   return (
-    <div className="p-5 animate-fadeIn">
-      <div className="text-center mb-8">
-        <h2 className="font-heading font-bold text-2xl mb-2">Welcome, Mommy! 👋</h2>
-        <p className="text-neutral-dark">What would you like to do today?</p>
-      </div>
+    <div className="pb-6 animate-fadeIn">
+      {/* Hero Section */}
+      <HeroSection
+        title="Create Magical Moments"
+        subtitle="Transform your photos and create personalized lullabies for your little one"
+        ctaText="Create Now"
+        ctaLink="/image"
+        imageSrc={heroImageUrl}
+      />
       
-      {/* Features Grid */}
-      <div className="grid grid-cols-2 gap-4">
-        {features.map((feature, index) => (
-          <FeatureCard key={index} {...feature} />
-        ))}
-      </div>
-      
-      {/* Recent Activity */}
-      <div className="mt-8">
-        <h2 className="font-heading font-semibold text-lg mb-4">Recent Activity</h2>
-        {isLoading ? (
-          <div className="space-y-3" data-testid="loading-skeleton">
-            <div key="loading-skeleton-1" className="bg-neutral-lightest h-16 rounded-lg animate-pulse"></div>
-            <div key="loading-skeleton-2" className="bg-neutral-lightest h-16 rounded-lg animate-pulse"></div>
+      <div className="px-4">
+        {/* AI Tools Section */}
+        <section className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-medium text-xl text-neutral-darkest">AI Tools</h2>
+            <a href="/all-tools" className="text-sm font-medium text-primary-lavender">
+              View All
+            </a>
           </div>
-        ) : recentActivities && recentActivities.length > 0 ? (
-          <div className="space-y-3">
-            {recentActivities.map((activity: RecentActivity) => (
-              <ActivityItem
-                key={activity.id}
-                icon={activity.type === "music" ? Music : PaintbrushVertical}
-                bgColor={activity.type === "music" ? "bg-primary-light" : "bg-secondary-light"}
-                textColor={activity.type === "music" ? "text-primary-dark" : "text-secondary-dark"}
-                title={activity.title}
-                timestamp={activity.timestamp}
-                type={activity.type}
-                onAction={() => handleActivityAction(activity)}
-              />
+          
+          <div className="grid grid-cols-2 gap-4">
+            {features.map((feature, index) => (
+              <FeatureCard key={index} {...feature} />
             ))}
           </div>
-        ) : (
-          <div className="text-center py-6 bg-neutral-lightest rounded-lg">
-            <p className="text-neutral-dark">No recent activities yet</p>
-            <p className="text-sm mt-1">Try creating a melody or transforming an image!</p>
+        </section>
+        
+        {/* Programs Section */}
+        <section className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-medium text-xl text-neutral-darkest">Programs</h2>
+            <a href="/programs" className="text-sm font-medium text-primary-lavender">
+              View All
+            </a>
           </div>
-        )}
-      </div>
-      
-      {/* Daily Tip */}
-      <div className="mt-8 bg-accent1-light p-4 rounded-lg border border-accent1">
-        <div className="flex items-start space-x-3">
-          <div className="bg-white rounded-full p-2 text-accent1-dark">
-            <Lightbulb className="h-5 w-5" />
+          
+          <div className="space-y-4">
+            {programs.map((program, index) => (
+              <FeatureCard key={index} {...program} />
+            ))}
           </div>
-          <div>
-            <h3 className="font-heading font-semibold">Daily Tip</h3>
-            <p className="text-sm mt-1">{dailyTip}</p>
+        </section>
+        
+        {/* Recent Activity */}
+        <section className="mb-8">
+          <h2 className="font-medium text-xl text-neutral-darkest mb-4">Recent Activity</h2>
+          {isLoading ? (
+            <div className="space-y-3" data-testid="loading-skeleton">
+              <div key="loading-skeleton-1" className="bg-neutral-light h-16 rounded-lg animate-pulse"></div>
+              <div key="loading-skeleton-2" className="bg-neutral-light h-16 rounded-lg animate-pulse"></div>
+            </div>
+          ) : recentActivities && recentActivities.length > 0 ? (
+            <div className="space-y-3">
+              {recentActivities.map((activity: RecentActivity) => (
+                <ActivityItem
+                  key={activity.id}
+                  icon={activity.type === "music" ? Music : PaintbrushVertical}
+                  bgColor={activity.type === "music" ? "bg-primary-lavender" : "bg-accent1-DEFAULT"}
+                  textColor={activity.type === "music" ? "text-neutral-darkest" : "text-white"}
+                  title={activity.title}
+                  timestamp={activity.timestamp}
+                  type={activity.type}
+                  onAction={() => handleActivityAction(activity)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6 bg-neutral-light rounded-lg">
+              <p className="text-neutral-dark">No recent activities yet</p>
+              <p className="text-sm mt-1">Try creating a lullaby or transforming a photo!</p>
+            </div>
+          )}
+        </section>
+        
+        {/* Daily Tip */}
+        <section>
+          <div className="bg-accent3-light p-5 rounded-xl border border-accent3-DEFAULT shadow-soft">
+            <div className="flex items-start">
+              <div className="bg-white rounded-full p-2.5 text-accent1-DEFAULT mr-3">
+                <Lightbulb className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-medium text-lg mb-1">Daily Tip</h3>
+                <p className="text-neutral-dark">{dailyTip}</p>
+              </div>
+            </div>
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );
