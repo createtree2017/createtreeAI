@@ -259,6 +259,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             promptTemplate = variant.promptTemplate;
           }
         }
+      } 
+      else {
+        // Check if this is a custom concept from the database
+        const concept = await db.query.concepts.findFirst({
+          where: eq(concepts.conceptId, style)
+        });
+        
+        if (concept) {
+          // Use the prompt template from the concept
+          promptTemplate = concept.promptTemplate;
+        }
       }
       
       // Process image using AI service (transforming to specified art style)
@@ -1077,6 +1088,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get all active concept categories (public endpoint)
+  app.get("/api/concept-categories", async (req, res) => {
+    try {
+      const activeCategories = await db.select().from(conceptCategories)
+        .where(eq(conceptCategories.isActive, true))
+        .orderBy(asc(conceptCategories.order));
+      return res.json(activeCategories);
+    } catch (error) {
+      console.error("Error fetching public concept categories:", error);
+      return res.status(500).json({ error: "Failed to fetch concept categories" });
+    }
+  });
+  
   // Get a specific concept category
   app.get("/api/admin/concept-categories/:id", async (req, res) => {
     try {
@@ -1200,6 +1224,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json(allConcepts);
     } catch (error) {
       console.error("Error fetching concepts:", error);
+      return res.status(500).json({ error: "Failed to fetch concepts" });
+    }
+  });
+  
+  // Get all active concepts (public endpoint)
+  app.get("/api/concepts", async (req, res) => {
+    try {
+      const activeConcepts = await db.select().from(concepts)
+        .where(eq(concepts.isActive, true))
+        .orderBy(asc(concepts.order));
+      return res.json(activeConcepts);
+    } catch (error) {
+      console.error("Error fetching public concepts:", error);
       return res.status(500).json({ error: "Failed to fetch concepts" });
     }
   });

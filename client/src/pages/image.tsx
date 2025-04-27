@@ -13,6 +13,8 @@ interface ImageStyle {
   value: string;
   label: string;
   thumbnailUrl: string;
+  categoryId?: string;
+  description?: string;
 }
 
 interface TransformedImage {
@@ -186,8 +188,17 @@ export default function Image() {
     setTransformedImage(image);
   };
 
-  // Art styles data - optimized for maternity/baby photos
-  const artStyles: ImageStyle[] = [
+  // Fetch art styles/concepts from the database (using public endpoints)
+  const { data: conceptCategories = [] } = useQuery({
+    queryKey: ["/api/concept-categories"],
+  });
+
+  const { data: concepts = [] } = useQuery({
+    queryKey: ["/api/concepts"],
+  });
+  
+  // Combine hardcoded styles with concepts from the database
+  const defaultArtStyles: ImageStyle[] = [
     { 
       value: "ghibli", 
       label: "Studio Ghibli", 
@@ -218,6 +229,39 @@ export default function Image() {
       label: "Baby Storybook", 
       thumbnailUrl: "https://placehold.co/300x200/FFFACD/333?text=Storybook" 
     },
+  ];
+  
+  // Define expected concept shape
+  interface Concept {
+    id: number;
+    conceptId: string;
+    title: string;
+    description?: string;
+    promptTemplate: string;
+    thumbnailUrl?: string;
+    categoryId?: string;
+    isActive: boolean;
+    isFeatured: boolean;
+    order: number;
+    createdAt: string;
+    updatedAt: string;
+  }
+  
+  // Create styles from database concepts
+  const conceptStyles: ImageStyle[] = Array.isArray(concepts) 
+    ? concepts.map((concept: Concept) => ({
+        value: concept.conceptId,
+        label: concept.title,
+        thumbnailUrl: concept.thumbnailUrl || `https://placehold.co/300x200/F0F0F0/333?text=${encodeURIComponent(concept.title)}`,
+        categoryId: concept.categoryId,
+        description: concept.description
+      }))
+    : [];
+  
+  // Combine both arrays, with database concepts taking precedence (overwriting hardcoded if same ID)
+  const artStyles: ImageStyle[] = [
+    ...defaultArtStyles,
+    ...conceptStyles
   ];
 
   return (
