@@ -36,13 +36,35 @@ export const storage = {
   
   // Image related functions
   async transformImage(filePath: string, style: string, customPromptTemplate?: string | null) {
-    // Read the file
-    const imageBuffer = fs.readFileSync(filePath);
-    
-    // Transform the image using OpenAI with optional custom prompt template
-    const transformedImageUrl = await transformImageWithOpenAI(imageBuffer, style, customPromptTemplate);
-    
-    return transformedImageUrl;
+    try {
+      console.log(`[Storage] Starting image transformation with style: "${style}"`);
+      if (customPromptTemplate) {
+        console.log(`[Storage] Using custom prompt template: "${customPromptTemplate.substring(0, 100)}..."`);
+      } else {
+        console.log(`[Storage] No custom prompt template provided, using default`);
+      }
+      
+      // Read the file
+      console.log(`[Storage] Reading file from path: ${filePath}`);
+      const imageBuffer = fs.readFileSync(filePath);
+      console.log(`[Storage] Successfully read image file, size: ${imageBuffer.length} bytes`);
+      
+      // Transform the image using OpenAI with optional custom prompt template
+      console.log(`[Storage] Calling OpenAI image transformation service...`);
+      const transformedImageUrl = await transformImageWithOpenAI(imageBuffer, style, customPromptTemplate);
+      
+      if (transformedImageUrl.includes("placehold.co") || transformedImageUrl.includes("Transformed+Image")) {
+        console.log(`[Storage] Warning: Returned placeholder image instead of transformed image`);
+      } else {
+        console.log(`[Storage] Image transformation succeeded, URL returned: ${transformedImageUrl.substring(0, 30)}...`);
+      }
+      
+      return transformedImageUrl;
+    } catch (error) {
+      console.error(`[Storage] Error in transformImage:`, error);
+      // Return a placeholder image URL in case of error
+      return "https://placehold.co/1024x1024/A7C1E2/FFF?text=Transformation+Error";
+    }
   },
   
   async saveImageTransformation(
