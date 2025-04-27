@@ -88,7 +88,8 @@ const sampleStyleImages: Record<string, string> = {
   ghibli: "https://img.freepik.com/premium-photo/anime-family-warm-studio-ghibli-style-watercolor_784625-1536.jpg",
   disney: "https://img.freepik.com/premium-photo/cute-cartoon-woman-holds-a-baby-by-hand-animated-film-style_917506-28366.jpg",
   korean_webtoon: "https://img.freepik.com/premium-vector/pregnant-woman-character-is-walking-with-child-park_146350-134.jpg",
-  fairytale: "https://img.freepik.com/premium-photo/fairytale-autumn-family-scene-with-pregnant-woman-dreamy-atmosphere_917506-14550.jpg"
+  fairytale: "https://img.freepik.com/premium-photo/fairytale-autumn-family-scene-with-pregnant-woman-dreamy-atmosphere_917506-14550.jpg",
+  "baby-dog-sd-style": "https://img.freepik.com/premium-photo/cute-cartoon-baby-playing-with-puppy-digital-art-style_917506-5628.jpg"
 };
 
 export async function transformImageWithOpenAI(
@@ -160,41 +161,112 @@ export async function transformImageWithOpenAI(
     console.log("Using single-step approach with GPT-4o vision");
     
     try {
-      // First try to analyze the image using GPT-4o Vision
-      const visionResponse = await openai.chat.completions.create({
-        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-        messages: [
-          {
-            role: "system",
-            content: `You are a vision analysis assistant that helps generate detailed image descriptions to be used for image transformations.
-            
-When provided with an image, analyze it carefully and provide a DALL-E 3 compatible prompt that will recreate the image in the requested style.
-            
-Format your response as a JSON object with a single field "prompt" containing the detailed DALL-E prompt.`
+      // First try to analyze the image using GPT-4o Vision with a direct fetch approach
+      // since the SDK seems to have issues with project-based API keys
+
+      // Use this alternate approach for project-based keys (sk-proj-*)
+      const apiKey = process.env.OPENAI_API_KEY;
+      const isProjectBasedKey = apiKey && apiKey.startsWith('sk-proj-');
+      
+      let visionResponse;
+      
+      if (isProjectBasedKey) {
+        console.log("Using direct fetch for project-based API key");
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`,
+            "OpenAI-Beta": "assistants=v1"
           },
-          {
-            role: "user",
-            content: [
+          body: JSON.stringify({
+            model: "gpt-4o",
+            messages: [
               {
-                type: "text", 
-                text: `I want to transform this image into the following style: "${promptText}".
+                role: "system",
+                content: `You are a vision analysis assistant that helps generate detailed image descriptions to be used for image transformations.
                 
-Please create a detailed DALL-E 3 prompt that describes the key elements of this image and how they should be transformed into the ${style} style. Focus on subjects, expressions, composition, colors, and mood.
+When provided with an image, analyze it carefully and provide a DALL-E 3 compatible prompt that will recreate the image in the requested style.
                 
-Return only a JSON object with a "prompt" field containing the DALL-E prompt.`
+Format your response as a JSON object with a single field "prompt" containing the detailed DALL-E prompt.`
               },
               {
-                type: "image_url",
-                image_url: {
-                  url: `data:image/jpeg;base64,${base64Image}`
-                }
+                role: "user",
+                content: [
+                  {
+                    type: "text", 
+                    text: `I want to transform this image into the following style: "${promptText}".
+                    
+Please create a detailed DALL-E 3 prompt that describes the key elements of this image and how they should be transformed into the ${style} style. Focus on subjects, expressions, composition, colors, and mood.
+                    
+Return only a JSON object with a "prompt" field containing the DALL-E prompt.`
+                  },
+                  {
+                    type: "image_url",
+                    image_url: {
+                      url: `data:image/jpeg;base64,${base64Image}`
+                    }
+                  }
+                ]
               }
-            ]
-          }
-        ],
-        max_tokens: 500,
-        response_format: { type: "json_object" }
-      });
+            ],
+            max_tokens: 500,
+            response_format: { type: "json_object" }
+          })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(`API request failed: ${JSON.stringify(errorData)}`);
+        }
+        
+        const data = await response.json();
+        visionResponse = {
+          choices: [
+            {
+              message: {
+                content: data.choices[0].message.content
+              }
+            }
+          ]
+        };
+      } else {
+        // Use the SDK for standard API keys
+        visionResponse = await openai.chat.completions.create({
+          model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+          messages: [
+            {
+              role: "system",
+              content: `You are a vision analysis assistant that helps generate detailed image descriptions to be used for image transformations.
+              
+  When provided with an image, analyze it carefully and provide a DALL-E 3 compatible prompt that will recreate the image in the requested style.
+              
+  Format your response as a JSON object with a single field "prompt" containing the detailed DALL-E prompt.`
+            },
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text", 
+                  text: `I want to transform this image into the following style: "${promptText}".
+                  
+  Please create a detailed DALL-E 3 prompt that describes the key elements of this image and how they should be transformed into the ${style} style. Focus on subjects, expressions, composition, colors, and mood.
+                  
+  Return only a JSON object with a "prompt" field containing the DALL-E prompt.`
+                },
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: `data:image/jpeg;base64,${base64Image}`
+                  }
+                }
+              ]
+            }
+          ],
+          max_tokens: 500,
+          response_format: { type: "json_object" }
+        });
+      }
 
       // Extract the prompt from GPT-4o's response
       let generatedPrompt;
@@ -218,13 +290,46 @@ Return only a JSON object with a "prompt" field containing the DALL-E prompt.`
       // Try to use DALL-E 3 to create a new image
       try {
         console.log("Generating image with DALL-E 3");
-        const response = await openai.images.generate({
-          model: "dall-e-3", // Use DALL-E 3 for transformations
-          prompt: generatedPrompt,
-          n: 1,
-          size: "1024x1024",
-          quality: "standard",
-        });
+        
+        let response;
+        
+        // Check if using project-based API key and use direct fetch if needed
+        if (isProjectBasedKey) {
+          console.log("Using direct fetch for DALL-E with project-based API key");
+          const dalleResponse = await fetch("https://api.openai.com/v1/images/generations", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${apiKey}`,
+              "OpenAI-Beta": "assistants=v1"
+            },
+            body: JSON.stringify({
+              model: "dall-e-3",
+              prompt: generatedPrompt,
+              n: 1,
+              size: "1024x1024",
+              quality: "standard",
+            })
+          });
+          
+          if (!dalleResponse.ok) {
+            const errorData = await dalleResponse.json();
+            console.error("DALL-E API error:", JSON.stringify(errorData));
+            throw new Error(`DALL-E API request failed: ${JSON.stringify(errorData)}`);
+          }
+          
+          const data = await dalleResponse.json();
+          response = { data: data.data };
+        } else {
+          // Use the SDK for standard API keys
+          response = await openai.images.generate({
+            model: "dall-e-3", // Use DALL-E 3 for transformations
+            prompt: generatedPrompt,
+            n: 1,
+            size: "1024x1024",
+            quality: "standard",
+          });
+        }
 
         // Extract the URL from the response
         const imageData = response?.data;
