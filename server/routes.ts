@@ -313,15 +313,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/generate-image", async (req, res) => {
     try {
       const validatedData = imageGenerationSchema.parse(req.body);
+      const { style } = req.body; // 스타일 옵션 추가 (선택사항)
       
-      // Call the DALL-E function to generate image
-      const imageUrl = await generateImageWithDALLE(validatedData.prompt);
-      
-      return res.status(200).json({ 
-        imageUrl,
-        prompt: validatedData.prompt
-      });
-      
+      // Stability AI를 사용하여 이미지 생성
+      try {
+        console.log("Generating image with Stability AI");
+        const { generateImageWithStability } = await import('./services/stability');
+        
+        const imageUrl = await generateImageWithStability(validatedData.prompt, {
+          style: style || 'photographic' // 기본 스타일은 'photographic'
+        });
+        
+        return res.status(200).json({ 
+          imageUrl,
+          prompt: validatedData.prompt,
+          provider: "stability"
+        });
+      } catch (stabilityError) {
+        console.error("Error with Stability AI:", stabilityError);
+        
+        // Stability AI 실패 시 OpenAI DALL-E로 폴백
+        console.log("Falling back to OpenAI DALL-E");
+        const imageUrl = await generateImageWithDALLE(validatedData.prompt);
+        
+        return res.status(200).json({ 
+          imageUrl,
+          prompt: validatedData.prompt,
+          provider: "openai"
+        });
+      }
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ errors: error.errors });

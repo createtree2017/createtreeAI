@@ -3,6 +3,7 @@ import { music, images, chatMessages, favorites, savedChats, eq, desc, and } fro
 import fs from "fs";
 import path from "path";
 import { transformImageWithOpenAI } from "./services/openai";
+import { transformImageWithStability } from "./services/stability";
 
 export const storage = {
   // Music related functions
@@ -49,17 +50,60 @@ export const storage = {
       const imageBuffer = fs.readFileSync(filePath);
       console.log(`[Storage] Successfully read image file, size: ${imageBuffer.length} bytes`);
       
-      // Transform the image using OpenAI with optional custom prompt template
-      console.log(`[Storage] Calling OpenAI image transformation service...`);
-      const transformedImageUrl = await transformImageWithOpenAI(imageBuffer, style, customPromptTemplate);
+      // Convert image buffer to base64 for Stability AI
+      const base64Image = imageBuffer.toString('base64');
       
-      if (transformedImageUrl.includes("placehold.co") || transformedImageUrl.includes("Transformed+Image")) {
-        console.log(`[Storage] Warning: Returned placeholder image instead of transformed image`);
-      } else {
-        console.log(`[Storage] Image transformation succeeded, URL returned: ${transformedImageUrl.substring(0, 30)}...`);
+      try {
+        // Try Stability AI first (new primary provider)
+        console.log(`[Storage] Calling Stability AI image transformation service...`);
+        let prompt = "";
+        
+        if (customPromptTemplate) {
+          prompt = customPromptTemplate;
+        } else {
+          // Default prompt for the given style if no custom template provided
+          prompt = `Transform this image into ${style} art style. Preserve the main subject and composition. Make it beautiful and professional.`;
+        }
+        
+        const transformedImageUrl = await transformImageWithStability(
+          base64Image,
+          prompt,
+          style
+        );
+        
+        if (transformedImageUrl.includes("placehold.co") || transformedImageUrl.includes("Transformed+Image")) {
+          console.log(`[Storage] Warning: Stability AI returned placeholder image, trying OpenAI as fallback...`);
+          
+          // Fallback to OpenAI if Stability fails
+          const openaiResult = await transformImageWithOpenAI(imageBuffer, style, customPromptTemplate);
+          
+          if (openaiResult.includes("placehold.co") || openaiResult.includes("Transformed+Image")) {
+            console.log(`[Storage] Warning: Both providers failed, returning placeholder image`);
+          } else {
+            console.log(`[Storage] OpenAI fallback succeeded, URL returned: ${openaiResult.substring(0, 30)}...`);
+            return openaiResult;
+          }
+        } else {
+          console.log(`[Storage] Stability AI transformation succeeded, URL: ${transformedImageUrl.substring(0, 30)}...`);
+          return transformedImageUrl;
+        }
+      } catch (stabilityError) {
+        console.error(`[Storage] Stability AI error:`, stabilityError);
+        
+        // Fallback to OpenAI
+        console.log(`[Storage] Falling back to OpenAI due to Stability AI error`);
+        const transformedImageUrl = await transformImageWithOpenAI(imageBuffer, style, customPromptTemplate);
+        
+        if (transformedImageUrl.includes("placehold.co") || transformedImageUrl.includes("Transformed+Image")) {
+          console.log(`[Storage] Warning: OpenAI also returned placeholder image`);
+        } else {
+          console.log(`[Storage] OpenAI transformation succeeded, URL: ${transformedImageUrl.substring(0, 30)}...`);
+        }
+        
+        return transformedImageUrl;
       }
       
-      return transformedImageUrl;
+      return "https://placehold.co/1024x1024/A7C1E2/FFF?text=Transformation+Error";
     } catch (error) {
       console.error(`[Storage] Error in transformImage:`, error);
       // Return a placeholder image URL in case of error
