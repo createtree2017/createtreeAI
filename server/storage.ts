@@ -77,25 +77,25 @@ export const storage = {
       }
       
       try {
-        // OpenAI DALL-E 3 API 호출
-        console.log(`[Storage] Calling DALL-E 3 image transformation service...`);
-        const { transformImage } = await import('./services/openai-dalle3');
-        const transformedImageUrl = await transformImage(
+        // Stability API 호출
+        console.log(`[Storage] Calling Stability AI image transformation service...`);
+        const { transformImageWithStability } = await import('./services/stability');
+        const transformedImageUrl = await transformImageWithStability(
           imageBuffer, 
           style, 
           prompt
         );
         
         if (!transformedImageUrl.includes("placehold.co")) {
-          console.log(`[Storage] DALL-E 3 transformation succeeded, URL: ${transformedImageUrl.substring(0, 30)}...`);
+          console.log(`[Storage] Stability AI transformation succeeded, URL: ${transformedImageUrl.substring(0, 30)}...`);
           return transformedImageUrl;
         } else {
           // 오류 시 서비스 종료 메시지 반환
-          console.log(`[Storage] DALL-E 3 service unavailable`);
+          console.log(`[Storage] Stability AI service unavailable`);
           return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
         }
       } catch (error) {
-        console.error(`[Storage] DALL-E 3 error:`, error);
+        console.error(`[Storage] Stability AI error:`, error);
         return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
       }
     } catch (error) {

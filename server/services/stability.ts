@@ -61,7 +61,7 @@ export async function generateImageWithStability(
 ): Promise<string> {
   try {
     const {
-      engineId = 'stable-diffusion-v1-6',
+      engineId = 'stable-diffusion-xl-1024-v1-0',  // SDXL 사용
       width = 1024,
       height = 1024,
       samples = 1,
@@ -71,6 +71,12 @@ export async function generateImageWithStability(
     
     console.log(`Generating image with Stability AI [Engine: ${engineId}]`);
     console.log(`Prompt: ${prompt.substring(0, 100)}${prompt.length > 100 ? '...' : ''}`);
+    
+    // API 키가 없으면 오류 메시지 반환
+    if (!STABILITY_API_KEY) {
+      console.error("Missing Stability API key");
+      return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
+    }
     
     const response = await fetch(
       `${STABILITY_API_HOST}/v1/generation/${engineId}/text-to-image`,
@@ -100,7 +106,7 @@ export async function generateImageWithStability(
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`Stability API error: ${errorText}`);
-      throw new Error(`Stability API returned error: ${response.status} ${response.statusText}`);
+      return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
     }
     
     const responseData = await response.json() as any;
@@ -113,10 +119,11 @@ export async function generateImageWithStability(
       return imageUrl;
     }
     
-    throw new Error('No image generated');
+    // 이미지가 없으면 오류 메시지 반환
+    return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
   } catch (error) {
     console.error("Error generating image with Stability AI:", error);
-    throw error;
+    return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
   }
 }
 
@@ -124,14 +131,16 @@ export async function generateImageWithStability(
  * Stability AI를 사용하여 이미지 변환 (스타일 변경)
  */
 export async function transformImageWithStability(
-  imageBase64: string,
-  prompt: string,
-  style?: string
+  imageBuffer: Buffer,
+  style: string,
+  prompt: string
 ): Promise<string> {
   try {
+    checkStabilityApiConfiguration();
+    
     // 스타일에 따라 적절한 엔진 ID 선택
     let engineId = 'stable-diffusion-xl-1024-v1-0';
-    let stylePreset = style || 'photographic';
+    let stylePreset = 'photographic';
     
     // 스타일에 따른 엔진 및 스타일 프리셋 맵핑
     switch (style) {
@@ -144,7 +153,7 @@ export async function transformImageWithStability(
       case 'cartoon':
         stylePreset = 'comic-book';
         break;
-      case 'oil':
+      case 'oil-painting':
         stylePreset = 'oil-painting';
         break;
       case 'fantasy':
@@ -159,26 +168,36 @@ export async function transformImageWithStability(
       case 'disney':
         stylePreset = 'digital-art';
         break;
-      case 'korean_webtoon':
+      case 'korean-webtoon':
         stylePreset = 'comic-book';
         break;
       case 'fairytale':
         stylePreset = 'fantasy-art';
+        break;
+      case 'baby-dog-sd-style':
+        stylePreset = 'comic-book';
         break;
       default:
         stylePreset = 'photographic';
     }
     
     console.log(`이미지 변환 중... [Style: ${stylePreset}]`);
+    console.log(`처리된 프롬프트: "${prompt.substring(0, 200)}${prompt.length > 200 ? '...' : ''}"`);
     
     // 텍스트 프롬프트를 통한 이미지 생성 (이미지 입력은 현재 지원되지 않음)
-    return await generateImageWithStability(prompt, {
-      engineId,
-      style: stylePreset
-    });
+    // Stability API에서는 이미지 입력 기반 변환보다는 텍스트 프롬프트 기반 생성이 주요 기능
+    try {
+      return await generateImageWithStability(prompt, {
+        engineId,
+        style: stylePreset
+      });
+    } catch (error) {
+      console.error("Error in Stability AI image generation:", error);
+      return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
+    }
   } catch (error) {
     console.error("Error transforming image with Stability AI:", error);
-    throw error;
+    return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
   }
 }
 
