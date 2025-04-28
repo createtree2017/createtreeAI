@@ -35,17 +35,22 @@ function getAuthHeaders(apiKey: string | undefined): Record<string, string> {
   if (!apiKey) return headers;
   
   // Project Key(sk-proj-)와 User Key(sk-) 인증 방식 구분
-  if (apiKey.startsWith('sk-proj-') && PROJECT_ID) {
+  if (apiKey.startsWith('sk-proj-')) {
     // Project Key 사용 시 필요한 헤더 설정
     // 주의: Authorization 헤더 형식이 달라지지 않음
     headers['Authorization'] = `Bearer ${apiKey}`;
     
-    // 프로젝트 ID를 OpenAI-Organization 헤더에 설정
-    // OpenAI-Project 대신 OpenAI-Organization을 사용해 봄
-    headers['OpenAI-Organization'] = PROJECT_ID;
-    
-    // 디버깅을 위해 로그 출력
-    console.log("Project Key 인증: 조직 ID 설정됨 - " + PROJECT_ID);
+    // 2024년 업데이트: 프로젝트 기반 API에서는 다양한 헤더 조합 시도
+    if (PROJECT_ID) {
+      // 프로젝트 ID를 OpenAI-Organization 헤더로 설정
+      headers['OpenAI-Organization'] = PROJECT_ID;
+      
+      // 일부 API에서는 OpenAI-Project 헤더도 함께 사용해야 할 수 있음
+      headers['OpenAI-Project'] = PROJECT_ID;
+      
+      // 디버깅을 위해 로그 출력
+      console.log("Project Key 인증: 조직 ID 설정됨 - " + PROJECT_ID);
+    }
   } else {
     // 일반 User Key 사용 시 표준 Authorization 헤더만 설정
     headers['Authorization'] = `Bearer ${apiKey}`;
@@ -202,7 +207,7 @@ export async function generateImageWithDALLE(promptText: string): Promise<string
     const isProjectBasedKey = isImageProjectKey;
     
     // Prepare request parameters
-    const requestParams: ImageGenerateParams = {
+    const requestParams = {
       model: "dall-e-3",
       prompt: promptText,
       n: 1,
@@ -212,43 +217,56 @@ export async function generateImageWithDALLE(promptText: string): Promise<string
     
     let imageUrl: string = "";
     
-    // Project Key 문제 대응 - Project Key와 User Key 처리 방식 다르게 적용
-    if (isProjectBasedKey) {
-      console.log("Project Key 사용 감지 - Gemini API로 대체 시도");
+    // Project Key와 User Key 모두 지원하는 접근 방식 적용
+    console.log(`Using DALL-E image generation with ${isProjectBasedKey ? 'Project Key' : 'Standard Key'}`);
+    
+    // OpenAI API 직접 호출 - Project Key 및 User Key 모두 지원
+    try {
+      // API 키 유형에 따른 헤더 설정
+      const headers = getAuthHeaders(apiKey);
+      headers['Content-Type'] = 'application/json';
       
-      try {
-        // OpenAI의 Project Key가 DALL-E에서 작동하지 않으므로 Gemini API 사용 시도
-        const { generateImageWithGemini } = await import('./gemini');
-        
-        console.log("Gemini로 이미지 생성 시도 중...");
-        const geminiImageUrl = await generateImageWithGemini(promptText);
-        
-        if (geminiImageUrl) {
-          console.log("Gemini 이미지 생성 성공");
-          return geminiImageUrl;
-        }
-        
-        throw new Error("Gemini 이미지 생성 실패");
-      } catch (geminiError) {
-        console.error("Gemini API 오류:", geminiError);
-        
-        // Gemini 실패 시 대체 이미지 반환
-        const placeholderImage = "https://placehold.co/1024x1024/A7C1E2/FFF?text=Generated+Image";
-        console.log("Gemini API 실패, 대체 이미지 사용");
-        return placeholderImage;
+      // 2024년 5월 이후 변경된 API 직접 호출 방식
+      const response = await fetch("https://api.openai.com/v1/images/generations", {
+        method: "POST",
+        headers: headers,
+        body: JSON.stringify(requestParams)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("DALL-E API 오류 응답:", errorData);
+        throw new Error(`API request failed: ${JSON.stringify(errorData)}`);
       }
-    } else {
-      // User Key 사용 - OpenAI SDK 호출
+      
+      const data = await response.json();
+      
+      if (!data.data || data.data.length === 0) {
+        throw new Error("No image data returned from DALL-E API");
+      }
+      
+      imageUrl = data.data[0].url || '';
+      console.log("DALL-E 이미지 생성 성공");
+    } catch (fetchError) {
+      console.error("DALL-E API 직접 호출 오류:", fetchError);
+      
+      // 직접 API 호출 실패 시 SDK 시도
       try {
-        const response = await imageOpenai.images.generate(requestParams);
+        console.log("DALL-E SDK 접근 방식 시도 중...");
+        const response = await imageOpenai.images.generate(requestParams as ImageGenerateParams);
+        
         if (!response.data || response.data.length === 0) {
-          throw new Error("No image data returned from DALL-E API");
+          throw new Error("No image data returned from DALL-E SDK");
         }
+        
         imageUrl = response.data[0].url || '';
-      } catch (sdkError: unknown) {
-        console.error("OpenAI SDK 오류:", sdkError);
-        const errorMessage = sdkError instanceof Error ? sdkError.message : 'Unknown error';
-        throw new Error(`OpenAI SDK error: ${errorMessage}`);
+        console.log("DALL-E SDK 이미지 생성 성공");
+      } catch (sdkError) {
+        console.error("DALL-E SDK 오류:", sdkError);
+        
+        // 모든 시도가 실패하면 서비스 종료 메시지 반환
+        console.log("모든 DALL-E 접근 방식 실패, 서비스 종료 메시지 사용");
+        return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
       }
     }
     
@@ -256,7 +274,8 @@ export async function generateImageWithDALLE(promptText: string): Promise<string
     return imageUrl;
   } catch (error: any) {
     console.error("Error generating image with DALL-E:", error);
-    throw new Error(`Failed to generate image: ${error.message || 'Unknown error'}`);
+    // 최종 오류 시 서비스 종료 메시지 반환
+    return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
   }
 }
 
