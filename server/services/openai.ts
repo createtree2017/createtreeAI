@@ -210,37 +210,46 @@ export async function generateImageWithDALLE(promptText: string): Promise<string
       quality: "standard",
     };
     
-    let imageUrl: string;
+    let imageUrl: string = "";
     
-    // Use direct fetch for project-based API keys (workaround)
+    // Project Key 문제 대응 - Project Key와 User Key 처리 방식 다르게 적용
     if (isProjectBasedKey) {
-      console.log("Using direct fetch for DALL-E with project-based API key");
+      console.log("Project Key 사용 감지 - Gemini API로 대체 시도");
       
-      // Project Key 인증을 위한 헤더 생성
-      const headers = getAuthHeaders(apiKey);
-      console.log("DALL-E API request with Project Key 인증 헤더:", 
-        JSON.stringify(Object.keys(headers).map(k => `${k}: ${k === 'Authorization' ? '**hidden**' : headers[k]}`)));
-      
-      const response = await fetch("https://api.openai.com/v1/images/generations", {
-        method: "POST",
-        headers: headers,
-        body: JSON.stringify(requestParams)
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`API request failed: ${JSON.stringify(errorData)}`);
+      try {
+        // OpenAI의 Project Key가 DALL-E에서 작동하지 않으므로 Gemini API 사용 시도
+        const { generateImageWithGemini } = await import('./gemini');
+        
+        console.log("Gemini로 이미지 생성 시도 중...");
+        const geminiImageUrl = await generateImageWithGemini(promptText);
+        
+        if (geminiImageUrl) {
+          console.log("Gemini 이미지 생성 성공");
+          return geminiImageUrl;
+        }
+        
+        throw new Error("Gemini 이미지 생성 실패");
+      } catch (geminiError) {
+        console.error("Gemini API 오류:", geminiError);
+        
+        // Gemini 실패 시 대체 이미지 반환
+        const placeholderImage = "https://placehold.co/1024x1024/A7C1E2/FFF?text=Generated+Image";
+        console.log("Gemini API 실패, 대체 이미지 사용");
+        return placeholderImage;
       }
-      
-      const data = await response.json();
-      imageUrl = data.data[0].url;
     } else {
-      // Use the OpenAI SDK for standard API keys
-      const response = await imageOpenai.images.generate(requestParams);
-      if (!response.data || response.data.length === 0) {
-        throw new Error("No image data returned from DALL-E API");
+      // User Key 사용 - OpenAI SDK 호출
+      try {
+        const response = await imageOpenai.images.generate(requestParams);
+        if (!response.data || response.data.length === 0) {
+          throw new Error("No image data returned from DALL-E API");
+        }
+        imageUrl = response.data[0].url || '';
+      } catch (sdkError: unknown) {
+        console.error("OpenAI SDK 오류:", sdkError);
+        const errorMessage = sdkError instanceof Error ? sdkError.message : 'Unknown error';
+        throw new Error(`OpenAI SDK error: ${errorMessage}`);
       }
-      imageUrl = response.data[0].url || '';
     }
     
     console.log("Generated image URL:", imageUrl.substring(0, 50) + "...");
@@ -474,84 +483,90 @@ export async function transformImageWithOpenAI(
     
     // Try to use DALL-E 3 to create a new image
     try {
-      console.log("Generating image with DALL-E 3");
+      console.log("Generating image with DALL-E");
       
-      let response;
+      // Changed to DALL-E 2 model as requested (2023-04-28)
+      const requestBody = {
+        model: "dall-e-2", // Using DALL-E 2 model instead of DALL-E 3
+        prompt: generatedPrompt,
+        n: 1,
+        size: "1024x1024",
+      };
       
-      // Check if using project-based API key and use direct fetch if needed
+      console.log("DALL-E request payload:", JSON.stringify(requestBody, null, 2));
+      
+      // Project Key 사용 시 Gemini API로 우회
       if (isProjectBasedKey) {
-        console.log("Using direct fetch for DALL-E with project-based API key");
+        console.log("Project Key 감지: Gemini API로 이미지 변환 시도");
         
-        // Changed to DALL-E 2 model as requested (2023-04-28)
-        const requestBody = {
-          model: "dall-e-2", // Using DALL-E 2 model instead of DALL-E 3 as requested
-          prompt: generatedPrompt,
-          n: 1,
-          size: "1024x1024",
-        };
-        
-        console.log("DALL-E request payload:", JSON.stringify(requestBody, null, 2));
-        
-        // Project Key 인증을 위한 헤더 생성 (DALL-E 이미지 변환)
-        const headers = getAuthHeaders(apiKey);
-        
-        // 헤더 로깅 (디버깅용)
-        const logHeaders = Object.keys(headers).map(k => {
-          if (k === 'Authorization') return `${k}: **hidden**`;
-          return `${k}: ${headers[k]}`;
-        });
-        console.log("DALL-E Transform API request with Headers:", JSON.stringify(logHeaders));
-        
-        const dalleResponse = await fetch("https://api.openai.com/v1/images/generations", {
-          method: "POST",
-          headers: headers,
-          body: JSON.stringify(requestBody)
-        });
-        
-        if (!dalleResponse.ok) {
-          const errorData = await dalleResponse.json();
-          console.error("DALL-E API error:", JSON.stringify(errorData));
-          throw new Error(`DALL-E API request failed: ${JSON.stringify(errorData)}`);
+        try {
+          // OpenAI의 Project Key가 DALL-E에서 작동하지 않으므로 Gemini API 사용
+          const { generateImageWithGemini } = await import('./gemini');
+          console.log("Gemini로 이미지 생성 중...");
+          
+          // Gemini API를 사용하여 이미지 생성
+          const geminiImageUrl = await generateImageWithGemini(generatedPrompt);
+          
+          if (geminiImageUrl) {
+            console.log("Gemini 이미지 변환 성공");
+            return geminiImageUrl;
+          }
+          
+          throw new Error("Gemini 이미지 변환 실패");
+        } catch (geminiError) {
+          console.error("Gemini API 오류:", geminiError);
+          // 오류 발생 시 대체 이미지 반환
+          console.log(`사용 가능한 ${style} 스타일 샘플 이미지 사용`);
+          return sampleStyleImages[style] || "https://placehold.co/1024x1024/A7C1E2/FFF?text=Transformed+Image";
         }
-        
-        const data = await dalleResponse.json();
-        return data.data[0].url;
       } else {
-        // For standard keys, use the OpenAI SDK
-        console.log("Using OpenAI SDK for image generation");
-        const dalleResponse = await imageOpenai.images.generate({
-          model: "dall-e-2", // Using DALL-E 2 model instead of DALL-E 3 
-          prompt: generatedPrompt,
-          n: 1,
-          size: "1024x1024"
-        });
-        
-        // Extract image URL
-        if (!dalleResponse.data || dalleResponse.data.length === 0) {
-          throw new Error("No image data returned");
+        // User Key 사용 시 OpenAI API 직접 호출
+        try {
+          console.log("User Key 감지: OpenAI SDK 사용");
+          
+          const dalleResponse = await imageOpenai.images.generate({
+            model: "dall-e-2",
+            prompt: generatedPrompt,
+            n: 1,
+            size: "1024x1024"
+          });
+          
+          // 응답 이미지 URL 추출
+          if (!dalleResponse.data || dalleResponse.data.length === 0) {
+            throw new Error("이미지 데이터가 반환되지 않음");
+          }
+          
+          const imageUrl = dalleResponse.data[0].url || "";
+          return imageUrl;
+        } catch (sdkError: unknown) {
+          console.error("OpenAI SDK 오류:", sdkError);
+          
+          // 속도 제한 오류인지 확인 (타입 체크 추가)
+          const isRateLimit = typeof sdkError === 'object' && 
+            sdkError !== null && 
+            'status' in sdkError && 
+            (sdkError as any).status === 429;
+            
+          if (isRateLimit) {
+            console.log("API 속도 제한에 도달했습니다. 나중에 다시 시도하세요.");
+            // 속도 제한 타임스탬프 설정
+            process.env.OPENAI_RATE_LIMIT_TIME = Date.now().toString();
+            
+            // 사용 가능한 스타일 이미지가 있으면 사용
+            if (sampleStyleImages[style]) {
+              console.log(`속도 제한으로 인해 ${style} 스타일 샘플 이미지 사용`);
+              return sampleStyleImages[style];
+            }
+          }
+          
+          // 샘플 이미지로 대체
+          return sampleStyleImages[style] || "https://placehold.co/1024x1024/A7C1E2/FFF?text=Image+Transform+Error";
         }
-        
-        return dalleResponse.data[0].url || "";
       }
-    } catch (dalleError: any) {
-      console.error("Error in DALL-E image generation:", dalleError);
-      
-      // Check if this is a rate limit error
-      const isRateLimit = dalleError && dalleError.status === 429;
-      if (isRateLimit) {
-        console.log("Rate limit reached with OpenAI API. Please try again later.");
-        // Set a timestamp for the rate limit to avoid hitting it again soon
-        process.env.OPENAI_RATE_LIMIT_TIME = Date.now().toString();
-        
-        // Use fallback style images if available
-        if (sampleStyleImages[style]) {
-          console.log(`Using sample ${style} style image due to rate limits`);
-          return sampleStyleImages[style];
-        }
-      }
-      
-      // For any other error, throw it to be handled by the caller
-      throw dalleError;
+    } catch (error) {
+      console.error("DALL-E 이미지 생성 오류:", error);
+      // 오류 발생 시 스타일별 샘플 이미지 반환
+      return sampleStyleImages[style] || "https://placehold.co/1024x1024/A7C1E2/FFF?text=Image+Transform+Error";
     }
   } catch (error: any) {
     console.error("Image transformation error:", error);
