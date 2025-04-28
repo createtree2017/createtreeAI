@@ -54,7 +54,7 @@ export const storage = {
       const base64Image = imageBuffer.toString('base64');
       
       try {
-        // Try Stability AI first (new primary provider)
+        // Try Stability AI (primary provider)
         console.log(`[Storage] Calling Stability AI image transformation service...`);
         let prompt = "";
         
@@ -91,36 +91,21 @@ export const storage = {
           style
         );
         
-        if (transformedImageUrl.includes("placehold.co") || transformedImageUrl.includes("Transformed+Image")) {
-          console.log(`[Storage] Warning: Stability AI returned placeholder image, trying OpenAI as fallback...`);
-          
-          // Fallback to OpenAI if Stability fails
-          const openaiResult = await transformImageWithOpenAI(imageBuffer, style, customPromptTemplate);
-          
-          if (openaiResult.includes("placehold.co") || openaiResult.includes("Transformed+Image")) {
-            console.log(`[Storage] Warning: Both providers failed, returning placeholder image`);
-          } else {
-            console.log(`[Storage] OpenAI fallback succeeded, URL returned: ${openaiResult.substring(0, 30)}...`);
-            return openaiResult;
-          }
-        } else {
+        // Stability AI 성공적으로 이미지 생성 시
+        if (!transformedImageUrl.includes("placehold.co") && !transformedImageUrl.includes("Transformed+Image")) {
           console.log(`[Storage] Stability AI transformation succeeded, URL: ${transformedImageUrl.substring(0, 30)}...`);
           return transformedImageUrl;
+        } else {
+          // 에러 발생 시 서비스 종료 메시지 반환
+          console.log(`[Storage] Warning: Stability AI returned placeholder image`);
+          return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
         }
       } catch (stabilityError) {
         console.error(`[Storage] Stability AI error:`, stabilityError);
         
-        // Fallback to OpenAI
-        console.log(`[Storage] Falling back to OpenAI due to Stability AI error`);
-        const transformedImageUrl = await transformImageWithOpenAI(imageBuffer, style, customPromptTemplate);
-        
-        if (transformedImageUrl.includes("placehold.co") || transformedImageUrl.includes("Transformed+Image")) {
-          console.log(`[Storage] Warning: OpenAI also returned placeholder image`);
-        } else {
-          console.log(`[Storage] OpenAI transformation succeeded, URL: ${transformedImageUrl.substring(0, 30)}...`);
-        }
-        
-        return transformedImageUrl;
+        // 폴백하지 않고 서비스 종료 메시지 반환
+        console.log(`[Storage] Stability AI service unavailable`);
+        return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
       }
       
       return "https://placehold.co/1024x1024/A7C1E2/FFF?text=Transformation+Error";

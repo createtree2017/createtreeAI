@@ -332,14 +332,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (stabilityError) {
         console.error("Error with Stability AI:", stabilityError);
         
-        // Stability AI 실패 시 OpenAI DALL-E로 폴백
-        console.log("Falling back to OpenAI DALL-E");
-        const imageUrl = await generateImageWithDALLE(validatedData.prompt);
-        
-        return res.status(200).json({ 
-          imageUrl,
+        // Stability AI 실패 시 폴백하지 않고 서비스 종료 메시지 반환
+        console.log("Stability AI service unavailable");
+        return res.status(503).json({ 
+          imageUrl: "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다",
           prompt: validatedData.prompt,
-          provider: "openai"
+          provider: "none",
+          error: "이미지생성 서비스가 금일 종료되었습니다"
         });
       }
     } catch (error) {
