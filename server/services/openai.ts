@@ -209,17 +209,17 @@ export async function generateImageWithDALLE(promptText: string): Promise<string
     
     // Prepare request parameters
     const requestParams = {
-      model: "dall-e-3",
+      model: "gpt-image-1",
       prompt: promptText,
       n: 1,
-      size: "1024x1024",
-      quality: "standard",
+      size: "1024x1024", 
+      // quality parameter may not be needed for gpt-image-1
     };
     
     let imageUrl: string = "";
     
     // 새 API 키 구조에 맞춰 API 호출 방식 변경
-    console.log(`Using DALL-E image generation with ${isProjectBasedKey ? 'Project Key' : 'Standard Key'}`);
+    console.log(`Using GPT-Image-1 image generation with ${isProjectBasedKey ? 'Project Key' : 'Standard Key'}`);
     
     try {
       // 간소화된 헤더 설정 - 프로젝트 키는 Authorization만 필요
@@ -248,7 +248,7 @@ export async function generateImageWithDALLE(promptText: string): Promise<string
       }
       
       imageUrl = data.data[0].url || '';
-      console.log("DALL-E 이미지 생성 성공");
+      console.log("GPT-Image-1 이미지 생성 성공");
       return imageUrl;
     } catch (error) {
       console.error("DALL-E API 접근 실패:", error);
@@ -323,18 +323,18 @@ export async function transformImageWithOpenAI(
         'Authorization': `Bearer ${apiKey}`
       };
       
-      // DALL-E 3 API를 사용한 이미지 변환
-      console.log(`이미지 변환에 DALL-E 3 사용 (${isProjectBasedKey ? 'Project Key' : 'Standard Key'} 모드)`);
+      // GPT-Image-1 API를 사용한 이미지 변환
+      console.log(`이미지 변환에 GPT-Image-1 사용 (${isProjectBasedKey ? 'Project Key' : 'Standard Key'} 모드)`);
       
       const response = await fetch("https://api.openai.com/v1/images/generations", {
         method: "POST",
         headers: headers,
         body: JSON.stringify({
-          model: "dall-e-3",
+          model: "gpt-image-1",
           prompt: promptText,
           n: 1,
-          size: "1024x1024",
-          quality: "standard"
+          size: "1024x1024"
+          // quality parameter may not be needed for gpt-image-1
         })
       });
       
@@ -351,7 +351,7 @@ export async function transformImageWithOpenAI(
       }
       
       const transformedImageUrl = data.data[0].url || '';
-      console.log("DALL-E 3 이미지 변환 성공:", transformedImageUrl.substring(0, 30) + "...");
+      console.log("GPT-Image-1 이미지 변환 성공:", transformedImageUrl.substring(0, 30) + "...");
       return transformedImageUrl;
     } catch (error) {
       console.error("이미지 변환 실패:", error);
