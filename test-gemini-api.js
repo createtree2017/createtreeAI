@@ -1,0 +1,32 @@
+const fetch = require('node-fetch');
+
+async function testGeminiImageGeneration() {
+  try {
+    console.log('Testing Gemini image generation API...');
+    
+    const response = await fetch('http://localhost:5000/api/generate-image', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        prompt: 'A cute mother and baby penguin in a snowy landscape, digital art style',
+      }),
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      console.log('Success! Received response:');
+      console.log('Image URL:', data.imageUrl);
+      console.log('Prompt:', data.prompt);
+    } else {
+      console.error('API request failed with status:', response.status);
+      console.error('Error response:', data);
+    }
+  } catch (error) {
+    console.error('Error testing Gemini API:', error);
+  }
+}
+
+testGeminiImageGeneration();

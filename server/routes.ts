@@ -7,6 +7,7 @@ import path from "path";
 import fs from "fs";
 import { generateChatResponse } from "./services/openai";
 import { generateMusic } from "./services/replicate";
+import { generateContent } from "./services/gemini";
 import { 
   music, 
   images, 
@@ -143,6 +144,11 @@ const conceptCategorySchema = z.object({
   description: z.string().optional(),
   order: z.number().int().default(0),
   isActive: z.boolean().default(true),
+});
+
+// Schema for Gemini image generation request
+const geminiImageGenerationSchema = z.object({
+  prompt: z.string().min(1, "Prompt is required"),
 });
 
 // Schema for concept creation/update
@@ -300,6 +306,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching image list:", error);
       return res.status(500).json({ error: "Failed to fetch image list" });
+    }
+  });
+
+  // Gemini image generation endpoint
+  app.post("/api/generate-image", async (req, res) => {
+    try {
+      const validatedData = geminiImageGenerationSchema.parse(req.body);
+      
+      // Generate image using Gemini API
+      const requestData = {
+        contents: [
+          {
+            parts: [
+              {
+                text: `Generate an image based on this description: ${validatedData.prompt}. 
+                The image should be high-quality and detailed.
+                Create the best possible image representation of this prompt.`
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 2048
+        }
+      };
+      
+      // Call Gemini API
+      const response = await generateContent(requestData);
+      
+      // Extract image URL or data from the response
+      let imageUrl = null;
+      
+      try {
+        if (response.candidates && response.candidates[0] && response.candidates[0].content) {
+          const content = response.candidates[0].content;
+          
+          // Find image part
+          for (const part of content.parts) {
+            if (part.inlineData && part.inlineData.data) {
+              // Base64 encoded image data
+              imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+              break;
+            } else if (part.fileData && part.fileData.fileUri) {
+              // Image URL
+              imageUrl = part.fileData.fileUri;
+              break;
+            } else if (part.text && part.text.includes('http')) {
+              // If URL is in text (fallback)
+              const match = part.text.match(/(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp))/i);
+              if (match) {
+                imageUrl = match[0];
+                break;
+              }
+            }
+          }
+        }
+      } catch (parseError) {
+        console.error('Error parsing Gemini response:', parseError);
+      }
+      
+      if (!imageUrl) {
+        console.error('No image found in Gemini response:', response);
+        return res.status(500).json({ error: "Failed to generate image with Gemini" });
+      }
+      
+      return res.status(200).json({ 
+        imageUrl,
+        prompt: validatedData.prompt
+      });
+      
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      console.error("Error generating image with Gemini:", error);
+      return res.status(500).json({ 
+        error: "Failed to generate image", 
+        message: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
