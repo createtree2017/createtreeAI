@@ -269,6 +269,157 @@ async function seed() {
     const insertedFavorites = await db.insert(schema.favorites).values(favoriteData).returning();
     console.log(`Inserted ${insertedFavorites.length} favorites`);
 
+    // Seed Pregnancy Milestones
+    console.log("Seeding pregnancy milestones...");
+    
+    // Check if milestones already exist
+    const existingMilestones = await db.query.milestones.findMany();
+    
+    // Only insert if no milestones exist
+    if (existingMilestones.length === 0) {
+      const milestonesList = [
+        {
+          milestoneId: "first-trimester-complete",
+          title: "First Trimester Complete",
+          description: "Congratulations! You've completed the first trimester of your pregnancy. Your baby's essential structures are formed, and the risk of miscarriage decreases significantly.",
+          weekStart: 13,
+          weekEnd: 14,
+          badgeEmoji: "🌱",
+          badgeImageUrl: "https://placehold.co/200x200/9DC8B7/fff?text=%F0%9F%8C%B1",
+          encouragementMessage: "You've made it through the often challenging first trimester! Your baby is now the size of a peach and developing rapidly. The foundation for all your baby's systems is in place.",
+          category: "baby_development",
+          order: 1,
+          isActive: true,
+        },
+        {
+          milestoneId: "hear-babys-heartbeat",
+          title: "Hear Baby's Heartbeat",
+          description: "One of the most magical moments of pregnancy is hearing your baby's heartbeat for the first time during an ultrasound appointment.",
+          weekStart: 10,
+          weekEnd: 12,
+          badgeEmoji: "💓",
+          badgeImageUrl: "https://placehold.co/200x200/E8B7D5/fff?text=%F0%9F%92%93",
+          encouragementMessage: "There's nothing quite like hearing that beautiful sound for the first time! Your baby's heart is now beating around 120-160 beats per minute.",
+          category: "baby_development",
+          order: 0,
+          isActive: true,
+        },
+        {
+          milestoneId: "feel-baby-movement",
+          title: "Feel Baby's First Movements",
+          description: "You'll start to feel your baby's subtle movements, often described as flutters, bubbles, or 'butterflies' in your stomach.",
+          weekStart: 18,
+          weekEnd: 22,
+          badgeEmoji: "🦋",
+          badgeImageUrl: "https://placehold.co/200x200/ADB5E1/fff?text=%F0%9F%A6%8B",
+          encouragementMessage: "Those little flutters are your baby saying hello! These first movements, called 'quickening,' will gradually become stronger and more noticeable in the coming weeks.",
+          category: "baby_development",
+          order: 2,
+          isActive: true,
+        },
+        {
+          milestoneId: "second-trimester-complete",
+          title: "Second Trimester Complete",
+          description: "You've completed the middle phase of your pregnancy, often considered the most comfortable trimester. Your baby is growing rapidly and developing features.",
+          weekStart: 27,
+          weekEnd: 28,
+          badgeEmoji: "🌿",
+          badgeImageUrl: "https://placehold.co/200x200/9DC8B7/fff?text=%F0%9F%8C%BF",
+          encouragementMessage: "Well done! Your baby now weighs about 2 pounds and is developing rapidly. You're entering the final stretch of your pregnancy journey!",
+          category: "baby_development",
+          order: 3,
+          isActive: true,
+        },
+        {
+          milestoneId: "nursery-ready",
+          title: "Nursery Preparation Complete",
+          description: "You've prepared the baby's room with all the essentials needed for their arrival.",
+          weekStart: 30,
+          weekEnd: 36,
+          badgeEmoji: "🏠",
+          badgeImageUrl: "https://placehold.co/200x200/FFD4A7/fff?text=%F0%9F%8F%A0",
+          encouragementMessage: "Your baby's special space is ready! Having the nursery prepared ahead of time gives you peace of mind and helps you feel more prepared for your little one's arrival.",
+          category: "preparations",
+          order: 4,
+          isActive: true,
+        },
+        {
+          milestoneId: "hospital-bag-packed",
+          title: "Hospital Bag Packed",
+          description: "You've prepared your hospital bag with all the essentials for labor, delivery, and the first days with your newborn.",
+          weekStart: 35,
+          weekEnd: 38,
+          badgeEmoji: "🧳",
+          badgeImageUrl: "https://placehold.co/200x200/95C5DA/fff?text=%F0%9F%A7%B3",
+          encouragementMessage: "Being prepared with your hospital bag brings peace of mind as you approach delivery. You're ready for this exciting next step!",
+          category: "preparations",
+          order: 5,
+          isActive: true,
+        },
+        {
+          milestoneId: "birth-plan-complete",
+          title: "Birth Plan Created",
+          description: "You've thought through your preferences for labor and delivery and created a flexible birth plan to share with your healthcare team.",
+          weekStart: 30,
+          weekEnd: 36,
+          badgeEmoji: "📝",
+          badgeImageUrl: "https://placehold.co/200x200/A7C1E2/fff?text=%F0%9F%93%9D",
+          encouragementMessage: "Having a birth plan helps communicate your wishes to your healthcare team. Remember that flexibility is important, as birth can be unpredictable.",
+          category: "preparations",
+          order: 6,
+          isActive: true,
+        },
+        {
+          milestoneId: "full-term-reached",
+          title: "Full Term Reached",
+          description: "Congratulations on reaching full term in your pregnancy! Your baby is considered fully developed and ready for birth.",
+          weekStart: 37,
+          weekEnd: 40,
+          badgeEmoji: "🎉",
+          badgeImageUrl: "https://placehold.co/200x200/E8B7D5/fff?text=%F0%9F%8E%89",
+          encouragementMessage: "Amazing achievement! Your baby is now considered full term and would be ready to thrive outside the womb. Any day now, you'll meet your little one!",
+          category: "baby_development",
+          order: 7,
+          isActive: true,
+        },
+        {
+          milestoneId: "self-care-routine",
+          title: "Self-Care Routine Established",
+          description: "You've created and maintained a regular self-care routine during your pregnancy journey.",
+          weekStart: 15,
+          weekEnd: 30,
+          badgeEmoji: "❤️",
+          badgeImageUrl: "https://placehold.co/200x200/ADB5E1/fff?text=%E2%9D%A4%EF%B8%8F",
+          encouragementMessage: "Taking care of yourself is one of the best things you can do for your baby too! Your commitment to self-care supports your physical and emotional wellbeing.",
+          category: "maternal_health",
+          order: 8,
+          isActive: true,
+        },
+        {
+          milestoneId: "healthy-eating-habits",
+          title: "Healthy Nutrition Champion",
+          description: "You've consistently maintained healthy eating habits and proper nutrition during your pregnancy.",
+          weekStart: 10,
+          weekEnd: 40,
+          badgeEmoji: "🥗",
+          badgeImageUrl: "https://placehold.co/200x200/9DC8B7/fff?text=%F0%9F%A5%97",
+          encouragementMessage: "Your dedication to nutrition is nurturing your baby's development. The healthy choices you make provide essential nutrients for your growing little one!",
+          category: "maternal_health",
+          order: 9,
+          isActive: true,
+        },
+      ];
+
+      // Validate and insert milestones
+      for (const milestone of milestonesList) {
+        await db.insert(schema.milestones).values(milestone);
+      }
+      
+      console.log(`Inserted ${milestonesList.length} pregnancy milestones.`);
+    } else {
+      console.log(`Found ${existingMilestones.length} existing pregnancy milestones. Skipping seeding.`);
+    }
+
     console.log("Seed completed successfully!");
   } catch (error) {
     console.error("Error seeding database:", error);

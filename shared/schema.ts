@@ -242,6 +242,69 @@ export const abTestResultsRelations = relations(abTestResults, ({ one }) => ({
   })
 }));
 
+// Pregnancy milestone system tables
+export const milestones = pgTable("milestones", {
+  id: serial("id").primaryKey(),
+  milestoneId: text("milestone_id").notNull().unique(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  weekStart: integer("week_start").notNull(), // Pregnancy week when milestone starts
+  weekEnd: integer("week_end").notNull(), // Pregnancy week when milestone ends
+  badgeEmoji: text("badge_emoji").notNull(), // Emoji representing the badge
+  badgeImageUrl: text("badge_image_url"), // Optional image URL for the badge
+  encouragementMessage: text("encouragement_message").notNull(), // Message to show when milestone is reached
+  category: text("category").notNull(), // e.g., "baby_development", "maternal_health", "preparations"
+  order: integer("order").default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const userMilestones = pgTable("user_milestones", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  milestoneId: text("milestone_id").references(() => milestones.milestoneId).notNull(),
+  completedAt: timestamp("completed_at").defaultNow().notNull(),
+  notes: text("notes"), // Optional user notes about this milestone
+  photoUrl: text("photo_url"), // Optional photo URL associated with this milestone
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const pregnancyProfiles = pgTable("pregnancy_profiles", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  dueDate: timestamp("due_date").notNull(),
+  currentWeek: integer("current_week").notNull(),
+  lastUpdated: timestamp("last_updated").defaultNow().notNull(),
+  babyNickname: text("baby_nickname"),
+  babyGender: text("baby_gender"), // "boy", "girl", "unknown", "prefer_not_to_say"
+  isFirstPregnancy: boolean("is_first_pregnancy"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Define relations for milestone tables
+export const milestonesRelations = relations(milestones, ({ many }) => ({
+  userMilestones: many(userMilestones)
+}));
+
+export const userMilestonesRelations = relations(userMilestones, ({ one }) => ({
+  milestone: one(milestones, {
+    fields: [userMilestones.milestoneId],
+    references: [milestones.milestoneId]
+  }),
+  user: one(users, {
+    fields: [userMilestones.userId],
+    references: [users.id]
+  })
+}));
+
+export const pregnancyProfilesRelations = relations(pregnancyProfiles, ({ one }) => ({
+  user: one(users, {
+    fields: [pregnancyProfiles.userId],
+    references: [users.id]
+  })
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -260,10 +323,23 @@ export const insertConceptCategorySchema = createInsertSchema(conceptCategories)
 export const insertAbTestSchema = createInsertSchema(abTests);
 export const insertAbTestVariantSchema = createInsertSchema(abTestVariants);
 export const insertAbTestResultSchema = createInsertSchema(abTestResults);
+export const insertMilestoneSchema = createInsertSchema(milestones);
+export const insertUserMilestoneSchema = createInsertSchema(userMilestones);
+export const insertPregnancyProfileSchema = createInsertSchema(pregnancyProfiles);
 
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+// Milestone types
+export type InsertMilestone = z.infer<typeof insertMilestoneSchema>;
+export type Milestone = typeof milestones.$inferSelect;
+
+export type InsertUserMilestone = z.infer<typeof insertUserMilestoneSchema>;
+export type UserMilestone = typeof userMilestones.$inferSelect;
+
+export type InsertPregnancyProfile = z.infer<typeof insertPregnancyProfileSchema>;
+export type PregnancyProfile = typeof pregnancyProfiles.$inferSelect;
 
 export type InsertMusic = z.infer<typeof insertMusicSchema>;
 export type Music = typeof music.$inferSelect;
