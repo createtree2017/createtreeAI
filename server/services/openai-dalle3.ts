@@ -10,14 +10,15 @@ const API_KEY = process.env.OPENAI_API_KEY;
 // 서비스 불가능 상태 메시지
 const SERVICE_UNAVAILABLE = "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
 
-// 간단한 API 키 유효성 검증
+// 간단한 API 키 유효성 검증 (프로젝트 ID 검증 없이)
 function isValidApiKey(apiKey: string | undefined): boolean {
-  return !!apiKey && (apiKey.startsWith('sk-') || apiKey.startsWith('sk-proj-'));
+  return !!apiKey && apiKey.startsWith('sk-');
 }
 
-// 기본 OpenAI 클라이언트 생성
+// 기본 OpenAI 클라이언트 생성 (조직 ID 제거하고 단순화)
 const openai = new OpenAI({
   apiKey: API_KEY,
+  organization: undefined, // 조직 ID 사용하지 않음
 });
 
 /**
