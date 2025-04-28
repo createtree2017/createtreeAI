@@ -182,12 +182,42 @@ export async function transformImageWithStability(
     }
     
     console.log(`이미지 변환 중... [Style: ${stylePreset}]`);
-    console.log(`처리된 프롬프트: "${prompt.substring(0, 200)}${prompt.length > 200 ? '...' : ''}"`);
+    
+    // 한국어 프롬프트를 영어로 변환
+    let englishPrompt = prompt;
+    
+    // 한국어가 포함된 경우, 영어로 대체 프롬프트 작성
+    if (/[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(prompt)) {
+      console.log("한국어 프롬프트 감지, 영어로 변환합니다.");
+      
+      // 스타일별 영어 프롬프트 생성
+      if (style === 'baby-dog-sd-style') {
+        englishPrompt = "Create a cute Super Deformed (SD) style illustration of this pet dog. Make it a chibi character with a big head and small body. Use a warm and lovely atmosphere. Transform the image into an SD style without creating a completely new image.";
+      } else if (style === 'watercolor') {
+        englishPrompt = "Transform this image into a beautiful watercolor painting with soft edges and gentle color blending. Maintain the original composition and subject.";
+      } else if (style === 'sketch') {
+        englishPrompt = "Create a detailed sketch version of this image with fine line art. Focus on contours and essential details.";
+      } else if (style === 'cartoon') {
+        englishPrompt = "Convert this image into a cartoon style with bold lines, simplified features, and vibrant colors.";
+      } else if (style === 'oil-painting') {
+        englishPrompt = "Transform this image into a classical oil painting with rich textures, detailed brushwork, and depth.";
+      } else if (style === 'fantasy') {
+        englishPrompt = "Convert this into a fantasy art style with magical elements, ethereal lighting, and surreal qualities.";
+      } else if (style === 'ghibli') {
+        englishPrompt = "Transform this image in the style of Studio Ghibli animation with soft colors, detailed backgrounds, and whimsical character design.";
+      } else if (style === 'disney') {
+        englishPrompt = "Convert this image into a Disney animation style with expressive features, smooth lines, and vibrant colors.";
+      } else {
+        englishPrompt = "Transform this image into a professional artistic style. Preserve the main subject and composition while enhancing its artistic quality.";
+      }
+    }
+    
+    console.log(`영어 프롬프트: "${englishPrompt.substring(0, 200)}${englishPrompt.length > 200 ? '...' : ''}"`);
     
     // 텍스트 프롬프트를 통한 이미지 생성 (이미지 입력은 현재 지원되지 않음)
     // Stability API에서는 이미지 입력 기반 변환보다는 텍스트 프롬프트 기반 생성이 주요 기능
     try {
-      return await generateImageWithStability(prompt, {
+      return await generateImageWithStability(englishPrompt, {
         engineId,
         style: stylePreset
       });
