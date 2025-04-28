@@ -146,8 +146,8 @@ const conceptCategorySchema = z.object({
   isActive: z.boolean().default(true),
 });
 
-// Schema for Gemini image generation request
-const geminiImageGenerationSchema = z.object({
+// Schema for image generation request
+const imageGenerationSchema = z.object({
   prompt: z.string().min(1, "Prompt is required"),
 });
 
@@ -309,13 +309,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Gemini image generation endpoint
+  // Image generation endpoint (using DALL-E)
   app.post("/api/generate-image", async (req, res) => {
     try {
-      const validatedData = geminiImageGenerationSchema.parse(req.body);
+      const validatedData = imageGenerationSchema.parse(req.body);
       
-      // Call the updated function to generate image
-      const imageUrl = await generateImageWithGemini(validatedData.prompt);
+      // Call the DALL-E function to generate image
+      const imageUrl = await generateImageWithDALLE(validatedData.prompt);
       
       return res.status(200).json({ 
         imageUrl,
@@ -326,9 +326,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ errors: error.errors });
       }
-      console.error("Error generating image with Gemini:", error);
+      console.error("Error generating image:", error);
       return res.status(500).json({ 
-        error: "Failed to generate image with Gemini", 
+        error: "Failed to generate image", 
         message: error instanceof Error ? error.message : String(error)
       });
     }
