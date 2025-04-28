@@ -2597,9 +2597,16 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
                             <Button 
                               variant="ghost" 
                               size="sm" 
-                              onClick={() => {
-                                setEditingVariableIndex(index);
-                                setVariableDialogOpen(true);
+                              type="button"
+                              onClick={(e) => {
+                                // 이벤트 버블링 방지
+                                e.stopPropagation();
+                                e.preventDefault();
+                                // 상태 변경을 비동기로 설정하여 React 렌더링 사이클과 충돌 방지
+                                setTimeout(() => {
+                                  setEditingVariableIndex(index);
+                                  setVariableDialogOpen(true);
+                                }, 0);
                               }}
                             >
                               <Edit className="h-4 w-4" />
@@ -2716,19 +2723,27 @@ function VariableForm({ initialData, onSave }: VariableFormProps) {
   }, [variableForm.watch]);
   
   function handleSubmit(values: any) {
-    // For select type, ensure options array is available
-    if (values.type === "select" && (!values.options || !Array.isArray(values.options))) {
-      values.options = [];
+    // 이벤트 버블링 방지
+    try {
+      // For select type, ensure options array is available
+      if (values.type === "select" && (!values.options || !Array.isArray(values.options))) {
+        values.options = [];
+      }
+      
+      // Convert defaultValue to the appropriate type
+      if (values.type === "number" && values.defaultValue !== undefined) {
+        values.defaultValue = Number(values.defaultValue);
+      } else if (values.type === "boolean" && values.defaultValue !== undefined) {
+        values.defaultValue = values.defaultValue === "true";
+      }
+      
+      // 직접 함수 호출 대신 비동기로 처리 
+      setTimeout(() => {
+        onSave(values);
+      }, 0);
+    } catch (error) {
+      console.error("Error in handleSubmit:", error);
     }
-    
-    // Convert defaultValue to the appropriate type
-    if (values.type === "number" && values.defaultValue !== undefined) {
-      values.defaultValue = Number(values.defaultValue);
-    } else if (values.type === "boolean" && values.defaultValue !== undefined) {
-      values.defaultValue = values.defaultValue === "true";
-    }
-    
-    onSave(values);
   }
   
   return (
