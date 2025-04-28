@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Calendar, Heart, Medal, Trophy, Clock, Milestone, Notebook } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -42,7 +42,7 @@ interface UserMilestone {
 interface PregnancyProfile {
   id: number;
   userId: number;
-  dueDate: string;
+  dueDate: string | Date;
   currentWeek: number;
   lastUpdated: string;
   babyNickname?: string;
@@ -81,9 +81,9 @@ const categoryInfo: Record<string, { name: string; icon: React.ElementType; colo
 };
 
 // Helper function to calculate weeks remaining
-const calculateWeeksRemaining = (dueDate: string): number => {
+const calculateWeeksRemaining = (dueDate: string | Date): number => {
   const today = new Date();
-  const due = new Date(dueDate);
+  const due = dueDate instanceof Date ? dueDate : new Date(dueDate);
   const diffTime = Math.abs(due.getTime() - today.getTime());
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   return Math.ceil(diffDays / 7);
@@ -106,7 +106,7 @@ const ProfileSetup = ({
     if (!dueDate) return;
     
     onSave({
-      dueDate,
+      dueDate: dueDate.toISOString(),
       babyNickname: babyNickname || undefined,
       babyGender,
       isFirstPregnancy
