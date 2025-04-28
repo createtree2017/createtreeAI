@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { ImageGenerateParams } from "openai/resources/images";
+import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import fs from "fs";
 
 // 채팅에 사용할 API 키 (PROJECT KEY 지원)
@@ -10,25 +11,48 @@ const IMAGE_API_KEY = process.env.DALLE_API_KEY || process.env.OPENAI_API_KEY;
 console.log("Chat API Key 설정됨. 키 유형:", CHAT_API_KEY?.startsWith('sk-proj-') ? "Project Key" : "Standard Key");
 console.log("Image API Key 설정됨. 키 유형:", IMAGE_API_KEY?.startsWith('sk-proj-') ? "Project Key" : "Standard Key");
 
-// 채팅용 OpenAI 클라이언트 설정
-const chatConfig = { 
-  apiKey: CHAT_API_KEY,
-  defaultHeaders: {
-    "OpenAI-Beta": "assistants=v1"
-  },
-  dangerouslyAllowBrowser: false
-};
+/**
+ * OpenAI API 키 유효성 검증 함수
+ * User Key(sk-) 및 Project Key(sk-proj-) 모두 지원
+ */
+function isValidApiKey(apiKey: string | undefined): boolean {
+  return !!apiKey && (apiKey.startsWith('sk-') || apiKey.startsWith('sk-proj-'));
+}
 
-// Chat API를 위한 OpenAI 클라이언트
-const openai = new OpenAI(chatConfig);
+/**
+ * 키 타입에 따른 OpenAI 클라이언트 설정 생성
+ * Project Key와 User Key 모두 지원하는 설정을 반환
+ */
+function getOpenAIConfig(apiKey: string | undefined) {
+  const isProjectKey = apiKey?.startsWith('sk-proj-') || false;
+  
+  // 기본 설정
+  const config = {
+    apiKey: apiKey,
+    defaultHeaders: {
+      "OpenAI-Beta": "assistants=v1"
+    },
+    dangerouslyAllowBrowser: false
+  };
+  
+  return {
+    config,
+    isProjectKey
+  };
+}
 
-// 이미지 생성용 OpenAI 클라이언트 (별도로 설정)
-const imageOpenai = new OpenAI({
-  apiKey: IMAGE_API_KEY,
-  defaultHeaders: {
-    "OpenAI-Beta": "assistants=v1"
-  }
-});
+// Chat API를 위한 설정 및 클라이언트 초기화
+const chatConfig = getOpenAIConfig(CHAT_API_KEY);
+const openai = new OpenAI(chatConfig.config);
+const isChatProjectKey = chatConfig.isProjectKey;
+
+// 이미지 생성용 설정 및 클라이언트 초기화
+const imageConfig = getOpenAIConfig(IMAGE_API_KEY);
+const imageOpenai = new OpenAI(imageConfig.config);
+const isImageProjectKey = imageConfig.isProjectKey;
+
+console.log("Chat API 클라이언트 초기화 완료. Project Key 모드:", isChatProjectKey);
+console.log("Image API 클라이언트 초기화 완료. Project Key 모드:", isImageProjectKey);
 
 /**
  * Generate a chat response for the user's message
@@ -43,49 +67,68 @@ Keep responses concise (under 150 words) and appropriate for a mobile interface.
 
     const promptToUse = systemPrompt || defaultSystemPrompt;
 
-    // Try sending the request with the OpenAI SDK first
-    try {
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-        messages: [
-          { role: "system", content: promptToUse },
-          { role: "user", content: userMessage }
-        ],
-        max_tokens: 300,
-        temperature: 0.7,
-      });
+    // 메시지 구성
+    const messages: ChatCompletionMessageParam[] = [
+      { role: "system", content: promptToUse },
+      { role: "user", content: userMessage }
+    ];
 
-      return response.choices[0].message.content || "I'm here to support you.";
-    } catch (sdkError) {
-      // If the SDK approach fails, try a direct fetch request as a fallback
-      console.log("OpenAI SDK error, trying direct fetch approach:", sdkError);
+    // 요청 파라미터 구성
+    const requestParams = {
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      messages: messages,
+      max_tokens: 300,
+      temperature: 0.7,
+    };
+    
+    // Project Key인 경우 직접 fetch 사용
+    if (isChatProjectKey) {
+      console.log("Using direct fetch for chat with project-based API key");
       
-      const apiKey = process.env.OPENAI_API_KEY;
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`,
+          "Authorization": `Bearer ${CHAT_API_KEY}`,
           "OpenAI-Beta": "assistants=v1"
         },
-        body: JSON.stringify({
-          model: "gpt-4o",
-          messages: [
-            { role: "system", content: promptToUse },
-            { role: "user", content: userMessage }
-          ],
-          max_tokens: 300,
-          temperature: 0.7
-        })
+        body: JSON.stringify(requestParams)
       });
-
+      
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(`API request failed: ${JSON.stringify(errorData)}`);
       }
-
+      
       const data = await response.json();
       return data.choices[0].message.content || "I'm here to support you.";
+    } else {
+      // 일반 User Key 사용 시 SDK로 처리
+      try {
+        const response = await openai.chat.completions.create(requestParams);
+        return response.choices[0].message.content || "I'm here to support you.";
+      } catch (sdkError) {
+        // SDK 오류 시 직접 fetch 사용 (폴백 방식)
+        console.log("OpenAI SDK error, trying direct fetch approach:", sdkError);
+        
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json", 
+            "Authorization": `Bearer ${CHAT_API_KEY}`,
+            "OpenAI-Beta": "assistants=v1"
+          },
+          body: JSON.stringify(requestParams)
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(`API request failed: ${JSON.stringify(errorData)}`);
+        }
+  
+        const data = await response.json();
+        return data.choices[0].message.content || "I'm here to support you.";
+      }
     }
   } catch (error) {
     console.error("Error generating OpenAI chat response:", error);
@@ -93,9 +136,6 @@ Keep responses concise (under 150 words) and appropriate for a mobile interface.
   }
 }
 
-/**
- * Transform an image using OpenAI's DALL-E or a fallback demo mode
- */
 // Define reliable sample images for fallback when rate limited - using more styled examples
 const sampleStyleImages: Record<string, string> = {
   watercolor: "https://img.freepik.com/free-vector/watercolor-cherry-blossom-tree_125540-536.jpg",
@@ -124,7 +164,8 @@ export async function generateImageWithDALLE(promptText: string): Promise<string
       return "https://placehold.co/1024x1024/A7C1E2/FFF?text=Generated+Image";
     }
     
-    const isProjectBasedKey = apiKey && apiKey.startsWith('sk-proj-');
+    // 초기화 시 설정된 Project Key 정보 사용
+    const isProjectBasedKey = isImageProjectKey;
     
     // Prepare request parameters
     const requestParams: ImageGenerateParams = {
@@ -191,8 +232,12 @@ export async function transformImageWithOpenAI(
       console.log("No Image API key found");
     }
     
+    // 초기화 시 설정된 Project Key 정보 사용
     const useDemoMode = !apiKey || apiKey === "demo" || apiKey === "your-api-key-here";
-    const isProjectBasedKey = apiKey && apiKey.startsWith('sk-proj-');
+    const isProjectBasedKey = isImageProjectKey;
+    
+    // Project Key 상태 로깅 추가
+    console.log(`Image API key status - Demo Mode: ${useDemoMode}, Project Key Mode: ${isProjectBasedKey}`);
     
     if (useDemoMode) {
       console.log("Using demo mode for image transformation (no valid API key)");
@@ -428,93 +473,50 @@ export async function transformImageWithOpenAI(
         }
         
         const data = await dalleResponse.json();
-        response = { data: data.data };
+        return data.data[0].url;
       } else {
-        // Use the SDK for standard API keys
+        // For standard keys, use the OpenAI SDK
         console.log("Using OpenAI SDK for image generation");
-        
-        // Create the request parameters with proper typing
-        const requestParams: ImageGenerateParams = {
-          model: "dall-e-2", // Changed to DALL-E 2 as requested (2023-04-28)
+        const dalleResponse = await imageOpenai.images.generate({
+          model: "dall-e-2", // Using DALL-E 2 model instead of DALL-E 3 
           prompt: generatedPrompt,
           n: 1,
-          size: "1024x1024",
-          // quality parameter is not needed for DALL-E 2
-        };
+          size: "1024x1024"
+        });
         
-        console.log("DALL-E SDK request params:", JSON.stringify(requestParams, null, 2));
+        // Extract image URL
+        if (!dalleResponse.data || dalleResponse.data.length === 0) {
+          throw new Error("No image data returned");
+        }
         
-        try {
-          // 이미지 생성용 클라이언트 사용
-          response = await imageOpenai.images.generate(requestParams);
-          console.log("DALL-E SDK response received successfully");
-        } catch (sdkError) {
-          console.error("OpenAI SDK error:", sdkError);
-          throw sdkError;
-        }
+        return dalleResponse.data[0].url || "";
       }
-
-      // Extract the URL from the response
-      console.log("Response data structure:", JSON.stringify(response, null, 2).substring(0, 500) + "...");
-      
-      let imageUrl = '';
-      
-      // Handle both direct fetch and SDK response formats
-      if (isProjectBasedKey) {
-        // For project-based keys using direct fetch
-        const imageData = response?.data;
-        if (!imageData || !imageData[0] || !imageData[0].url) {
-          console.error("Invalid response data structure from direct fetch:", response);
-          throw new Error("No valid image URL returned from OpenAI via direct fetch");
-        }
-        imageUrl = imageData[0].url;
-      } else {
-        // For SDK responses
-        if (!response || !response.data || !response.data[0] || !response.data[0].url) {
-          console.error("Invalid response data structure from SDK:", response);
-          throw new Error("No valid image URL returned from OpenAI SDK");
-        }
-        imageUrl = response.data[0].url;
-      }
-      
-      console.log("Successfully extracted image URL:", imageUrl.substring(0, 50) + "...");
-      
-      return imageUrl;
     } catch (dalleError: any) {
-      if (dalleError.status === 429) {
+      console.error("Error in DALL-E image generation:", dalleError);
+      
+      // Check if this is a rate limit error
+      const isRateLimit = dalleError && dalleError.status === 429;
+      if (isRateLimit) {
+        console.log("Rate limit reached with OpenAI API. Please try again later.");
         // Set a timestamp for the rate limit to avoid hitting it again soon
         process.env.OPENAI_RATE_LIMIT_TIME = Date.now().toString();
-        console.log("Rate limit hit with DALL-E, using sample image instead");
         
-        // Use our shared sample images
+        // Use fallback style images if available
         if (sampleStyleImages[style]) {
+          console.log(`Using sample ${style} style image due to rate limits`);
           return sampleStyleImages[style];
-        } else {
-          throw dalleError; // Re-throw if we don't have a sample image
         }
-      } else {
-        throw dalleError; // Re-throw other errors
       }
+      
+      // For any other error, throw it to be handled by the caller
+      throw dalleError;
     }
   } catch (error: any) {
-    console.error("Error transforming image with OpenAI:", error);
-    
-    // Check if this is a rate limit error
-    const isRateLimit = error && error.status === 429;
-    if (isRateLimit) {
-      console.log("Rate limit reached with OpenAI API. Please try again later.");
-      // Set a timestamp for the rate limit to avoid hitting it again soon
-      process.env.OPENAI_RATE_LIMIT_TIME = Date.now().toString();
-      
-      // Use our shared sample images
-      if (sampleStyleImages[style]) {
-        console.log(`Using sample ${style} style image due to catch-all error handler`);
-        return sampleStyleImages[style];
-      }
+    console.error("Image transformation error:", error);
+    // In case of any error, provide a friendly fallback image based on style
+    if (sampleStyleImages[style]) {
+      return sampleStyleImages[style];
     }
-    
-    // Fallback to styled demo images if API fails
-    const demoImage = sampleStyleImages[style] || "https://placehold.co/1024x1024/A7C1E2/FFF?text=Transformed+Image";
-    return demoImage;
+    return "https://placehold.co/1024x1024/A7C1E2/FFF?text=Image+Transform+Error";
   }
 }
