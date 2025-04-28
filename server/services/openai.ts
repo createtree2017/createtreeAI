@@ -100,16 +100,23 @@ export async function transformImageWithOpenAI(
 ): Promise<string> {
   try {
     // Check if we have a valid API key - if not use demo mode
-    const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey = process.env.OPENAI_API_KEY || '';
+    
+    // Log API key prefix for debugging (never log the full key)
+    if (apiKey) {
+      const keyPrefix = apiKey.substring(0, 10) + "...";
+      console.log(`Using API key with prefix: ${keyPrefix}`);
+    } else {
+      console.log("No API key found");
+    }
+    
     const useDemoMode = !apiKey || apiKey === "demo" || apiKey === "your-api-key-here";
+    const isProjectBasedKey = apiKey && apiKey.startsWith('sk-proj-');
     
     if (useDemoMode) {
-      console.log("Using demo mode for image transformation");
-      // Demo mode - use our styled examples
-      const demoImages = sampleStyleImages;
-      
+      console.log("Using demo mode for image transformation (no valid API key)");
       // Return the placeholder for this style or a default one
-      return demoImages[style] || "https://placehold.co/1024x1024/A7C1E2/FFF?text=Transformed+Image";
+      return sampleStyleImages[style] || "https://placehold.co/1024x1024/A7C1E2/FFF?text=Transformed+Image";
     }
     
     // Create a prompt based on the selected style
@@ -127,10 +134,14 @@ export async function transformImageWithOpenAI(
     };
 
     // Use the custom prompt template if provided, otherwise use the default style prompt
-    let promptText;
+    let promptText: string;
+    const hasCustomTemplate = !!customPromptTemplate;
+    
     if (customPromptTemplate) {
+      console.log("Using custom prompt template from admin:", customPromptTemplate);
       promptText = customPromptTemplate;
     } else {
+      console.log("No custom template found, using default style prompt");
       promptText = stylePrompts[style] || "Transform this image into a beautiful artistic style";
     }
 
@@ -146,50 +157,110 @@ export async function transformImageWithOpenAI(
       console.log("Recently hit rate limits, using direct style image to avoid further rate limits");
       
       // For demonstration purposes, we're using predefined sample images based on style
-      // In a production environment, this would be replaced with a proper image generation service
-      // that respects rate limits or uses a different provider
-      
-      // Use our shared sample images
-      const sampleImages = sampleStyleImages;
-      
-      if (sampleImages[style]) {
+      if (sampleStyleImages[style]) {
         console.log(`Using sample ${style} style image to avoid rate limits`);
-        return sampleImages[style];
+        return sampleStyleImages[style];
       }
     }
     
-    // Use a single-step approach with GPT-4o vision to avoid rate limits
-    console.log("Using single-step approach with GPT-4o vision");
+    // Initialize the final prompt that will be used for DALL-E
+    let generatedPrompt: string;
     
-    try {
-      // First try to analyze the image using GPT-4o Vision with a direct fetch approach
-      // since the SDK seems to have issues with project-based API keys
-
-      // Use this alternate approach for project-based keys (sk-proj-*)
-      const apiKey = process.env.OPENAI_API_KEY;
-      const isProjectBasedKey = apiKey && apiKey.startsWith('sk-proj-');
+    if (hasCustomTemplate) {
+      // If we have a custom prompt template from admin, use it directly
+      console.log("USING CUSTOM PROMPT TEMPLATE DIRECTLY FOR DALL-E 3:", promptText);
       
-      let visionResponse;
+      // Custom templates have placeholders for variables like {{object}}
+      // For now, we'll use placeholder values that make sense for maternal photos
+      let processedPrompt = promptText
+        .replace(/{{object}}/gi, "mother with baby")
+        .replace(/{{style_details}}/gi, "soft, gentle colors and warm lighting")
+        .replace(/{{background}}/gi, "soft neutral background")
+        .replace(/{{mood}}/gi, "tender and loving")
+        .replace(/{{color_scheme}}/gi, "soft pastel tones");
+        
+      generatedPrompt = processedPrompt;
+      console.log("Final processed custom prompt for DALL-E:", generatedPrompt);
+    } else {
+      // For standard styles, use the GPT-4o vision approach
+      console.log("No custom template, using GPT-4o vision analysis approach");
       
-      if (isProjectBasedKey) {
-        console.log("Using direct fetch for project-based API key");
-        const response = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${apiKey}`,
-            "OpenAI-Beta": "assistants=v1"
-          },
-          body: JSON.stringify({
-            model: "gpt-4o",
+      try {
+        // First try to analyze the image using GPT-4o Vision
+        let visionResponse;
+        
+        if (isProjectBasedKey) {
+          console.log("Using direct fetch for project-based API key");
+          const response = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${apiKey}`,
+              "OpenAI-Beta": "assistants=v1"
+            },
+            body: JSON.stringify({
+              model: "gpt-4o",
+              messages: [
+                {
+                  role: "system",
+                  content: `You are a vision analysis assistant that helps generate detailed image descriptions to be used for image transformations.
+                  
+  When provided with an image, analyze it carefully and provide a DALL-E 3 compatible prompt that will recreate the image in the requested style.
+                  
+  Format your response as a JSON object with a single field "prompt" containing the detailed DALL-E prompt.`
+                },
+                {
+                  role: "user",
+                  content: [
+                    {
+                      type: "text", 
+                      text: `I want to transform this image into the following style: "${promptText}".
+                      
+  Please create a detailed DALL-E 3 prompt that describes the key elements of this image and how they should be transformed into the ${style} style. Focus on subjects, expressions, composition, colors, and mood.
+                      
+  Return only a JSON object with a "prompt" field containing the DALL-E prompt.`
+                    },
+                    {
+                      type: "image_url",
+                      image_url: {
+                        url: `data:image/jpeg;base64,${base64Image}`
+                      }
+                    }
+                  ]
+                }
+              ],
+              max_tokens: 500,
+              response_format: { type: "json_object" }
+            })
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`API request failed: ${JSON.stringify(errorData)}`);
+          }
+          
+          const data = await response.json();
+          visionResponse = {
+            choices: [
+              {
+                message: {
+                  content: data.choices[0].message.content
+                }
+              }
+            ]
+          };
+        } else {
+          // Use the SDK for standard API keys
+          visionResponse = await openai.chat.completions.create({
+            model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
             messages: [
               {
                 role: "system",
                 content: `You are a vision analysis assistant that helps generate detailed image descriptions to be used for image transformations.
                 
-When provided with an image, analyze it carefully and provide a DALL-E 3 compatible prompt that will recreate the image in the requested style.
+    When provided with an image, analyze it carefully and provide a DALL-E 3 compatible prompt that will recreate the image in the requested style.
                 
-Format your response as a JSON object with a single field "prompt" containing the detailed DALL-E prompt.`
+    Format your response as a JSON object with a single field "prompt" containing the detailed DALL-E prompt.`
               },
               {
                 role: "user",
@@ -198,9 +269,9 @@ Format your response as a JSON object with a single field "prompt" containing th
                     type: "text", 
                     text: `I want to transform this image into the following style: "${promptText}".
                     
-Please create a detailed DALL-E 3 prompt that describes the key elements of this image and how they should be transformed into the ${style} style. Focus on subjects, expressions, composition, colors, and mood.
+    Please create a detailed DALL-E 3 prompt that describes the key elements of this image and how they should be transformed into the ${style} style. Focus on subjects, expressions, composition, colors, and mood.
                     
-Return only a JSON object with a "prompt" field containing the DALL-E prompt.`
+    Return only a JSON object with a "prompt" field containing the DALL-E prompt.`
                   },
                   {
                     type: "image_url",
@@ -213,206 +284,136 @@ Return only a JSON object with a "prompt" field containing the DALL-E prompt.`
             ],
             max_tokens: 500,
             response_format: { type: "json_object" }
-          })
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(`API request failed: ${JSON.stringify(errorData)}`);
+          });
         }
-        
-        const data = await response.json();
-        visionResponse = {
-          choices: [
-            {
-              message: {
-                content: data.choices[0].message.content
-              }
-            }
-          ]
-        };
-      } else {
-        // Use the SDK for standard API keys
-        visionResponse = await openai.chat.completions.create({
-          model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-          messages: [
-            {
-              role: "system",
-              content: `You are a vision analysis assistant that helps generate detailed image descriptions to be used for image transformations.
-              
-  When provided with an image, analyze it carefully and provide a DALL-E 3 compatible prompt that will recreate the image in the requested style.
-              
-  Format your response as a JSON object with a single field "prompt" containing the detailed DALL-E prompt.`
-            },
-            {
-              role: "user",
-              content: [
-                {
-                  type: "text", 
-                  text: `I want to transform this image into the following style: "${promptText}".
-                  
-  Please create a detailed DALL-E 3 prompt that describes the key elements of this image and how they should be transformed into the ${style} style. Focus on subjects, expressions, composition, colors, and mood.
-                  
-  Return only a JSON object with a "prompt" field containing the DALL-E prompt.`
-                },
-                {
-                  type: "image_url",
-                  image_url: {
-                    url: `data:image/jpeg;base64,${base64Image}`
-                  }
-                }
-              ]
-            }
-          ],
-          max_tokens: 500,
-          response_format: { type: "json_object" }
-        });
-      }
 
-      // Extract the prompt from GPT-4o's response
-      let generatedPrompt;
-      try {
-        const jsonResponse = JSON.parse(visionResponse.choices[0].message.content || "{}");
-        generatedPrompt = jsonResponse.prompt;
-        console.log("Generated DALL-E prompt:", generatedPrompt);
-      } catch (parseError) {
-        console.error("Error parsing GPT-4o JSON response:", parseError);
+        // Extract the prompt from GPT-4o's response
+        try {
+          const jsonResponse = JSON.parse(visionResponse.choices[0].message.content || "{}");
+          generatedPrompt = jsonResponse.prompt;
+          console.log("Generated DALL-E prompt:", generatedPrompt);
+        } catch (parseError) {
+          console.error("Error parsing GPT-4o JSON response:", parseError);
+          generatedPrompt = `${promptText} based on the uploaded image. The image should be suitable for pregnancy and baby photos.`;
+        }
+      } catch (visionError) {
+        console.error("Error in vision analysis step:", visionError);
         generatedPrompt = `${promptText} based on the uploaded image. The image should be suitable for pregnancy and baby photos.`;
       }
       
       if (!generatedPrompt) {
         generatedPrompt = `${promptText} based on the uploaded image. The image should be suitable for pregnancy and baby photos.`;
       }
+    }
 
-      // Add a delay to avoid rate limits
-      console.log("Adding a short delay before DALL-E request to avoid rate limits...");
-      await new Promise(resolve => setTimeout(resolve, 2000));
+    // Add a delay to avoid rate limits
+    console.log("Adding a short delay before DALL-E request to avoid rate limits...");
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Try to use DALL-E 3 to create a new image
+    try {
+      console.log("Generating image with DALL-E 3");
       
-      // Try to use DALL-E 3 to create a new image
-      try {
-        console.log("Generating image with DALL-E 3");
+      let response;
+      
+      // Check if using project-based API key and use direct fetch if needed
+      if (isProjectBasedKey) {
+        console.log("Using direct fetch for DALL-E with project-based API key");
         
-        let response;
+        // Ensure we're explicitly specifying the DALL-E 3 model
+        const requestBody = {
+          model: "dall-e-3", // Explicitly set model to dall-e-3
+          prompt: generatedPrompt,
+          n: 1,
+          size: "1024x1024",
+          quality: "standard",
+        };
         
-        // Check if using project-based API key and use direct fetch if needed
-        if (isProjectBasedKey) {
-          console.log("Using direct fetch for DALL-E with project-based API key");
-          
-          // Ensure we're explicitly specifying the DALL-E 3 model
-          const requestBody = {
-            model: "dall-e-3", // Explicitly set model to dall-e-3
-            prompt: generatedPrompt,
-            n: 1,
-            size: "1024x1024",
-            quality: "standard",
-          };
-          
-          console.log("DALL-E request payload:", JSON.stringify(requestBody, null, 2));
-          
-          const dalleResponse = await fetch("https://api.openai.com/v1/images/generations", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${apiKey}`,
-              "OpenAI-Beta": "assistants=v1"
-            },
-            body: JSON.stringify(requestBody)
-          });
-          
-          if (!dalleResponse.ok) {
-            const errorData = await dalleResponse.json();
-            console.error("DALL-E API error:", JSON.stringify(errorData));
-            throw new Error(`DALL-E API request failed: ${JSON.stringify(errorData)}`);
-          }
-          
-          const data = await dalleResponse.json();
-          response = { data: data.data };
-        } else {
-          // Use the SDK for standard API keys
-          console.log("Using OpenAI SDK for image generation");
-          
-          // Create the request parameters with proper typing
-          const requestParams: ImageGenerateParams = {
-            model: "dall-e-3", // Always use DALL-E 3 for transformations
-            prompt: generatedPrompt,
-            n: 1,
-            size: "1024x1024", 
-            quality: "standard",
-          };
-          
-          console.log("DALL-E SDK request params:", JSON.stringify(requestParams, null, 2));
-          
-          try {
-            response = await openai.images.generate(requestParams);
-            console.log("DALL-E SDK response received successfully");
-          } catch (sdkError) {
-            console.error("OpenAI SDK error:", sdkError);
-            throw sdkError;
-          }
-        }
-
-        // Extract the URL from the response
-        console.log("Response data structure:", JSON.stringify(response, null, 2).substring(0, 500) + "...");
+        console.log("DALL-E request payload:", JSON.stringify(requestBody, null, 2));
         
-        let imageUrl = '';
+        const dalleResponse = await fetch("https://api.openai.com/v1/images/generations", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`,
+            "OpenAI-Beta": "assistants=v1"
+          },
+          body: JSON.stringify(requestBody)
+        });
         
-        // Handle both direct fetch and SDK response formats
-        if (isProjectBasedKey) {
-          // For project-based keys using direct fetch
-          const imageData = response?.data;
-          if (!imageData || !imageData[0] || !imageData[0].url) {
-            console.error("Invalid response data structure from direct fetch:", response);
-            throw new Error("No valid image URL returned from OpenAI via direct fetch");
-          }
-          imageUrl = imageData[0].url;
-        } else {
-          // For SDK responses
-          if (!response || !response.data || !response.data[0] || !response.data[0].url) {
-            console.error("Invalid response data structure from SDK:", response);
-            throw new Error("No valid image URL returned from OpenAI SDK");
-          }
-          imageUrl = response.data[0].url;
+        if (!dalleResponse.ok) {
+          const errorData = await dalleResponse.json();
+          console.error("DALL-E API error:", JSON.stringify(errorData));
+          throw new Error(`DALL-E API request failed: ${JSON.stringify(errorData)}`);
         }
         
-        console.log("Successfully extracted image URL:", imageUrl.substring(0, 50) + "...");
+        const data = await dalleResponse.json();
+        response = { data: data.data };
+      } else {
+        // Use the SDK for standard API keys
+        console.log("Using OpenAI SDK for image generation");
         
-        return imageUrl;
-      } catch (dalleError: any) {
-        if (dalleError.status === 429) {
-          // Set a timestamp for the rate limit to avoid hitting it again soon
-          process.env.OPENAI_RATE_LIMIT_TIME = Date.now().toString();
-          console.log("Rate limit hit with DALL-E, using sample image instead");
-          
-          // Use our shared sample images
-          const sampleImages = sampleStyleImages;
-          
-          if (sampleImages[style]) {
-            return sampleImages[style];
-          } else {
-            throw dalleError; // Re-throw if we don't have a sample image
-          }
-        } else {
-          throw dalleError; // Re-throw other errors
+        // Create the request parameters with proper typing
+        const requestParams: ImageGenerateParams = {
+          model: "dall-e-3", // Always use DALL-E 3 for transformations
+          prompt: generatedPrompt,
+          n: 1,
+          size: "1024x1024", 
+          quality: "standard",
+        };
+        
+        console.log("DALL-E SDK request params:", JSON.stringify(requestParams, null, 2));
+        
+        try {
+          response = await openai.images.generate(requestParams);
+          console.log("DALL-E SDK response received successfully");
+        } catch (sdkError) {
+          console.error("OpenAI SDK error:", sdkError);
+          throw sdkError;
         }
       }
-    } catch (apiError: any) {
-      // Handle rate limit errors specifically
-      if (apiError.status === 429) {
-        console.log("Encountered rate limit error, setting rate limit timestamp");
+
+      // Extract the URL from the response
+      console.log("Response data structure:", JSON.stringify(response, null, 2).substring(0, 500) + "...");
+      
+      let imageUrl = '';
+      
+      // Handle both direct fetch and SDK response formats
+      if (isProjectBasedKey) {
+        // For project-based keys using direct fetch
+        const imageData = response?.data;
+        if (!imageData || !imageData[0] || !imageData[0].url) {
+          console.error("Invalid response data structure from direct fetch:", response);
+          throw new Error("No valid image URL returned from OpenAI via direct fetch");
+        }
+        imageUrl = imageData[0].url;
+      } else {
+        // For SDK responses
+        if (!response || !response.data || !response.data[0] || !response.data[0].url) {
+          console.error("Invalid response data structure from SDK:", response);
+          throw new Error("No valid image URL returned from OpenAI SDK");
+        }
+        imageUrl = response.data[0].url;
+      }
+      
+      console.log("Successfully extracted image URL:", imageUrl.substring(0, 50) + "...");
+      
+      return imageUrl;
+    } catch (dalleError: any) {
+      if (dalleError.status === 429) {
         // Set a timestamp for the rate limit to avoid hitting it again soon
         process.env.OPENAI_RATE_LIMIT_TIME = Date.now().toString();
+        console.log("Rate limit hit with DALL-E, using sample image instead");
         
         // Use our shared sample images
-        const sampleImages = sampleStyleImages;
-        
-        if (sampleImages[style]) {
-          console.log(`Using sample ${style} style image due to rate limits`);
-          return sampleImages[style];
+        if (sampleStyleImages[style]) {
+          return sampleStyleImages[style];
+        } else {
+          throw dalleError; // Re-throw if we don't have a sample image
         }
+      } else {
+        throw dalleError; // Re-throw other errors
       }
-      
-      // Re-throw other errors
-      throw apiError;
     }
   } catch (error: any) {
     console.error("Error transforming image with OpenAI:", error);
@@ -425,18 +426,14 @@ Return only a JSON object with a "prompt" field containing the DALL-E prompt.`
       process.env.OPENAI_RATE_LIMIT_TIME = Date.now().toString();
       
       // Use our shared sample images
-      const sampleImages = sampleStyleImages;
-      
-      if (sampleImages[style]) {
+      if (sampleStyleImages[style]) {
         console.log(`Using sample ${style} style image due to catch-all error handler`);
-        return sampleImages[style];
+        return sampleStyleImages[style];
       }
     }
     
     // Fallback to styled demo images if API fails
-    const demoImages = sampleStyleImages;
-    
-    // Return the placeholder for this style or a default one
-    return demoImages[style] || "https://placehold.co/1024x1024/A7C1E2/FFF?text=Transformed+Image";
+    const demoImage = sampleStyleImages[style] || "https://placehold.co/1024x1024/A7C1E2/FFF?text=Transformed+Image";
+    return demoImage;
   }
 }
