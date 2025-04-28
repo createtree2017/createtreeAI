@@ -7,9 +7,12 @@ import fs from "fs";
 const CHAT_API_KEY = process.env.OPENAI_API_KEY;
 // 이미지 생성에 사용할 API 키 (DALL-E API 키 - 환경변수 DALLE_API_KEY가 설정되어 있으면 사용)
 const IMAGE_API_KEY = process.env.DALLE_API_KEY || process.env.OPENAI_API_KEY;
+// Project ID (OpenAI-Project 헤더 값)
+const PROJECT_ID = process.env.OPENAI_PROJECT_ID;
 
 console.log("Chat API Key 설정됨. 키 유형:", CHAT_API_KEY?.startsWith('sk-proj-') ? "Project Key" : "Standard Key");
 console.log("Image API Key 설정됨. 키 유형:", IMAGE_API_KEY?.startsWith('sk-proj-') ? "Project Key" : "Standard Key");
+console.log("OpenAI Project ID 설정됨:", PROJECT_ID ? "Yes" : "No");
 
 /**
  * OpenAI API 키 유효성 검증 함수
@@ -20,18 +23,43 @@ function isValidApiKey(apiKey: string | undefined): boolean {
 }
 
 /**
+ * 인증 헤더 생성 함수
+ * Project Key와 User Key에 따라 적절한 인증 헤더 설정
+ */
+function getAuthHeaders(apiKey: string | undefined): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'OpenAI-Beta': 'assistants=v1'
+  };
+  
+  if (!apiKey) return headers;
+  
+  // 기본 인증 헤더 설정
+  headers['Authorization'] = `Bearer ${apiKey}`;
+  
+  // Project Key인 경우 OpenAI-Project 헤더 추가
+  if (apiKey.startsWith('sk-proj-') && PROJECT_ID) {
+    headers['OpenAI-Project'] = PROJECT_ID;
+    console.log("Project Key 인증: OpenAI-Project 헤더 설정됨");
+  }
+  
+  return headers;
+}
+
+/**
  * 키 타입에 따른 OpenAI 클라이언트 설정 생성
  * Project Key와 User Key 모두 지원하는 설정을 반환
  */
 function getOpenAIConfig(apiKey: string | undefined) {
   const isProjectKey = apiKey?.startsWith('sk-proj-') || false;
   
+  // API 키 유형에 따른 헤더 설정
+  const headers = getAuthHeaders(apiKey);
+  
   // 기본 설정
   const config = {
     apiKey: apiKey,
-    defaultHeaders: {
-      "OpenAI-Beta": "assistants=v1"
-    },
+    defaultHeaders: headers,
     dangerouslyAllowBrowser: false
   };
   
@@ -85,13 +113,12 @@ Keep responses concise (under 150 words) and appropriate for a mobile interface.
     if (isChatProjectKey) {
       console.log("Using direct fetch for chat with project-based API key");
       
+      // Project Key 인증을 위한 헤더 생성
+      const headers = getAuthHeaders(CHAT_API_KEY);
+      
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${CHAT_API_KEY}`,
-          "OpenAI-Beta": "assistants=v1"
-        },
+        headers: headers,
         body: JSON.stringify(requestParams)
       });
       
@@ -111,13 +138,12 @@ Keep responses concise (under 150 words) and appropriate for a mobile interface.
         // SDK 오류 시 직접 fetch 사용 (폴백 방식)
         console.log("OpenAI SDK error, trying direct fetch approach:", sdkError);
         
+        // Project Key 인증을 위한 헤더 생성 (폴백 방식에서도 동일하게 적용)
+        const headers = getAuthHeaders(CHAT_API_KEY);
+        
         const response = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json", 
-            "Authorization": `Bearer ${CHAT_API_KEY}`,
-            "OpenAI-Beta": "assistants=v1"
-          },
+          headers: headers,
           body: JSON.stringify(requestParams)
         });
         
@@ -182,12 +208,14 @@ export async function generateImageWithDALLE(promptText: string): Promise<string
     if (isProjectBasedKey) {
       console.log("Using direct fetch for DALL-E with project-based API key");
       
+      // Project Key 인증을 위한 헤더 생성
+      const headers = getAuthHeaders(apiKey);
+      console.log("DALL-E API request with Project Key 인증 헤더:", 
+        JSON.stringify(Object.keys(headers).map(k => `${k}: ${k === 'Authorization' ? '**hidden**' : headers[k]}`)));
+      
       const response = await fetch("https://api.openai.com/v1/images/generations", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`
-        },
+        headers: headers,
         body: JSON.stringify(requestParams)
       });
       
@@ -316,14 +344,14 @@ export async function transformImageWithOpenAI(
         let visionResponse;
         
         if (isProjectBasedKey) {
-          console.log("Using direct fetch for project-based API key");
+          console.log("Using direct fetch for project-based API key (Vision)");
+          
+          // Project Key 인증을 위한 헤더 생성
+          const headers = getAuthHeaders(apiKey);
+          
           const response = await fetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${apiKey}`,
-              "OpenAI-Beta": "assistants=v1"
-            },
+            headers: headers,
             body: JSON.stringify({
               model: "gpt-4o",
               messages: [
@@ -456,13 +484,14 @@ export async function transformImageWithOpenAI(
         
         console.log("DALL-E request payload:", JSON.stringify(requestBody, null, 2));
         
+        // Project Key 인증을 위한 헤더 생성 (DALL-E 이미지 변환)
+        const headers = getAuthHeaders(apiKey);
+        console.log("DALL-E Transform API request with Project Key 인증 헤더:", 
+          JSON.stringify(Object.keys(headers).map(k => `${k}: ${k === 'Authorization' ? '**hidden**' : headers[k]}`)));
+        
         const dalleResponse = await fetch("https://api.openai.com/v1/images/generations", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${apiKey}`,
-            "OpenAI-Beta": "assistants=v1"
-          },
+          headers: headers,
           body: JSON.stringify(requestBody)
         });
         
