@@ -377,5 +377,5 @@ export type AbTestVariant = typeof abTestVariants.$inferSelect;
 export type InsertAbTestResult = z.infer<typeof insertAbTestResultSchema>;
 export type AbTestResult = typeof abTestResults.$inferSelect;
 
-// Export eq and desc for query building
-export { eq, desc, and, asc, sql } from "drizzle-orm";
+// Export operators for query building
+export { eq, desc, and, asc, sql, gte, lte, gt, lt, ne, like, notLike, isNull, isNotNull, inArray } from "drizzle-orm";

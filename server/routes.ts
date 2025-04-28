@@ -631,6 +631,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to delete saved chat" });
     }
   });
+  
+  // Milestone and Pregnancy Profile endpoints
+  // For testing, using userId=1, in a real app this would come from authentication
+  const TEST_USER_ID = 1;
+  
+  // Get or update the pregnancy profile
+  app.get("/api/pregnancy-profile", async (req, res) => {
+    try {
+      const { getOrCreatePregnancyProfile } = await import("./services/milestones");
+      const profile = await getOrCreatePregnancyProfile(TEST_USER_ID);
+      return res.json(profile || { error: "No profile found" });
+    } catch (error) {
+      console.error("Error fetching pregnancy profile:", error);
+      return res.status(500).json({ error: "Failed to fetch pregnancy profile" });
+    }
+  });
+  
+  app.post("/api/pregnancy-profile", async (req, res) => {
+    try {
+      const { updatePregnancyProfile } = await import("./services/milestones");
+      const profileData = req.body;
+      
+      // Ensure dueDate is a proper Date object if provided
+      if (profileData.dueDate) {
+        profileData.dueDate = new Date(profileData.dueDate);
+      }
+      
+      const profile = await updatePregnancyProfile(TEST_USER_ID, profileData);
+      
+      if (!profile) {
+        return res.status(400).json({ error: "Failed to update profile - dueDate is required" });
+      }
+      
+      return res.json(profile);
+    } catch (error) {
+      console.error("Error updating pregnancy profile:", error);
+      return res.status(500).json({ error: "Failed to update pregnancy profile" });
+    }
+  });
+  
+  // Milestone endpoints
+  app.get("/api/milestones", async (req, res) => {
+    try {
+      const { getAllMilestones } = await import("./services/milestones");
+      const milestones = await getAllMilestones();
+      return res.json(milestones);
+    } catch (error) {
+      console.error("Error fetching milestones:", error);
+      return res.status(500).json({ error: "Failed to fetch milestones" });
+    }
+  });
+  
+  app.get("/api/milestones/available", async (req, res) => {
+    try {
+      const { getAvailableMilestones } = await import("./services/milestones");
+      const milestones = await getAvailableMilestones(TEST_USER_ID);
+      return res.json(milestones);
+    } catch (error) {
+      console.error("Error fetching available milestones:", error);
+      return res.status(500).json({ error: "Failed to fetch available milestones" });
+    }
+  });
+  
+  app.get("/api/milestones/completed", async (req, res) => {
+    try {
+      const { getUserCompletedMilestones } = await import("./services/milestones");
+      const milestones = await getUserCompletedMilestones(TEST_USER_ID);
+      return res.json(milestones);
+    } catch (error) {
+      console.error("Error fetching completed milestones:", error);
+      return res.status(500).json({ error: "Failed to fetch completed milestones" });
+    }
+  });
+  
+  app.post("/api/milestones/:milestoneId/complete", async (req, res) => {
+    try {
+      const { milestoneId } = req.params;
+      const { notes, photoUrl } = req.body;
+      
+      const { completeMilestone } = await import("./services/milestones");
+      const result = await completeMilestone(TEST_USER_ID, milestoneId, notes, photoUrl);
+      
+      return res.json(result);
+    } catch (error) {
+      console.error("Error completing milestone:", error);
+      return res.status(500).json({ error: "Failed to complete milestone" });
+    }
+  });
+  
+  app.get("/api/milestones/stats", async (req, res) => {
+    try {
+      const { getUserAchievementStats } = await import("./services/milestones");
+      const stats = await getUserAchievementStats(TEST_USER_ID);
+      return res.json(stats);
+    } catch (error) {
+      console.error("Error fetching achievement stats:", error);
+      return res.status(500).json({ error: "Failed to fetch achievement stats" });
+    }
+  });
 
   // Admin-only persona management endpoints
   // Note: In a production app, these would need authentication/authorization
