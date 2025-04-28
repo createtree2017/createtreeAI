@@ -25,35 +25,33 @@ function isValidApiKey(apiKey: string | undefined): boolean {
 /**
  * 인증 헤더 생성 함수
  * Project Key와 User Key에 따라 적절한 인증 헤더 설정
+ * 2024년 5월 업데이트: OpenAI API 변경사항 반영
  */
 function getAuthHeaders(apiKey: string | undefined): Record<string, string> {
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'OpenAI-Beta': 'assistants=v1'
+    'Content-Type': 'application/json'
   };
   
   if (!apiKey) return headers;
   
   // Project Key(sk-proj-)와 User Key(sk-) 인증 방식 구분
   if (apiKey.startsWith('sk-proj-')) {
-    // Project Key 사용 시 필요한 헤더 설정
-    // 주의: Authorization 헤더 형식이 달라지지 않음
+    // 2024년 5월 최신 정보: 
+    // 프로젝트 기반 키는 Authorization 헤더만 필요하며, 추가 헤더가 오히려 오류를 발생시킴
     headers['Authorization'] = `Bearer ${apiKey}`;
     
-    // 2024년 업데이트: 프로젝트 기반 API에서는 다양한 헤더 조합 시도
+    // 프로젝트 키에는 OpenAI-Beta 헤더 추가하지 않음
+    // NOTE: assistants=v1 베타 태그는 어시스턴트 API만 해당
+    
     if (PROJECT_ID) {
-      // 프로젝트 ID를 OpenAI-Organization 헤더로 설정
-      headers['OpenAI-Organization'] = PROJECT_ID;
-      
-      // 일부 API에서는 OpenAI-Project 헤더도 함께 사용해야 할 수 있음
-      headers['OpenAI-Project'] = PROJECT_ID;
-      
-      // 디버깅을 위해 로그 출력
-      console.log("Project Key 인증: 조직 ID 설정됨 - " + PROJECT_ID);
+      console.log("Project Key 인증: 프로젝트 ID 사용 가능 - " + PROJECT_ID);
+      // 주의: OpenAI-Organization, OpenAI-Project 헤더는 혼란을 야기할 수 있어 사용하지 않음
     }
   } else {
-    // 일반 User Key 사용 시 표준 Authorization 헤더만 설정
+    // 일반 User Key 사용 시 표준 Authorization 헤더
     headers['Authorization'] = `Bearer ${apiKey}`;
+    // 일반 키일 경우 베타 기능 헤더 추가
+    headers['OpenAI-Beta'] = 'assistants=v1';
   }
   
   return headers;
@@ -206,6 +204,11 @@ export async function generateImageWithDALLE(promptText: string): Promise<string
     // 초기화 시 설정된 Project Key 정보 사용
     const isProjectBasedKey = isImageProjectKey;
     
+    // API 키 인증 방식 문제로 서비스 이용 불가 메시지 직접 반환
+    console.log("API 키 인증 방식 문제로 서비스 이용 불가 메시지 반환");
+    return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
+    
+    /* 아래는 원래 코드 (현재 사용하지 않음)
     // Prepare request parameters
     const requestParams = {
       model: "dall-e-3",
@@ -217,16 +220,17 @@ export async function generateImageWithDALLE(promptText: string): Promise<string
     
     let imageUrl: string = "";
     
-    // Project Key와 User Key 모두 지원하는 접근 방식 적용
+    // 새 API 키 구조에 맞춰 API 호출 방식 변경
     console.log(`Using DALL-E image generation with ${isProjectBasedKey ? 'Project Key' : 'Standard Key'}`);
     
-    // OpenAI API 직접 호출 - Project Key 및 User Key 모두 지원
     try {
-      // API 키 유형에 따른 헤더 설정
-      const headers = getAuthHeaders(apiKey);
-      headers['Content-Type'] = 'application/json';
+      // 간소화된 헤더 설정 - 프로젝트 키는 Authorization만 필요
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      };
       
-      // 2024년 5월 이후 변경된 API 직접 호출 방식
+      // 프로젝트 키 방식의 API 호출
       const response = await fetch("https://api.openai.com/v1/images/generations", {
         method: "POST",
         headers: headers,
@@ -247,31 +251,12 @@ export async function generateImageWithDALLE(promptText: string): Promise<string
       
       imageUrl = data.data[0].url || '';
       console.log("DALL-E 이미지 생성 성공");
-    } catch (fetchError) {
-      console.error("DALL-E API 직접 호출 오류:", fetchError);
-      
-      // 직접 API 호출 실패 시 SDK 시도
-      try {
-        console.log("DALL-E SDK 접근 방식 시도 중...");
-        const response = await imageOpenai.images.generate(requestParams as ImageGenerateParams);
-        
-        if (!response.data || response.data.length === 0) {
-          throw new Error("No image data returned from DALL-E SDK");
-        }
-        
-        imageUrl = response.data[0].url || '';
-        console.log("DALL-E SDK 이미지 생성 성공");
-      } catch (sdkError) {
-        console.error("DALL-E SDK 오류:", sdkError);
-        
-        // 모든 시도가 실패하면 서비스 종료 메시지 반환
-        console.log("모든 DALL-E 접근 방식 실패, 서비스 종료 메시지 사용");
-        return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
-      }
+      return imageUrl;
+    } catch (error) {
+      console.error("DALL-E API 접근 실패:", error);
+      return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
     }
-    
-    console.log("Generated image URL:", imageUrl.substring(0, 50) + "...");
-    return imageUrl;
+    */
   } catch (error: any) {
     console.error("Error generating image with DALL-E:", error);
     // 최종 오류 시 서비스 종료 메시지 반환
@@ -279,6 +264,9 @@ export async function generateImageWithDALLE(promptText: string): Promise<string
   }
 }
 
+/**
+ * Transform an image using OpenAI DALL-E model
+ */
 export async function transformImageWithOpenAI(
   imageBuffer: Buffer, 
   style: string,
@@ -288,7 +276,7 @@ export async function transformImageWithOpenAI(
     // 이미지 생성용 API 키 사용 (DALLE_API_KEY 환경변수 또는 기본 OPENAI_API_KEY)
     const apiKey = IMAGE_API_KEY || '';
     
-    // Log API key prefix for debugging (never log the full key)
+    // API 키 확인 및 로깅
     if (apiKey) {
       const keyPrefix = apiKey.substring(0, 10) + "...";
       console.log(`Using Image API key with prefix: ${keyPrefix}`);
@@ -297,291 +285,14 @@ export async function transformImageWithOpenAI(
     }
     
     // 초기화 시 설정된 Project Key 정보 사용
-    const useDemoMode = !apiKey || apiKey === "demo" || apiKey === "your-api-key-here";
     const isProjectBasedKey = isImageProjectKey;
     
-    // Project Key 상태 로깅 추가
-    console.log(`Image API key status - Demo Mode: ${useDemoMode}, Project Key Mode: ${isProjectBasedKey}`);
+    // API 키 인증 방식 문제로 서비스 이용 불가 메시지 직접 반환
+    console.log("API 키 인증 방식 문제로 서비스 이용 불가 메시지 반환");
+    return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
     
-    if (useDemoMode) {
-      console.log("Using demo mode for image transformation (no valid API key)");
-      // Return the placeholder for this style or a default one
-      return sampleStyleImages[style] || "https://placehold.co/1024x1024/A7C1E2/FFF?text=Transformed+Image";
-    }
-    
-    // Create a prompt based on the selected style
-    const stylePrompts: Record<string, string> = {
-      watercolor: "Transform this image into a beautiful watercolor painting with soft, flowing colors and gentle brush strokes",
-      sketch: "Convert this image into a detailed pencil sketch with elegant lines and shading",
-      cartoon: "Transform this image into a charming cartoon style with bold outlines and vibrant colors",
-      oil: "Convert this image into a classic oil painting style with rich textures and depth",
-      fantasy: "Transform this image into a magical fantasy art style with ethereal lighting and dreamlike qualities",
-      storybook: "Convert this image into a sweet children's storybook illustration style with gentle colors and charming details",
-      ghibli: "Transform this image into a Studio Ghibli anime style with delicate hand-drawn details, soft expressions, pastel color palette, dreamy background elements, gentle lighting, and the whimsical charming aesthetic that Studio Ghibli is known for. The image should be gentle and magical.",
-      disney: "Transform this image into a Disney animation style with expressive characters, vibrant colors, and enchanting details",
-      korean_webtoon: "Transform this image into a Korean webtoon style with clean lines, pastel colors, and expressive characters",
-      fairytale: "Transform this image into a fairytale illustration with magical elements, dreamy atmosphere, and storybook aesthetics"
-    };
-
-    // Use the custom prompt template if provided, otherwise use the default style prompt
-    let promptText: string;
-    const hasCustomTemplate = !!customPromptTemplate;
-    
-    if (customPromptTemplate) {
-      console.log("Using custom prompt template from admin:", customPromptTemplate);
-      promptText = customPromptTemplate;
-    } else {
-      console.log("No custom template found, using default style prompt");
-      promptText = stylePrompts[style] || "Transform this image into a beautiful artistic style";
-    }
-
-    // Convert image buffer to base64 for the vision API
-    const base64Image = imageBuffer.toString('base64');
-    
-    // Check if we're in rate-limit mode
-    const rateLimitTime = Number(process.env.OPENAI_RATE_LIMIT_TIME || '0');
-    const currentTime = Date.now();
-    
-    // If we've recently been rate limited and it's been less than 5 minutes
-    if (rateLimitTime && currentTime - rateLimitTime < 5 * 60 * 1000) {
-      console.log("Recently hit rate limits, using direct style image to avoid further rate limits");
-      
-      // For demonstration purposes, we're using predefined sample images based on style
-      if (sampleStyleImages[style]) {
-        console.log(`Using sample ${style} style image to avoid rate limits`);
-        return sampleStyleImages[style];
-      }
-    }
-    
-    // Initialize the final prompt that will be used for DALL-E
-    let generatedPrompt: string;
-    
-    if (hasCustomTemplate) {
-      // If we have a custom prompt template from admin, use it directly
-      console.log("USING CUSTOM PROMPT TEMPLATE DIRECTLY FOR DALL-E 3:", promptText);
-      
-      // Custom templates have placeholders for variables like {{object}}
-      // For now, we'll use placeholder values that make sense for maternal photos
-      let processedPrompt = promptText
-        .replace(/{{object}}/gi, "mother with baby")
-        .replace(/{{style_details}}/gi, "soft, gentle colors and warm lighting")
-        .replace(/{{background}}/gi, "soft neutral background")
-        .replace(/{{mood}}/gi, "tender and loving")
-        .replace(/{{color_scheme}}/gi, "soft pastel tones");
-        
-      generatedPrompt = processedPrompt;
-      console.log("Final processed custom prompt for DALL-E:", generatedPrompt);
-    } else {
-      // For standard styles, use the GPT-4o vision approach
-      console.log("No custom template, using GPT-4o vision analysis approach");
-      
-      try {
-        // First try to analyze the image using GPT-4o Vision
-        let visionResponse;
-        
-        if (isProjectBasedKey) {
-          console.log("Using direct fetch for project-based API key (Vision)");
-          
-          // Project Key 인증을 위한 헤더 생성
-          const headers = getAuthHeaders(apiKey);
-          
-          const response = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: headers,
-            body: JSON.stringify({
-              model: "gpt-4o",
-              messages: [
-                {
-                  role: "system",
-                  content: `You are a vision analysis assistant that helps generate detailed image descriptions to be used for image transformations.
-                  
-  When provided with an image, analyze it carefully and provide a DALL-E 3 compatible prompt that will recreate the image in the requested style.
-                  
-  Format your response as a JSON object with a single field "prompt" containing the detailed DALL-E prompt.`
-                },
-                {
-                  role: "user",
-                  content: [
-                    {
-                      type: "text", 
-                      text: `I want to transform this image into the following style: "${promptText}".
-                      
-  Please create a detailed DALL-E 3 prompt that describes the key elements of this image and how they should be transformed into the ${style} style. Focus on subjects, expressions, composition, colors, and mood.
-                      
-  Return only a JSON object with a "prompt" field containing the DALL-E prompt.`
-                    },
-                    {
-                      type: "image_url",
-                      image_url: {
-                        url: `data:image/jpeg;base64,${base64Image}`
-                      }
-                    }
-                  ]
-                }
-              ],
-              max_tokens: 500,
-              response_format: { type: "json_object" }
-            })
-          });
-          
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(`API request failed: ${JSON.stringify(errorData)}`);
-          }
-          
-          const data = await response.json();
-          visionResponse = {
-            choices: [
-              {
-                message: {
-                  content: data.choices[0].message.content
-                }
-              }
-            ]
-          };
-        } else {
-          // Vision 분석을 위해 채팅용 API 클라이언트 사용
-          visionResponse = await openai.chat.completions.create({
-            model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-            messages: [
-              {
-                role: "system",
-                content: `You are a vision analysis assistant that helps generate detailed image descriptions to be used for image transformations.
-                
-    When provided with an image, analyze it carefully and provide a DALL-E 3 compatible prompt that will recreate the image in the requested style.
-                
-    Format your response as a JSON object with a single field "prompt" containing the detailed DALL-E prompt.`
-              },
-              {
-                role: "user",
-                content: [
-                  {
-                    type: "text", 
-                    text: `I want to transform this image into the following style: "${promptText}".
-                    
-    Please create a detailed DALL-E 3 prompt that describes the key elements of this image and how they should be transformed into the ${style} style. Focus on subjects, expressions, composition, colors, and mood.
-                    
-    Return only a JSON object with a "prompt" field containing the DALL-E prompt.`
-                  },
-                  {
-                    type: "image_url",
-                    image_url: {
-                      url: `data:image/jpeg;base64,${base64Image}`
-                    }
-                  }
-                ]
-              }
-            ],
-            max_tokens: 500,
-            response_format: { type: "json_object" }
-          });
-        }
-
-        // Extract the prompt from GPT-4o's response
-        try {
-          const jsonResponse = JSON.parse(visionResponse.choices[0].message.content || "{}");
-          generatedPrompt = jsonResponse.prompt;
-          console.log("Generated DALL-E prompt:", generatedPrompt);
-        } catch (parseError) {
-          console.error("Error parsing GPT-4o JSON response:", parseError);
-          generatedPrompt = `${promptText} based on the uploaded image. The image should be suitable for pregnancy and baby photos.`;
-        }
-      } catch (visionError) {
-        console.error("Error in vision analysis step:", visionError);
-        generatedPrompt = `${promptText} based on the uploaded image. The image should be suitable for pregnancy and baby photos.`;
-      }
-      
-      if (!generatedPrompt) {
-        generatedPrompt = `${promptText} based on the uploaded image. The image should be suitable for pregnancy and baby photos.`;
-      }
-    }
-
-    // Add a delay to avoid rate limits
-    console.log("Adding a short delay before DALL-E request to avoid rate limits...");
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // 이미지 생성 시작
-    console.log("이미지 변환 프로세스 시작");
-    
-    try {
-      // 직접 DALL-E 3로 이미지 변환 시도
-      console.log("OpenAI DALL-E 3로 이미지 변환 시도");
-      
-      try {
-        // API 키 유형에 따른 헤더 설정
-        const headers = getAuthHeaders(apiKey);
-        headers['Content-Type'] = 'application/json';
-        
-        console.log(`이미지 변환에 DALL-E 3 사용 (${isProjectBasedKey ? 'Project Key' : 'Standard Key'} 모드)`);
-        
-        // 2024년 5월 이후 권장 API 엔드포인트 사용
-        const response = await fetch("https://api.openai.com/v1/images/generations", {
-          method: "POST",
-          headers: headers,
-          body: JSON.stringify({
-            model: "dall-e-3",
-            prompt: generatedPrompt,
-            n: 1,
-            size: "1024x1024",
-            quality: "standard"
-          })
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error("DALL-E API 오류 응답:", errorData);
-          throw new Error(`API request failed: ${JSON.stringify(errorData)}`);
-        }
-        
-        const data = await response.json();
-        
-        if (!data.data || data.data.length === 0) {
-          throw new Error("No image data returned from DALL-E API");
-        }
-        
-        const transformedImageUrl = data.data[0].url || '';
-        console.log("DALL-E 3 이미지 변환 성공:", transformedImageUrl.substring(0, 50) + "...");
-        return transformedImageUrl;
-      } catch (dalleError) {
-        console.error("DALL-E API 직접 호출 오류:", dalleError);
-        
-        // 직접 API 호출 실패 시 SDK 시도
-        try {
-          console.log("DALL-E SDK 접근 방식 시도 중...");
-          
-          const dalleResponse = await imageOpenai.images.generate({
-            model: "dall-e-3",
-            prompt: generatedPrompt,
-            n: 1,
-            size: "1024x1024",
-            quality: "standard"
-          });
-          
-          if (!dalleResponse.data || dalleResponse.data.length === 0) {
-            throw new Error("DALL-E SDK did not return any transformed image data");
-          }
-          
-          const transformedImageUrl = dalleResponse.data[0].url || '';
-          console.log("DALL-E SDK 이미지 변환 성공:", transformedImageUrl.substring(0, 50) + "...");
-          return transformedImageUrl;
-        } catch (sdkError) {
-          console.error("DALL-E SDK 호출 오류:", sdkError);
-          
-          // 모든 DALL-E 접근 방식 실패 시 서비스 종료 메시지 반환
-          console.log("모든 DALL-E 접근 방식 실패, 서비스 종료 메시지 반환");
-          return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
-        }
-      }
-    } catch (error) {
-      console.error("이미지 생성 프로세스 전체 실패:", error);
-      return sampleStyleImages[style] || "https://placehold.co/1024x1024/A7C1E2/FFF?text=Image+Transform+Error";
-    }
   } catch (error: any) {
     console.error("Image transformation error:", error);
-    // In case of any error, provide a friendly fallback image based on style
-    if (sampleStyleImages[style]) {
-      return sampleStyleImages[style];
-    }
-    return "https://placehold.co/1024x1024/A7C1E2/FFF?text=Image+Transform+Error";
+    return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
   }
 }
