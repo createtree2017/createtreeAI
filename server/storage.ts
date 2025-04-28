@@ -108,11 +108,11 @@ export const storage = {
         return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
       }
       
-      return "https://placehold.co/1024x1024/A7C1E2/FFF?text=Transformation+Error";
+      return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
     } catch (error) {
       console.error(`[Storage] Error in transformImage:`, error);
-      // Return a placeholder image URL in case of error
-      return "https://placehold.co/1024x1024/A7C1E2/FFF?text=Transformation+Error";
+      // Return service unavailable message in case of error
+      return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
     }
   },
   

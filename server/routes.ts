@@ -309,31 +309,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Image generation endpoint (using DALL-E)
+  // Image generation endpoint (using OpenAI DALL-E)
   app.post("/api/generate-image", async (req, res) => {
     try {
       const validatedData = imageGenerationSchema.parse(req.body);
       const { style } = req.body; // 스타일 옵션 추가 (선택사항)
       
-      // Stability AI를 사용하여 이미지 생성
+      // OpenAI DALL-E를 사용하여 이미지 생성
       try {
-        console.log("Generating image with Stability AI");
-        const { generateImageWithStability } = await import('./services/stability');
+        console.log("Generating image with OpenAI DALL-E");
+        const { generateImageWithDALLE } = await import('./services/openai');
         
-        const imageUrl = await generateImageWithStability(validatedData.prompt, {
-          style: style || 'photographic' // 기본 스타일은 'photographic'
-        });
+        // 스타일 정보가 있으면 프롬프트에 반영
+        let enhancedPrompt = validatedData.prompt;
+        if (style) {
+          enhancedPrompt = `${validatedData.prompt} (in ${style} style)`;
+        }
+        
+        const imageUrl = await generateImageWithDALLE(enhancedPrompt);
         
         return res.status(200).json({ 
           imageUrl,
-          prompt: validatedData.prompt,
-          provider: "stability"
+          prompt: enhancedPrompt,
+          provider: "openai"
         });
-      } catch (stabilityError) {
-        console.error("Error with Stability AI:", stabilityError);
+      } catch (openaiError) {
+        console.error("Error with DALL-E:", openaiError);
         
-        // Stability AI 실패 시 폴백하지 않고 서비스 종료 메시지 반환
-        console.log("Stability AI service unavailable");
+        // DALL-E 실패 시 서비스 종료 메시지 반환
+        console.log("DALL-E service unavailable");
         return res.status(503).json({ 
           imageUrl: "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다",
           prompt: validatedData.prompt,

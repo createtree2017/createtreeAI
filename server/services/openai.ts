@@ -504,77 +504,74 @@ export async function transformImageWithOpenAI(
     console.log("이미지 변환 프로세스 시작");
     
     try {
-      // 1. Stability AI로 이미지 생성 시도 (기본 옵션)
-      console.log("Stability AI로 이미지 변환 시도");
+      // 직접 DALL-E 3로 이미지 변환 시도
+      console.log("OpenAI DALL-E 3로 이미지 변환 시도");
       
       try {
-        // Stability AI API를 사용하여 이미지 생성
-        const { transformImageWithStability } = await import('./stability');
-        console.log("Stability AI로 이미지 생성 중...");
+        // API 키 유형에 따른 헤더 설정
+        const headers = getAuthHeaders(apiKey);
+        headers['Content-Type'] = 'application/json';
         
-        // 이미지를 base64로 변환하여 전달
-        const stabilityImageUrl = await transformImageWithStability(
-          base64Image,
-          generatedPrompt,
-          style
-        );
+        console.log(`이미지 변환에 DALL-E 3 사용 (${isProjectBasedKey ? 'Project Key' : 'Standard Key'} 모드)`);
         
-        if (stabilityImageUrl) {
-          console.log("Stability AI 이미지 변환 성공");
-          return stabilityImageUrl;
-        }
-      } catch (stabilityError) {
-        console.error("Stability AI API 오류:", stabilityError);
-      }
-      
-      // 2. Stability AI 실패 시 Gemini 시도
-      if (isProjectBasedKey) {
-        console.log("Gemini API로 대체 시도");
-        
-        try {
-          const { generateImageWithGemini } = await import('./gemini');
-          console.log("Gemini로 이미지 생성 시도 중...");
-          
-          // Gemini API를 사용하여 이미지 생성
-          const geminiImageUrl = await generateImageWithGemini(generatedPrompt);
-          
-          if (geminiImageUrl) {
-            console.log("Gemini 이미지 변환 성공");
-            return geminiImageUrl;
-          }
-        } catch (geminiError) {
-          console.error("Gemini API 오류:", geminiError);
-        }
-      }
-      
-      // 3. Gemini 실패 또는 사용자 키일 경우 OpenAI DALL-E 시도
-      if (!isProjectBasedKey) {
-        console.log("OpenAI DALL-E 시도 (최후의 선택지)");
-        
-        try {
-          console.log("User Key 감지: OpenAI SDK 사용");
-          
-          const dalleResponse = await imageOpenai.images.generate({
-            model: "dall-e-2",
+        // 2024년 5월 이후 권장 API 엔드포인트 사용
+        const response = await fetch("https://api.openai.com/v1/images/generations", {
+          method: "POST",
+          headers: headers,
+          body: JSON.stringify({
+            model: "dall-e-3",
             prompt: generatedPrompt,
             n: 1,
-            size: "1024x1024"
+            size: "1024x1024",
+            quality: "standard"
+          })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("DALL-E API 오류 응답:", errorData);
+          throw new Error(`API request failed: ${JSON.stringify(errorData)}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.data || data.data.length === 0) {
+          throw new Error("No image data returned from DALL-E API");
+        }
+        
+        const transformedImageUrl = data.data[0].url || '';
+        console.log("DALL-E 3 이미지 변환 성공:", transformedImageUrl.substring(0, 50) + "...");
+        return transformedImageUrl;
+      } catch (dalleError) {
+        console.error("DALL-E API 직접 호출 오류:", dalleError);
+        
+        // 직접 API 호출 실패 시 SDK 시도
+        try {
+          console.log("DALL-E SDK 접근 방식 시도 중...");
+          
+          const dalleResponse = await imageOpenai.images.generate({
+            model: "dall-e-3",
+            prompt: generatedPrompt,
+            n: 1,
+            size: "1024x1024",
+            quality: "standard"
           });
           
-          // 응답 이미지 URL 추출
-          if (dalleResponse.data && dalleResponse.data.length > 0 && dalleResponse.data[0].url) {
-            const imageUrl = dalleResponse.data[0].url;
-            console.log("DALL-E 이미지 생성 성공");
-            return imageUrl;
+          if (!dalleResponse.data || dalleResponse.data.length === 0) {
+            throw new Error("DALL-E SDK did not return any transformed image data");
           }
-        } catch (openaiError) {
-          console.error("OpenAI DALL-E 오류:", openaiError);
+          
+          const transformedImageUrl = dalleResponse.data[0].url || '';
+          console.log("DALL-E SDK 이미지 변환 성공:", transformedImageUrl.substring(0, 50) + "...");
+          return transformedImageUrl;
+        } catch (sdkError) {
+          console.error("DALL-E SDK 호출 오류:", sdkError);
+          
+          // 모든 DALL-E 접근 방식 실패 시 서비스 종료 메시지 반환
+          console.log("모든 DALL-E 접근 방식 실패, 서비스 종료 메시지 반환");
+          return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
         }
       }
-      
-      // 4. 모든 API 실패 시 샘플 이미지 사용
-      console.log(`모든 API 실패, ${style} 샘플 이미지 사용`);
-      return sampleStyleImages[style] || "https://placehold.co/1024x1024/A7C1E2/FFF?text=Transformed+Image";
     } catch (error) {
       console.error("이미지 생성 프로세스 전체 실패:", error);
       return sampleStyleImages[style] || "https://placehold.co/1024x1024/A7C1E2/FFF?text=Image+Transform+Error";
