@@ -111,6 +111,69 @@ const sampleStyleImages: Record<string, string> = {
   "baby-dog-sd-style": "https://img.freepik.com/premium-photo/cute-cartoon-baby-playing-with-puppy-digital-art-style_917506-5628.jpg"
 };
 
+/**
+ * Generate an image using DALL-E model
+ */
+export async function generateImageWithDALLE(promptText: string): Promise<string> {
+  try {
+    // Check if API key exists
+    const apiKey = IMAGE_API_KEY || '';
+    if (!apiKey) {
+      console.log("No Image API key found");
+      // Return a placeholder image if no API key
+      return "https://placehold.co/1024x1024/A7C1E2/FFF?text=Generated+Image";
+    }
+    
+    const isProjectBasedKey = apiKey && apiKey.startsWith('sk-proj-');
+    
+    // Prepare request parameters
+    const requestParams: ImageGenerateParams = {
+      model: "dall-e-3",
+      prompt: promptText,
+      n: 1,
+      size: "1024x1024",
+      quality: "standard",
+    };
+    
+    let imageUrl: string;
+    
+    // Use direct fetch for project-based API keys (workaround)
+    if (isProjectBasedKey) {
+      console.log("Using direct fetch for DALL-E with project-based API key");
+      
+      const response = await fetch("https://api.openai.com/v1/images/generations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify(requestParams)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`API request failed: ${JSON.stringify(errorData)}`);
+      }
+      
+      const data = await response.json();
+      imageUrl = data.data[0].url;
+    } else {
+      // Use the OpenAI SDK for standard API keys
+      const response = await imageOpenai.images.generate(requestParams);
+      if (!response.data || response.data.length === 0) {
+        throw new Error("No image data returned from DALL-E API");
+      }
+      imageUrl = response.data[0].url || '';
+    }
+    
+    console.log("Generated image URL:", imageUrl.substring(0, 50) + "...");
+    return imageUrl;
+  } catch (error: any) {
+    console.error("Error generating image with DALL-E:", error);
+    throw new Error(`Failed to generate image: ${error.message || 'Unknown error'}`);
+  }
+}
+
 export async function transformImageWithOpenAI(
   imageBuffer: Buffer, 
   style: string,
