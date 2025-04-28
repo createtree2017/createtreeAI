@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'wouter';
-import { Home, Image, MessageCircle, Grid, User } from 'lucide-react';
+import { Home, Image, MessageCircle, Grid, User, Award } from 'lucide-react';
 
 export default function BottomNavigation() {
   const [location] = useLocation();
@@ -13,10 +13,10 @@ export default function BottomNavigation() {
       ariaLabel: 'Home page',
     },
     {
-      path: '/programs',
-      icon: Grid,
-      label: 'Programs',
-      ariaLabel: 'Programs page',
+      path: '/milestones',
+      icon: Award,
+      label: 'Milestones',
+      ariaLabel: 'Pregnancy milestones page',
     },
     {
       path: '/chat',
