@@ -58,8 +58,28 @@ export const storage = {
         console.log(`[Storage] Calling Stability AI image transformation service...`);
         let prompt = "";
         
+        // 템플릿 변수를 처리하는 함수
+        const processTemplate = (template: string) => {
+          // 기본 변수 값 설정 (실제 구현에서는 이미지 분석 또는 사용자 입력을 통해 이 값들을 얻을 수 있음)
+          const variables: Record<string, string> = {
+            object: "pet dog",  // 기본값 설정
+            style: style,
+            mood: "happy",
+            color: "vibrant",
+            theme: "cute",
+            setting: "home"
+          };
+          
+          // 템플릿에서 {{variable}} 패턴을 찾아 실제 값으로 대체
+          return template.replace(/\{\{(\w+)\}\}/g, (match, variableName) => {
+            return variables[variableName] || match; // 변수가 없으면 원래 문자열 유지
+          });
+        };
+        
         if (customPromptTemplate) {
-          prompt = customPromptTemplate;
+          // 템플릿 변수 처리
+          prompt = processTemplate(customPromptTemplate);
+          console.log(`처리된 프롬프트: "${prompt}"`);
         } else {
           // Default prompt for the given style if no custom template provided
           prompt = `Transform this image into ${style} art style. Preserve the main subject and composition. Make it beautiful and professional.`;
