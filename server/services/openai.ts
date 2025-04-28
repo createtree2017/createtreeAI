@@ -320,13 +320,12 @@ export async function transformImageWithOpenAI(
       if (isProjectBasedKey) {
         console.log("Using direct fetch for DALL-E with project-based API key");
         
-        // Ensure we're explicitly specifying the DALL-E 3 model
+        // Changed to DALL-E 2 model as requested (2023-04-28)
         const requestBody = {
-          model: "dall-e-3", // Explicitly set model to dall-e-3
+          model: "dall-e-2", // Using DALL-E 2 model instead of DALL-E 3 as requested
           prompt: generatedPrompt,
           n: 1,
           size: "1024x1024",
-          quality: "standard",
         };
         
         console.log("DALL-E request payload:", JSON.stringify(requestBody, null, 2));
@@ -355,11 +354,11 @@ export async function transformImageWithOpenAI(
         
         // Create the request parameters with proper typing
         const requestParams: ImageGenerateParams = {
-          model: "dall-e-3", // Always use DALL-E 3 for transformations
+          model: "dall-e-2", // Changed to DALL-E 2 as requested (2023-04-28)
           prompt: generatedPrompt,
           n: 1,
-          size: "1024x1024", 
-          quality: "standard",
+          size: "1024x1024",
+          // quality parameter is not needed for DALL-E 2
         };
         
         console.log("DALL-E SDK request params:", JSON.stringify(requestParams, null, 2));
