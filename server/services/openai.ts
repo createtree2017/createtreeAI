@@ -204,11 +204,9 @@ export async function generateImageWithDALLE(promptText: string): Promise<string
     // 초기화 시 설정된 Project Key 정보 사용
     const isProjectBasedKey = isImageProjectKey;
     
-    // API 키 인증 방식 문제로 서비스 이용 불가 메시지 직접 반환
-    console.log("API 키 인증 방식 문제로 서비스 이용 불가 메시지 반환");
-    return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
+    // 이미지 생성 API 호출 시도
+    console.log("OpenAI API를 사용해 이미지 생성 시도");
     
-    /* 아래는 원래 코드 (현재 사용하지 않음)
     // Prepare request parameters
     const requestParams = {
       model: "dall-e-3",
@@ -256,8 +254,7 @@ export async function generateImageWithDALLE(promptText: string): Promise<string
       console.error("DALL-E API 접근 실패:", error);
       return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
     }
-    */
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error generating image with DALL-E:", error);
     // 최종 오류 시 서비스 종료 메시지 반환
     return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
@@ -282,16 +279,85 @@ export async function transformImageWithOpenAI(
       console.log(`Using Image API key with prefix: ${keyPrefix}`);
     } else {
       console.log("No Image API key found");
+      return "https://placehold.co/1024x1024/A7C1E2/FFF?text=API+Key+Missing";
     }
     
     // 초기화 시 설정된 Project Key 정보 사용
     const isProjectBasedKey = isImageProjectKey;
     
-    // API 키 인증 방식 문제로 서비스 이용 불가 메시지 직접 반환
-    console.log("API 키 인증 방식 문제로 서비스 이용 불가 메시지 반환");
-    return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
+    // Create a prompt based on the selected style
+    const stylePrompts: Record<string, string> = {
+      watercolor: "Transform this image into a beautiful watercolor painting with soft, flowing colors and gentle brush strokes",
+      sketch: "Convert this image into a detailed pencil sketch with elegant lines and shading",
+      cartoon: "Transform this image into a charming cartoon style with bold outlines and vibrant colors",
+      oil: "Convert this image into a classic oil painting style with rich textures and depth",
+      fantasy: "Transform this image into a magical fantasy art style with ethereal lighting and dreamlike qualities",
+      storybook: "Convert this image into a sweet children's storybook illustration style with gentle colors and charming details",
+      ghibli: "Transform this image into a Studio Ghibli anime style with delicate hand-drawn details, soft expressions, pastel color palette, dreamy background elements, gentle lighting, and the whimsical charming aesthetic that Studio Ghibli is known for. The image should be gentle and magical.",
+      disney: "Transform this image into a Disney animation style with expressive characters, vibrant colors, and enchanting details",
+      korean_webtoon: "Transform this image into a Korean webtoon style with clean lines, pastel colors, and expressive characters",
+      fairytale: "Transform this image into a fairytale illustration with magical elements, dreamy atmosphere, and storybook aesthetics"
+    };
+
+    // Use the custom prompt template if provided, otherwise use the default style prompt
+    let promptText: string;
     
-  } catch (error: any) {
+    if (customPromptTemplate) {
+      console.log("Using custom prompt template from admin:", customPromptTemplate);
+      promptText = customPromptTemplate;
+    } else {
+      console.log("No custom template found, using default style prompt");
+      promptText = stylePrompts[style] || "Transform this image into a beautiful artistic style";
+    }
+
+    // Convert image buffer to base64 for the API
+    const base64Image = imageBuffer.toString('base64');
+
+    // 이미지 생성 시작
+    console.log("이미지 변환 프로세스 시작");
+    
+    try {
+      // 간소화된 헤더 설정 - 프로젝트 키는 Authorization만 필요
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      };
+      
+      // DALL-E 3 API를 사용한 이미지 변환
+      console.log(`이미지 변환에 DALL-E 3 사용 (${isProjectBasedKey ? 'Project Key' : 'Standard Key'} 모드)`);
+      
+      const response = await fetch("https://api.openai.com/v1/images/generations", {
+        method: "POST",
+        headers: headers,
+        body: JSON.stringify({
+          model: "dall-e-3",
+          prompt: promptText,
+          n: 1,
+          size: "1024x1024",
+          quality: "standard"
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("DALL-E API 오류 응답:", errorData);
+        throw new Error(`API request failed: ${JSON.stringify(errorData)}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.data || data.data.length === 0) {
+        throw new Error("No image data returned from DALL-E API");
+      }
+      
+      const transformedImageUrl = data.data[0].url || '';
+      console.log("DALL-E 3 이미지 변환 성공:", transformedImageUrl.substring(0, 30) + "...");
+      return transformedImageUrl;
+    } catch (error) {
+      console.error("이미지 변환 실패:", error);
+      return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
+    }
+  } catch (error) {
     console.error("Image transformation error:", error);
     return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
   }
