@@ -2682,6 +2682,10 @@ interface VariableFormProps {
 }
 
 function VariableForm({ initialData, onSave }: VariableFormProps) {
+  // React state to track the variable form state properly
+  const [variableType, setVariableType] = useState(initialData?.type || "text");
+  const [newOption, setNewOption] = useState("");
+  
   const variableForm = useForm({
     defaultValues: initialData || {
       name: "",
@@ -2693,8 +2697,15 @@ function VariableForm({ initialData, onSave }: VariableFormProps) {
     }
   });
   
-  const variableType = variableForm.watch("type");
-  const [newOption, setNewOption] = useState("");
+  // Watch for type changes and update state
+  useEffect(() => {
+    const subscription = variableForm.watch((value, { name }) => {
+      if (name === 'type') {
+        setVariableType(value.type as string);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [variableForm.watch]);
   
   function handleSubmit(values: any) {
     // For select type, ensure options array is available

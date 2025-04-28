@@ -186,13 +186,29 @@ export async function transformImageWithStability(
     // 한국어 프롬프트를 영어로 변환
     let englishPrompt = prompt;
     
+    // 프롬프트에서 객체명 추출
+    let objectName = "subject";
+    const objectMatch = prompt.match(/\{\{(\w+)\}\}/);
+    const objectFromPrompt = objectMatch ? objectMatch[1] : null;
+    
+    // {{object}} 등의 변수가 있는지 확인하여 치환
+    if (prompt.includes("{{object}}")) {
+      englishPrompt = prompt.replace(/\{\{object\}\}/g, "subject");
+    }
+    
+    // 강아지 관련 패턴 찾기
+    const dogPattern = /(pet dog|강아지|puppy|dog)/i;
+    const hasDogReference = dogPattern.test(prompt);
+    
     // 한국어가 포함된 경우, 영어로 대체 프롬프트 작성
     if (/[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(prompt)) {
       console.log("한국어 프롬프트 감지, 영어로 변환합니다.");
       
       // 스타일별 영어 프롬프트 생성
-      if (style === 'baby-dog-sd-style') {
+      if (style === 'baby-dog-sd-style' && hasDogReference) {
         englishPrompt = "Create a cute Super Deformed (SD) style illustration of this pet dog. Make it a chibi character with a big head and small body. Use a warm and lovely atmosphere. Transform the image into an SD style without creating a completely new image.";
+      } else if (style === 'baby-dog-sd-style') {
+        englishPrompt = "Create a cute Super Deformed (SD) style illustration of the subject in this image. Make it a chibi character with a big head and small body. Use a warm and lovely atmosphere. Transform the image into an SD style without creating a completely new image.";
       } else if (style === 'watercolor') {
         englishPrompt = "Transform this image into a beautiful watercolor painting with soft edges and gentle color blending. Maintain the original composition and subject.";
       } else if (style === 'sketch') {
