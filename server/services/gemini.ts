@@ -1,6 +1,6 @@
 // Gemini API 설정
 const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
-const GEMINI_PRO_VISION_URL = `${GEMINI_API_BASE_URL}/gemini-pro-vision:generateContent`;
+const GEMINI_FLASH_URL = `${GEMINI_API_BASE_URL}/gemini-1.5-flash:generateContent`;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 /**
@@ -16,7 +16,7 @@ export async function generateContent(requestBody: any): Promise<any> {
     }
     
     // API 키를 URL에 추가
-    const apiUrl = `${GEMINI_PRO_VISION_URL}?key=${GEMINI_API_KEY}`;
+    const apiUrl = `${GEMINI_FLASH_URL}?key=${GEMINI_API_KEY}`;
     
     // API 호출
     console.log('Calling Gemini API with custom payload');
@@ -63,23 +63,22 @@ export async function generateImageWithGemini(
     const requestData = {
       contents: [
         {
+          role: "user",
           parts: [
             {
-              text: `Generate an image based on this description: ${promptText}. 
-              The image should be high-quality and detailed.
-              Create the best possible image representation of this prompt.`
+              text: `Create a ${promptText}`
             }
           ]
         }
       ],
       generationConfig: {
-        temperature: 0.7,
+        temperature: 0.4,
         maxOutputTokens: 2048
       }
     };
     
     // API 키를 URL에 추가
-    const apiUrl = `${GEMINI_PRO_VISION_URL}?key=${GEMINI_API_KEY}`;
+    const apiUrl = `${GEMINI_FLASH_URL}?key=${GEMINI_API_KEY}`;
     
     // API 호출
     console.log('Calling Gemini API to generate image');
