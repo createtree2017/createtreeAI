@@ -28,6 +28,7 @@ export const images = pgTable("images", {
   style: text("style").notNull(),
   originalUrl: text("original_url").notNull(),
   transformedUrl: text("transformed_url").notNull(),
+  metadata: text("metadata").default("{}"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

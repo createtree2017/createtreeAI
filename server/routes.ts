@@ -5,7 +5,8 @@ import { z } from "zod";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { generateChatResponse, generateImageWithDALLE } from "./services/openai";
+// Chat 시스템에서는 simple 버전으로 import하고, 이미지는 DALL-E 3 버전을 사용
+import { generateChatResponse } from "./services/openai-simple";
 import { generateMusic } from "./services/replicate";
 import { generateContent } from "./services/gemini";
 import { 
@@ -315,10 +316,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = imageGenerationSchema.parse(req.body);
       const { style } = req.body; // 스타일 옵션 추가 (선택사항)
       
-      // OpenAI DALL-E를 사용하여 이미지 생성
+      // OpenAI DALL-E 3를 사용하여 이미지 생성
       try {
-        console.log("Generating image with OpenAI DALL-E");
-        const { generateImageWithDALLE } = await import('./services/openai');
+        console.log("Generating image with OpenAI DALL-E 3");
+        const { generateImage } = await import('./services/openai-dalle3');
         
         // 스타일 정보가 있으면 프롬프트에 반영
         let enhancedPrompt = validatedData.prompt;
@@ -326,7 +327,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           enhancedPrompt = `${validatedData.prompt} (in ${style} style)`;
         }
         
-        const imageUrl = await generateImageWithDALLE(enhancedPrompt);
+        const imageUrl = await generateImage(enhancedPrompt);
         
         return res.status(200).json({ 
           imageUrl,
