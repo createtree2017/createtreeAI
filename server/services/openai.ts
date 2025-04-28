@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { ImageGenerateParams } from "openai/resources/images";
 import fs from "fs";
 
 // Initialize OpenAI client with additional configuration for project-based API keys
@@ -296,6 +297,18 @@ Return only a JSON object with a "prompt" field containing the DALL-E prompt.`
         // Check if using project-based API key and use direct fetch if needed
         if (isProjectBasedKey) {
           console.log("Using direct fetch for DALL-E with project-based API key");
+          
+          // Ensure we're explicitly specifying the DALL-E 3 model
+          const requestBody = {
+            model: "dall-e-3", // Explicitly set model to dall-e-3
+            prompt: generatedPrompt,
+            n: 1,
+            size: "1024x1024",
+            quality: "standard",
+          };
+          
+          console.log("DALL-E request payload:", JSON.stringify(requestBody, null, 2));
+          
           const dalleResponse = await fetch("https://api.openai.com/v1/images/generations", {
             method: "POST",
             headers: {
@@ -303,13 +316,7 @@ Return only a JSON object with a "prompt" field containing the DALL-E prompt.`
               "Authorization": `Bearer ${apiKey}`,
               "OpenAI-Beta": "assistants=v1"
             },
-            body: JSON.stringify({
-              model: "dall-e-3",
-              prompt: generatedPrompt,
-              n: 1,
-              size: "1024x1024",
-              quality: "standard",
-            })
+            body: JSON.stringify(requestBody)
           });
           
           if (!dalleResponse.ok) {
@@ -322,21 +329,52 @@ Return only a JSON object with a "prompt" field containing the DALL-E prompt.`
           response = { data: data.data };
         } else {
           // Use the SDK for standard API keys
-          response = await openai.images.generate({
-            model: "dall-e-3", // Use DALL-E 3 for transformations
+          console.log("Using OpenAI SDK for image generation");
+          
+          // Create the request parameters with proper typing
+          const requestParams: ImageGenerateParams = {
+            model: "dall-e-3", // Always use DALL-E 3 for transformations
             prompt: generatedPrompt,
             n: 1,
-            size: "1024x1024",
+            size: "1024x1024", 
             quality: "standard",
-          });
+          };
+          
+          console.log("DALL-E SDK request params:", JSON.stringify(requestParams, null, 2));
+          
+          try {
+            response = await openai.images.generate(requestParams);
+            console.log("DALL-E SDK response received successfully");
+          } catch (sdkError) {
+            console.error("OpenAI SDK error:", sdkError);
+            throw sdkError;
+          }
         }
 
         // Extract the URL from the response
-        const imageData = response?.data;
-        if (!imageData || !imageData[0] || !imageData[0].url) {
-          throw new Error("No valid image URL returned from OpenAI");
+        console.log("Response data structure:", JSON.stringify(response, null, 2).substring(0, 500) + "...");
+        
+        let imageUrl = '';
+        
+        // Handle both direct fetch and SDK response formats
+        if (isProjectBasedKey) {
+          // For project-based keys using direct fetch
+          const imageData = response?.data;
+          if (!imageData || !imageData[0] || !imageData[0].url) {
+            console.error("Invalid response data structure from direct fetch:", response);
+            throw new Error("No valid image URL returned from OpenAI via direct fetch");
+          }
+          imageUrl = imageData[0].url;
+        } else {
+          // For SDK responses
+          if (!response || !response.data || !response.data[0] || !response.data[0].url) {
+            console.error("Invalid response data structure from SDK:", response);
+            throw new Error("No valid image URL returned from OpenAI SDK");
+          }
+          imageUrl = response.data[0].url;
         }
-        const imageUrl = imageData[0].url;
+        
+        console.log("Successfully extracted image URL:", imageUrl.substring(0, 50) + "...");
         
         return imageUrl;
       } catch (dalleError: any) {
