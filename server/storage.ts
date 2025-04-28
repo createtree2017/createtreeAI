@@ -2,8 +2,6 @@ import { db } from "@db";
 import { music, images, chatMessages, favorites, savedChats, eq, desc, and } from "@shared/schema";
 import fs from "fs";
 import path from "path";
-import { transformImageWithOpenAI } from "./services/openai";
-import { transformImageWithStability } from "./services/stability";
 
 export const storage = {
   // Music related functions
@@ -50,65 +48,56 @@ export const storage = {
       const imageBuffer = fs.readFileSync(filePath);
       console.log(`[Storage] Successfully read image file, size: ${imageBuffer.length} bytes`);
       
-      // Convert image buffer to base64 for Stability AI
-      const base64Image = imageBuffer.toString('base64');
-      
-      try {
-        // Try Stability AI (primary provider)
-        console.log(`[Storage] Calling Stability AI image transformation service...`);
-        let prompt = "";
-        
-        // 템플릿 변수를 처리하는 함수
-        const processTemplate = (template: string) => {
-          // 기본 변수 값 설정 (실제 구현에서는 이미지 분석 또는 사용자 입력을 통해 이 값들을 얻을 수 있음)
-          const variables: Record<string, string> = {
-            object: "pet dog",  // 기본값 설정
-            style: style,
-            mood: "happy",
-            color: "vibrant",
-            theme: "cute",
-            setting: "home"
-          };
-          
-          // 템플릿에서 {{variable}} 패턴을 찾아 실제 값으로 대체
-          return template.replace(/\{\{(\w+)\}\}/g, (match, variableName) => {
-            return variables[variableName] || match; // 변수가 없으면 원래 문자열 유지
-          });
+      // 템플릿 변수를 처리하는 함수
+      const processTemplate = (template: string) => {
+        // 기본 변수 값 설정 (실제 구현에서는 이미지 분석 또는 사용자 입력을 통해 이 값들을 얻을 수 있음)
+        const variables: Record<string, string> = {
+          object: "pet dog",  // 기본값 설정
+          style: style,
+          mood: "happy",
+          color: "vibrant",
+          theme: "cute",
+          setting: "home"
         };
         
-        if (customPromptTemplate) {
-          // 템플릿 변수 처리
-          prompt = processTemplate(customPromptTemplate);
-          console.log(`처리된 프롬프트: "${prompt}"`);
-        } else {
-          // Default prompt for the given style if no custom template provided
-          prompt = `Transform this image into ${style} art style. Preserve the main subject and composition. Make it beautiful and professional.`;
-        }
-        
-        const transformedImageUrl = await transformImageWithStability(
-          base64Image,
-          prompt,
-          style
-        );
-        
-        // Stability AI 성공적으로 이미지 생성 시
-        if (!transformedImageUrl.includes("placehold.co") && !transformedImageUrl.includes("Transformed+Image")) {
-          console.log(`[Storage] Stability AI transformation succeeded, URL: ${transformedImageUrl.substring(0, 30)}...`);
-          return transformedImageUrl;
-        } else {
-          // 에러 발생 시 서비스 종료 메시지 반환
-          console.log(`[Storage] Warning: Stability AI returned placeholder image`);
-          return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
-        }
-      } catch (stabilityError) {
-        console.error(`[Storage] Stability AI error:`, stabilityError);
-        
-        // 폴백하지 않고 서비스 종료 메시지 반환
-        console.log(`[Storage] Stability AI service unavailable`);
-        return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
+        // 템플릿에서 {{variable}} 패턴을 찾아 실제 값으로 대체
+        return template.replace(/\{\{(\w+)\}\}/g, (match, variableName) => {
+          return variables[variableName] || match; // 변수가 없으면 원래 문자열 유지
+        });
+      };
+      
+      let prompt = "";
+      if (customPromptTemplate) {
+        // 템플릿 변수 처리
+        prompt = processTemplate(customPromptTemplate);
+        console.log(`처리된 프롬프트: "${prompt}"`);
+      } else {
+        // Default prompt for the given style if no custom template provided
+        prompt = `Transform this image into ${style} art style. Preserve the main subject and composition. Make it beautiful and professional.`;
       }
       
-      return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
+      try {
+        // OpenAI DALL-E 3 API 호출
+        console.log(`[Storage] Calling DALL-E 3 image transformation service...`);
+        const { transformImage } = await import('./services/openai-dalle3');
+        const transformedImageUrl = await transformImage(
+          imageBuffer, 
+          style, 
+          prompt
+        );
+        
+        if (!transformedImageUrl.includes("placehold.co")) {
+          console.log(`[Storage] DALL-E 3 transformation succeeded, URL: ${transformedImageUrl.substring(0, 30)}...`);
+          return transformedImageUrl;
+        } else {
+          // 오류 시 서비스 종료 메시지 반환
+          console.log(`[Storage] DALL-E 3 service unavailable`);
+          return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
+        }
+      } catch (error) {
+        console.error(`[Storage] DALL-E 3 error:`, error);
+        return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
+      }
     } catch (error) {
       console.error(`[Storage] Error in transformImage:`, error);
       // Return service unavailable message in case of error
