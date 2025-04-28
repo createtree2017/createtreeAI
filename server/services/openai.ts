@@ -2,14 +2,32 @@ import OpenAI from "openai";
 import { ImageGenerateParams } from "openai/resources/images";
 import fs from "fs";
 
-// Initialize OpenAI client with additional configuration for project-based API keys
-const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY,
-  baseURL: "https://api.openai.com/v1",
+// 채팅에 사용할 API 키 (PROJECT KEY 지원)
+const CHAT_API_KEY = process.env.OPENAI_API_KEY;
+// 이미지 생성에 사용할 API 키 (DALL-E API 키 - 환경변수 DALLE_API_KEY가 설정되어 있으면 사용)
+const IMAGE_API_KEY = process.env.DALLE_API_KEY || process.env.OPENAI_API_KEY;
+
+console.log("Chat API Key 설정됨. 키 유형:", CHAT_API_KEY?.startsWith('sk-proj-') ? "Project Key" : "Standard Key");
+console.log("Image API Key 설정됨. 키 유형:", IMAGE_API_KEY?.startsWith('sk-proj-') ? "Project Key" : "Standard Key");
+
+// 채팅용 OpenAI 클라이언트 설정
+const chatConfig = { 
+  apiKey: CHAT_API_KEY,
   defaultHeaders: {
     "OpenAI-Beta": "assistants=v1"
   },
   dangerouslyAllowBrowser: false
+};
+
+// Chat API를 위한 OpenAI 클라이언트
+const openai = new OpenAI(chatConfig);
+
+// 이미지 생성용 OpenAI 클라이언트 (별도로 설정)
+const imageOpenai = new OpenAI({
+  apiKey: IMAGE_API_KEY,
+  defaultHeaders: {
+    "OpenAI-Beta": "assistants=v1"
+  }
 });
 
 /**
@@ -99,15 +117,15 @@ export async function transformImageWithOpenAI(
   customPromptTemplate?: string | null
 ): Promise<string> {
   try {
-    // Check if we have a valid API key - if not use demo mode
-    const apiKey = process.env.OPENAI_API_KEY || '';
+    // 이미지 생성용 API 키 사용 (DALLE_API_KEY 환경변수 또는 기본 OPENAI_API_KEY)
+    const apiKey = IMAGE_API_KEY || '';
     
     // Log API key prefix for debugging (never log the full key)
     if (apiKey) {
       const keyPrefix = apiKey.substring(0, 10) + "...";
-      console.log(`Using API key with prefix: ${keyPrefix}`);
+      console.log(`Using Image API key with prefix: ${keyPrefix}`);
     } else {
-      console.log("No API key found");
+      console.log("No Image API key found");
     }
     
     const useDemoMode = !apiKey || apiKey === "demo" || apiKey === "your-api-key-here";
@@ -250,7 +268,7 @@ export async function transformImageWithOpenAI(
             ]
           };
         } else {
-          // Use the SDK for standard API keys
+          // Vision 분석을 위해 채팅용 API 클라이언트 사용
           visionResponse = await openai.chat.completions.create({
             model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
             messages: [
@@ -364,7 +382,8 @@ export async function transformImageWithOpenAI(
         console.log("DALL-E SDK request params:", JSON.stringify(requestParams, null, 2));
         
         try {
-          response = await openai.images.generate(requestParams);
+          // 이미지 생성용 클라이언트 사용
+          response = await imageOpenai.images.generate(requestParams);
           console.log("DALL-E SDK response received successfully");
         } catch (sdkError) {
           console.error("OpenAI SDK error:", sdkError);
