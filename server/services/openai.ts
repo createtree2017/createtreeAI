@@ -481,28 +481,40 @@ export async function transformImageWithOpenAI(
     console.log("Adding a short delay before DALL-E request to avoid rate limits...");
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    // Try to use DALL-E 3 to create a new image
+    // 이미지 생성 시작
+    console.log("이미지 변환 프로세스 시작");
+    
     try {
-      console.log("Generating image with DALL-E");
+      // 1. Stability AI로 이미지 생성 시도 (기본 옵션)
+      console.log("Stability AI로 이미지 변환 시도");
       
-      // Changed to DALL-E 2 model as requested (2023-04-28)
-      const requestBody = {
-        model: "dall-e-2", // Using DALL-E 2 model instead of DALL-E 3
-        prompt: generatedPrompt,
-        n: 1,
-        size: "1024x1024",
-      };
+      try {
+        // Stability AI API를 사용하여 이미지 생성
+        const { transformImageWithStability } = await import('./stability');
+        console.log("Stability AI로 이미지 생성 중...");
+        
+        // 이미지를 base64로 변환하여 전달
+        const stabilityImageUrl = await transformImageWithStability(
+          base64Image,
+          generatedPrompt,
+          style
+        );
+        
+        if (stabilityImageUrl) {
+          console.log("Stability AI 이미지 변환 성공");
+          return stabilityImageUrl;
+        }
+      } catch (stabilityError) {
+        console.error("Stability AI API 오류:", stabilityError);
+      }
       
-      console.log("DALL-E request payload:", JSON.stringify(requestBody, null, 2));
-      
-      // Project Key 사용 시 Gemini API로 우회
+      // 2. Stability AI 실패 시 Gemini 시도
       if (isProjectBasedKey) {
-        console.log("Project Key 감지: Gemini API로 이미지 변환 시도");
+        console.log("Gemini API로 대체 시도");
         
         try {
-          // OpenAI의 Project Key가 DALL-E에서 작동하지 않으므로 Gemini API 사용
           const { generateImageWithGemini } = await import('./gemini');
-          console.log("Gemini로 이미지 생성 중...");
+          console.log("Gemini로 이미지 생성 시도 중...");
           
           // Gemini API를 사용하여 이미지 생성
           const geminiImageUrl = await generateImageWithGemini(generatedPrompt);
@@ -511,16 +523,15 @@ export async function transformImageWithOpenAI(
             console.log("Gemini 이미지 변환 성공");
             return geminiImageUrl;
           }
-          
-          throw new Error("Gemini 이미지 변환 실패");
         } catch (geminiError) {
           console.error("Gemini API 오류:", geminiError);
-          // 오류 발생 시 대체 이미지 반환
-          console.log(`사용 가능한 ${style} 스타일 샘플 이미지 사용`);
-          return sampleStyleImages[style] || "https://placehold.co/1024x1024/A7C1E2/FFF?text=Transformed+Image";
         }
-      } else {
-        // User Key 사용 시 OpenAI API 직접 호출
+      }
+      
+      // 3. Gemini 실패 또는 사용자 키일 경우 OpenAI DALL-E 시도
+      if (!isProjectBasedKey) {
+        console.log("OpenAI DALL-E 시도 (최후의 선택지)");
+        
         try {
           console.log("User Key 감지: OpenAI SDK 사용");
           
@@ -532,40 +543,21 @@ export async function transformImageWithOpenAI(
           });
           
           // 응답 이미지 URL 추출
-          if (!dalleResponse.data || dalleResponse.data.length === 0) {
-            throw new Error("이미지 데이터가 반환되지 않음");
+          if (dalleResponse.data && dalleResponse.data.length > 0 && dalleResponse.data[0].url) {
+            const imageUrl = dalleResponse.data[0].url;
+            console.log("DALL-E 이미지 생성 성공");
+            return imageUrl;
           }
-          
-          const imageUrl = dalleResponse.data[0].url || "";
-          return imageUrl;
-        } catch (sdkError: unknown) {
-          console.error("OpenAI SDK 오류:", sdkError);
-          
-          // 속도 제한 오류인지 확인 (타입 체크 추가)
-          const isRateLimit = typeof sdkError === 'object' && 
-            sdkError !== null && 
-            'status' in sdkError && 
-            (sdkError as any).status === 429;
-            
-          if (isRateLimit) {
-            console.log("API 속도 제한에 도달했습니다. 나중에 다시 시도하세요.");
-            // 속도 제한 타임스탬프 설정
-            process.env.OPENAI_RATE_LIMIT_TIME = Date.now().toString();
-            
-            // 사용 가능한 스타일 이미지가 있으면 사용
-            if (sampleStyleImages[style]) {
-              console.log(`속도 제한으로 인해 ${style} 스타일 샘플 이미지 사용`);
-              return sampleStyleImages[style];
-            }
-          }
-          
-          // 샘플 이미지로 대체
-          return sampleStyleImages[style] || "https://placehold.co/1024x1024/A7C1E2/FFF?text=Image+Transform+Error";
+        } catch (openaiError) {
+          console.error("OpenAI DALL-E 오류:", openaiError);
         }
       }
+      
+      // 4. 모든 API 실패 시 샘플 이미지 사용
+      console.log(`모든 API 실패, ${style} 샘플 이미지 사용`);
+      return sampleStyleImages[style] || "https://placehold.co/1024x1024/A7C1E2/FFF?text=Transformed+Image";
     } catch (error) {
-      console.error("DALL-E 이미지 생성 오류:", error);
-      // 오류 발생 시 스타일별 샘플 이미지 반환
+      console.error("이미지 생성 프로세스 전체 실패:", error);
       return sampleStyleImages[style] || "https://placehold.co/1024x1024/A7C1E2/FFF?text=Image+Transform+Error";
     }
   } catch (error: any) {
