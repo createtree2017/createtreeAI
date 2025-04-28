@@ -34,13 +34,21 @@ function getAuthHeaders(apiKey: string | undefined): Record<string, string> {
   
   if (!apiKey) return headers;
   
-  // 기본 인증 헤더 설정
-  headers['Authorization'] = `Bearer ${apiKey}`;
-  
-  // Project Key인 경우 OpenAI-Project 헤더 추가
+  // Project Key(sk-proj-)와 User Key(sk-) 인증 방식 구분
   if (apiKey.startsWith('sk-proj-') && PROJECT_ID) {
-    headers['OpenAI-Project'] = PROJECT_ID;
-    console.log("Project Key 인증: OpenAI-Project 헤더 설정됨");
+    // Project Key 사용 시 필요한 헤더 설정
+    // 주의: Authorization 헤더 형식이 달라지지 않음
+    headers['Authorization'] = `Bearer ${apiKey}`;
+    
+    // 프로젝트 ID를 OpenAI-Organization 헤더에 설정
+    // OpenAI-Project 대신 OpenAI-Organization을 사용해 봄
+    headers['OpenAI-Organization'] = PROJECT_ID;
+    
+    // 디버깅을 위해 로그 출력
+    console.log("Project Key 인증: 조직 ID 설정됨 - " + PROJECT_ID);
+  } else {
+    // 일반 User Key 사용 시 표준 Authorization 헤더만 설정
+    headers['Authorization'] = `Bearer ${apiKey}`;
   }
   
   return headers;
@@ -486,8 +494,13 @@ export async function transformImageWithOpenAI(
         
         // Project Key 인증을 위한 헤더 생성 (DALL-E 이미지 변환)
         const headers = getAuthHeaders(apiKey);
-        console.log("DALL-E Transform API request with Project Key 인증 헤더:", 
-          JSON.stringify(Object.keys(headers).map(k => `${k}: ${k === 'Authorization' ? '**hidden**' : headers[k]}`)));
+        
+        // 헤더 로깅 (디버깅용)
+        const logHeaders = Object.keys(headers).map(k => {
+          if (k === 'Authorization') return `${k}: **hidden**`;
+          return `${k}: ${headers[k]}`;
+        });
+        console.log("DALL-E Transform API request with Headers:", JSON.stringify(logHeaders));
         
         const dalleResponse = await fetch("https://api.openai.com/v1/images/generations", {
           method: "POST",
