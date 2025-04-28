@@ -2645,8 +2645,13 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
       </form>
       
       {/* Variable Dialog */}
-      <Dialog open={variableDialogOpen} onOpenChange={setVariableDialogOpen}>
-        <DialogContent>
+      <Dialog open={variableDialogOpen} onOpenChange={(state) => {
+        // false만 받았을 때 닫히도록 처리
+        if (state === false) {
+          setVariableDialogOpen(false);
+        }
+      }}>
+        <DialogContent onPointerDownOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>
               {editingVariableIndex !== null ? "Edit Variable" : "Add Variable"}
@@ -2659,14 +2664,17 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
           <VariableForm 
             initialData={editingVariableIndex !== null ? variables[editingVariableIndex] : undefined}
             onSave={(variable) => {
-              const newVariables = [...variables];
-              if (editingVariableIndex !== null) {
-                newVariables[editingVariableIndex] = variable;
-              } else {
-                newVariables.push(variable);
-              }
-              form.setValue("variables", newVariables);
-              setVariableDialogOpen(false);
+              // 비동기로 처리하여 상태 업데이트 충돌 방지
+              setTimeout(() => {
+                const newVariables = [...variables];
+                if (editingVariableIndex !== null) {
+                  newVariables[editingVariableIndex] = variable;
+                } else {
+                  newVariables.push(variable);
+                }
+                form.setValue("variables", newVariables);
+                setVariableDialogOpen(false);
+              }, 0);
             }}
           />
         </DialogContent>
