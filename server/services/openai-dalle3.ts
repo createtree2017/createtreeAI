@@ -203,11 +203,11 @@ async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string): Pr
       messages: [
         {
           role: "system",
-          content: "You generate detailed DALL-E 3 prompts from image descriptions and style requests. Create prompts that maintain key identity elements while applying the requested style transformation."
+          content: "You are a precise DALL-E 3 prompt engineer. Your task is to create prompts that EXACTLY preserve the original image's key elements (subjects, expressions, poses, composition) while ONLY applying the requested artistic style. Do NOT add new elements, change the scene, or modify the core image content in any way. Focus exclusively on style transformation."
         },
         {
           role: "user",
-          content: `다음 이미지 설명을 기반으로, CreateTree 마터니티 아트 매직 서비스의 ${prompt} 스타일로 변환하기 위한 DALL-E 3용 영어 프롬프트를 작성해 주세요. 원본 이미지의 핵심 요소를 유지하면서 요청된 스타일을 적용하는 자세한 프롬프트를 생성해 주세요.\n\n이미지 설명: "${imageDescription}"\n\n스타일: ${prompt}`
+          content: `다음 이미지 설명을 기반으로 ${prompt} 스타일로 변환하기 위한 DALL-E 3용 영어 프롬프트를 작성해 주세요. 원본 이미지의 핵심 요소(인물, 표정, 구도 등)를 정확히 유지하면서 요청된 스타일만 적용하세요.\n\n이미지 설명: "${imageDescription}"\n\n스타일: ${prompt}`
         }
       ],
       max_tokens: 600
@@ -242,6 +242,14 @@ async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string): Pr
     }
     
     console.log("GPT-4o가 생성한 향상된 프롬프트:", enhancedPrompt);
+    
+    // 로그에 분석 정보 추가 (디버깅 목적)
+    console.log(`-----------------------------------`);
+    console.log(`[이미지 변환 디버그 정보]`);
+    console.log(`원본 스타일 요청: ${prompt}`);
+    console.log(`이미지 분석 길이: ${imageDescription.length} 자`);
+    console.log(`생성된 프롬프트 길이: ${enhancedPrompt.length} 자`);
+    console.log(`-----------------------------------`);
     
     // 3단계: DALL-E 3로 이미지 생성
     console.log("3단계: 멀티모달 분석 기반 프롬프트로 DALL-E 3 이미지 생성 중...");
