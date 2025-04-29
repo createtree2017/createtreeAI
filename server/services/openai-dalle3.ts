@@ -120,7 +120,8 @@ async function callDALLE3Api(prompt: string): Promise<string> {
 }
 
 /**
- * GPT-4o Vision으로 이미지를 참조하여 향상된 프롬프트 생성 후 이미지 생성 요청
+ * GPT-4o Vision으로 이미지를 분석하여 향상된 프롬프트 생성 후 DALL-E 3로 이미지 생성 요청
+ * 멀티모달 분석을 통한 향상된 이미지 변환 기능
  */
 async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string): Promise<string> {
   if (!isValidApiKey(API_KEY)) {
@@ -138,20 +139,21 @@ async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string): Pr
       'Authorization': `Bearer ${API_KEY}`
     };
     
-    // GPT-4o에 이미지와 프롬프트를 함께 전송 (Vision 기능 사용)
-    const body = {
+    // 1단계: GPT-4o Vision으로 이미지 분석 및 설명 생성
+    console.log("1단계: GPT-4o Vision으로 이미지 분석 중...");
+    const analysisBody = {
       model: "gpt-4o",  // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
         {
           role: "system", 
-          content: "You are a professional image transformation assistant. Your task is to create a detailed DALL-E 3 prompt that will transform the image according to the user's style request. Focus on creating a detailed, clear prompt that maintains the key elements and identity from the original image."
+          content: "You are a professional image analyst. Analyze the uploaded image in detail, describing key elements like subjects, poses, clothing, expressions, background, colors, and unique features. Your analysis will be used to create a transformation prompt."
         },
         {
           role: "user",
           content: [
             {
               type: "text",
-              text: `Transform this image according to the following style: ${prompt}. Return ONLY a DALL-E 3 prompt that will achieve this transformation. The prompt should be detailed and include specifics from the image like the subject, pose, clothes, background, etc.`
+              text: "이 이미지를 보고 프롬프트를 만들기 위한 자세한 설명을 해주세요. 인물, 표정, 포즈, 의상, 배경 등 모든 중요한 요소를 포함해 주세요."
             },
             {
               type: "image_url",
@@ -162,51 +164,90 @@ async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string): Pr
           ]
         }
       ],
-      max_tokens: 500
+      max_tokens: 800
     };
     
-    console.log("GPT-4o에 이미지 변환 프롬프트 요청 중...");
-    
-    // 첫 번째 API 호출: GPT-4o로 이미지 기반 프롬프트 생성
-    const gptResponse = await fetch(OPENAI_CHAT_URL, {
+    // GPT-4o Vision으로 이미지 분석 요청
+    const analysisResponse = await fetch(OPENAI_CHAT_URL, {
       method: 'POST',
       headers: headers,
-      body: JSON.stringify(body)
+      body: JSON.stringify(analysisBody)
     });
     
-    // 응답 텍스트로 가져오기
-    const gptResponseText = await gptResponse.text();
+    const analysisResponseText = await analysisResponse.text();
+    let analysisData: OpenAIChatResponse;
     
-    // JSON 파싱 시도
-    let gptData: OpenAIChatResponse;
     try {
-      gptData = JSON.parse(gptResponseText);
+      analysisData = JSON.parse(analysisResponseText);
     } catch (e) {
-      console.error("GPT-4o 응답 JSON 파싱 오류:", e);
-      console.error("원본 응답:", gptResponseText);
+      console.error("이미지 분석 응답 파싱 오류:", e);
       return SERVICE_UNAVAILABLE;
     }
     
-    // 응답 처리
-    if (!gptResponse.ok || gptData.error) {
-      const errorMessage = gptData.error?.message || `HTTP 오류: ${gptResponse.status}`;
-      console.error("GPT-4o API 오류:", errorMessage);
+    if (!analysisResponse.ok || analysisData.error) {
+      console.error("이미지 분석 API 오류:", analysisData.error?.message || `HTTP 오류: ${analysisResponse.status}`);
       return SERVICE_UNAVAILABLE;
     }
     
-    if (!gptData.choices || gptData.choices.length === 0) {
-      console.error("GPT-4o 응답에 선택지가 없습니다");
+    // 이미지 분석 결과
+    const imageDescription = analysisData.choices?.[0]?.message?.content;
+    if (!imageDescription) {
+      console.error("이미지 분석 결과가 없습니다");
       return SERVICE_UNAVAILABLE;
     }
     
-    // GPT-4o가 생성한 DALL-E 3 프롬프트
-    const enhancedPrompt = gptData.choices[0].message.content;
+    // 2단계: 분석 내용 기반으로 DALL-E 3 프롬프트 생성
+    console.log("2단계: 분석 내용 기반으로 DALL-E 3 프롬프트 생성 중...");
+    const promptGenBody = {
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      messages: [
+        {
+          role: "system",
+          content: "You generate detailed DALL-E 3 prompts from image descriptions and style requests. Create prompts that maintain key identity elements while applying the requested style transformation."
+        },
+        {
+          role: "user",
+          content: `다음 이미지 설명을 기반으로, CreateTree 마터니티 아트 매직 서비스의 ${prompt} 스타일로 변환하기 위한 DALL-E 3용 영어 프롬프트를 작성해 주세요. 원본 이미지의 핵심 요소를 유지하면서 요청된 스타일을 적용하는 자세한 프롬프트를 생성해 주세요.\n\n이미지 설명: "${imageDescription}"\n\n스타일: ${prompt}`
+        }
+      ],
+      max_tokens: 600
+    };
+    
+    const promptGenResponse = await fetch(OPENAI_CHAT_URL, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(promptGenBody)
+    });
+    
+    const promptGenResponseText = await promptGenResponse.text();
+    let promptGenData: OpenAIChatResponse;
+    
+    try {
+      promptGenData = JSON.parse(promptGenResponseText);
+    } catch (e) {
+      console.error("프롬프트 생성 응답 파싱 오류:", e);
+      return SERVICE_UNAVAILABLE;
+    }
+    
+    if (!promptGenResponse.ok || promptGenData.error) {
+      console.error("프롬프트 생성 API 오류:", promptGenData.error?.message || `HTTP 오류: ${promptGenResponse.status}`);
+      return SERVICE_UNAVAILABLE;
+    }
+    
+    // 최종 프롬프트
+    const enhancedPrompt = promptGenData.choices?.[0]?.message?.content;
+    if (!enhancedPrompt) {
+      console.error("프롬프트 생성 결과가 없습니다");
+      return SERVICE_UNAVAILABLE;
+    }
+    
     console.log("GPT-4o가 생성한 향상된 프롬프트:", enhancedPrompt);
     
-    // 두 번째 API 호출: DALL-E 3로 이미지 생성
+    // 3단계: DALL-E 3로 이미지 생성
+    console.log("3단계: 멀티모달 분석 기반 프롬프트로 DALL-E 3 이미지 생성 중...");
     return await callDALLE3Api(enhancedPrompt);
   } catch (error) {
-    console.error("이미지 기반 프롬프트 생성 중 오류:", error);
+    console.error("멀티모달 이미지 변환 중 오류:", error);
     return SERVICE_UNAVAILABLE;
   }
 }

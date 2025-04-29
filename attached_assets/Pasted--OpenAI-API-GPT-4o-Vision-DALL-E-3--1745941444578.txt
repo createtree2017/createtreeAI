@@ -1,0 +1,91 @@
+// OpenAI API 기반 전체 이미지 생성 흐름
+// 기능: 이미지 업로드 → 이미지 분석(GPT-4o Vision) → 프롬프트 생성 → DALL·E 3 이미지 생성 → 결과 반환
+
+// 📦 필요 패키지
+// npm install express multer openai axios dotenv
+
+const express = require('express');
+const multer = require('multer');
+const fs = require('fs');
+const { OpenAI } = require('openai');
+require('dotenv').config();
+
+const app = express();
+const port = 3000;
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const upload = multer({ dest: 'uploads/' });
+
+// 1. 이미지 업로드 엔드포인트
+app.post('/upload', upload.single('image'), async (req, res) => {
+  const imagePath = req.file.path;
+  try {
+    // 2. GPT-4o Vision으로 이미지 해석
+    const base64Image = fs.readFileSync(imagePath, { encoding: 'base64' });
+    const visionResult = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a helpful assistant that analyzes uploaded images.'
+        },
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: '이 이미지를 보고 프롬프트를 만들기 위한 설명을 해줘.' },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:image/jpeg;base64,${base64Image}`
+              }
+            }
+          ]
+        }
+      ]
+    });
+
+    const imageDescription = visionResult.choices[0].message.content;
+
+    // 3. 프롬프트 생성 (사용자 스타일 반영 가능)
+    const promptGen = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: 'You generate DALL·E 3 prompts from image descriptions.'
+        },
+        {
+          role: 'user',
+          content: `"${imageDescription}"라는 설명을 기반으로, 창조AI의 이미지생성 카테고리의 프롬프트를 포함해서 DALL·E 3용 영어 프롬프트를 작성해줘.`
+        }
+      ]
+    });
+
+    const finalPrompt = promptGen.choices[0].message.content;
+
+    // 4. DALL·E 3 이미지 생성
+    const imageResponse = await openai.images.generate({
+      model: 'dall-e-3',
+      prompt: finalPrompt,
+      n: 1,
+      size: '1024x1024'
+    });
+
+    const imageUrl = imageResponse.data[0].url;
+
+    // 5. 결과 전달
+    res.json({
+      prompt: finalPrompt,
+      imageUrl
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: '이미지 생성에 실패했습니다.' });
+  } finally {
+    fs.unlinkSync(imagePath); // 업로드 파일 삭제
+  }
+});
+
+app.listen(port, () => {
+  console.log(`창조AI 이미지 생성 서버 running at http://localhost:${port}`);
+});
