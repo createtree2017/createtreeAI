@@ -203,11 +203,26 @@ async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string): Pr
       messages: [
         {
           role: "system",
-          content: "You are a precise DALL-E 3 prompt engineer. Your task is to create prompts that EXACTLY preserve the original image's key elements (subjects, expressions, poses, composition) while ONLY applying the requested artistic style. Do NOT add new elements, change the scene, or modify the core image content in any way. Focus exclusively on style transformation."
+          content: "You are a precise DALL-E 3 prompt engineer specializing in artistic style transformation. Your task is to create prompts that EXACTLY preserve the original image's key elements (subjects, identities, expressions, poses, composition) while applying the requested artistic style fully and completely. Important rules: 1) NEVER create photorealistic outputs for artistic styles like anime, cartoon, or illustration - fully convert to the target style 2) NEVER change subjects' identities, ethnicity, gender, or number 3) NEVER add or remove main subjects 4) MAINTAIN exact composition and scene context. Make the transformation EXTREME and OBVIOUS - if asked for anime, make it clearly anime, not a subtle filter on a photo. Emphasize the distinctive visual elements of the requested style."
         },
         {
           role: "user",
-          content: `다음 이미지 설명을 기반으로 ${prompt} 스타일로 변환하기 위한 DALL-E 3용 영어 프롬프트를 작성해 주세요. 원본 이미지의 핵심 요소(인물, 표정, 구도 등)를 정확히 유지하면서 요청된 스타일만 적용하세요.\n\n이미지 설명: "${imageDescription}"\n\n스타일: ${prompt}`
+          content: `다음 이미지 설명을 기반으로 ${prompt} 스타일로 변환하기 위한 DALL-E 3용 영어 프롬프트를 작성해 주세요. 
+
+원본 이미지의 핵심 요소(인물, 표정, 구도 등)를 정확히 유지하면서 요청된 스타일만 적용하세요.
+
+특히 중요: 실사 이미지를 애니메이션/일러스트레이션 스타일로 변환할 때는 반드시 극적인 스타일 변화가 일어나도록 해주세요. 단순히 필터를 적용한 것처럼 보이면 안 됩니다. 지브리 스타일이라면 완전한 애니메이션 캐릭터로 변환되어야 합니다.
+
+이미지 설명: "${imageDescription}"
+
+스타일: ${prompt}
+
+마지막으로 다시 한 번 당부합니다:
+1. 실사 인물은 완전히 애니메이션/일러스트 스타일로 변환하세요
+2. 인물 수, 포즈, 인종, 성별 등을 바꾸지 마세요
+3. 구도와 장면을 정확히 유지하세요
+4. 스타일 변환을 명확하고 극적으로 적용하세요
+5. 지브리 스타일이면 반드시 미야자키 하야오 스타일의 애니메이션 캐릭터로 바꾸세요`
         }
       ],
       max_tokens: 600
@@ -298,7 +313,7 @@ export async function transformImage(
       oil: "Convert this image into a classic oil painting style with rich textures and depth",
       fantasy: "Transform this image into a magical fantasy art style with ethereal lighting and dreamlike qualities",
       storybook: "Convert this image into a sweet children's storybook illustration style with gentle colors and charming details",
-      ghibli: "Transform this image into a Studio Ghibli anime style with delicate hand-drawn details, soft expressions, pastel color palette, dreamy background elements, gentle lighting, and the whimsical charming aesthetic that Studio Ghibli is known for. The image should be gentle and magical.",
+      ghibli: "Transform this image into a Studio Ghibli anime style with delicate hand-drawn details, soft expressions, pastel color palette, dreamy background elements, gentle lighting, and the whimsical charming aesthetic that Studio Ghibli is known for. The image should be gentle and magical. IMPORTANT: Characters must be drawn in anime style with large expressive eyes, simplified facial features, and vibrant colorful appearance. Do NOT maintain photorealistic qualities, but instead fully convert to hand-drawn animated characters in Miyazaki's signature style.",
       disney: "Transform this image into a Disney animation style with expressive characters, vibrant colors, and enchanting details",
       korean_webtoon: "Transform this image into a Korean webtoon style with clean lines, pastel colors, and expressive characters",
       fairytale: "Transform this image into a fairytale illustration with magical elements, dreamy atmosphere, and storybook aesthetics"
