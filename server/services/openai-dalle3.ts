@@ -203,7 +203,7 @@ async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string): Pr
       messages: [
         {
           role: "system",
-          content: "You are a precise DALL-E 3 prompt engineer specializing in artistic style transformation. Your task is to create prompts that EXACTLY preserve the original image's key elements (subjects, identities, expressions, poses, composition) while applying the requested artistic style fully and completely. Important rules: 1) NEVER create photorealistic outputs for artistic styles like anime, cartoon, or illustration - fully convert to the target style 2) NEVER change subjects' identities, ethnicity, gender, or number 3) NEVER add or remove main subjects 4) MAINTAIN exact composition and scene context. Make the transformation EXTREME and OBVIOUS - if asked for anime, make it clearly anime, not a subtle filter on a photo. Emphasize the distinctive visual elements of the requested style."
+          content: "You are a precise DALL-E 3 prompt engineer specializing in artistic style transformation. Your task is to create prompts that EXACTLY preserve the original image's key elements while applying the requested artistic style fully. Critical requirements: 1) NEVER change hair style, hair length, or hair color of any person 2) MAINTAIN exact facial features including glasses, facial hair, distinctive traits 3) PRESERVE exact body type, clothing style and colors 4) KEEP background elements in their original positions 5) FULLY apply the target artistic style (anime/cartoon styles should NOT look photorealistic) 6) MATCH the mood and atmosphere of the original image. Your prompt must explicitly mention these preservation requirements."
         },
         {
           role: "user",
@@ -219,10 +219,12 @@ async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string): Pr
 
 마지막으로 다시 한 번 당부합니다:
 1. 실사 인물은 완전히 애니메이션/일러스트 스타일로 변환하세요
-2. 인물 수, 포즈, 인종, 성별 등을 바꾸지 마세요
-3. 구도와 장면을 정확히 유지하세요
-4. 스타일 변환을 명확하고 극적으로 적용하세요
-5. 지브리 스타일이면 반드시 미야자키 하야오 스타일의 애니메이션 캐릭터로 바꾸세요`
+2. 인물의 헤어스타일(머리 길이, 모양, 색상)을 정확히 유지하세요
+3. 인물의 얼굴 특징(안경, 수염, 피부 특성)을 정확히 유지하세요
+4. 인물 수, 포즈, 인종, 성별, 체형을 정확히 유지하세요
+5. 원본 구도와 배경을 정확히 유지하세요
+6. 스타일 변환을 명확하고 극적으로 적용하세요
+7. 지브리 스타일이면 미야자키 하야오 스타일의 애니메이션 캐릭터로 바꾸되, 원본 인물의 특징은 반드시 유지하세요`
         }
       ],
       max_tokens: 600
@@ -313,7 +315,7 @@ export async function transformImage(
       oil: "Convert this image into a classic oil painting style with rich textures and depth",
       fantasy: "Transform this image into a magical fantasy art style with ethereal lighting and dreamlike qualities",
       storybook: "Convert this image into a sweet children's storybook illustration style with gentle colors and charming details",
-      ghibli: "Transform this image into a Studio Ghibli anime style with delicate hand-drawn details, soft expressions, pastel color palette, dreamy background elements, gentle lighting, and the whimsical charming aesthetic that Studio Ghibli is known for. The image should be gentle and magical. IMPORTANT: Characters must be drawn in anime style with large expressive eyes, simplified facial features, and vibrant colorful appearance. Do NOT maintain photorealistic qualities, but instead fully convert to hand-drawn animated characters in Miyazaki's signature style.",
+      ghibli: "Transform this image into a Studio Ghibli anime style with delicate hand-drawn details, soft expressions, pastel color palette, dreamy background elements, gentle lighting, and the whimsical charming aesthetic that Studio Ghibli is known for. The image should be gentle and magical. IMPORTANT: Characters must be drawn in anime style with large expressive eyes, simplified facial features, and vibrant colorful appearance, BUT must PRECISELY maintain the original hair length, hair style, facial features, body type, clothing, and all key physical characteristics of the people in the image. Do NOT maintain photorealistic qualities, but instead fully convert to hand-drawn animated characters in Miyazaki's signature style while preserving the exact identity of each person.",
       disney: "Transform this image into a Disney animation style with expressive characters, vibrant colors, and enchanting details",
       korean_webtoon: "Transform this image into a Korean webtoon style with clean lines, pastel colors, and expressive characters",
       fairytale: "Transform this image into a fairytale illustration with magical elements, dreamy atmosphere, and storybook aesthetics"
