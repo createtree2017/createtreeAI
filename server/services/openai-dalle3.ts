@@ -16,7 +16,8 @@ function isValidApiKey(apiKey: string | undefined): boolean {
 }
 
 // OpenAI API 엔드포인트
-const OPENAI_API_URL = "https://api.openai.com/v1/images/generations";
+const OPENAI_GENERATIONS_URL = "https://api.openai.com/v1/images/generations";
+const OPENAI_VARIATIONS_URL = "https://api.openai.com/v1/images/variations";
 
 // API 응답 타입 정의
 interface OpenAIImageGenerationResponse {
