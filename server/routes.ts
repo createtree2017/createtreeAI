@@ -10,6 +10,11 @@ import { generateChatResponse } from "./services/openai-simple";
 import { generateMusic } from "./services/replicate";
 import { generateContent } from "./services/gemini";
 import { 
+  generateAiMusic, 
+  getAvailableMusicStyles, 
+  getAvailableDurations 
+} from "./services/topmedia-music";
+import { 
   music, 
   images, 
   personas, 
@@ -63,6 +68,13 @@ const musicGenerationSchema = z.object({
   babyName: z.string().min(1, "Baby name is required"),
   style: z.string().min(1, "Music style is required"),
   duration: z.number().int().min(30).max(180),
+});
+
+// Schema for TopMediai AI music generation request
+const aiMusicGenerationSchema = z.object({
+  lyrics: z.string().min(1, "Lyrics or phrase is required"),
+  style: z.string().min(1, "Music style is required"),
+  duration: z.string().min(2, "Duration is required"),
 });
 
 // Schema for chat message
@@ -236,6 +248,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching music list:", error);
       return res.status(500).json({ error: "Failed to fetch music list" });
+    }
+  });
+  
+  // TopMediai AI Music Generation endpoint
+  app.post("/api/generate-music", async (req, res) => {
+    try {
+      const validatedData = aiMusicGenerationSchema.parse(req.body);
+      
+      console.log("Generating music with TopMediai AI:", validatedData);
+      
+      // Generate music using TopMediai AI service
+      const musicData = await generateAiMusic(
+        validatedData.lyrics,
+        validatedData.style,
+        validatedData.duration
+      );
+      
+      // Optional: Save to database if needed
+      // For now, we're just returning the direct result
+      
+      return res.status(200).json({
+        url: musicData.url,
+        metadata: musicData.metadata,
+        success: true
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      console.error("Error generating AI music:", error);
+      return res.status(500).json({ 
+        error: "Failed to generate music", 
+        message: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Get available music styles endpoint
+  app.get("/api/music-styles", async (req, res) => {
+    try {
+      const styles = getAvailableMusicStyles();
+      return res.json(styles);
+    } catch (error) {
+      console.error("Error fetching music styles:", error);
+      return res.status(500).json({ error: "Failed to fetch music styles" });
+    }
+  });
+  
+  // Get available music durations endpoint
+  app.get("/api/music-durations", async (req, res) => {
+    try {
+      const durations = getAvailableDurations();
+      return res.json(durations);
+    } catch (error) {
+      console.error("Error fetching music durations:", error);
+      return res.status(500).json({ error: "Failed to fetch music durations" });
     }
   });
 
