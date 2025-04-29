@@ -1,6 +1,6 @@
 /**
- * OpenAI DALL-E 3 기반 이미지 생성 서비스
- * OpenAI SDK 대신 직접 API 호출 방식으로 구현
+ * OpenAI DALL-E 3와 GPT-4o를 활용한 이미지 생성 및 변환 서비스
+ * 프로젝트 API 키 사용하여 직접 API 호출 방식으로 구현
  */
 import fetch from 'node-fetch';
 
@@ -17,7 +17,7 @@ function isValidApiKey(apiKey: string | undefined): boolean {
 
 // OpenAI API 엔드포인트
 const OPENAI_GENERATIONS_URL = "https://api.openai.com/v1/images/generations";
-const OPENAI_VARIATIONS_URL = "https://api.openai.com/v1/images/variations";
+const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 
 // API 응답 타입 정의
 interface OpenAIImageGenerationResponse {
@@ -33,10 +33,26 @@ interface OpenAIImageGenerationResponse {
   };
 }
 
+// GPT 응답 타입
+interface OpenAIChatResponse {
+  id?: string;
+  choices?: Array<{
+    message: {
+      role: string;
+      content: string;
+    };
+  }>;
+  error?: {
+    message: string;
+    type: string;
+    code?: string;
+  };
+}
+
 /**
- * OpenAI API로 직접 이미지 생성 요청 보내기
+ * DALL-E 3로 직접 이미지 생성 요청 보내기
  */
-async function callOpenAIApi(prompt: string): Promise<string> {
+async function callDALLE3Api(prompt: string): Promise<string> {
   if (!isValidApiKey(API_KEY)) {
     console.log("유효한 API 키가 없습니다");
     return SERVICE_UNAVAILABLE;
@@ -58,7 +74,7 @@ async function callOpenAIApi(prompt: string): Promise<string> {
     };
     
     // API 호출
-    const response = await fetch(OPENAI_API_URL, {
+    const response = await fetch(OPENAI_GENERATIONS_URL, {
       method: 'POST',
       headers: headers,
       body: JSON.stringify(body)
@@ -104,13 +120,105 @@ async function callOpenAIApi(prompt: string): Promise<string> {
 }
 
 /**
+ * GPT-4o Vision으로 이미지를 참조하여 향상된 프롬프트 생성 후 이미지 생성 요청
+ */
+async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string): Promise<string> {
+  if (!isValidApiKey(API_KEY)) {
+    console.log("유효한 API 키가 없습니다");
+    return SERVICE_UNAVAILABLE;
+  }
+
+  try {
+    // 이미지를 Base64로 인코딩
+    const base64Image = imageBuffer.toString('base64');
+    
+    // API 요청 헤더 및 바디 구성
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${API_KEY}`
+    };
+    
+    // GPT-4o에 이미지와 프롬프트를 함께 전송 (Vision 기능 사용)
+    const body = {
+      model: "gpt-4o",  // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      messages: [
+        {
+          role: "system", 
+          content: "You are a professional image transformation assistant. Your task is to create a detailed DALL-E 3 prompt that will transform the image according to the user's style request. Focus on creating a detailed, clear prompt that maintains the key elements and identity from the original image."
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `Transform this image according to the following style: ${prompt}. Return ONLY a DALL-E 3 prompt that will achieve this transformation. The prompt should be detailed and include specifics from the image like the subject, pose, clothes, background, etc.`
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${base64Image}`
+              }
+            }
+          ]
+        }
+      ],
+      max_tokens: 500
+    };
+    
+    console.log("GPT-4o에 이미지 변환 프롬프트 요청 중...");
+    
+    // 첫 번째 API 호출: GPT-4o로 이미지 기반 프롬프트 생성
+    const gptResponse = await fetch(OPENAI_CHAT_URL, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(body)
+    });
+    
+    // 응답 텍스트로 가져오기
+    const gptResponseText = await gptResponse.text();
+    
+    // JSON 파싱 시도
+    let gptData: OpenAIChatResponse;
+    try {
+      gptData = JSON.parse(gptResponseText);
+    } catch (e) {
+      console.error("GPT-4o 응답 JSON 파싱 오류:", e);
+      console.error("원본 응답:", gptResponseText);
+      return SERVICE_UNAVAILABLE;
+    }
+    
+    // 응답 처리
+    if (!gptResponse.ok || gptData.error) {
+      const errorMessage = gptData.error?.message || `HTTP 오류: ${gptResponse.status}`;
+      console.error("GPT-4o API 오류:", errorMessage);
+      return SERVICE_UNAVAILABLE;
+    }
+    
+    if (!gptData.choices || gptData.choices.length === 0) {
+      console.error("GPT-4o 응답에 선택지가 없습니다");
+      return SERVICE_UNAVAILABLE;
+    }
+    
+    // GPT-4o가 생성한 DALL-E 3 프롬프트
+    const enhancedPrompt = gptData.choices[0].message.content;
+    console.log("GPT-4o가 생성한 향상된 프롬프트:", enhancedPrompt);
+    
+    // 두 번째 API 호출: DALL-E 3로 이미지 생성
+    return await callDALLE3Api(enhancedPrompt);
+  } catch (error) {
+    console.error("이미지 기반 프롬프트 생성 중 오류:", error);
+    return SERVICE_UNAVAILABLE;
+  }
+}
+
+/**
  * 새로운 이미지 생성 (DALL-E 3)
  */
 export async function generateImage(promptText: string): Promise<string> {
   console.log("DALL-E 3로 이미지 생성 시도 (직접 API 호출)");
   
   try {
-    const imageUrl = await callOpenAIApi(promptText);
+    const imageUrl = await callDALLE3Api(promptText);
     
     if (imageUrl !== SERVICE_UNAVAILABLE) {
       console.log("DALL-E 3 이미지 생성 성공");
@@ -124,7 +232,8 @@ export async function generateImage(promptText: string): Promise<string> {
 }
 
 /**
- * 이미지 변환/스타일 변경 (DALL-E 3)
+ * 이미지 변환/스타일 변경 (DALL-E 3 + GPT-4o)
+ * 원본 이미지를 참조하여 이미지 변환 수행
  */
 export async function transformImage(
   imageBuffer: Buffer,
@@ -155,12 +264,13 @@ export async function transformImage(
       promptText = stylePrompts[style] || "Transform this image into a beautiful artistic style";
     }
 
-    console.log("DALL-E 3로 이미지 변환 시도 (직접 API 호출)");
+    console.log("GPT-4o + DALL-E 3로 이미지 변환 시도 (이미지 기반)");
     
-    const imageUrl = await callOpenAIApi(promptText);
+    // 원본 이미지를 참조하여 변환 (GPT-4o의 Vision 기능 사용)
+    const imageUrl = await callGPT4oVisionAndDALLE3(imageBuffer, promptText);
     
     if (imageUrl !== SERVICE_UNAVAILABLE) {
-      console.log("DALL-E 3 이미지 변환 성공");
+      console.log("이미지 변환 성공 (GPT-4o + DALL-E 3)");
     }
     
     return imageUrl;
