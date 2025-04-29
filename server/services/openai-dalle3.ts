@@ -1,8 +1,8 @@
 /**
  * OpenAI DALL-E 3 기반 이미지 생성 서비스
- * 간단하고 명확한 구현으로 유지
+ * OpenAI SDK 대신 직접 API 호출 방식으로 구현
  */
-import OpenAI from "openai";
+import fetch from 'node-fetch';
 
 // OpenAI API 키 - 사용자가 제공한 새 프로젝트 API 키
 const API_KEY = "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";
@@ -15,52 +15,107 @@ function isValidApiKey(apiKey: string | undefined): boolean {
   return !!apiKey && (apiKey.startsWith('sk-') || apiKey.startsWith('sk-proj-'));
 }
 
-// 기본 OpenAI 클라이언트 생성 - 프로젝트 API 키 사용
-const openai = new OpenAI({
-  apiKey: API_KEY
-});
+// OpenAI API 엔드포인트
+const OPENAI_API_URL = "https://api.openai.com/v1/images/generations";
+
+// API 응답 타입 정의
+interface OpenAIImageGenerationResponse {
+  created?: number;
+  data?: Array<{
+    url?: string;
+    revised_prompt?: string;
+  }>;
+  error?: {
+    message: string;
+    type: string;
+    code?: string;
+  };
+}
+
+/**
+ * OpenAI API로 직접 이미지 생성 요청 보내기
+ */
+async function callOpenAIApi(prompt: string): Promise<string> {
+  if (!isValidApiKey(API_KEY)) {
+    console.log("유효한 API 키가 없습니다");
+    return SERVICE_UNAVAILABLE;
+  }
+
+  try {
+    // API 요청 헤더 및 바디 구성
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${API_KEY}`
+    };
+    
+    const body = {
+      model: "dall-e-3",
+      prompt: prompt,
+      n: 1,
+      size: "1024x1024",
+      quality: "standard"
+    };
+    
+    // API 호출
+    const response = await fetch(OPENAI_API_URL, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(body)
+    });
+    
+    // 응답 텍스트로 가져오기
+    const responseText = await response.text();
+    
+    // JSON 파싱 시도
+    let responseData: OpenAIImageGenerationResponse;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (e) {
+      console.error("응답 JSON 파싱 오류:", e);
+      console.error("원본 응답:", responseText);
+      return SERVICE_UNAVAILABLE;
+    }
+    
+    // 오류 응답 확인
+    if (!response.ok || responseData.error) {
+      const errorMessage = responseData.error?.message || `HTTP 오류: ${response.status}`;
+      console.error("DALL-E 3 API 오류:", errorMessage);
+      return SERVICE_UNAVAILABLE;
+    }
+    
+    // 응답 데이터 검증
+    if (!responseData.data || responseData.data.length === 0) {
+      console.error("이미지 데이터가 없습니다");
+      return SERVICE_UNAVAILABLE;
+    }
+    
+    const imageUrl = responseData.data[0]?.url;
+    if (!imageUrl) {
+      console.error("이미지 URL이 없습니다");
+      return SERVICE_UNAVAILABLE;
+    }
+    
+    return imageUrl;
+  } catch (error) {
+    console.error("API 호출 중 오류:", error);
+    return SERVICE_UNAVAILABLE;
+  }
+}
 
 /**
  * 새로운 이미지 생성 (DALL-E 3)
  */
 export async function generateImage(promptText: string): Promise<string> {
+  console.log("DALL-E 3로 이미지 생성 시도 (직접 API 호출)");
+  
   try {
-    // API 키 확인
-    if (!isValidApiKey(API_KEY)) {
-      console.log("유효한 API 키가 없습니다");
-      return SERVICE_UNAVAILABLE;
-    }
-
-    console.log("DALL-E 3로 이미지 생성 시도");
+    const imageUrl = await callOpenAIApi(promptText);
     
-    try {
-      // OpenAI SDK를 사용한 이미지 생성
-      const response = await openai.images.generate({
-        model: "dall-e-3",
-        prompt: promptText,
-        n: 1,
-        size: "1024x1024",
-        quality: "standard"
-      });
-
-      // 응답 검증
-      if (!response.data || response.data.length === 0) {
-        console.error("이미지 데이터가 없습니다");
-        return SERVICE_UNAVAILABLE;
-      }
-      
-      const imageUrl = response.data[0]?.url;
-      if (!imageUrl) {
-        console.error("이미지 URL이 없습니다");
-        return SERVICE_UNAVAILABLE;
-      }
-      
+    if (imageUrl !== SERVICE_UNAVAILABLE) {
       console.log("DALL-E 3 이미지 생성 성공");
-      return imageUrl;
-    } catch (error) {
-      console.error("DALL-E 3 이미지 생성 실패:", error);
-      return SERVICE_UNAVAILABLE;
     }
+    
+    return imageUrl;
   } catch (error) {
     console.error("이미지 생성 중 오류 발생:", error);
     return SERVICE_UNAVAILABLE;
@@ -76,12 +131,6 @@ export async function transformImage(
   customPromptTemplate?: string | null
 ): Promise<string> {
   try {
-    // API 키 확인
-    if (!isValidApiKey(API_KEY)) {
-      console.log("유효한 API 키가 없습니다");
-      return SERVICE_UNAVAILABLE;
-    }
-
     // 스타일별 프롬프트 템플릿
     const stylePrompts: Record<string, string> = {
       watercolor: "Transform this image into a beautiful watercolor painting with soft, flowing colors and gentle brush strokes",
@@ -105,36 +154,15 @@ export async function transformImage(
       promptText = stylePrompts[style] || "Transform this image into a beautiful artistic style";
     }
 
-    console.log("DALL-E 3로 이미지 변환 시도");
-
-    try {
-      // OpenAI SDK를 사용한 이미지 생성
-      const response = await openai.images.generate({
-        model: "dall-e-3",
-        prompt: promptText,
-        n: 1,
-        size: "1024x1024",
-        quality: "standard"
-      });
-
-      // 응답 검증
-      if (!response.data || response.data.length === 0) {
-        console.error("이미지 변환 결과 데이터가 없습니다");
-        return SERVICE_UNAVAILABLE;
-      }
-      
-      const imageUrl = response.data[0]?.url;
-      if (!imageUrl) {
-        console.error("이미지 변환 URL이 없습니다");
-        return SERVICE_UNAVAILABLE;
-      }
-      
+    console.log("DALL-E 3로 이미지 변환 시도 (직접 API 호출)");
+    
+    const imageUrl = await callOpenAIApi(promptText);
+    
+    if (imageUrl !== SERVICE_UNAVAILABLE) {
       console.log("DALL-E 3 이미지 변환 성공");
-      return imageUrl;
-    } catch (error) {
-      console.error("DALL-E 3 이미지 변환 실패:", error);
-      return SERVICE_UNAVAILABLE;
     }
+    
+    return imageUrl;
   } catch (error) {
     console.error("이미지 변환 중 오류 발생:", error);
     return SERVICE_UNAVAILABLE;
