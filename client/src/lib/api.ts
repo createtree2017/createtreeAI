@@ -329,7 +329,12 @@ export const uploadThumbnail = async (file: File) => {
     throw new Error(errorText || response.statusText);
   }
   
-  return response.json();
+  const result = await response.json();
+  
+  // Log the result to see what's being returned
+  console.log('Thumbnail upload response:', result);
+  
+  return result;
 };
 
 // ===== A/B Testing APIs =====
