@@ -4,21 +4,20 @@
  */
 import OpenAI from "openai";
 
-// OpenAI API 키
-const API_KEY = process.env.OPENAI_API_KEY;
+// OpenAI API 키 - 사용자가 제공한 새 프로젝트 API 키
+const API_KEY = "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";
 
 // 서비스 불가능 상태 메시지
 const SERVICE_UNAVAILABLE = "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
 
-// 간단한 API 키 유효성 검증 (프로젝트 ID 검증 없이)
+// API 키 유효성 검증 - 프로젝트 API 키 지원 추가 (sk-proj- 시작)
 function isValidApiKey(apiKey: string | undefined): boolean {
-  return !!apiKey && apiKey.startsWith('sk-');
+  return !!apiKey && (apiKey.startsWith('sk-') || apiKey.startsWith('sk-proj-'));
 }
 
-// 기본 OpenAI 클라이언트 생성 - 표준 인증 방식으로 변경
+// 기본 OpenAI 클라이언트 생성 - 프로젝트 API 키 사용
 const openai = new OpenAI({
   apiKey: API_KEY
-  // 조직 ID나 프로젝트 ID 모두 제거
 });
 
 /**
