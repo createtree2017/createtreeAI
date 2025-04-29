@@ -203,7 +203,7 @@ async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string): Pr
       messages: [
         {
           role: "system",
-          content: "You are a precise DALL-E 3 prompt engineer specializing in artistic style transformation. Your task is to create prompts that EXACTLY preserve the original image's key elements while applying the requested artistic style fully. Critical requirements: 1) NEVER change hair style, hair length, or hair color of any person 2) MAINTAIN exact facial features including glasses, facial hair, distinctive traits 3) PRESERVE exact body type, clothing style and colors 4) KEEP background elements in their original positions 5) FULLY apply the target artistic style (anime/cartoon styles should NOT look photorealistic) 6) MATCH the mood and atmosphere of the original image. Your prompt must explicitly mention these preservation requirements."
+          content: "You are a world-class DALL-E 3 prompt engineer specializing in extreme artistic style transformations. Your primary goal is to create prompts that result in DRAMATIC and COMPLETE style changes - the final image must be immediately recognizable as belonging to the requested style (anime, cartoon, painting style, etc). When users request animation styles like Studio Ghibli, the output must look exactly like a frame from their films - not a subtle filter or semi-realistic interpretation. While creating these extreme transformations, maintain key identity elements: 1) Hair length and basic style 2) Basic facial structure and distinguishing features 3) Body proportions and pose 4) Clothing style and color scheme 5) Scene composition and setting. Focus 70% of your prompt on achieving the perfect style transformation and 30% on preserving identity elements. For animation styles, emphasize the 2D drawn quality, distinctive art style, and complete departure from photorealism."
         },
         {
           role: "user",
@@ -211,7 +211,7 @@ async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string): Pr
 
 원본 이미지의 핵심 요소(인물, 표정, 구도 등)를 정확히 유지하면서 요청된 스타일만 적용하세요.
 
-특히 중요: 실사 이미지를 애니메이션/일러스트레이션 스타일로 변환할 때는 반드시 극적인 스타일 변화가 일어나도록 해주세요. 단순히 필터를 적용한 것처럼 보이면 안 됩니다. 지브리 스타일이라면 완전한 애니메이션 캐릭터로 변환되어야 합니다.
+특히 중요: 실사 이미지를 애니메이션/일러스트레이션 스타일로 변환할 때는 반드시 극적인 스타일 변화가 일어나도록 해주세요. 100% 완전한 스타일 변환이어야 하며, 단순히 필터를 적용한 것처럼 보이면 안 됩니다. 지브리 스타일이라면 실제 미야자키 하야오 영화의 한 장면처럼 보이도록 완전한 애니메이션 캐릭터로 변환해야 합니다. 2D 애니메이션 특성을 강하게 표현하고 실사적 요소는 전혀 없어야 합니다.
 
 이미지 설명: "${imageDescription}"
 
@@ -315,7 +315,7 @@ export async function transformImage(
       oil: "Convert this image into a classic oil painting style with rich textures and depth",
       fantasy: "Transform this image into a magical fantasy art style with ethereal lighting and dreamlike qualities",
       storybook: "Convert this image into a sweet children's storybook illustration style with gentle colors and charming details",
-      ghibli: "Transform this image into a Studio Ghibli anime style with delicate hand-drawn details, soft expressions, pastel color palette, dreamy background elements, gentle lighting, and the whimsical charming aesthetic that Studio Ghibli is known for. The image should be gentle and magical. IMPORTANT: Characters must be drawn in anime style with large expressive eyes, simplified facial features, and vibrant colorful appearance, BUT must PRECISELY maintain the original hair length, hair style, facial features, body type, clothing, and all key physical characteristics of the people in the image. Do NOT maintain photorealistic qualities, but instead fully convert to hand-drawn animated characters in Miyazaki's signature style while preserving the exact identity of each person.",
+      ghibli: "Transform this image into an EXACT Studio Ghibli anime style as seen in films like 'Spirited Away' and 'Howl's Moving Castle'. The style MUST include: 1) Hand-drawn 2D animation look with visible brush strokes and line work, 2) Miyazaki's signature soft pastel color palette with teal blue skies and verdant greens, 3) Characters with distinctively large, expressive anime eyes and simplified facial features, 4) A dreamy, otherworldly atmosphere with magical lighting effects, 5) Whimsical exaggerated proportions typical of Japanese animation. This MUST look like a screenshot from an actual Studio Ghibli film, not a subtle stylization. While maintaining this strong Studio Ghibli aesthetic, preserve the subject's hair length/style, basic facial structure, clothing style/colors, and pose. No photorealistic elements should remain - convert EVERYTHING to pure hand-drawn Ghibli animation style.",
       disney: "Transform this image into a Disney animation style with expressive characters, vibrant colors, and enchanting details",
       korean_webtoon: "Transform this image into a Korean webtoon style with clean lines, pastel colors, and expressive characters",
       fairytale: "Transform this image into a fairytale illustration with magical elements, dreamy atmosphere, and storybook aesthetics"
