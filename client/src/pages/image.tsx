@@ -197,39 +197,8 @@ export default function Image() {
     queryKey: ["/api/concepts"],
   });
   
-  // Combine hardcoded styles with concepts from the database
-  const defaultArtStyles: ImageStyle[] = [
-    { 
-      value: "ghibli", 
-      label: "Studio Ghibli", 
-      thumbnailUrl: "https://placehold.co/300x200/FFD5AA/333?text=Ghibli+Style" 
-    },
-    { 
-      value: "disney", 
-      label: "Disney Animation", 
-      thumbnailUrl: "https://placehold.co/300x200/B6E1FF/333?text=Disney+Style" 
-    },
-    { 
-      value: "korean_webtoon", 
-      label: "Korean Webtoon", 
-      thumbnailUrl: "https://placehold.co/300x200/FFD6E7/333?text=Korean+Webtoon" 
-    },
-    { 
-      value: "watercolor", 
-      label: "Soft Watercolor", 
-      thumbnailUrl: "https://placehold.co/300x200/E1FFE2/333?text=Watercolor" 
-    },
-    { 
-      value: "fairytale", 
-      label: "Fairytale", 
-      thumbnailUrl: "https://placehold.co/300x200/DCBEFF/333?text=Fairytale" 
-    },
-    { 
-      value: "storybook", 
-      label: "Baby Storybook", 
-      thumbnailUrl: "https://placehold.co/300x200/FFFACD/333?text=Storybook" 
-    },
-  ];
+  // Use only database-defined styles, no hardcoded styles
+  const defaultArtStyles: ImageStyle[] = [];
   
   // Define expected concept shape
   interface Concept {
