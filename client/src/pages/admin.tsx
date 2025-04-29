@@ -1899,6 +1899,7 @@ function ConceptManager() {
             <TableBody>
               {concepts.map((concept: any) => {
                 const category = categories?.find((c: any) => c.categoryId === concept.categoryId);
+                console.log('Concept thumbnail URL:', concept.conceptId, concept.thumbnailUrl);
                 
                 return (
                   <TableRow key={concept.conceptId}>
@@ -1907,13 +1908,17 @@ function ConceptManager() {
                         {concept.thumbnailUrl ? (
                           <div className="group relative">
                             <img 
-                              src={concept.thumbnailUrl} 
+                              src={concept.thumbnailUrl}
                               alt={concept.title} 
                               className="w-10 h-10 rounded object-cover cursor-pointer"
+                              onError={(e) => {
+                                console.error('Failed to load concept thumbnail:', concept.thumbnailUrl);
+                                e.currentTarget.src = 'https://placehold.co/100x100/F5F5F5/AAAAAA?text=No+Image';
+                              }}
                             />
                             <div className="absolute left-0 -top-24 transform scale-0 group-hover:scale-100 transition-transform origin-bottom z-50 pointer-events-none">
                               <img 
-                                src={concept.thumbnailUrl} 
+                                src={concept.thumbnailUrl}
                                 alt={concept.title} 
                                 className="w-40 h-40 rounded-md object-cover shadow-lg"
                               />
@@ -2316,9 +2321,13 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
                   {field.value && (
                     <div className="border rounded-md overflow-hidden w-32 h-32 relative">
                       <img 
-                        src={field.value} 
+                        src={field.value.startsWith('http') ? field.value : field.value}
                         alt="Concept thumbnail"
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          console.error('Failed to load image:', field.value);
+                          e.currentTarget.src = 'https://placehold.co/200x200/F5F5F5/AAAAAA?text=Image+Error';
+                        }}
                       />
                       <Button
                         variant="destructive"

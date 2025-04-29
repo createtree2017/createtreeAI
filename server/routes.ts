@@ -181,6 +181,11 @@ const conceptSchema = z.object({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Serve uploaded files from the uploads directory
+  app.use('/uploads', (req, res, next) => {
+    const staticMiddleware = express.static(path.join(process.cwd(), 'uploads'));
+    return staticMiddleware(req, res, next);
+  });
   // Serve embed script for iframe integration
   app.get('/embed.js', (req, res) => {
     res.sendFile(path.join(process.cwd(), 'client/public/embed.js'));
