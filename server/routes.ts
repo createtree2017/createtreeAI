@@ -183,8 +183,14 @@ const conceptSchema = z.object({
 export async function registerRoutes(app: Express): Promise<Server> {
   // Serve uploaded files from the uploads directory
   app.use('/uploads', (req, res, next) => {
-    const staticMiddleware = express.static(path.join(process.cwd(), 'uploads'));
-    return staticMiddleware(req, res, next);
+    // 정적 파일 제공 - 직접 파일 읽고 제공
+    const filePath = path.join(process.cwd(), 'uploads', req.path);
+    res.sendFile(filePath, (err) => {
+      if (err) {
+        console.error(`Error serving static file: ${filePath}`, err);
+        next();
+      }
+    });
   });
   // Serve embed script for iframe integration
   app.get('/embed.js', (req, res) => {
