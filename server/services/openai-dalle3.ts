@@ -15,11 +15,10 @@ function isValidApiKey(apiKey: string | undefined): boolean {
   return !!apiKey && apiKey.startsWith('sk-');
 }
 
-// 기본 OpenAI 클라이언트 생성 - 기업인증 버전
+// 기본 OpenAI 클라이언트 생성 - 표준 인증 방식으로 변경
 const openai = new OpenAI({
-  apiKey: API_KEY,
-  organization: 'org-usoOFUrbUe8HjwNiQMog0GHn',
-  projectId: 'prj-Oyx1H4uCSf6JRc20njSEONj'
+  apiKey: API_KEY
+  // 조직 ID나 프로젝트 ID 모두 제거
 });
 
 /**
