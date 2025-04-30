@@ -120,8 +120,8 @@ async function callDALLE3Api(prompt: string): Promise<string> {
 }
 
 /**
- * 지브리 스타일 전용 변환 함수
- * GPT-4o Vision 사용하지 않고 직접 DALL-E로 전송
+ * GPT-4o Vision으로 이미지를 분석하여 향상된 프롬프트 생성 후 DALL-E 3로 이미지 생성 요청
+ * 멀티모달 분석을 통한 향상된 이미지 변환 기능
  */
 async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string): Promise<string> {
   if (!isValidApiKey(API_KEY)) {
@@ -130,24 +130,158 @@ async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string): Pr
   }
 
   try {
-    console.log("지브리 스타일로 직접 변환 시작...");
-    console.log(`원본 프롬프트: ${prompt}`);
+    // 이미지를 Base64로 인코딩
+    const base64Image = imageBuffer.toString('base64');
     
-    // 지브리 스타일로 고정된 프롬프트 생성
-    const ghibliPrompt = `Transform this image into a Studio Ghibli anime style artwork. Create a scene that looks like it's from a Hayao Miyazaki film with:
-- Hand-drawn 2D animation look with visible brush strokes
-- Miyazaki's signature soft pastel color palette
-- Characters with large, expressive anime eyes
-- A magical, whimsical atmosphere
-
-Preserve all people and objects from the original photo, keeping the same composition.
-
-Original request: ${prompt}`;
+    // API 요청 헤더 및 바디 구성
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${API_KEY}`
+    };
     
-    console.log("DALL-E 3 프롬프트 생성 완료:", ghibliPrompt.substring(0, 150) + "...");
+    // 1단계: GPT-4o Vision으로 이미지 분석 및 설명 생성 (시스템 프롬프트 없음) 
+    console.log("1단계: GPT-4o Vision으로 이미지 분석 중...");
+    const analysisBody = {
+      model: "gpt-4o",  // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `이 이미지에 대한 정확한 설명을 작성해 주세요:
+
+인물 특성에 초점을 맞춰 자세히 설명해주세요:
+1. 인물 수: 이미지에 있는 모든 사람의 수
+2. 각 인물의 특징:
+   - 성별과 나이
+   - 눈, 코, 입 모양
+   - 헤어스타일 (길이, 색상, 스타일)
+   - 피부 톤
+   - 특징 (안경, 귀걸이, 주근깨 등)
+3. 의상: 각 인물의 옷 설명 (색상과 종류)
+4. 표정과 포즈
+5. 배경 환경
+6. 이미지의 전반적인 분위기
+
+주의: AI가 이미지를 변환할 때 원본 인물의 특징을 그대로 유지하는 데 필요한 정보입니다. 아주 자세하게 작성해 주세요.`
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${base64Image}`
+              }
+            }
+          ]
+        }
+      ],
+      max_tokens: 1000
+    };
+    
+    // GPT-4o Vision으로 이미지 분석 요청
+    const analysisResponse = await fetch(OPENAI_CHAT_URL, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(analysisBody)
+    });
+    
+    const analysisResponseText = await analysisResponse.text();
+    let analysisData: OpenAIChatResponse;
+    
+    try {
+      analysisData = JSON.parse(analysisResponseText);
+    } catch (e) {
+      console.error("이미지 분석 응답 파싱 오류:", e);
+      return SERVICE_UNAVAILABLE;
+    }
+    
+    if (!analysisResponse.ok || analysisData.error) {
+      console.error("이미지 분석 API 오류:", analysisData.error?.message || `HTTP 오류: ${analysisResponse.status}`);
+      return SERVICE_UNAVAILABLE;
+    }
+    
+    // 이미지 분석 결과
+    const imageDescription = analysisData.choices?.[0]?.message?.content || "";
+    if (!imageDescription) {
+      console.error("이미지 분석 결과가 없습니다");
+      return SERVICE_UNAVAILABLE;
+    }
+    
+    // 2단계: GPT-4o로 지브리 스타일 프롬프트 생성 (원본 특성 유지 강조) 
+    console.log("2단계: GPT-4o로 프롬프트 지침 생성 중...");
+    const promptGenerationBody = {
+      model: "gpt-4o",  // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      messages: [
+        {
+          role: "system",
+          content: `당신은 이미지 스타일 변환을 위한 프롬프트 전문가입니다. 사용자가 제공하는 이미지 분석 정보를 바탕으로 DALL-E 3가 원본 이미지의 특성을 최대한 유지하면서 지브리 스튜디오 스타일로 변환할 수 있는 프롬프트를 작성해야 합니다.
+
+특히 다음 사항을 반드시 프롬프트에 포함시키세요:
+1. 모든 인물의 정확한 특징(얼굴 생김새, 헤어스타일, 피부톤)을 유지할 것
+2. 동일한 구도와 배경 유지할 것 
+3. 동일한 인물 수와 위치 유지할 것
+4. 의상의 색상과 스타일 유지할 것
+5. 표정과 감정 유지할 것
+
+지브리 스타일의 특징:
+- 손으로 그린 듯한 2D 애니메이션 느낌
+- 미야자키 하야오 특유의 파스텔 색상 팔레트
+- 큰 눈과 단순화된 얼굴 특징
+- 마법 같은 분위기
+
+프롬프트는 DALL-E 3에게 지시하는 형식으로 영어로 작성하세요.`
+        },
+        {
+          role: "user",
+          content: `원본 이미지 분석 정보:
+${imageDescription}
+
+사용자 요청: ${prompt}
+
+위 정보를 바탕으로 DALL-E 3가 원본 이미지의 특성을 그대로 유지하면서 지브리 스튜디오 스타일로 변환할 수 있는 디테일한 프롬프트를 작성해 주세요.`
+        }
+      ],
+      max_tokens: 1000
+    };
+    
+    // GPT-4o로 프롬프트 생성 요청
+    const promptResponse = await fetch(OPENAI_CHAT_URL, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(promptGenerationBody)
+    });
+    
+    const promptResponseText = await promptResponse.text();
+    let promptData: OpenAIChatResponse;
+    
+    try {
+      promptData = JSON.parse(promptResponseText);
+    } catch (e) {
+      console.error("프롬프트 생성 응답 파싱 오류:", e);
+      return SERVICE_UNAVAILABLE;
+    }
+    
+    if (!promptResponse.ok || promptData.error) {
+      console.error("프롬프트 생성 API 오류:", promptData.error?.message || `HTTP 오류: ${promptResponse.status}`);
+      return SERVICE_UNAVAILABLE;
+    }
+    
+    // 생성된 프롬프트
+    const generatedPrompt = promptData.choices?.[0]?.message?.content || "";
+    if (!generatedPrompt) {
+      console.error("프롬프트 생성 결과가 없습니다");
+      return SERVICE_UNAVAILABLE;
+    }
+    
+    // 3단계: DALL-E 3로 이미지 생성 
+    console.log("3단계: DALL-E 3로 이미지 생성 중...");
+    console.log("생성된 프롬프트:", generatedPrompt.substring(0, 150) + "...");
+    
+    // 최종 프롬프트
+    const finalPrompt = generatedPrompt + "\n\nOriginal request: " + prompt;
     
     // DALL-E 3로 이미지 생성
-    return await callDALLE3Api(ghibliPrompt);
+    return await callDALLE3Api(finalPrompt);
   } catch (error) {
     console.error("멀티모달 이미지 변환 중 오류:", error);
     return SERVICE_UNAVAILABLE;
