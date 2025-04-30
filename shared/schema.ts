@@ -116,6 +116,7 @@ export const conceptCategories = pgTable("concept_categories", {
   categoryId: text("category_id").notNull().unique(),
   name: text("name").notNull(),
   description: text("description"),
+  systemPrompt: text("system_prompt"), // GPT-4o에게 이미지 분석을 위한 지침
   order: integer("order").default(0),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
