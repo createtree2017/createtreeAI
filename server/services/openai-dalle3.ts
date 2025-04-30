@@ -293,8 +293,12 @@ ${imageDescription}
     console.log("3단계: DALL-E 3로 이미지 생성 중...");
     console.log("생성된 프롬프트:", generatedPrompt.substring(0, 150) + "...");
     
-    // 최종 프롬프트
-    const finalPrompt = generatedPrompt + "\n\nOriginal request: " + prompt;
+    // 최종 프롬프트 - 사용자 원본 요청을 더 명확하게 강조
+    const finalPrompt = `${prompt}\n\nPreserve these exact details from the original image:\n${generatedPrompt}`;
+    
+    console.log("최종 프롬프트 구조:", 
+      "1. 사용자 원본 요청 (스타일 지시)",
+      "2. 원본 이미지 특성 보존 지침");
     
     // DALL-E 3로 이미지 생성
     return await callDALLE3Api(finalPrompt);
