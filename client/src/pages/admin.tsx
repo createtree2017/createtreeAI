@@ -133,6 +133,7 @@ const conceptCategorySchema = z.object({
   categoryId: z.string().min(1, "ID is required"),
   name: z.string().min(1, "Name is required"),
   description: z.string().min(1, "Description is required"),
+  systemPrompt: z.string().optional(),  // GPT-4o에게 줄 이미지 분석 지침
   order: z.number().int().default(0),
   isActive: z.boolean().default(true),
 });
@@ -142,6 +143,7 @@ const conceptSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
   promptTemplate: z.string().min(1, "Prompt template is required"),
+  systemPrompt: z.string().optional(),  // 이미지 분석 및 변환을 위한 시스템 프롬프트 추가
   thumbnailUrl: z.string().optional(),
   tagSuggestions: z.array(z.string()).optional().default([]),
   variables: z.array(z.object({
@@ -1581,6 +1583,7 @@ function ConceptCategoryForm({ initialData, onSuccess }: ConceptCategoryFormProp
       categoryId: "",
       name: "",
       description: "",
+      systemPrompt: "",
       order: 0,
       isActive: true,
     },
@@ -1706,6 +1709,27 @@ function ConceptCategoryForm({ initialData, onSuccess }: ConceptCategoryFormProp
               <FormControl>
                 <Textarea placeholder="Describe this concept category" {...field} />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="systemPrompt"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>GPT-4o 이미지 분석 지침</FormLabel>
+              <FormControl>
+                <Textarea 
+                  placeholder="GPT-4o에게 이미지 분석 시 어떤 지침을 제공할지 입력하세요. 예: '이미지 속 인물의 얼굴, 포즈, 배경을 자세히 분석하고 인물의 특징을 유지하세요.'" 
+                  className="min-h-[150px]"
+                  {...field} 
+                />
+              </FormControl>
+              <FormDescription>
+                이 지침은 이미지를 분석할 때 GPT-4o가 이미지의 어떤 부분을 우선적으로 분석할지, 어떤 특징을 유지할지 결정합니다.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
