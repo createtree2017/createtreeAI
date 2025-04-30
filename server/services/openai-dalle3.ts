@@ -175,20 +175,22 @@ async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string, sys
             `이 이미지를 분석해주세요.` : 
             `이 이미지에 대한 정확한 설명을 작성해 주세요:
 
-인물 특성에 초점을 맞춰 자세히 설명해주세요:
+인물 특성에 초점을 맞춰 자세하고 명확하게 설명해주세요:
 1. 인물 수: 이미지에 있는 모든 사람의 수
-2. 각 인물의 특징:
-   - 성별과 나이
-   - 눈, 코, 입 모양
-   - 헤어스타일 (길이, 색상, 스타일)
-   - 피부 톤
-   - 특징 (안경, 귀걸이, 주근깨 등)
-3. 의상: 각 인물의 옷 설명 (색상과 종류)
-4. 표정과 포즈
-5. 배경 환경
-6. 이미지의 전반적인 분위기
+2. 각 인물의 정확한 특징 (특히 나이와 외형 정보가 중요합니다):
+   - 성별: 남성/여성인지 명확히 구분
+   - 나이: 구체적인 나이대 표기 (예: 유아 0-3세, 어린이 4-7세, 아동 8-12세, 청소년 13-18세, 성인)
+   - 얼굴 특징: 눈 크기와 모양, 볼 풍부함, 코와 입 모양 정확히 서술
+   - 헤어스타일: 길이, 색상, 스타일 세부적으로 설명
+   - 피부 톤: 정확한 색조와 질감
+   - 특이점: 안경, 귀걸이, 주근깨, 기타 특징적 요소
+3. 의상: 각 인물의 옷 색상, 스타일, 재질, 특징적 요소 (무늬, 장식 등)
+4. 표정: 정확한 감정 상태와 표정 묘사
+5. 포즈와 자세: 팔, 다리, 몸통의 정확한 위치와 움직임
+6. 배경 환경: 장소, 물체, 조명 조건
+7. 이미지의 전체적인 분위기와 톤
 
-주의: AI가 이미지를 변환할 때 원본 인물의 특징을 그대로 유지하는 데 필요한 정보입니다. 아주 자세하게 작성해 주세요.`
+주의: AI가 이미지를 변환할 때 원본 인물의 특징, 특히 나이와 외형을 정확히 유지하는 것이 매우 중요합니다. 최대한 상세하고 명확하게 작성해 주세요.`
         },
         {
           type: "image_url",
@@ -245,15 +247,19 @@ async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string, sys
           content: `당신은 이미지 스타일 변환을 위한 프롬프트 전문가입니다. 사용자가 제공하는 이미지 분석 정보를 바탕으로 DALL-E 3가 원본 이미지의 특성을 최대한 정확하게 유지하면서 스타일 변환할 수 있는 프롬프트를 작성해야 합니다.
 
 다음 사항을 반드시 프롬프트에 포함시키세요:
-1. 모든 인물의 정확한 특징 유지 지시
-   - 얼굴 생김새 (눈, 코, 입 모양)
+1. 가장 중요: 인물의 정확한 연령대 유지 (어린이는 반드시 어린이로, 성인은 성인으로)
+   - 연령을 명확하게 지시: 유아(0-3세), 어린이(4-7세), 아동(8-12세), 청소년(13-18세), 성인 등
+   - "DO NOT AGE UP THE SUBJECT"와 같은 명확한 지시문 포함
+   - 어린이의 경우 "Keep child-like proportions"와 같은 명령 추가
+2. 모든 인물의 정확한 특징 유지 지시
+   - 얼굴 생김새 (눈 크기/모양, 볼살, 코, 입 모양)
    - 헤어스타일 (길이, 색상, 스타일)
    - 피부톤
    - 특징적 요소 (안경, 모자, 악세서리 등)
-2. 정확한 구도와 배경 유지 명령
-3. 동일한 인물 수와 위치 관계 보존 
-4. 의상의 색상과 스타일 보존
-5. 표정, 감정, 자세 동일하게 유지
+3. 정확한 구도와 배경 유지 명령
+4. 동일한 인물 수와 위치 관계 보존 
+5. 의상의 색상과 스타일 보존
+6. 표정, 감정, 자세 동일하게 유지
 
 프롬프트는 DALL-E 3에게 지시하는 형식으로 영어로 작성하세요. 
 중요: 스타일 관련 내용은 직접 지정하지 말고, 원본 요청의 스타일 지시를 따르도록 하세요. 스타일은 사용자의 요청에서 가져오고, 당신은 오직 원본 이미지 특성 보존에만 집중하세요.`
@@ -304,12 +310,17 @@ ${imageDescription}
     console.log("3단계: DALL-E 3로 이미지 생성 중...");
     console.log("생성된 프롬프트:", generatedPrompt.substring(0, 150) + "...");
     
+    // 이미지 설명에서 연령 정보 추출 시도
+    const ageMatch = imageDescription.match(/나이.*?(\d+)세|유아|어린이|아동|청소년|성인|infant|toddler|child|teenager|(\d+)\s*years?\s*old/i);
+    const isChild = ageMatch || imageDescription.toLowerCase().includes('child') || imageDescription.toLowerCase().includes('어린이') || imageDescription.toLowerCase().includes('아이');
+    
     // 최종 프롬프트 - 스타일 선언을 먼저하고, 감성 요소를 강조한 후 보존 세부사항 추가
     const finalPrompt = `Illustration in the style of ${prompt.includes('Ghibli') ? 'Studio Ghibli' : prompt.split('\n')[0]}.
 PRIORITIZE THIS STYLE STRONGLY. 
 Create artwork with the same pose, setting, and composition as the original image.
 Use appropriate lighting, color palette, and atmosphere to match the requested style.
 
+${isChild ? '⚠️ IMPORTANT: This is a CHILD. DO NOT AGE UP the subject. Maintain correct child-like proportions for face and body. Keep the character as a young child with rounded cheeks, bigger eyes, and child-like features. DO NOT turn the child into a teenager or adult.\n\n' : ''}
 Important details to preserve from the original image:
 ${generatedPrompt}`;
     
