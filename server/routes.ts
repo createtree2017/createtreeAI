@@ -322,6 +322,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if this is a specific variant request for A/B testing
       const variantId = req.body.variant;
       let promptTemplate = null;
+      let categorySystemPrompt = null;  // 변수 미리 정의 (scope 문제 해결)
       
       if (variantId) {
         // Get the active test for this concept/style
@@ -343,6 +344,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (variant) {
             promptTemplate = variant.promptTemplate;
+            
+            // 변형 테스트에도 시스템 프롬프트 지원 추가
+            // 원본 컨셉의 systemPrompt 또는 카테고리 systemPrompt 가져오기
+            const concept = await db.query.concepts.findFirst({
+              where: eq(concepts.conceptId, style)
+            });
+            
+            if (concept) {
+              if (concept.systemPrompt) {
+                categorySystemPrompt = concept.systemPrompt;
+                console.log(`A/B 테스트용 컨셉 '${concept.title}'의 시스템 프롬프트 적용: ${categorySystemPrompt.substring(0, 50)}...`);
+              } else if (concept.categoryId) {
+                const category = await db.query.conceptCategories.findFirst({
+                  where: eq(conceptCategories.categoryId, concept.categoryId)
+                });
+                
+                if (category && category.systemPrompt) {
+                  categorySystemPrompt = category.systemPrompt;
+                  console.log(`A/B 테스트용 카테고리 '${category.name}'의 시스템 프롬프트 적용: ${categorySystemPrompt.substring(0, 50)}...`);
+                }
+              }
+            }
           }
         }
       } 
@@ -353,7 +376,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         
         // 카테고리 정보와 시스템 프롬프트 가져오기 (이미지 분석 지침용)
-        let categorySystemPrompt = null;
         if (concept && concept.categoryId) {
           const category = await db.query.conceptCategories.findFirst({
             where: eq(conceptCategories.categoryId, concept.categoryId)
