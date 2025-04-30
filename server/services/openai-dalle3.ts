@@ -120,8 +120,8 @@ async function callDALLE3Api(prompt: string): Promise<string> {
 }
 
 /**
- * GPT-4o Vision으로 이미지를 분석하여 향상된 프롬프트 생성 후 DALL-E 3로 이미지 생성 요청
- * 멀티모달 분석을 통한 향상된 이미지 변환 기능
+ * 지브리 스타일 전용 변환 함수
+ * GPT-4o Vision 사용하지 않고 직접 DALL-E로 전송
  */
 async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string): Promise<string> {
   if (!isValidApiKey(API_KEY)) {
@@ -130,113 +130,24 @@ async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string): Pr
   }
 
   try {
-    // 이미지를 Base64로 인코딩
-    const base64Image = imageBuffer.toString('base64');
+    console.log("지브리 스타일로 직접 변환 시작...");
+    console.log(`원본 프롬프트: ${prompt}`);
     
-    // API 요청 헤더 및 바디 구성
-    const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${API_KEY}`
-    };
-    
-    // 1단계: GPT-4o Vision으로 이미지 분석 및 설명 생성 (시스템 프롬프트 없음) 
-    console.log("1단계: GPT-4o Vision으로 이미지 분석 중...");
-    const analysisBody = {
-      model: "gpt-4o",  // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: `이 이미지에 대한 정확한 설명을 작성해 주세요:
+    // 지브리 스타일로 고정된 프롬프트 생성
+    const ghibliPrompt = `Transform this image into a Studio Ghibli anime style artwork. Create a scene that looks like it's from a Hayao Miyazaki film with:
+- Hand-drawn 2D animation look with visible brush strokes
+- Miyazaki's signature soft pastel color palette
+- Characters with large, expressive anime eyes
+- A magical, whimsical atmosphere
 
-1. 인물 수: 이미지에 있는 모든 사람의 수
-2. 각 인물의 특징:
-   - 성별과 나이
-   - 눈, 코, 입 모양
-   - 헤어스타일 (길이, 색상, 스타일)
-   - 피부 톤
-   - 특징 (안경, 귀걸이, 주근깨 등)
-3. 의상: 각 인물의 옷 설명
-4. 표정과 포즈
-5. 배경 환경
-6. 이미지의 전반적인 분위기
+Preserve all people and objects from the original photo, keeping the same composition.
 
-이 설명은 AI가 이미지를 스타일 변환할 때 원본 인물의 특징을 유지하는 데 사용됩니다.`
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:image/jpeg;base64,${base64Image}`
-              }
-            }
-          ]
-        }
-      ],
-      max_tokens: 1000
-    };
+Original request: ${prompt}`;
     
-    // GPT-4o Vision으로 이미지 분석 요청
-    const analysisResponse = await fetch(OPENAI_CHAT_URL, {
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify(analysisBody)
-    });
-    
-    const analysisResponseText = await analysisResponse.text();
-    let analysisData: OpenAIChatResponse;
-    
-    try {
-      analysisData = JSON.parse(analysisResponseText);
-    } catch (e) {
-      console.error("이미지 분석 응답 파싱 오류:", e);
-      return SERVICE_UNAVAILABLE;
-    }
-    
-    if (!analysisResponse.ok || analysisData.error) {
-      console.error("이미지 분석 API 오류:", analysisData.error?.message || `HTTP 오류: ${analysisResponse.status}`);
-      return SERVICE_UNAVAILABLE;
-    }
-    
-    // 이미지 분석 결과
-    const imageDescription = analysisData.choices?.[0]?.message?.content;
-    if (!imageDescription) {
-      console.error("이미지 분석 결과가 없습니다");
-      return SERVICE_UNAVAILABLE;
-    }
-    
-    // 항상 관리자 프롬프트를 우선적으로 사용 (길이나 스타일에 상관없이)
-    // 컨셉 프롬프트가 전달된 모든 경우에 해당 프롬프트를 직접 사용
-    console.log("전달된 프롬프트를 직접 사용 (시스템 프롬프트 무시)");
-    const adminPrompt = prompt;
-    
-    // 로그에 분석 정보 추가 (디버깅 목적)
-    console.log(`-----------------------------------`);
-    console.log(`[이미지 변환 디버그 정보]`);
-    console.log(`전달된 원본 프롬프트: ${prompt}`);
-    console.log(`이미지 분석 길이: ${imageDescription.length} 자`);
-    console.log(`사용할 프롬프트 길이: ${adminPrompt.length} 자`);
-    console.log(`-----------------------------------`);
-    
-    // 관리자가 지정한 프롬프트만 사용 (시스템 프롬프트 없음)
-    console.log("3단계: 관리자 지정 프롬프트로 DALL-E 3 이미지 생성 중...");
-    
-    // 최종 프롬프트: 관리자 프롬프트 + 원본 유지 지시문
-    const fullPrompt = `${adminPrompt}
-
-This is an image transformation request. Use the style specified above, but with these MANDATORY requirements:
-1. PRESERVE THE EXACT IDENTITY of all subjects in the original photo
-2. Keep the same number of people, in the same positions
-3. Maintain the same facial features, hairstyles, clothing, and expressions
-4. Maintain the same background scene and composition
-
-Description of what's in the original photo: ${imageDescription.substring(0, 500)}`;
-    
-    console.log("최종 DALL-E 3 프롬프트 생성 완료:", fullPrompt.substring(0, 150) + "...");
+    console.log("DALL-E 3 프롬프트 생성 완료:", ghibliPrompt.substring(0, 150) + "...");
     
     // DALL-E 3로 이미지 생성
-    return await callDALLE3Api(fullPrompt);
+    return await callDALLE3Api(ghibliPrompt);
   } catch (error) {
     console.error("멀티모달 이미지 변환 중 오류:", error);
     return SERVICE_UNAVAILABLE;
