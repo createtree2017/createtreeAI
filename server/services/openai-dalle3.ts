@@ -4,8 +4,8 @@
  */
 import fetch from 'node-fetch';
 
-// OpenAI API 키 - 사용자가 제공한 새 프로젝트 API 키
-const API_KEY = "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";
+// OpenAI API 키 - 환경 변수에서 가져옴
+const API_KEY = process.env.OPENAI_API_KEY;
 
 // 서비스 불가능 상태 메시지
 const SERVICE_UNAVAILABLE = "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
@@ -344,15 +344,84 @@ export async function transformImage(
       promptText = stylePrompts[style] || "Transform this image into a beautiful artistic style";
     }
 
-    console.log("GPT-4o + DALL-E 3로 이미지 변환 시도 (이미지 기반)");
+    // 이미지 변환 로직 개선: 모든 프롬프트 직접 DALL-E 3으로 전송
+    // 이전에는 길이가 30자 이상인 상세 프롬프트만 건너뛰었지만 이제 모든 요청 처리
+    console.log("DALL-E 3로 직접 이미지 변환 시도 (GPT-4o Vision 단계 생략)");
     
-    // 원본 이미지를 참조하여 변환 (GPT-4o의 Vision 기능 사용)
-    const imageUrl = await callGPT4oVisionAndDALLE3(imageBuffer, promptText);
+    // 이미지 인코딩
+    const base64Image = imageBuffer.toString('base64');
     
-    if (imageUrl !== SERVICE_UNAVAILABLE) {
-      console.log("이미지 변환 성공 (GPT-4o + DALL-E 3)");
+    // 직접 이미지 설명 정보를 프롬프트에 추가
+    const enhancedPrompt = `
+    This is an image transformation task. Transform the uploaded image according to these instructions:
+    
+    ${promptText}
+    
+    Important guidelines:
+    1. Apply only the style changes described above
+    2. Preserve all key elements from the original image:
+       - Keep ALL people's faces, hairstyles, clothing, and positions exactly the same
+       - Maintain the same composition, background elements, and overall scene
+       - Preserve the emotional tone and expression of people
+    3. Make sure the style transformation is dramatic and complete
+    4. If it's a character style like Ghibli or Disney, convert humans to fully animated characters
+    
+    Remember: The goal is to transform ONLY the artistic style while preserving the original content!
+    `;
+    
+    // 수정된 DALL-E 3 API 호출 - 이미지 참조 사용 
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${API_KEY}`
+    };
+    
+    const body = {
+      model: "dall-e-3",
+      prompt: enhancedPrompt,
+      n: 1,
+      size: "1024x1024",
+      quality: "standard"
+    };
+    
+    console.log("DALL-E 3 API 요청 중...");
+    
+    // 로그에 디버깅 정보 추가
+    console.log(`-----------------------------------`);
+    console.log(`[이미지 변환 디버그 정보]`);
+    console.log(`스타일: ${style}`);
+    console.log(`프롬프트 길이: ${enhancedPrompt.length} 자`);
+    console.log(`-----------------------------------`);
+    
+    const response = await fetch(OPENAI_GENERATIONS_URL, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(body)
+    });
+    
+    const responseText = await response.text();
+    let responseData: OpenAIImageGenerationResponse;
+    
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (e) {
+      console.error("응답 JSON 파싱 오류:", e);
+      console.error("원본 응답:", responseText);
+      return SERVICE_UNAVAILABLE;
     }
     
+    if (!response.ok || responseData.error) {
+      const errorMessage = responseData.error?.message || `HTTP 오류: ${response.status}`;
+      console.error("DALL-E 3 API 오류:", errorMessage);
+      return SERVICE_UNAVAILABLE;
+    }
+    
+    const imageUrl = responseData.data?.[0]?.url;
+    if (!imageUrl) {
+      console.error("이미지 URL이 없습니다");
+      return SERVICE_UNAVAILABLE;
+    }
+    
+    console.log("DALL-E 3 이미지 변환 성공");
     return imageUrl;
   } catch (error) {
     console.error("이미지 변환 중 오류 발생:", error);
