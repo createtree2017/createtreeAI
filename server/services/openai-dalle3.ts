@@ -142,9 +142,9 @@ async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string, sys
     // 1단계: GPT-4o Vision으로 이미지 분석 및 설명 생성 (시스템 프롬프트 제공 여부에 따라 달라짐) 
     console.log("1단계: GPT-4o Vision으로 이미지 분석 중...");
     
-    // 분석 요청을 위한 메시지 배열 준비
-    const analysisMessages = [];
-    
+    // 이미지 분석을 위한 API 요청 준비
+    let analysisMessages = [];
+
     // systemPrompt가 제공된 경우 system 역할로 추가
     if (systemPrompt) {
       console.log("제공된 시스템 프롬프트 사용:", systemPrompt.substring(0, 100) + "...");
@@ -153,8 +153,8 @@ async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string, sys
         content: systemPrompt
       });
     }
-    
-    // 사용자 메시지 추가 (기본 분석 지침 또는 커스텀 지침)
+
+    // 기본 또는 커스텀 지침으로 사용자 메시지 추가
     analysisMessages.push({
       role: "user",
       content: [
@@ -178,16 +178,20 @@ async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string, sys
 6. 이미지의 전반적인 분위기
 
 주의: AI가 이미지를 변환할 때 원본 인물의 특징을 그대로 유지하는 데 필요한 정보입니다. 아주 자세하게 작성해 주세요.`
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:image/jpeg;base64,${base64Image}`
-              }
-            }
-          ]
+        },
+        {
+          type: "image_url",
+          image_url: {
+            url: `data:image/jpeg;base64,${base64Image}`
+          }
         }
-      ],
+      ]
+    });
+
+    // 분석 요청 본문 구성
+    const analysisBody = {
+      model: "gpt-4o",  // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      messages: analysisMessages,
       max_tokens: 1000
     };
     
@@ -327,7 +331,8 @@ export async function generateImage(promptText: string): Promise<string> {
 export async function transformImage(
   imageBuffer: Buffer,
   style: string,
-  customPromptTemplate?: string | null
+  customPromptTemplate?: string | null,
+  systemPrompt?: string | null
 ): Promise<string> {
   try {
     // 스타일별 프롬프트 템플릿
@@ -356,7 +361,7 @@ export async function transformImage(
     console.log("GPT-4o + DALL-E 3로 이미지 변환 시도 (이미지 기반)");
     
     // 원본 이미지를 참조하여 변환 (GPT-4o의 Vision 기능 사용)
-    const imageUrl = await callGPT4oVisionAndDALLE3(imageBuffer, promptText);
+    const imageUrl = await callGPT4oVisionAndDALLE3(imageBuffer, promptText, systemPrompt);
     
     if (imageUrl !== SERVICE_UNAVAILABLE) {
       console.log("이미지 변환 성공 (GPT-4o + DALL-E 3)");
