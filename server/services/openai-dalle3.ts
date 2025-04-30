@@ -199,95 +199,23 @@ async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string): Pr
     // 항상 관리자 프롬프트를 우선적으로 사용 (길이나 스타일에 상관없이)
     // 컨셉 프롬프트가 전달된 모든 경우에 해당 프롬프트를 직접 사용
     console.log("전달된 프롬프트를 직접 사용 (시스템 프롬프트 무시)");
-    const enhancedPrompt = prompt;
+    const adminPrompt = prompt;
     
     // 로그에 분석 정보 추가 (디버깅 목적)
     console.log(`-----------------------------------`);
     console.log(`[이미지 변환 디버그 정보]`);
     console.log(`전달된 원본 프롬프트: ${prompt}`);
     console.log(`이미지 분석 길이: ${imageDescription.length} 자`);
-    console.log(`사용할 프롬프트 길이: ${enhancedPrompt.length} 자`);
+    console.log(`사용할 프롬프트 길이: ${adminPrompt.length} 자`);
     console.log(`-----------------------------------`);
     
     // 3단계: DALL-E 3로 직접 이미지 생성
     console.log("3단계: 전달받은 프롬프트로 DALL-E 3 이미지 생성 중...");
     // 항상 콘텐츠 모더레이션 충돌 방지를 위해 영어로 지시문 추가
-    const fullPrompt = `Transform the given image according to these instructions: ${enhancedPrompt}
+    const fullPrompt = `Transform the given image according to these instructions: ${adminPrompt}
     Important: Preserve the subject's main features like hair style, facial features, clothing, and composition.
     If this is a character style like Ghibli or Disney, convert humans to completely animated characters while maintaining key features.`;
     return await callDALLE3Api(fullPrompt);
-    
-    // 짧은 스타일 텍스트인 경우 GPT-4o로 프롬프트 생성
-    console.log("2단계: 분석 내용 기반으로 DALL-E 3 프롬프트 생성 중...");
-    const promptGenBody = {
-      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-      messages: [
-        {
-          role: "user",
-          content: `다음 이미지 설명을 기반으로 ${prompt} 스타일로 변환하기 위한 DALL-E 3용 영어 프롬프트를 작성해 주세요. 
-
-원본 이미지의 핵심 요소(인물, 표정, 구도 등)를 정확히 유지하면서 요청된 스타일만 적용하세요.
-
-특히 중요: 실사 이미지를 애니메이션/일러스트레이션 스타일로 변환할 때는 반드시 극적인 스타일 변화가 일어나도록 해주세요. 100% 완전한 스타일 변환이어야 하며, 단순히 필터를 적용한 것처럼 보이면 안 됩니다. 지브리 스타일이라면 실제 미야자키 하야오 영화의 한 장면처럼 보이도록 완전한 애니메이션 캐릭터로 변환해야 합니다. 2D 애니메이션 특성을 강하게 표현하고 실사적 요소는 전혀 없어야 합니다.
-
-이미지 설명: "${imageDescription}"
-
-스타일: ${prompt}
-
-마지막으로 다시 한 번 당부합니다:
-1. 실사 인물은 완전히 애니메이션/일러스트 스타일로 변환하세요
-2. 인물의 헤어스타일(머리 길이, 모양, 색상)을 정확히 유지하세요
-3. 인물의 얼굴 특징(안경, 수염, 피부 특성)을 정확히 유지하세요
-4. 인물 수, 포즈, 인종, 성별, 체형을 정확히 유지하세요
-5. 원본 구도와 배경을 정확히 유지하세요
-6. 스타일 변환을 명확하고 극적으로 적용하세요
-7. 지브리 스타일이면 미야자키 하야오 스타일의 애니메이션 캐릭터로 바꾸되, 원본 인물의 특징은 반드시 유지하세요`
-        }
-      ],
-      max_tokens: 600
-    };
-    
-    const promptGenResponse = await fetch(OPENAI_CHAT_URL, {
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify(promptGenBody)
-    });
-    
-    const promptGenResponseText = await promptGenResponse.text();
-    let promptGenData: OpenAIChatResponse;
-    
-    try {
-      promptGenData = JSON.parse(promptGenResponseText);
-    } catch (e) {
-      console.error("프롬프트 생성 응답 파싱 오류:", e);
-      return SERVICE_UNAVAILABLE;
-    }
-    
-    if (!promptGenResponse.ok || promptGenData.error) {
-      console.error("프롬프트 생성 API 오류:", promptGenData.error?.message || `HTTP 오류: ${promptGenResponse.status}`);
-      return SERVICE_UNAVAILABLE;
-    }
-    
-    // 최종 프롬프트
-    const enhancedPrompt = promptGenData.choices?.[0]?.message?.content;
-    if (!enhancedPrompt) {
-      console.error("프롬프트 생성 결과가 없습니다");
-      return SERVICE_UNAVAILABLE;
-    }
-    
-    console.log("GPT-4o가 생성한 향상된 프롬프트:", enhancedPrompt);
-    
-    // 로그에 분석 정보 추가 (디버깅 목적)
-    console.log(`-----------------------------------`);
-    console.log(`[이미지 변환 디버그 정보]`);
-    console.log(`원본 스타일 요청: ${prompt}`);
-    console.log(`이미지 분석 길이: ${imageDescription.length} 자`);
-    console.log(`생성된 프롬프트 길이: ${enhancedPrompt.length} 자`);
-    console.log(`-----------------------------------`);
-    
-    // 3단계: DALL-E 3로 이미지 생성
-    console.log("3단계: 멀티모달 분석 기반 프롬프트로 DALL-E 3 이미지 생성 중...");
-    return await callDALLE3Api(enhancedPrompt);
   } catch (error) {
     console.error("멀티모달 이미지 변환 중 오류:", error);
     return SERVICE_UNAVAILABLE;
