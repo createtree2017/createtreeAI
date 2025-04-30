@@ -211,10 +211,20 @@ async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string): Pr
     
     // 3단계: DALL-E 3로 직접 이미지 생성
     console.log("3단계: 전달받은 프롬프트로 DALL-E 3 이미지 생성 중...");
-    // 항상 콘텐츠 모더레이션 충돌 방지를 위해 영어로 지시문 추가
-    const fullPrompt = `Transform the given image according to these instructions: ${adminPrompt}
-    Important: Preserve the subject's main features like hair style, facial features, clothing, and composition.
-    If this is a character style like Ghibli or Disney, convert humans to completely animated characters while maintaining key features.`;
+    // Vision 분석과 관리자 프롬프트를 함께 사용하여 더 정교한 결과 생성
+    const fullPrompt = `Transform this image into Studio Ghibli style as specified: ${adminPrompt}
+    
+    Here's a detailed description of the original image to maintain key features:
+    ${imageDescription}
+    
+    Important instructions:
+    1. PRESERVE the exact same subjects, people, objects and scene composition from the original photo
+    2. Maintain all people's facial features, hairstyles, clothing, and expressions
+    3. Keep the same number of people in the same positions
+    4. Convert to Studio Ghibli animation style with hand-drawn appearance, large expressive eyes, and Miyazaki's signature soft pastel colors
+    5. Make it look like a still frame from a Ghibli film while keeping all subjects recognizable`;
+    
+    console.log("생성할 최종 프롬프트:", fullPrompt.substring(0, 150) + "...");
     return await callDALLE3Api(fullPrompt);
   } catch (error) {
     console.error("멀티모달 이미지 변환 중 오류:", error);
