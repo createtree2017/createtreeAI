@@ -196,15 +196,29 @@ async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string): Pr
       return SERVICE_UNAVAILABLE;
     }
     
-    // 2단계: 분석 내용 기반으로 DALL-E 3 프롬프트 생성
+    // 관리자 프롬프트를 직접 사용하는 경우 (30자 이상의 상세 프롬프트)
+    if (prompt.length > 30) {
+      console.log("관리자가 작성한 프롬프트 직접 사용 (시스템 프롬프트 무시)");
+      const enhancedPrompt = prompt;
+      
+      // 로그에 분석 정보 추가 (디버깅 목적)
+      console.log(`-----------------------------------`);
+      console.log(`[이미지 변환 디버그 정보]`);
+      console.log(`원본 스타일 요청: ${prompt}`);
+      console.log(`이미지 분석 길이: ${imageDescription.length} 자`);
+      console.log(`관리자 프롬프트 길이: ${enhancedPrompt.length} 자`);
+      console.log(`-----------------------------------`);
+      
+      // 3단계: DALL-E 3로 직접 이미지 생성
+      console.log("3단계: 관리자 프롬프트로 DALL-E 3 이미지 생성 중...");
+      return await callDALLE3Api(enhancedPrompt); 
+    }
+    
+    // 짧은 스타일 텍스트인 경우 GPT-4o로 프롬프트 생성
     console.log("2단계: 분석 내용 기반으로 DALL-E 3 프롬프트 생성 중...");
     const promptGenBody = {
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
-        {
-          role: "system",
-          content: "You are a world-class DALL-E 3 prompt engineer specializing in extreme artistic style transformations. Your primary goal is to create prompts that result in DRAMATIC and COMPLETE style changes - the final image must be immediately recognizable as belonging to the requested style (anime, cartoon, painting style, etc). When users request animation styles like Studio Ghibli, the output must look exactly like a frame from their films - not a subtle filter or semi-realistic interpretation. While creating these extreme transformations, maintain key identity elements: 1) Hair length and basic style 2) Basic facial structure and distinguishing features 3) Body proportions and pose 4) Clothing style and color scheme 5) Scene composition and setting. Focus 70% of your prompt on achieving the perfect style transformation and 30% on preserving identity elements. For animation styles, emphasize the 2D drawn quality, distinctive art style, and complete departure from photorealism."
-        },
         {
           role: "user",
           content: `다음 이미지 설명을 기반으로 ${prompt} 스타일로 변환하기 위한 DALL-E 3용 영어 프롬프트를 작성해 주세요. 
