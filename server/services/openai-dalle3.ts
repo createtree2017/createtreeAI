@@ -65,6 +65,17 @@ async function callDALLE3Api(prompt: string): Promise<string> {
       'Authorization': `Bearer ${API_KEY}`
     };
     
+    // 프롬프트 검증: 빈 프롬프트 또는 undefined인 경우 로그 출력
+    if (!prompt || prompt.trim() === '') {
+      console.error("DALL-E API 호출 오류: 프롬프트가 비어 있습니다!");
+      return SERVICE_UNAVAILABLE;
+    }
+    
+    console.log("=== DALL-E API에 전송되는 최종 프롬프트 ===");
+    console.log(prompt);
+    console.log("=== DALL-E API 프롬프트 종료 ===");
+    console.log("프롬프트 길이:", prompt.length);
+    
     const body = {
       model: "dall-e-3",
       prompt: prompt,
