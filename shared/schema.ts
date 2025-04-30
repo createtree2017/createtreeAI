@@ -129,6 +129,7 @@ export const concepts = pgTable("concepts", {
   title: text("title").notNull(),
   description: text("description"),
   promptTemplate: text("prompt_template").notNull(),
+  systemPrompt: text("system_prompt"),  // 이미지 분석 및 변환을 위한 시스템 프롬프트 추가
   thumbnailUrl: text("thumbnail_url"),
   tagSuggestions: jsonb("tag_suggestions"), // Array of strings
   variables: jsonb("variables"), // Array of variable objects
