@@ -352,16 +352,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
           where: eq(concepts.conceptId, style)
         });
         
+        // 카테고리 정보와 시스템 프롬프트 가져오기 (이미지 분석 지침용)
+        let categorySystemPrompt = null;
+        if (concept && concept.categoryId) {
+          const category = await db.query.conceptCategories.findFirst({
+            where: eq(conceptCategories.categoryId, concept.categoryId)
+          });
+          
+          if (category && category.systemPrompt) {
+            categorySystemPrompt = category.systemPrompt;
+            console.log(`카테고리 '${category.name}'의 시스템 프롬프트 적용: ${categorySystemPrompt.substring(0, 50)}...`);
+          }
+        }
+        
         if (concept) {
           // Use the prompt template from the concept
           promptTemplate = concept.promptTemplate;
+          // 컨셉 자체의 systemPrompt가 있다면 우선 적용
+          if (concept.systemPrompt) {
+            categorySystemPrompt = concept.systemPrompt;
+            console.log(`컨셉 '${concept.title}'의 시스템 프롬프트 적용: ${categorySystemPrompt.substring(0, 50)}...`);
+          }
         }
       }
       
       // Process image using AI service (transforming to specified art style)
       const filePath = req.file.path;
-      // Pass the variant's prompt template if available
-      const transformedImageUrl = await storage.transformImage(filePath, style, promptTemplate);
+      // Pass the variant's prompt template and category's system prompt
+      const transformedImageUrl = await storage.transformImage(
+        filePath, 
+        style, 
+        promptTemplate, 
+        categorySystemPrompt
+      );
       
       // Save to database
       const savedImage = await storage.saveImageTransformation(

@@ -123,7 +123,7 @@ async function callDALLE3Api(prompt: string): Promise<string> {
  * GPT-4o Vision으로 이미지를 분석하여 향상된 프롬프트 생성 후 DALL-E 3로 이미지 생성 요청
  * 멀티모달 분석을 통한 향상된 이미지 변환 기능
  */
-async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string): Promise<string> {
+async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string, systemPrompt: string | null = null): Promise<string> {
   if (!isValidApiKey(API_KEY)) {
     console.log("유효한 API 키가 없습니다");
     return SERVICE_UNAVAILABLE;
@@ -139,17 +139,30 @@ async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string): Pr
       'Authorization': `Bearer ${API_KEY}`
     };
     
-    // 1단계: GPT-4o Vision으로 이미지 분석 및 설명 생성 (시스템 프롬프트 없음) 
+    // 1단계: GPT-4o Vision으로 이미지 분석 및 설명 생성 (시스템 프롬프트 제공 여부에 따라 달라짐) 
     console.log("1단계: GPT-4o Vision으로 이미지 분석 중...");
-    const analysisBody = {
-      model: "gpt-4o",  // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-      messages: [
+    
+    // 분석 요청을 위한 메시지 배열 준비
+    const analysisMessages = [];
+    
+    // systemPrompt가 제공된 경우 system 역할로 추가
+    if (systemPrompt) {
+      console.log("제공된 시스템 프롬프트 사용:", systemPrompt.substring(0, 100) + "...");
+      analysisMessages.push({
+        role: "system",
+        content: systemPrompt
+      });
+    }
+    
+    // 사용자 메시지 추가 (기본 분석 지침 또는 커스텀 지침)
+    analysisMessages.push({
+      role: "user",
+      content: [
         {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: `이 이미지에 대한 정확한 설명을 작성해 주세요:
+          type: "text",
+          text: systemPrompt ? 
+            `이 이미지를 분석해주세요.` : 
+            `이 이미지에 대한 정확한 설명을 작성해 주세요:
 
 인물 특성에 초점을 맞춰 자세히 설명해주세요:
 1. 인물 수: 이미지에 있는 모든 사람의 수

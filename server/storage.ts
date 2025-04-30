@@ -34,7 +34,7 @@ export const storage = {
   },
   
   // Image related functions
-  async transformImage(filePath: string, style: string, customPromptTemplate?: string | null) {
+  async transformImage(filePath: string, style: string, customPromptTemplate?: string | null, systemPrompt?: string | null) {
     try {
       console.log(`[Storage] Starting image transformation with style: "${style}"`);
       if (customPromptTemplate) {
@@ -79,11 +79,15 @@ export const storage = {
       try {
         // OpenAI DALL-E 3 호출
         console.log(`[Storage] Calling OpenAI DALL-E 3 image transformation service...`);
+        if (systemPrompt) {
+          console.log(`[Storage] Using system prompt for GPT-4o image analysis: ${systemPrompt.substring(0, 50)}...`);
+        }
         const { transformImage } = await import('./services/openai-dalle3');
         const transformedImageUrl = await transformImage(
           imageBuffer, 
           style, 
-          prompt
+          prompt,
+          systemPrompt // 시스템 프롬프트 전달 (GPT-4o Vision의 이미지 분석 지침)
         );
         
         if (!transformedImageUrl.includes("placehold.co")) {
