@@ -132,7 +132,28 @@ export default function Image() {
   };
 
   const handleStyleSelected = (style: string) => {
-    setSelectedStyle(style);
+    // 이미 선택된 스타일을 다시 클릭한 경우 선택 취소 (토글)
+    if (selectedStyle === style) {
+      setSelectedStyle(null);
+    } else {
+      // 선택 효과에 애니메이션을 주기 위해 일시적으로 스타일 제거 후 다시 설정
+      if (selectedStyle) {
+        setSelectedStyle(null);
+        setTimeout(() => {
+          setSelectedStyle(style);
+        }, 150);
+      } else {
+        setSelectedStyle(style);
+      }
+      
+      // 스크롤을 살짝 내려서 선택한 스타일과 변환 버튼이 잘 보이도록 함
+      setTimeout(() => {
+        const transformSection = document.getElementById('transform-section');
+        if (transformSection) {
+          transformSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 300);
+    }
   };
 
   const handleTransformImage = () => {
@@ -253,9 +274,11 @@ export default function Image() {
           {artStyles.map((style) => (
             <div 
               key={style.value}
-              className={`cursor-pointer rounded-xl overflow-hidden shadow-sm transition-all duration-200 hover:shadow-md ${
-                selectedStyle === style.value ? 'ring-2 ring-primary' : ''
-              }`}
+              className={`cursor-pointer rounded-xl overflow-hidden transition-all duration-200 
+                ${selectedStyle === style.value 
+                  ? 'ring-4 ring-primary shadow-lg transform scale-105 z-10' 
+                  : 'shadow-sm hover:shadow-md'
+                }`}
               onClick={() => handleStyleSelected(style.value)}
             >
               <div className="relative">
@@ -264,11 +287,25 @@ export default function Image() {
                   alt={style.label} 
                   className="w-full h-32 object-cover"
                 />
-                <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                  <span className="bg-white/80 px-3 py-1 rounded-full text-sm font-medium text-primary-dark">
+                <div className={`absolute inset-0 flex items-center justify-center ${
+                  selectedStyle === style.value ? 'bg-black/10' : 'bg-black/30'
+                }`}>
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
+                    selectedStyle === style.value 
+                    ? 'bg-primary text-white font-bold shadow-md scale-110' 
+                    : 'bg-white/80 text-primary-dark'
+                  }`}>
                     {style.label}
+                    {selectedStyle === style.value && ' ✓'}
                   </span>
                 </div>
+                {selectedStyle === style.value && (
+                  <div className="absolute top-2 right-2 bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center shadow-md">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -316,38 +353,75 @@ export default function Image() {
 
         {/* Transform Button */}
         {selectedFile && (
-          <div>
+          <div id="transform-section">
             <div className="mb-5">
-              <label className="block font-medium mb-3 text-neutral-darkest">Selected Style</label>
+              <label className="block font-medium mb-3 text-neutral-darkest">Your Selected Style</label>
               {selectedStyle ? (
-                <div className="flex items-center p-3 bg-neutral-lightest rounded-lg">
-                  <div className="w-16 h-16 rounded-lg overflow-hidden mr-4">
+                <div className="flex items-center p-4 bg-primary/5 border border-primary/20 rounded-lg relative overflow-hidden">
+                  <div className="absolute top-0 left-0 bg-primary text-white text-xs py-1 px-3 rounded-br-lg font-semibold">
+                    스타일 선택됨 ✓
+                  </div>
+                  <div className="w-20 h-20 rounded-lg overflow-hidden mr-4 shadow-md border-2 border-primary">
                     <img 
                       src={artStyles.find(s => s.value === selectedStyle)?.thumbnailUrl || ''} 
                       alt={artStyles.find(s => s.value === selectedStyle)?.label || ''}
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <div>
-                    <p className="font-medium">{artStyles.find(s => s.value === selectedStyle)?.label}</p>
-                    <p className="text-xs text-neutral-dark mt-1">Click any style above to change your selection</p>
+                  <div className="mt-4">
+                    <p className="font-bold text-lg text-primary-dark">
+                      {artStyles.find(s => s.value === selectedStyle)?.label} 
+                      <span className="inline-block ml-2 bg-primary text-white rounded-full w-5 h-5 text-xs flex items-center justify-center">✓</span>
+                    </p>
+                    <p className="text-sm text-neutral-dark mt-1">
+                      이 스타일을 적용하여 이미지를 변환합니다. 
+                      <span className="text-primary font-medium">다른 스타일로 변경하려면 위 옵션 중에서 다시 선택하세요.</span>
+                    </p>
                   </div>
                 </div>
               ) : (
-                <div className="p-3 bg-neutral-lightest rounded-lg text-neutral-dark text-center">
-                  <p>Please select a style from the options above</p>
+                <div className="p-5 bg-yellow-50 border border-yellow-200 rounded-lg text-neutral-dark text-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-3 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="font-medium">스타일을 선택해주세요</p>
+                  <p className="text-sm mt-1">위의 스타일 옵션 중에서 하나를 선택하세요</p>
                 </div>
               )}
             </div>
 
             <Button
               type="button"
-              className="w-full bg-primary hover:bg-primary-dark text-white font-medium py-3 px-4 rounded-lg transition-colors shadow-sm"
+              className={`w-full text-white font-medium py-3 px-4 rounded-lg transition-all duration-300 ${
+                selectedStyle 
+                  ? 'bg-primary hover:bg-primary-dark transform hover:scale-105 shadow-md' 
+                  : 'bg-neutral-light cursor-not-allowed'
+              }`}
               onClick={handleTransformImage}
               disabled={isTransforming || !selectedStyle}
             >
-              <PaintbrushVertical className="mr-2 h-4 w-4" />
-              {isTransforming ? "Creating your memory art..." : "Transform My Photo"}
+              {selectedStyle ? (
+                <>
+                  <div className="flex items-center justify-center">
+                    <PaintbrushVertical className="mr-2 h-5 w-5" />
+                    <span className="text-lg">
+                      {isTransforming ? (
+                        <div className="flex items-center">
+                          <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                          스타일 변환 중...
+                        </div>
+                      ) : (
+                        `"${artStyles.find(s => s.value === selectedStyle)?.label}" 스타일로 변환하기`
+                      )}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <PaintbrushVertical className="mr-2 h-4 w-4" />
+                  스타일을 먼저 선택해주세요
+                </>
+              )}
             </Button>
           </div>
         )}
