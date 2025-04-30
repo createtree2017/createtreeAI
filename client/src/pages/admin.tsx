@@ -2077,6 +2077,7 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
       title: "",
       description: "",
       promptTemplate: "",
+      systemPrompt: "",
       thumbnailUrl: "",
       tagSuggestions: [],
       variables: [],
@@ -2493,6 +2494,27 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
               <FormDescription>
                 Use double curly braces <code className="bg-gray-100 px-1 rounded">{'{{variable_name}}'}</code> to define variables that will be replaced.
                 Variables will be automatically added to the variables list below.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="systemPrompt"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>GPT-4o 이미지 분석 지침</FormLabel>
+              <FormControl>
+                <Textarea 
+                  placeholder="GPT-4o에게 이미지 분석 시 어떤 지침을 제공할지 입력하세요. 예: '이미지 속 인물의 얼굴, 포즈, 배경을 자세히 분석하고 인물의 특징을 유지하세요.'" 
+                  className="min-h-[150px]"
+                  {...field} 
+                />
+              </FormControl>
+              <FormDescription>
+                이 지침은 이미지를 분석할 때 GPT-4o가 이미지의 어떤 부분을 우선적으로 분석할지, 어떤 특징을 유지할지 결정합니다.
               </FormDescription>
               <FormMessage />
             </FormItem>
