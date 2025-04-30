@@ -304,12 +304,20 @@ ${imageDescription}
     console.log("3단계: DALL-E 3로 이미지 생성 중...");
     console.log("생성된 프롬프트:", generatedPrompt.substring(0, 150) + "...");
     
-    // 최종 프롬프트 - 사용자 원본 요청을 더 명확하게 강조
-    const finalPrompt = `${prompt}\n\nPreserve these exact details from the original image:\n${generatedPrompt}`;
+    // 최종 프롬프트 - 스타일 선언을 먼저하고, 감성 요소를 강조한 후 보존 세부사항 추가
+    const finalPrompt = `Illustration in the style of ${prompt.includes('Ghibli') ? 'Studio Ghibli' : prompt.split('\n')[0]}.
+PRIORITIZE THIS STYLE STRONGLY. 
+Create artwork with the same pose, setting, and composition as the original image.
+Use appropriate lighting, color palette, and atmosphere to match the requested style.
+
+Important details to preserve from the original image:
+${generatedPrompt}`;
     
     console.log("최종 프롬프트 구조:", 
-      "1. 사용자 원본 요청 (스타일 지시)",
-      "2. 원본 이미지 특성 보존 지침");
+      "1. 강조된 스타일 선언 (최우선)",
+      "2. 스타일 적용 우선순위 지정",
+      "3. 컴포지션 지시사항",
+      "4. 원본 이미지 특성 보존 지침");
     
     // DALL-E 3로 이미지 생성
     return await callDALLE3Api(finalPrompt);
@@ -359,6 +367,8 @@ export async function transformImage(
       fantasy: "Transform this image into a magical fantasy art style with ethereal lighting and dreamlike qualities",
       storybook: "Convert this image into a sweet children's storybook illustration style with gentle colors and charming details",
       ghibli: "Transform this image into an EXACT Studio Ghibli anime style as seen in films like 'Spirited Away' and 'Howl's Moving Castle'. The style MUST include: 1) Hand-drawn 2D animation look with visible brush strokes and line work, 2) Miyazaki's signature soft pastel color palette with teal blue skies and verdant greens, 3) Characters with distinctively large, expressive anime eyes and simplified facial features, 4) A dreamy, otherworldly atmosphere with magical lighting effects, 5) Whimsical exaggerated proportions typical of Japanese animation. This MUST look like a screenshot from an actual Studio Ghibli film, not a subtle stylization. While maintaining this strong Studio Ghibli aesthetic, preserve the subject's hair length/style, basic facial structure, clothing style/colors, and pose. No photorealistic elements should remain - convert EVERYTHING to pure hand-drawn Ghibli animation style.",
+      gibli: "Transform this image into an EXACT Studio Ghibli anime style as seen in films like 'Spirited Away' and 'Howl's Moving Castle'. The style MUST include: 1) Hand-drawn 2D animation look with visible brush strokes and line work, 2) Miyazaki's signature soft pastel color palette with teal blue skies and verdant greens, 3) Characters with distinctively large, expressive anime eyes and simplified facial features, 4) A dreamy, otherworldly atmosphere with magical lighting effects, 5) Whimsical exaggerated proportions typical of Japanese animation. This MUST look like a screenshot from an actual Studio Ghibli film, not a subtle stylization. While maintaining this strong Studio Ghibli aesthetic, preserve the subject's hair length/style, basic facial structure, clothing style/colors, and pose. No photorealistic elements should remain - convert EVERYTHING to pure hand-drawn Ghibli animation style.",
+      gibri: "Transform this image into an EXACT Studio Ghibli anime style as seen in films like 'Spirited Away' and 'Howl's Moving Castle'. The style MUST include: 1) Hand-drawn 2D animation look with visible brush strokes and line work, 2) Miyazaki's signature soft pastel color palette with teal blue skies and verdant greens, 3) Characters with distinctively large, expressive anime eyes and simplified facial features, 4) A dreamy, otherworldly atmosphere with magical lighting effects, 5) Whimsical exaggerated proportions typical of Japanese animation. This MUST look like a screenshot from an actual Studio Ghibli film, not a subtle stylization. While maintaining this strong Studio Ghibli aesthetic, preserve the subject's hair length/style, basic facial structure, clothing style/colors, and pose. No photorealistic elements should remain - convert EVERYTHING to pure hand-drawn Ghibli animation style.",
       disney: "Transform this image into a Disney animation style with expressive characters, vibrant colors, and enchanting details",
       korean_webtoon: "Transform this image into a Korean webtoon style with clean lines, pastel colors, and expressive characters",
       fairytale: "Transform this image into a fairytale illustration with magical elements, dreamy atmosphere, and storybook aesthetics"
