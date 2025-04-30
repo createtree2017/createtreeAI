@@ -139,21 +139,37 @@ async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string): Pr
       'Authorization': `Bearer ${API_KEY}`
     };
     
-    // 1단계: GPT-4o Vision으로 이미지 분석 및 설명 생성
+    // 1단계: GPT-4o Vision으로 이미지 분석 및 설명 생성 
     console.log("1단계: GPT-4o Vision으로 이미지 분석 중...");
     const analysisBody = {
       model: "gpt-4o",  // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
         {
           role: "system", 
-          content: "You are a professional image analyst. Analyze the uploaded image in detail, describing key elements like subjects, poses, clothing, expressions, background, colors, and unique features. Your analysis will be used to create a transformation prompt."
+          content: "You are an extremely precise image analyst specializing in human facial features and scene details. Your task is to provide a DETAILED and STRUCTURED analysis that will serve as reference for an image transformation AI. Focus on creating a description that preserves the identity of people in the photo."
         },
         {
           role: "user",
           content: [
             {
               type: "text",
-              text: "이 이미지를 보고 프롬프트를 만들기 위한 자세한 설명을 해주세요. 인물, 표정, 포즈, 의상, 배경 등 모든 중요한 요소를 포함해 주세요."
+              text: `분석해야 할 이미지입니다. 다음 정보를 명확하고 체계적으로 작성해 주세요:
+
+1. 인물 수: 몇 명의 사람이 있는지
+2. 각 인물별 상세 설명:
+   - 성별과 대략적인 나이
+   - 얼굴 형태 (둥근 얼굴, 갸름한 얼굴 등)
+   - 눈 모양과 색상
+   - 헤어스타일 (길이, 색상, 스타일)
+   - 피부 톤
+   - 특이사항 (안경, 귀걸이, 주근깨 등)
+3. 의상 설명: 각 인물이 입고 있는 옷의 스타일, 색상, 패턴
+4. 포즈와 표정: 각 인물의 자세와 표정 상세 설명
+5. 배경: 배경 환경에 대한 상세 설명 (실내/실외, 색상, 구성요소)
+6. 구도: 이미지 내 인물들의 배치와 전체적인 구도
+7. 조명: 이미지의 전반적인 조명 상태와 분위기
+
+정확하고 상세하게 작성해 주세요. 이 설명은 이미지 변환 AI가 원본 인물의 특징을 유지하면서 스타일만 변경하는 데 사용됩니다.`
             },
             {
               type: "image_url",
@@ -164,7 +180,7 @@ async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string): Pr
           ]
         }
       ],
-      max_tokens: 800
+      max_tokens: 1200
     };
     
     // GPT-4o Vision으로 이미지 분석 요청
@@ -209,23 +225,76 @@ async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string): Pr
     console.log(`사용할 프롬프트 길이: ${adminPrompt.length} 자`);
     console.log(`-----------------------------------`);
     
-    // 3단계: DALL-E 3로 직접 이미지 생성
-    console.log("3단계: 전달받은 프롬프트로 DALL-E 3 이미지 생성 중...");
-    // Vision 분석과 관리자 프롬프트를 함께 사용하여 더 정교한 결과 생성
-    const fullPrompt = `Transform this image into Studio Ghibli style as specified: ${adminPrompt}
+    // 먼저 GPT-4o를 사용하여 이미지 분석을 바탕으로 DALL-E 3 전용 정확한 프롬프트 생성
+    console.log("2단계: 이미지 분석을 기반으로 정밀한 DALL-E 프롬프트 생성 중...");
+    const promptGenBody = {
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert DALL-E 3 prompt engineer specializing in Studio Ghibli style transformations. Your goal is to create a detailed prompt that will help DALL-E 3 transform photos into Studio Ghibli style WHILE PRESERVING THE EXACT IDENTITY AND NUMBER OF PEOPLE in the original photo. You must follow these fixed rules:
+1. ALWAYS create prompts that require maintaining the EXACT number of people and their positions
+2. ALWAYS mention specific facial features (eyes, nose, mouth shape, etc)
+3. ALWAYS mention exact hairstyle features (length, color, style)
+4. ALWAYS specify clothing items and colors
+5. NEVER invent new people or change their positions
+6. Include all these elements in the Ghibli style`
+        },
+        {
+          role: "user",
+          content: `I need to transform a photo into Studio Ghibli style WHILE MAINTAINING EXACT IDENTITY of all people in the photo. Here's the detailed analysis of the photo:
+
+${imageDescription}
+
+Create a detailed, effective DALL-E 3 prompt that will:
+1. Maintain the exact same subjects and composition
+2. Keep all people's identity features intact (face shape, hairstyle, expressions)
+3. Transform the style to pure Studio Ghibli animation with:
+   - Hand-drawn 2D look
+   - Miyazaki's soft pastel colors
+   - Large, expressive anime eyes
+   - Simplified but recognizable facial features
+   - No photorealistic elements
+
+Format your prompt to work directly with DALL-E 3. Be extremely specific about preserving identity.`
+        }
+      ],
+      max_tokens: 1200
+    };
     
-    Here's a detailed description of the original image to maintain key features:
-    ${imageDescription}
+    const promptGenResponse = await fetch(OPENAI_CHAT_URL, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(promptGenBody)
+    });
     
-    Important instructions:
-    1. PRESERVE the exact same subjects, people, objects and scene composition from the original photo
-    2. Maintain all people's facial features, hairstyles, clothing, and expressions
-    3. Keep the same number of people in the same positions
-    4. Convert to Studio Ghibli animation style with hand-drawn appearance, large expressive eyes, and Miyazaki's signature soft pastel colors
-    5. Make it look like a still frame from a Ghibli film while keeping all subjects recognizable`;
+    const promptGenResponseText = await promptGenResponse.text();
+    let promptGenData: OpenAIChatResponse;
     
-    console.log("생성할 최종 프롬프트:", fullPrompt.substring(0, 150) + "...");
-    return await callDALLE3Api(fullPrompt);
+    try {
+      promptGenData = JSON.parse(promptGenResponseText);
+    } catch (e) {
+      console.error("프롬프트 생성 응답 파싱 오류:", e);
+      return SERVICE_UNAVAILABLE;
+    }
+    
+    if (!promptGenResponse.ok || promptGenData.error) {
+      console.error("프롬프트 생성 API 오류:", promptGenData.error?.message || `HTTP 오류: ${promptGenResponse.status}`);
+      return SERVICE_UNAVAILABLE;
+    }
+    
+    // 최종 프롬프트 생성
+    const generatedPrompt = promptGenData.choices?.[0]?.message?.content;
+    if (!generatedPrompt) {
+      console.error("프롬프트 생성 결과가 없습니다");
+      return SERVICE_UNAVAILABLE;
+    }
+    
+    console.log("GPT-4o가 생성한 정밀 프롬프트:", generatedPrompt.substring(0, 150) + "...");
+    
+    // 3단계: DALL-E 3로 이미지 생성
+    console.log("3단계: GPT-4o 생성 프롬프트로 DALL-E 3 이미지 생성 중...");
+    return await callDALLE3Api(generatedPrompt);
   } catch (error) {
     console.error("멀티모달 이미지 변환 중 오류:", error);
     return SERVICE_UNAVAILABLE;
