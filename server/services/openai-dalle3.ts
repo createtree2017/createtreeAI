@@ -222,12 +222,6 @@ async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string): Pr
     // 관리자가 지정한 프롬프트만 사용 (시스템 프롬프트 없음)
     console.log("3단계: 관리자 지정 프롬프트로 DALL-E 3 이미지 생성 중...");
     
-    // 스타일별 기본 지시문 (지브리 외에도 모든 스타일에 적용)
-    const styleInstruction = 
-      prompt.toLowerCase().includes('gibri') || prompt.toLowerCase().includes('ghibli') 
-      ? "Transform the image into Studio Ghibli anime style while preserving the exact identity of all subjects." 
-      : `Transform the image into the specified style while preserving the exact identity of all subjects.`;
-      
     // 최종 프롬프트: 관리자 프롬프트 + 원본 유지 지시문
     const fullPrompt = `${adminPrompt}
 
