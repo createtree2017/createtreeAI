@@ -320,8 +320,9 @@ ${prompt ? `위 정보를 바탕으로 DALL-E 3가 원본 이미지의 특성(�
     if (prompt && prompt.trim() !== "") {
       userStylePrompt = prompt.split('\n')[0];
     } else {
-      // 빈 프롬프트인 경우 기본 스타일 정보만 제공
-      userStylePrompt = `Transform this image into ${style} style.`;
+      // 빈 프롬프트인 경우 사용자가 요청한 style만 전달 (최소한의 정보)
+      console.log("빈 프롬프트가 입력되었습니다. 스타일 정보도 전달하지 않습니다.");
+      return SERVICE_UNAVAILABLE;
     }
     
     // 시스템 프롬프트 확인 (컨셉 또는 카테고리에서 제공된 경우)
