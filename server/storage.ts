@@ -72,9 +72,15 @@ export const storage = {
         prompt = processTemplate(customPromptTemplate);
         console.log(`처리된 프롬프트: "${prompt}"`);
       } else {
-        // 비어 있는 경우 이미지 변환 처리 중단
-        console.log(`비어있는 프롬프트 입력됨. 이미지 변환 처리를 중단합니다.`);
-        return "https://placehold.co/1024x1024/A7C1E2/FFF?text=비어있는+프롬프트로+이미지를+생성할+수+없습니다";
+        // 프롬프트 템플릿이 없는 경우: 시스템 프롬프트가 있다면 빈 프롬프트로 진행, 없다면 중단
+        if (systemPrompt && systemPrompt.trim() !== "") {
+          console.log(`프롬프트 템플릿은 비어 있지만 시스템 프롬프트가 있으므로 빈 프롬프트로 계속 진행합니다.`);
+          prompt = "";  // 빈 프롬프트 사용
+        } else {
+          // 프롬프트 템플릿과 시스템 프롬프트 모두 없는 경우에만 중단
+          console.log(`프롬프트 템플릿과 시스템 프롬프트 모두 비어 있음. 이미지 변환 처리를 중단합니다.`);
+          return "https://placehold.co/1024x1024/A7C1E2/FFF?text=비어있는+프롬프트로+이미지를+생성할+수+없습니다";
+        }
       }
       
       try {
