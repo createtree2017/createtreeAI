@@ -155,6 +155,7 @@ const conceptCategorySchema = z.object({
   categoryId: z.string().min(1, "Category ID is required"),
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
+  systemPrompt: z.string().optional(), // GPT-4o 이미지 분석 지침 필드 추가
   order: z.number().int().default(0),
   isActive: z.boolean().default(true),
 });
@@ -170,6 +171,7 @@ const conceptSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
   promptTemplate: z.string().min(1, "Prompt template is required"),
+  systemPrompt: z.string().optional(), // GPT-4o 이미지 분석 지침 필드 추가
   thumbnailUrl: z.string().optional(),
   tagSuggestions: z.array(z.string()).optional(),
   variables: z.array(
