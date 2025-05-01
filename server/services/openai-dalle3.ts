@@ -325,11 +325,17 @@ ${prompt ? `위 정보를 바탕으로 DALL-E 3가 원본 이미지의 특성(�
       return SERVICE_UNAVAILABLE;
     }
     
-    // 시스템 프롬프트 확인 (컨셉 또는 카테고리에서 제공된 경우)
-    // concept.systemPrompt 또는 category.systemPrompt 또는 DEFAULT_SYSTEM_PROMPT 사용
-    const DEFAULT_SYSTEM_PROMPT = "항상 원본 이미지의 컴포지션과, 인물의 연령, 성별, 외형, 의상을 정확히 보존하세요.";
+    // 시스템 프롬프트 로직 변경 - 명시적으로 제공된 경우에만 사용
+    // 기본 프롬프트 없음 - 사용자나 관리자가 명시적으로 제공한 프롬프트만 사용
+    let systemInstructions = "";
+    if (systemPrompt && systemPrompt.trim() !== "") {
+      systemInstructions = `System Instructions:\n${systemPrompt}`;
+      console.log("제공된 시스템 프롬프트를 사용합니다.");
+    } else {
+      console.log("시스템 프롬프트가 없습니다. 기본 시스템 프롬프트도 적용하지 않습니다.");
+    }
     
-    // 최종 프롬프트 구조 개선
+    // 최종 프롬프트 구조 개선 - 시스템 프롬프트가 있는 경우에만 포함
     const finalPrompt = `
 ${userStylePrompt}
 
@@ -337,8 +343,7 @@ Please apply this style while preserving the subject's identity, age, gender, cl
 
 Visual characteristics extracted from the uploaded photo:
 ${generatedPrompt}
-
-${systemPrompt ? `System Instructions:\n${systemPrompt}` : DEFAULT_SYSTEM_PROMPT}
+${systemInstructions ? `\n${systemInstructions}` : ''}
 `;
     
     console.log("최종 프롬프트 구조:", 
