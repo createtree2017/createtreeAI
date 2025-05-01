@@ -314,21 +314,30 @@ ${imageDescription}
     const ageMatch = imageDescription.match(/나이.*?(\d+)세|유아|어린이|아동|청소년|성인|infant|toddler|child|teenager|(\d+)\s*years?\s*old/i);
     const isChild = ageMatch || imageDescription.toLowerCase().includes('child') || imageDescription.toLowerCase().includes('어린이') || imageDescription.toLowerCase().includes('아이');
     
-    // 최종 프롬프트 - 스타일 선언을 먼저하고, 감성 요소를 강조한 후 보존 세부사항 추가
-    const finalPrompt = `Illustration in the style of ${prompt.includes('Ghibli') ? 'Studio Ghibli' : prompt.split('\n')[0]}.
-PRIORITIZE THIS STYLE STRONGLY. 
-Create artwork with the same pose, setting, and composition as the original image.
-Use appropriate lighting, color palette, and atmosphere to match the requested style.
+    // 사용자 요청 스타일 추출 (첫 번째 줄)
+    const userStylePrompt = prompt.split('\n')[0];
+    
+    // 시스템 프롬프트 확인 (컨셉 또는 카테고리에서 제공된 경우)
+    // concept.systemPrompt 또는 category.systemPrompt 또는 DEFAULT_SYSTEM_PROMPT 사용
+    const DEFAULT_SYSTEM_PROMPT = "항상 원본 이미지의 컴포지션과, 인물의 연령, 성별, 외형, 의상을 정확히 보존하세요.";
+    
+    // 최종 프롬프트 구조 개선
+    const finalPrompt = `
+${userStylePrompt}
 
-${isChild ? '⚠️ IMPORTANT: This is a CHILD. DO NOT AGE UP the subject. Maintain correct child-like proportions for face and body. Keep the character as a young child with rounded cheeks, bigger eyes, and child-like features. DO NOT turn the child into a teenager or adult.\n\n' : ''}
-Important details to preserve from the original image:
-${generatedPrompt}`;
+Please apply this style while preserving the subject's identity, age, gender, clothing, pose, and expression.
+
+Visual characteristics extracted from the uploaded photo:
+${generatedPrompt}
+
+${systemPrompt ? `System Instructions:\n${systemPrompt}` : DEFAULT_SYSTEM_PROMPT}
+`;
     
     console.log("최종 프롬프트 구조:", 
-      "1. 강조된 스타일 선언 (최우선)",
-      "2. 스타일 적용 우선순위 지정",
-      "3. 컴포지션 지시사항",
-      "4. 원본 이미지 특성 보존 지침");
+      "1. 사용자 스타일 요청 (최우선)",
+      "2. 정체성 보존 지침",
+      "3. 원본 이미지 특성 설명",
+      "4. 시스템 지침");
     
     // DALL-E 3로 이미지 생성
     return await callDALLE3Api(finalPrompt);
@@ -379,7 +388,8 @@ export async function transformImage(
       storybook: "Convert this image into a sweet children's storybook illustration style with gentle colors and charming details",
       ghibli: "Transform this image into an EXACT Studio Ghibli anime style as seen in films like 'Spirited Away' and 'Howl's Moving Castle'. The style MUST include: 1) Hand-drawn 2D animation look with visible brush strokes and line work, 2) Miyazaki's signature soft pastel color palette with teal blue skies and verdant greens, 3) Characters with distinctively large, expressive anime eyes and simplified facial features, 4) A dreamy, otherworldly atmosphere with magical lighting effects, 5) Whimsical exaggerated proportions typical of Japanese animation. This MUST look like a screenshot from an actual Studio Ghibli film, not a subtle stylization. While maintaining this strong Studio Ghibli aesthetic, preserve the subject's hair length/style, basic facial structure, clothing style/colors, and pose. No photorealistic elements should remain - convert EVERYTHING to pure hand-drawn Ghibli animation style.",
       gibli: "Transform this image into an EXACT Studio Ghibli anime style as seen in films like 'Spirited Away' and 'Howl's Moving Castle'. The style MUST include: 1) Hand-drawn 2D animation look with visible brush strokes and line work, 2) Miyazaki's signature soft pastel color palette with teal blue skies and verdant greens, 3) Characters with distinctively large, expressive anime eyes and simplified facial features, 4) A dreamy, otherworldly atmosphere with magical lighting effects, 5) Whimsical exaggerated proportions typical of Japanese animation. This MUST look like a screenshot from an actual Studio Ghibli film, not a subtle stylization. While maintaining this strong Studio Ghibli aesthetic, preserve the subject's hair length/style, basic facial structure, clothing style/colors, and pose. No photorealistic elements should remain - convert EVERYTHING to pure hand-drawn Ghibli animation style.",
-      gibri: "Transform this image into an EXACT Studio Ghibli anime style as seen in films like 'Spirited Away' and 'Howl's Moving Castle'. The style MUST include: 1) Hand-drawn 2D animation look with visible brush strokes and line work, 2) Miyazaki's signature soft pastel color palette with teal blue skies and verdant greens, 3) Characters with distinctively large, expressive anime eyes and simplified facial features, 4) A dreamy, otherworldly atmosphere with magical lighting effects, 5) Whimsical exaggerated proportions typical of Japanese animation. This MUST look like a screenshot from an actual Studio Ghibli film, not a subtle stylization. While maintaining this strong Studio Ghibli aesthetic, preserve the subject's hair length/style, basic facial structure, clothing style/colors, and pose. No photorealistic elements should remain - convert EVERYTHING to pure hand-drawn Ghibli animation style.",
+      // 오타 정정 (gibri → ghibli)
+      ghibli: "Transform this image into an EXACT Studio Ghibli anime style as seen in films like 'Spirited Away' and 'Howl's Moving Castle'. The style MUST include: 1) Hand-drawn 2D animation look with visible brush strokes and line work, 2) Miyazaki's signature soft pastel color palette with teal blue skies and verdant greens, 3) Characters with distinctively large, expressive anime eyes and simplified facial features, 4) A dreamy, otherworldly atmosphere with magical lighting effects, 5) Whimsical exaggerated proportions typical of Japanese animation. This MUST look like a screenshot from an actual Studio Ghibli film, not a subtle stylization. While maintaining this strong Studio Ghibli aesthetic, preserve the subject's hair length/style, basic facial structure, clothing style/colors, and pose. No photorealistic elements should remain - convert EVERYTHING to pure hand-drawn Ghibli animation style.",
       disney: "Transform this image into a Disney animation style with expressive characters, vibrant colors, and enchanting details",
       korean_webtoon: "Transform this image into a Korean webtoon style with clean lines, pastel colors, and expressive characters",
       fairytale: "Transform this image into a fairytale illustration with magical elements, dreamy atmosphere, and storybook aesthetics"
