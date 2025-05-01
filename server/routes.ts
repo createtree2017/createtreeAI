@@ -1456,6 +1456,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .set({
           name: validatedData.name,
           description: validatedData.description,
+          systemPrompt: validatedData.systemPrompt,  // 시스템 프롬프트 필드 추가
           order: validatedData.order,
           isActive: validatedData.isActive,
           updatedAt: new Date(),
