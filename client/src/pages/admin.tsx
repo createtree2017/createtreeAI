@@ -1808,6 +1808,10 @@ function ConceptManager() {
   const toggleActiveMutation = useMutation({
     mutationFn: ({ conceptId, isActive }: { conceptId: string; isActive: boolean }) => {
       const concept = concepts.find((c: any) => c.conceptId === conceptId);
+      
+      // 디버깅용 로그 추가
+      console.log("Toggling active status for concept:", concept);
+      
       return apiRequest(`/api/admin/concepts/${conceptId}`, {
         method: "PUT",
         body: JSON.stringify({
@@ -1833,6 +1837,10 @@ function ConceptManager() {
   const toggleFeaturedMutation = useMutation({
     mutationFn: ({ conceptId, isFeatured }: { conceptId: string; isFeatured: boolean }) => {
       const concept = concepts.find((c: any) => c.conceptId === conceptId);
+      
+      // 디버깅용 로그 추가
+      console.log("Toggling featured status for concept:", concept);
+      
       return apiRequest(`/api/admin/concepts/${conceptId}`, {
         method: "PUT",
         body: JSON.stringify({
@@ -2240,6 +2248,9 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
   });
   
   function onSubmit(values: z.infer<typeof conceptSchema>) {
+    // 문제 해결을 위한 디버깅 정보 추가
+    console.log("Concept form values before submission:", values);
+    console.log("SystemPrompt value:", values.systemPrompt);
     submitMutation.mutate(values);
   }
   
