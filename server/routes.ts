@@ -1562,6 +1562,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         title: validatedData.title,
         description: validatedData.description,
         promptTemplate: validatedData.promptTemplate,
+        systemPrompt: validatedData.systemPrompt,  // 시스템 프롬프트 필드 추가
         thumbnailUrl: validatedData.thumbnailUrl,
         tagSuggestions: validatedData.tagSuggestions,
         variables: validatedData.variables,
@@ -1604,6 +1605,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           title: validatedData.title,
           description: validatedData.description,
           promptTemplate: validatedData.promptTemplate,
+          systemPrompt: validatedData.systemPrompt,  // 시스템 프롬프트 필드 추가
           thumbnailUrl: validatedData.thumbnailUrl,
           tagSuggestions: validatedData.tagSuggestions,
           variables: validatedData.variables,
