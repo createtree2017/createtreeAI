@@ -67,13 +67,13 @@ export const storage = {
       };
       
       let prompt = "";
-      if (customPromptTemplate) {
-        // 템플릿 변수 처리
+      if (customPromptTemplate && customPromptTemplate.trim() !== "") {
+        // 템플릿 변수 처리 (빈 문자열이 아닌 경우에만)
         prompt = processTemplate(customPromptTemplate);
         console.log(`처리된 프롬프트: "${prompt}"`);
       } else {
-        // Default prompt for the given style if no custom template provided
-        prompt = `Transform this image into ${style} art style. Preserve the main subject and composition. Make it beautiful and professional.`;
+        // 비어 있는 경우 로그 기록
+        console.log(`비어있는 프롬프트 입력됨. 기본 프롬프트를 사용하지 않고 빈 문자열 전달`);
       }
       
       try {

@@ -269,9 +269,10 @@ async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string, sys
           content: `원본 이미지 분석 정보:
 ${imageDescription}
 
-사용자 요청: ${prompt}
+사용자 요청: ${prompt ? prompt : "(프롬프트 없음)"}
 
-위 정보를 바탕으로 DALL-E 3가 원본 이미지의 특성(인물 외모, 의상, 배경, 구도 등)을 완벽하게 보존하면서 요청된 스타일로 변환할 수 있는 프롬프트를 작성해 주세요. 스타일은 사용자 요청에서 언급된 스타일을 따르세요.`
+${prompt ? `위 정보를 바탕으로 DALL-E 3가 원본 이미지의 특성(인물 외모, 의상, 배경, 구도 등)을 완벽하게 보존하면서 요청된 스타일로 변환할 수 있는 프롬프트를 작성해 주세요. 스타일은 사용자 요청에서 언급된 스타일을 따르세요.` : 
+`사용자가 프롬프트를 지정하지 않았습니다. 이미지의 특성(인물 외모, 의상, 배경, 구도 등)을 그대로 유지하는 간단한 변환 프롬프트를 생성해주세요. 다른 추가적인 스타일이나 요소를 추가하지 마세요.`}`
         }
       ],
       max_tokens: 1000
@@ -314,8 +315,14 @@ ${imageDescription}
     const ageMatch = imageDescription.match(/나이.*?(\d+)세|유아|어린이|아동|청소년|성인|infant|toddler|child|teenager|(\d+)\s*years?\s*old/i);
     const isChild = ageMatch || imageDescription.toLowerCase().includes('child') || imageDescription.toLowerCase().includes('어린이') || imageDescription.toLowerCase().includes('아이');
     
-    // 사용자 요청 스타일 추출 (첫 번째 줄)
-    const userStylePrompt = prompt.split('\n')[0];
+    // 사용자 요청 스타일 추출 또는 기본 스타일 정보 제공
+    let userStylePrompt = "";
+    if (prompt && prompt.trim() !== "") {
+      userStylePrompt = prompt.split('\n')[0];
+    } else {
+      // 빈 프롬프트인 경우 기본 스타일 정보만 제공
+      userStylePrompt = `Transform this image into ${style} style.`;
+    }
     
     // 시스템 프롬프트 확인 (컨셉 또는 카테고리에서 제공된 경우)
     // concept.systemPrompt 또는 category.systemPrompt 또는 DEFAULT_SYSTEM_PROMPT 사용
@@ -395,13 +402,16 @@ export async function transformImage(
       fairytale: "Transform this image into a fairytale illustration with magical elements, dreamy atmosphere, and storybook aesthetics"
     };
 
-    // 프롬프트 선택 (커스텀 또는 기본)
-    let promptText: string;
-    if (customPromptTemplate) {
+    // 프롬프트 선택 (커스텀 또는 빈 프롬프트 유지)
+    let promptText: string = "";
+    
+    // 커스텀 프롬프트가 있고 빈 문자열이 아닌 경우에만 사용
+    if (customPromptTemplate && customPromptTemplate.trim() !== "") {
       console.log("커스텀 프롬프트 템플릿 사용");
       promptText = customPromptTemplate;
     } else {
-      promptText = stylePrompts[style] || "Transform this image into a beautiful artistic style";
+      console.log("빈 프롬프트 사용: 프롬프트 없이 GPT-4o Vision 분석만 진행");
+      // 스타일만 전달하고 추가 프롬프트는 전달하지 않음
     }
 
     console.log("GPT-4o + DALL-E 3로 이미지 변환 시도 (이미지 기반)");
