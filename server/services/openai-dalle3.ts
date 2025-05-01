@@ -134,7 +134,7 @@ async function callDALLE3Api(prompt: string): Promise<string> {
  * GPT-4o Vision으로 이미지를 분석하여 향상된 프롬프트 생성 후 DALL-E 3로 이미지 생성 요청
  * 멀티모달 분석을 통한 향상된 이미지 변환 기능
  */
-async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string, systemPrompt: string | null = null): Promise<string> {
+async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string, systemPrompt: string | null = null, style: string = "artistic"): Promise<string> {
   if (!isValidApiKey(API_KEY)) {
     console.log("유효한 API 키가 없습니다");
     return SERVICE_UNAVAILABLE;
@@ -417,7 +417,7 @@ export async function transformImage(
     console.log("GPT-4o + DALL-E 3로 이미지 변환 시도 (이미지 기반)");
     
     // 원본 이미지를 참조하여 변환 (GPT-4o의 Vision 기능 사용)
-    const imageUrl = await callGPT4oVisionAndDALLE3(imageBuffer, promptText, systemPrompt);
+    const imageUrl = await callGPT4oVisionAndDALLE3(imageBuffer, promptText, systemPrompt, style);
     
     if (imageUrl !== SERVICE_UNAVAILABLE) {
       console.log("이미지 변환 성공 (GPT-4o + DALL-E 3)");
