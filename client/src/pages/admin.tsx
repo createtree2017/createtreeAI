@@ -211,11 +211,11 @@ function DevHistoryManager() {
                 {availableDates.length > 0 ? (
                   availableDates.map((date) => (
                     <SelectItem key={date} value={date}>
-                      {date}
+                      {date === "today" ? "최신 대화" : date}
                     </SelectItem>
                   ))
                 ) : (
-                  <SelectItem value="" disabled>
+                  <SelectItem value="no-dates" disabled>
                     No dates available
                   </SelectItem>
                 )}
