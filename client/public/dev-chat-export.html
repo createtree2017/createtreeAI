@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>개발 대화 내보내기</title>
+  <style>
+    body {
+      font-family: 'Noto Sans KR', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f9f9f9;
+    }
+    h1, h2 {
+      color: #4a6da7;
+      border-bottom: 2px solid #eaeaea;
+      padding-bottom: 10px;
+    }
+    .container {
+      background-color: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    .btn {
+      display: inline-block;
+      padding: 10px 20px;
+      margin: 10px;
+      border-radius: 5px;
+      text-decoration: none;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    .btn-html {
+      background-color: #4a90e2;
+    }
+    .btn-html:hover {
+      background-color: #3a80d2;
+    }
+    .btn-text {
+      background-color: #5bba6f;
+    }
+    .btn-text:hover {
+      background-color: #4ba05f;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>개발 대화 내보내기</h1>
+    <p>개발 과정에서의 대화 기록을 다운로드할 수 있습니다.</p>
+    
+    <div style="text-align: center; margin-top: 30px;">
+      <a href="/api/export/dev-chat/html" class="btn btn-html">HTML 형식으로 다운로드</a>
+      <a href="/api/export/dev-chat/text" class="btn btn-text">텍스트 형식으로 다운로드</a>
+    </div>
+  </div>
+</body>
+</html>

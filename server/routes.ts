@@ -15,6 +15,7 @@ import {
   getAvailableDurations 
 } from "./services/topmedia-music";
 import { exportChatHistoryAsHtml, exportChatHistoryAsText } from "./services/export-logs";
+import { exportDevChatAsHtml, exportDevChatAsText } from "./services/dev-chat-export";
 import { 
   music, 
   images, 
@@ -210,6 +211,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve embed script for iframe integration
   app.get('/embed.js', (req, res) => {
     res.sendFile(path.join(process.cwd(), 'client/public/embed.js'));
+  });
+  
+  // 개발 대화 내보내기 페이지 제공
+  app.get('/dev-chat-export', (req, res) => {
+    res.sendFile(path.join(process.cwd(), 'client/public/dev-chat-export.html'));
   });
   
   // API routes
@@ -1940,6 +1946,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error exporting chat history as text:", error);
       return res.status(500).json({ error: "Failed to export chat history" });
+    }
+  });
+  
+  // 개발 대화 기록 내보내기 - HTML 형식
+  app.get("/api/export/dev-chat/html", async (req, res) => {
+    try {
+      const htmlContent = await exportDevChatAsHtml();
+      
+      // Set headers for file download
+      res.setHeader('Content-Type', 'text/html');
+      res.setHeader('Content-Disposition', 'attachment; filename="dev_chat_history.html"');
+      
+      return res.send(htmlContent);
+    } catch (error) {
+      console.error("Error exporting development chat history as HTML:", error);
+      return res.status(500).json({ error: "Failed to export development chat history" });
+    }
+  });
+
+  // 개발 대화 기록 내보내기 - 텍스트 형식
+  app.get("/api/export/dev-chat/text", async (req, res) => {
+    try {
+      const textContent = await exportDevChatAsText();
+      
+      // Set headers for file download
+      res.setHeader('Content-Type', 'text/plain');
+      res.setHeader('Content-Disposition', 'attachment; filename="dev_chat_history.txt"');
+      
+      return res.send(textContent);
+    } catch (error) {
+      console.error("Error exporting development chat history as text:", error);
+      return res.status(500).json({ error: "Failed to export development chat history" });
     }
   });
 
