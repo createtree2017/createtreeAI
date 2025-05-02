@@ -124,7 +124,7 @@ async function callGptImage1Api(prompt: string, imageBuffer: Buffer): Promise<st
       const responseText = await apiResponse.text();
       
       // 전체 응답 내용 상세 로깅 (디버깅 목적)
-      console.log("GPT-Image-1 API 응답 전체 내용:", responseText);
+      console.log("GPT-Image-1 API 응답 완료 (응답 상세 내용 로그 생략)");
       
       // JSON 파싱 시도
       let responseData: OpenAIImageGenerationResponse;
