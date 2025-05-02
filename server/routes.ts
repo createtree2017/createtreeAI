@@ -749,6 +749,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const imageItem = mediaItem as typeof images.$inferSelect;
           url = imageItem.transformedUrl;
           filename = `${imageItem.title || 'transformed_image'}.jpg`;
+          
+          // uploads 폴더 내에 이미지 파일이 존재하는지 확인
+          const urlBasename = path.basename(imageItem.transformedUrl);
+          const possibleLocalPaths = [
+            path.join(process.cwd(), 'uploads', urlBasename),
+            path.join(process.cwd(), 'uploads', 'temp', urlBasename)
+          ];
+          
+          for (const localPath of possibleLocalPaths) {
+            if (fs.existsSync(localPath)) {
+              console.log(`로컬에서 이미지 파일 찾음: ${localPath}`);
+              try {
+                const imageBuffer = fs.readFileSync(localPath);
+                // 응답 헤더 설정
+                res.setHeader('Content-Type', 'image/jpeg');
+                res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+                // 파일 데이터 전송
+                return res.send(imageBuffer);
+              } catch (fileError) {
+                console.error('로컬 파일 읽기 실패:', fileError);
+                // 파일 읽기 실패 시 계속 진행 (원격 URL 시도)
+                break;
+              }
+            }
+          }
         }
       }
       
