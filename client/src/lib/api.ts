@@ -120,17 +120,56 @@ export const downloadMedia = async (id: number, type: string) => {
     // Direct navigation approach - server will proxy the content and handle download
     const downloadUrl = `/api/media/download/${type}/${id}`;
     
-    // HEAD 요청으로 검증하는 대신 간단히 바로 다운로드 시도
     console.log(`다운로드 시도: ${downloadUrl}`);
     
-    // 새 창에서 다운로드 URL 열기
-    window.open(downloadUrl, '_blank');
+    // 서버에 다운로드 요청 보내기
+    const response = await fetch(downloadUrl);
     
-    // 작은 지연 시간 추가
-    await new Promise(resolve => setTimeout(resolve, 100));
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('다운로드 실패 응답:', response.status, errorText);
+      throw new Error(errorText || response.statusText);
+    }
     
-    // 성공 반환 - 다운로드 프로세스 시작됨
-    return { success: true };
+    // 응답이 JSON인지 확인
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      // JSON 응답 처리 (URL 반환)
+      const jsonResponse = await response.json();
+      console.log('다운로드 JSON 응답:', jsonResponse);
+      
+      if (jsonResponse.url) {
+        // 새 창에서 다운로드 URL 열기
+        window.open(jsonResponse.url, '_blank');
+        return { success: true, url: jsonResponse.url };
+      } else {
+        throw new Error('다운로드 URL을 찾을 수 없습니다.');
+      }
+    } else {
+      // 파일 데이터 직접 다운로드 (blob)
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      
+      // 다운로드 링크 생성
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      
+      // 파일명 가져오기
+      const filename = response.headers.get('content-disposition')
+        ?.split('filename=')[1]?.replace(/"/g, '') 
+        || `downloaded-${type}-${id}.${type === 'image' ? 'jpg' : 'mp3'}`;
+      
+      a.download = decodeURIComponent(filename);
+      document.body.appendChild(a);
+      a.click();
+      
+      // 정리
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      return { success: true };
+    }
   } catch (error) {
     console.error('Error downloading media:', error);
     // UI에 오류 알림
@@ -140,15 +179,36 @@ export const downloadMedia = async (id: number, type: string) => {
 
 export const shareMedia = async (id: number, type: string) => {
   try {
-    const response = await apiRequest('POST', '/api/media/share', { id, type });
+    console.log(`공유 요청: ID ${id}, 타입 ${type}`);
+    
+    // 직접 fetch API 사용
+    const response = await fetch('/api/media/share', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ id, type }),
+      credentials: 'include',
+    });
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Error sharing media:', errorText);
+      console.error('미디어 공유 실패:', response.status, errorText);
       throw new Error(errorText || response.statusText);
     }
     
-    return response.json();
+    const result = await response.json();
+    console.log('공유 응답:', result);
+    
+    // 공유 URL이 있는지 확인
+    if (result.shareUrl) {
+      // 클립보드에 복사
+      navigator.clipboard.writeText(result.shareUrl)
+        .then(() => console.log('URL이 클립보드에 복사되었습니다.'))
+        .catch(err => console.error('클립보드 복사 실패:', err));
+    }
+    
+    return result;
   } catch (error) {
     console.error('API error during sharing:', error);
     throw error;
