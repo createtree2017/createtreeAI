@@ -117,62 +117,20 @@ export const toggleFavorite = async (itemId: number, type: string) => {
 // Media management endpoints
 export const downloadMedia = async (id: number, type: string) => {
   try {
-    // Direct navigation approach - server will proxy the content and handle download
+    // 해당 이미지의 URL을 직접 새 창에서 열기 (단순화된 방식)
+    // 데이터베이스 이미지 확인
+    
+    // 로그 출력
+    console.log(`미디어 다운로드 요청 - ID: ${id}, 타입: ${type}`);
+    
+    // 1. 먼저 서버에 다운로드 URL 요청
     const downloadUrl = `/api/media/download/${type}/${id}`;
+    window.open(downloadUrl, '_blank');
     
-    console.log(`다운로드 시도: ${downloadUrl}`);
-    
-    // 서버에 다운로드 요청 보내기
-    const response = await fetch(downloadUrl);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('다운로드 실패 응답:', response.status, errorText);
-      throw new Error(errorText || response.statusText);
-    }
-    
-    // 응답이 JSON인지 확인
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-      // JSON 응답 처리 (URL 반환)
-      const jsonResponse = await response.json();
-      console.log('다운로드 JSON 응답:', jsonResponse);
-      
-      if (jsonResponse.url) {
-        // 새 창에서 다운로드 URL 열기
-        window.open(jsonResponse.url, '_blank');
-        return { success: true, url: jsonResponse.url };
-      } else {
-        throw new Error('다운로드 URL을 찾을 수 없습니다.');
-      }
-    } else {
-      // 파일 데이터 직접 다운로드 (blob)
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      
-      // 다운로드 링크 생성
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      
-      // 파일명 가져오기
-      const filename = response.headers.get('content-disposition')
-        ?.split('filename=')[1]?.replace(/"/g, '') 
-        || `downloaded-${type}-${id}.${type === 'image' ? 'jpg' : 'mp3'}`;
-      
-      a.download = decodeURIComponent(filename);
-      document.body.appendChild(a);
-      a.click();
-      
-      // 정리
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      return { success: true };
-    }
+    return { success: true };
   } catch (error) {
-    console.error('Error downloading media:', error);
-    // UI에 오류 알림
+    console.error('미디어 다운로드 오류:', error);
+    // 오류 전파
     throw error;
   }
 };
