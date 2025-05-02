@@ -67,29 +67,28 @@ export const storage = {
       };
       
       let prompt = "";
+      // 개선된 prompt 처리 로직
       if (customPromptTemplate && customPromptTemplate.trim() !== "") {
         // 템플릿 변수 처리 (빈 문자열이 아닌 경우에만)
         prompt = processTemplate(customPromptTemplate);
         console.log(`처리된 프롬프트: "${prompt}"`);
+      } else if (systemPrompt && systemPrompt.trim() !== "") {
+        // 시스템 프롬프트만 있는 경우
+        prompt = "Transform the uploaded image using the following instruction: " + systemPrompt;
+        console.log(`시스템 프롬프트만 있어 변환 지침으로 사용: "${prompt.substring(0, 100)}..."`);
       } else {
-        // 프롬프트 템플릿이 없는 경우: 시스템 프롬프트가 있다면 빈 프롬프트로 진행, 없다면 중단
-        if (systemPrompt && systemPrompt.trim() !== "") {
-          console.log(`프롬프트 템플릿은 비어 있지만 시스템 프롬프트가 있으므로 빈 프롬프트로 계속 진행합니다.`);
-          prompt = "";  // 빈 프롬프트 사용
-        } else {
-          // 프롬프트 템플릿과 시스템 프롬프트 모두 없는 경우에만 중단
-          console.log(`프롬프트 템플릿과 시스템 프롬프트 모두 비어 있음. 이미지 변환 처리를 중단합니다.`);
-          return "https://placehold.co/1024x1024/A7C1E2/FFF?text=비어있는+프롬프트로+이미지를+생성할+수+없습니다";
-        }
+        // 프롬프트와 시스템 프롬프트 모두 없는 경우에는 중단
+        console.log(`프롬프트 템플릿과 시스템 프롬프트 모두 비어 있음. 이미지 변환 처리를 중단합니다.`);
+        return "https://placehold.co/1024x1024/A7C1E2/FFF?text=비어있는+프롬프트로+이미지를+생성할+수+없습니다";
       }
       
       try {
-        // OpenAI DALL-E 3 호출
-        console.log(`[Storage] Calling OpenAI DALL-E 3 image transformation service...`);
+        // OpenAI GPT-Image-1 호출 (GPT-4o Vision 이미지 분석 포함)
+        console.log(`[Storage] Calling OpenAI GPT-Image-1 image transformation service...`);
         if (systemPrompt) {
           console.log(`[Storage] Using system prompt for GPT-4o image analysis: ${systemPrompt.substring(0, 50)}...`);
         }
-        const { transformImage } = await import('./services/openai-dalle3');
+        const { transformImage } = await import('./services/openai-dalle3'); // 파일명은 호환성 유지
         const transformedImageUrl = await transformImage(
           imageBuffer, 
           style, 
@@ -98,15 +97,15 @@ export const storage = {
         );
         
         if (!transformedImageUrl.includes("placehold.co")) {
-          console.log(`[Storage] OpenAI DALL-E 3 transformation succeeded, URL: ${transformedImageUrl.substring(0, 30)}...`);
+          console.log(`[Storage] OpenAI GPT-Image-1 transformation succeeded, URL: ${transformedImageUrl.substring(0, 30)}...`);
           return transformedImageUrl;
         } else {
           // 오류 시 서비스 종료 메시지 반환
-          console.log(`[Storage] OpenAI DALL-E 3 service unavailable`);
+          console.log(`[Storage] OpenAI GPT-Image-1 service unavailable`);
           return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
         }
       } catch (error) {
-        console.error(`[Storage] OpenAI DALL-E 3 error:`, error);
+        console.error(`[Storage] OpenAI GPT-Image-1 error:`, error);
         return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
       }
     } catch (error) {

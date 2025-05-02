@@ -101,7 +101,7 @@ async function callGptImage1Api(prompt: string, imageBuffer: Buffer): Promise<st
       formData.append('prompt', prompt);
       formData.append('image', fs.createReadStream(tempFilePath));
       formData.append('size', '1024x1024');
-      formData.append('quality', 'hd');  // 'hd' 품질 사용
+      formData.append('quality', 'high');  // GPT-Image-1에서는 'hd' 대신 'high' 사용
       formData.append('n', '1');  // 이미지 1개 생성
       // 'response_format' 파라미터 제거 - gpt-image-1에서는 지원하지 않음
       
