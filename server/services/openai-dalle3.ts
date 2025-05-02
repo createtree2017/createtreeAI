@@ -1,6 +1,7 @@
 /**
  * OpenAI GPT-4o Vision 및 gpt-image-1 모델을 활용한 이미지 생성 및 변환 서비스
  * 원본 이미지 특성을 더 정확하게 유지하는 이미지 변환 구현
+ * 파일명은 backward compatibility를 위해 유지
  */
 import fetch from 'node-fetch';
 import fs from 'fs';
@@ -134,10 +135,10 @@ async function callGptImage1Api(prompt: string, imageBuffer: Buffer): Promise<st
 }
 
 /**
- * GPT-4o Vision으로 이미지를 분석하여 향상된 프롬프트 생성 후 DALL-E 3로 이미지 생성 요청
+ * GPT-4o Vision으로 이미지를 분석하여 향상된 프롬프트 생성 후 gpt-image-1로 이미지 생성 요청
  * 멀티모달 분석을 통한 향상된 이미지 변환 기능
  */
-async function callGPT4oVisionAndDALLE3(imageBuffer: Buffer, prompt: string, systemPrompt: string | null = null, style: string = "artistic"): Promise<string> {
+async function callGPT4oVisionAndImage1(imageBuffer: Buffer, prompt: string, systemPrompt: string | null = null, style: string = "artistic"): Promise<string> {
   if (!isValidApiKey(API_KEY)) {
     console.log("유효한 API 키가 없습니다");
     return SERVICE_UNAVAILABLE;
@@ -467,7 +468,7 @@ export async function generateImage(promptText: string): Promise<string> {
 }
 
 /**
- * 이미지 변환/스타일 변경 (DALL-E 3 + GPT-4o)
+ * 이미지 변환/스타일 변경 (GPT-4o Vision + gpt-image-1)
  * 원본 이미지를 참조하여 이미지 변환 수행
  */
 export async function transformImage(
@@ -501,18 +502,20 @@ export async function transformImage(
     if (customPromptTemplate && customPromptTemplate.trim() !== "") {
       console.log("커스텀 프롬프트 템플릿 사용");
       promptText = customPromptTemplate;
+    } else if (style && stylePrompts[style]) {
+      console.log(`스타일 템플릿 사용: ${style}`);
+      promptText = stylePrompts[style];
     } else {
       console.log("빈 프롬프트 사용: 프롬프트 없이 GPT-4o Vision 분석만 진행");
-      // 스타일만 전달하고 추가 프롬프트는 전달하지 않음
     }
 
-    console.log("GPT-4o + DALL-E 3로 이미지 변환 시도 (이미지 기반)");
+    console.log("GPT-4o Vision + gpt-image-1로 이미지 변환 시도 (원본 이미지 참조)");
     
-    // 원본 이미지를 참조하여 변환 (GPT-4o의 Vision 기능 사용)
-    const imageUrl = await callGPT4oVisionAndDALLE3(imageBuffer, promptText, systemPrompt, style);
+    // 원본 이미지를 참조하여 변환 (GPT-4o의 Vision 기능으로 분석 후 gpt-image-1로 변환)
+    const imageUrl = await callGPT4oVisionAndImage1(imageBuffer, promptText, systemPrompt, style);
     
     if (imageUrl !== SERVICE_UNAVAILABLE) {
-      console.log("이미지 변환 성공 (GPT-4o + DALL-E 3)");
+      console.log("이미지 변환 성공 (GPT-4o Vision + gpt-image-1)");
     }
     
     return imageUrl;
