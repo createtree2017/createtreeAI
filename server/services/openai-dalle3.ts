@@ -6,7 +6,6 @@
 import fetch from 'node-fetch';
 import fs from 'fs';
 import FormData from 'form-data';
-import { Blob } from 'node:buffer';
 
 // OpenAI API 키 - 환경 변수에서 가져옴
 const API_KEY = process.env.OPENAI_API_KEY;
@@ -84,7 +83,10 @@ async function callGptImage1Api(prompt: string, imageBuffer: Buffer): Promise<st
     const formData = new FormData();
     formData.append('model', 'gpt-image-1');
     formData.append('prompt', prompt);
-    formData.append('image', new Blob([imageBuffer], { type: 'image/jpeg' }), 'image.jpg');
+    formData.append('image', imageBuffer, {
+      filename: 'image.jpg',
+      contentType: 'image/jpeg'
+    });
     formData.append('size', '1024x1024');
     formData.append('response_format', 'url');
     
