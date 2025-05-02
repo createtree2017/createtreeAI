@@ -479,6 +479,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (req.session) {
           req.session.tempImage = savedImage;
           console.log("임시 이미지 정보를 세션에 저장했습니다:", savedImage.title);
+        } else {
+          console.warn("세션 객체가 없어 임시 이미지를 저장할 수 없습니다.");
         }
       }
       
@@ -670,7 +672,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let mediaItem;
       
       // 세션에서 임시 이미지 확인 (ID가 -1인 경우)
-      if (type === "image" && parsedId === -1 && req.session.tempImage) {
+      if (type === "image" && parsedId === -1 && req.session && req.session.tempImage) {
+        console.log("임시 이미지 다운로드 요청 처리 중:", req.session.tempImage.title);
         url = req.session.tempImage.transformedUrl;
         filename = `${req.session.tempImage.title || 'transformed_image'}.jpg`;
       } else {
