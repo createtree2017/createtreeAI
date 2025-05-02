@@ -9,32 +9,32 @@ export default function BottomNavigation() {
     {
       path: '/',
       icon: Home,
-      label: 'Home',
-      ariaLabel: 'Home page',
+      label: '홈',
+      ariaLabel: '홈 페이지',
     },
     {
       path: '/milestones',
       icon: Award,
-      label: 'Milestones',
-      ariaLabel: 'Pregnancy milestones page',
+      label: '마일스톤',
+      ariaLabel: '임신 마일스톤 페이지',
     },
     {
       path: '/chat',
       icon: MessageCircle,
-      label: 'AI Chat',
-      ariaLabel: 'AI Chat page',
+      label: 'AI 채팅',
+      ariaLabel: 'AI 채팅 페이지',
     },
     {
       path: '/gallery',
       icon: Image,
-      label: 'Gallery',
-      ariaLabel: 'Gallery page',
+      label: '갤러리',
+      ariaLabel: '갤러리 페이지',
     },
     {
       path: '/profile',
       icon: User,
-      label: 'My Page',
-      ariaLabel: 'My profile page',
+      label: '마이페이지',
+      ariaLabel: '내 프로필 페이지',
     },
   ];
 

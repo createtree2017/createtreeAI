@@ -16,16 +16,16 @@ export default function Header() {
         {/* Navigation - Visible on larger screens */}
         <nav className="hidden md:flex items-center space-x-8">
           <Link href="/" className="text-white font-medium hover:text-neutral-darkest transition-colors font-body">
-            Home
+            홈
           </Link>
           <Link href="/image" className="text-white font-medium hover:text-neutral-darkest transition-colors font-body">
-            Memory Art
+            추억 예술
           </Link>
           <Link href="/music" className="text-white font-medium hover:text-neutral-darkest transition-colors font-body">
-            Lullaby
+            자장가
           </Link>
           <Link href="/chat" className="text-white font-medium hover:text-neutral-darkest transition-colors font-body">
-            AI Companion
+            AI 도우미
           </Link>
         </nav>
         
