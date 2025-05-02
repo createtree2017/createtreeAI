@@ -43,10 +43,12 @@ export default function Image() {
   const query = new URLSearchParams(location.split("?")[1] || "");
   const imageId = query.get("id");
 
-  // Fetch image list
-  const { data: imageList, isLoading: isLoadingImages } = useQuery({
-    queryKey: ["/api/image"],
+  // Fetch image list with more aggressive refresh option
+  const { data: imageList, isLoading: isLoadingImages, refetch } = useQuery({
+    queryKey: ["/api/image"], 
     queryFn: getImageList,
+    refetchOnMount: true, // 컴포넌트 마운트 시 항상 리페치
+    staleTime: 0, // 항상 최신 데이터를 가져오도록 staleTime 0으로 설정
   });
 
   // Fetch individual image if ID is provided
@@ -76,9 +78,14 @@ export default function Image() {
   // Transform image mutation (일반 사용자 페이지에서는 isAdmin=false로 호출)
   const { mutate: transformImageMutation, isPending: isTransforming } = useMutation({
     mutationFn: (data: FormData) => transformImage(data, false),
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       setTransformedImage(data);
-      queryClient.invalidateQueries({ queryKey: ["/api/image"] });
+      
+      // 이미지 목록 강제 리프레시 - 캐시 초기화 후 다시 가져오기
+      await queryClient.invalidateQueries({ queryKey: ["/api/image"] });
+      
+      // 데이터가 확실히 업데이트되도록 직접 refetch 호출
+      refetch();
       
       // Check if there's an active A/B test for this style and show it if available
       if (selectedStyle) {

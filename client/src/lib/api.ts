@@ -117,20 +117,70 @@ export const toggleFavorite = async (itemId: number, type: string) => {
 // Media management endpoints
 export const downloadMedia = async (id: number, type: string) => {
   try {
-    // 해당 이미지의 URL을 직접 새 창에서 열기 (단순화된 방식)
-    // 데이터베이스 이미지 확인
-    
-    // 로그 출력
     console.log(`미디어 다운로드 요청 - ID: ${id}, 타입: ${type}`);
     
-    // 1. 먼저 서버에 다운로드 URL 요청
+    // 1. 먼저 서버에 이미지 데이터 요청
     const downloadUrl = `/api/media/download/${type}/${id}`;
-    window.open(downloadUrl, '_blank');
     
-    return { success: true };
+    // 2. 데이터 요청 및 다운로드 처리
+    const response = await fetch(downloadUrl, {
+      method: 'GET',
+      credentials: 'include',
+    });
+    
+    if (!response.ok) {
+      throw new Error(`다운로드 실패: ${response.status} ${response.statusText}`);
+    }
+    
+    // 3. 응답 형식에 따른 처리
+    const contentType = response.headers.get('content-type');
+    
+    // JSON 응답인 경우 - 외부 URL 열기
+    if (contentType && contentType.includes('application/json')) {
+      const data = await response.json();
+      if (data.url) {
+        // 외부 URL 새 창에서 열기
+        window.open(data.url, '_blank');
+        return { success: true };
+      } else {
+        throw new Error('유효한 다운로드 URL이 없습니다');
+      }
+    } 
+    // 이미지/오디오 데이터인 경우 - 파일로 저장
+    else {
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      
+      // 다운로드 링크 생성 및 클릭
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      
+      // 파일명 설정
+      let filename = '';
+      const disposition = response.headers.get('content-disposition');
+      
+      if (disposition && disposition.includes('filename=')) {
+        filename = disposition.split('filename=')[1].replace(/"/g, '');
+        filename = decodeURIComponent(filename);
+      } else {
+        filename = `download-${type}-${id}.${type === 'image' ? 'jpg' : 'mp3'}`;
+      }
+      
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      
+      // 정리
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 100);
+      
+      return { success: true, filename };
+    }
   } catch (error) {
     console.error('미디어 다운로드 오류:', error);
-    // 오류 전파
     throw error;
   }
 };
