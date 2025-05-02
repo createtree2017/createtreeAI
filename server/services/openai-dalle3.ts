@@ -577,6 +577,9 @@ export async function transformImage(
   customPromptTemplate?: string | null,
   systemPrompt?: string | null
 ): Promise<string> {
+  // 실패 시 재시도 카운터
+  let retryCount = 0;
+  const maxRetries = 2;
   try {
     // 기본 스타일별 프롬프트 템플릿 (관리자 페이지에서 오버라이드되므로 실제로는 사용되지 않음)
     // 해당 기능은 관리자 페이지의 '컨셉' 설정으로 대체되었습니다
@@ -587,13 +590,14 @@ export async function transformImage(
       oil: "Convert this image into a classic oil painting style with rich textures",
       fantasy: "Transform this image into a magical fantasy art style with dreamlike qualities",
       storybook: "Convert this image into a sweet children's storybook illustration style",
-      ghibli: "Transform this image into a Studio Ghibli anime style with soft colors",
-      gibli: "Transform this image into a Studio Ghibli anime style with soft colors",
-      disney: "Transform this image into a Disney animation style with expressive characters",
+      ghibli: "Transform this image into a drawing with gentle colors and warm textures",
+      gibli: "Transform this image into a drawing with gentle colors and warm textures",
+      disney: "Transform this image into a cheerful illustration with expressive details",
       korean_webtoon: "Transform this image into a Korean webtoon style with clean lines",
       fairytale: "Transform this image into a fairytale illustration with magical elements"
     };
 
+    // 저작권 주의가 필요한 콘텐츠 감지를 위한 프롬프트 수정
     // 프롬프트 선택 (커스텀 또는 빈 프롬프트 유지)
     let promptText: string = "";
     
@@ -601,6 +605,16 @@ export async function transformImage(
     if (customPromptTemplate && customPromptTemplate.trim() !== "") {
       console.log("커스텀 프롬프트 템플릿 사용");
       promptText = customPromptTemplate;
+      
+      // 저작권 관련 키워드가 있는지 검사
+      const copyrightTerms = ["ghibli", "disney", "pixar", "marvel", "studio", "anime", "character"];
+      for (const term of copyrightTerms) {
+        if (promptText.toLowerCase().includes(term)) {
+          // 저작권 관련 용어를 일반적인 표현으로 대체
+          console.log(`저작권 관련 용어 '${term}' 감지, 일반 표현으로 대체`);
+          promptText = promptText.replace(/\b(ghibli|disney|pixar|marvel|studio|anime|character)\b/gi, "artistic illustration");
+        }
+      }
     } else if (style && stylePrompts[style]) {
       console.log(`스타일 템플릿 사용: ${style}`);
       promptText = stylePrompts[style];
@@ -608,12 +622,49 @@ export async function transformImage(
       console.log("빈 프롬프트 사용: 프롬프트 없이 GPT-4o Vision 분석만 진행");
     }
 
+    // 안전 필터 문제를 방지하기 위한 추가 지침
+    promptText += "\nAvoid copyright concerns. Create a generic illustration that captures the essence without infringing on any intellectual property.";
+    
     console.log("GPT-4o Vision + gpt-image-1로 이미지 변환 시도 (원본 이미지 참조)");
     
-    // 원본 이미지를 참조하여 변환 (GPT-4o의 Vision 기능으로 분석 후 gpt-image-1로 변환)
-    const imageUrl = await callGPT4oVisionAndImage1(imageBuffer, promptText, systemPrompt, style);
+    // 이미지 변환 시도 (최대 재시도 횟수까지)
+    let imageUrl = "";
+    let safetyError = false;
     
-    if (imageUrl !== SERVICE_UNAVAILABLE) {
+    while (retryCount <= maxRetries) {
+      try {
+        // 원본 이미지를 참조하여 변환 (GPT-4o의 Vision 기능으로 분석 후 gpt-image-1로 변환)
+        imageUrl = await callGPT4oVisionAndImage1(imageBuffer, promptText, systemPrompt, style);
+        
+        // 안전 시스템 오류 확인
+        if (imageUrl.includes("safety_system")) {
+          console.log(`안전 시스템 오류 발생 (시도 ${retryCount + 1}/${maxRetries + 1})`);
+          safetyError = true;
+          
+          // 프롬프트 수정 및 재시도
+          promptText = "Create a simple artistic illustration inspired by this image. Focus on colors and shapes only, avoiding specific details.";
+          retryCount++;
+          
+          // 마지막 시도인 경우 다른 스타일로 시도
+          if (retryCount === maxRetries) {
+            console.log("마지막 시도: 완전히 중립적인 스타일로 변경");
+            promptText = "Transform this image into a simple watercolor painting with abstract elements. Keep it generic and avoid any recognizable characters or copyrighted elements.";
+          }
+        } else {
+          // 성공했거나 안전 시스템 이외의 오류인 경우 루프 종료
+          break;
+        }
+      } catch (retryError) {
+        console.error(`재시도 중 오류 (시도 ${retryCount + 1}/${maxRetries + 1}):`, retryError);
+        retryCount++;
+        
+        if (retryCount > maxRetries) {
+          break;
+        }
+      }
+    }
+    
+    if (imageUrl !== SERVICE_UNAVAILABLE && !imageUrl.includes("safety_system")) {
       console.log("이미지 변환 성공 (GPT-4o Vision + gpt-image-1)");
     }
     
