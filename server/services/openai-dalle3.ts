@@ -102,7 +102,7 @@ async function callGptImage1Api(prompt: string, imageBuffer: Buffer): Promise<st
       formData.append('prompt', prompt);
       formData.append('image', fs.createReadStream(tempFilePath));
       formData.append('size', '1024x1024');
-      formData.append('quality', 'medium');
+      formData.append('quality', 'hd');  // 'medium'에서 'hd'로 변경 - 플레이그라운드 예시에 맞춤
       formData.append('response_format', 'url');
       
       // multipart/form-data를 사용하므로 Content-Type 헤더는 자동 설정됨
