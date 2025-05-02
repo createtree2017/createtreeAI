@@ -527,6 +527,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/image", async (req, res) => {
     try {
+      // 캐싱 방지 헤더 추가
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Surrogate-Control', 'no-store');
+      
       const imageList = await storage.getImageList();
       return res.json(imageList);
     } catch (error) {

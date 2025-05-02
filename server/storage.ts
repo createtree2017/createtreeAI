@@ -204,18 +204,26 @@ export const storage = {
     // Include the variant ID if it exists (for A/B testing)
     const metadata = variantId ? { variantId } : {};
     
-    const [savedImage] = await db
-      .insert(images)
-      .values({
-        title,
-        style,
-        originalUrl: originalPath,
-        transformedUrl,
-        metadata: JSON.stringify(metadata),
-      })
-      .returning();
-    
-    return savedImage;
+    try {
+      console.log(`[Storage] 새 이미지 저장 시작: "${title}", 스타일: ${style}`);
+      
+      const [savedImage] = await db
+        .insert(images)
+        .values({
+          title,
+          style,
+          originalUrl: originalPath,
+          transformedUrl,
+          metadata: JSON.stringify(metadata),
+        })
+        .returning();
+      
+      console.log(`[Storage] 이미지 저장 완료: ID ${savedImage.id}, 타이틀: "${savedImage.title}"`);
+      return savedImage;
+    } catch (error) {
+      console.error(`[Storage] 이미지 저장 중 오류 발생:`, error);
+      throw error;
+    }
   },
   
   async getImageList() {
