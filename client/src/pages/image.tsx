@@ -73,9 +73,9 @@ export default function Image() {
     }
   };
 
-  // Transform image mutation
+  // Transform image mutation (일반 사용자 페이지에서는 isAdmin=false로 호출)
   const { mutate: transformImageMutation, isPending: isTransforming } = useMutation({
-    mutationFn: (data: FormData) => transformImage(data),
+    mutationFn: (data: FormData) => transformImage(data, false),
     onSuccess: (data) => {
       setTransformedImage(data);
       queryClient.invalidateQueries({ queryKey: ["/api/image"] });
@@ -100,7 +100,8 @@ export default function Image() {
             formData.append("style", selectedStyle as string);
             formData.append("variant", variant.variantId);
             
-            const variantResult = await transformImage(formData);
+            // A/B 테스트 변형 이미지는 테스트용이므로 데이터베이스에 저장
+            const variantResult = await transformImage(formData, true);
             setAbTestImages(prev => ({
               ...prev,
               [variant.variantId]: variantResult.transformedUrl
@@ -170,6 +171,7 @@ export default function Image() {
     formData.append("image", selectedFile);
     formData.append("style", selectedStyle);
 
+    // 일반 사용자 페이지에서는 관리자 플래그 없이 호출 (이미지 임시 표시용)
     transformImageMutation(formData);
   };
 
