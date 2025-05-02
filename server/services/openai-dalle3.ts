@@ -89,7 +89,6 @@ async function callGptImage1Api(prompt: string, imageBuffer: Buffer): Promise<st
       // GPT-Image-1 Edit API 요청 (원본 이미지 참조)
       console.log("GPT-Image-1 Edit API 호출 (원본 이미지 참조 가능)");
       
-      // GPT-image-1 API는 JSON이 아닌 multipart/form-data 형식을 요구함
       // 임시 파일 경로 설정 (Buffer를 파일로 저장)
       const tempFilePath = path.join(process.cwd(), 'temp_image.jpg');
       
@@ -102,7 +101,8 @@ async function callGptImage1Api(prompt: string, imageBuffer: Buffer): Promise<st
       formData.append('prompt', prompt);
       formData.append('image', fs.createReadStream(tempFilePath));
       formData.append('size', '1024x1024');
-      formData.append('quality', 'hd');  // 'medium'에서 'hd'로 변경 - 플레이그라운드 예시에 맞춤
+      formData.append('quality', 'hd');  // 'hd' 품질 사용
+      formData.append('n', '1');  // 이미지 1개 생성
       formData.append('response_format', 'url');
       
       // multipart/form-data를 사용하므로 Content-Type 헤더는 자동 설정됨
@@ -113,14 +113,14 @@ async function callGptImage1Api(prompt: string, imageBuffer: Buffer): Promise<st
       console.log("multipart/form-data 형식으로 GPT-Image-1 Edit API 호출");
       
       // API 호출
-      const response = await fetch(OPENAI_IMAGE_EDITING_URL, {
+      const apiResponse = await fetch(OPENAI_IMAGE_EDITING_URL, {
         method: 'POST',
         headers: authHeader,
         body: formData
       });
       
       // 응답 텍스트로 가져오기
-      const responseText = await response.text();
+      const responseText = await apiResponse.text();
       
       // JSON 파싱 시도
       let responseData: OpenAIImageGenerationResponse;
@@ -135,8 +135,8 @@ async function callGptImage1Api(prompt: string, imageBuffer: Buffer): Promise<st
       }
       
       // 오류 응답 확인
-      if (!response.ok || responseData.error) {
-        const errorMessage = responseData.error?.message || `HTTP 오류: ${response.status}`;
+      if (!apiResponse.ok || responseData.error) {
+        const errorMessage = responseData.error?.message || `HTTP 오류: ${apiResponse.status}`;
         console.error("GPT-Image-1 Edit API 오류:", errorMessage);
         throw new Error("GPT-Image-1 Edit API 오류");
       }
@@ -171,14 +171,14 @@ async function callGptImage1Api(prompt: string, imageBuffer: Buffer): Promise<st
       };
       
       // API 호출
-      const response = await fetch(OPENAI_IMAGE_CREATION_URL, {
+      const fallbackResponse = await fetch(OPENAI_IMAGE_CREATION_URL, {
         method: 'POST',
         headers: headers,
         body: JSON.stringify(requestBody)
       });
       
       // 응답 텍스트로 가져오기
-      const responseText = await response.text();
+      const responseText = await fallbackResponse.text();
       
       // JSON 파싱 시도
       let responseData: OpenAIImageGenerationResponse;
@@ -191,8 +191,8 @@ async function callGptImage1Api(prompt: string, imageBuffer: Buffer): Promise<st
       }
       
       // 오류 응답 확인
-      if (!response.ok || responseData.error) {
-        const errorMessage = responseData.error?.message || `HTTP 오류: ${response.status}`;
+      if (!fallbackResponse.ok || responseData.error) {
+        const errorMessage = responseData.error?.message || `HTTP 오류: ${fallbackResponse.status}`;
         console.error("DALL-E 3 API 오류:", errorMessage);
         return SERVICE_UNAVAILABLE;
       }
