@@ -211,6 +211,44 @@ export default function Chat() {
     e.preventDefault();
     if (!message.trim()) return;
     
+    // "채팅저장" 명령어 검사
+    if (message.trim() === "채팅저장") {
+      // 채팅저장 API 호출
+      fetch("/api/dev-history/save-by-command", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          toast({
+            title: "채팅 저장 완료",
+            description: data.message,
+          });
+        } else {
+          toast({
+            title: "채팅 저장 실패",
+            description: data.message || "변경된 내용이 없거나 저장할 내용이 없습니다.",
+            variant: "destructive",
+          });
+        }
+      })
+      .catch(error => {
+        console.error("Error saving chat:", error);
+        toast({
+          title: "채팅 저장 오류",
+          description: "서버 오류로 채팅을 저장하지 못했습니다.",
+          variant: "destructive",
+        });
+      });
+      
+      setMessage("");
+      return;
+    }
+    
+    // 일반 메시지 처리
     sendMessage(message);
     setMessage("");
     
