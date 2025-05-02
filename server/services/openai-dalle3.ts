@@ -103,7 +103,7 @@ async function callGptImage1Api(prompt: string, imageBuffer: Buffer): Promise<st
       formData.append('size', '1024x1024');
       formData.append('quality', 'hd');  // 'hd' 품질 사용
       formData.append('n', '1');  // 이미지 1개 생성
-      formData.append('response_format', 'url');
+      // 'response_format' 파라미터 제거 - gpt-image-1에서는 지원하지 않음
       
       // multipart/form-data를 사용하므로 Content-Type 헤더는 자동 설정됨
       const authHeader = {
