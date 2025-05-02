@@ -935,13 +935,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = mediaShareSchema.parse(req.body);
       
-      // Generate a share link or token
-      const shareLink = await storage.createShareLink(
-        validatedData.id,
-        validatedData.type
-      );
+      // CORS 헤더 추가
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Origin, X-Requested-With');
       
-      return res.json({ shareLink });
+      try {
+        // 먼저 미디어 아이템이 존재하는지 확인
+        const mediaItem = await storage.getMediaItem(
+          validatedData.id,
+          validatedData.type
+        );
+        
+        if (!mediaItem) {
+          return res.status(404).json({ 
+            error: "Media not found",
+            message: "공유할 미디어 항목을 찾을 수 없습니다."
+          });
+        }
+        
+        // 미디어 타입에 따라 URL 직접 반환
+        let shareUrl = '';
+        if (validatedData.type === 'image') {
+          const imageItem = mediaItem as typeof images.$inferSelect;
+          shareUrl = imageItem.transformedUrl;
+          
+          if (!shareUrl.startsWith('http')) {
+            shareUrl = `https://${shareUrl}`;
+          }
+        } else if (validatedData.type === 'music') {
+          const musicItem = mediaItem as typeof music.$inferSelect;
+          shareUrl = musicItem.url;
+          
+          if (!shareUrl.startsWith('http')) {
+            shareUrl = `https://${shareUrl}`;
+          }
+        }
+        
+        // URL이 있는 경우 직접 반환
+        if (shareUrl) {
+          return res.json({ 
+            shareUrl,
+            message: "미디어 URL이 생성되었습니다. 이 URL을 통해 미디어를 공유할 수 있습니다." 
+          });
+        }
+        
+        // 없는 경우에는 기존 로직 진행
+        const shareLink = await storage.createShareLink(
+          validatedData.id,
+          validatedData.type
+        );
+        
+        return res.json({ shareUrl: shareLink });
+      } catch (lookupError) {
+        console.error("미디어 조회 실패:", lookupError);
+        return res.status(500).json({ 
+          error: "Media lookup failed",
+          message: "미디어 정보를 불러오는 데 실패했습니다." 
+        });
+      }
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ errors: error.errors });

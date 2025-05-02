@@ -139,8 +139,20 @@ export const downloadMedia = async (id: number, type: string) => {
 };
 
 export const shareMedia = async (id: number, type: string) => {
-  const response = await apiRequest('POST', '/api/media/share', { id, type });
-  return response.json();
+  try {
+    const response = await apiRequest('POST', '/api/media/share', { id, type });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error sharing media:', errorText);
+      throw new Error(errorText || response.statusText);
+    }
+    
+    return response.json();
+  } catch (error) {
+    console.error('API error during sharing:', error);
+    throw error;
+  }
 };
 
 // ===== Persona Management APIs =====

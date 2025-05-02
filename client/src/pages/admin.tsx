@@ -258,8 +258,9 @@ interface ImageItem {
 }
 
 function ImageGallery() {
-  const { data: images, isLoading, error } = useQuery({
-    queryKey: ["/api/image"]
+  const { data: images, isLoading, error, refetch } = useQuery({
+    queryKey: ["/api/image"],
+    refetchInterval: 5000, // 5초마다 자동 갱신
   });
 
   const queryClient = useQueryClient();
@@ -303,12 +304,32 @@ function ImageGallery() {
   const handleShare = async (image: ImageItem) => {
     try {
       const result = await shareMedia(image.id, 'image');
+      console.log("공유 응답:", result);
+      
       if (result.shareUrl) {
         // Copy to clipboard
-        navigator.clipboard.writeText(result.shareUrl);
+        try {
+          await navigator.clipboard.writeText(result.shareUrl);
+          toast({
+            title: "공유 링크 생성됨",
+            description: "공유 링크가 클립보드에 복사되었습니다.",
+          });
+          // URL 열기
+          window.open(result.shareUrl, '_blank');
+        } catch (clipboardErr) {
+          console.error("클립보드 복사 실패:", clipboardErr);
+          toast({
+            title: "공유 링크 생성됨",
+            description: `공유 URL: ${result.shareUrl}`,
+          });
+          // URL 열기
+          window.open(result.shareUrl, '_blank');
+        }
+      } else {
         toast({
-          title: "공유 링크 생성됨",
-          description: "공유 링크가 클립보드에 복사되었습니다.",
+          title: "공유 실패",
+          description: "유효한 공유 링크를 얻지 못했습니다.",
+          variant: "destructive",
         });
       }
     } catch (error) {
