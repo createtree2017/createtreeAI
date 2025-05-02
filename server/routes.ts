@@ -464,23 +464,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isVariantTest = !!variantId;
       
       let savedImage;
+      let dbSavedImage;
       
-      if (isAdmin || isVariantTest) {
-        // 관리자 패널에서의 요청이거나 A/B 테스트 변형인 경우 이미지를 데이터베이스에 저장
-        savedImage = await storage.saveImageTransformation(
+      try {
+        // 모든 이미지 요청은 데이터베이스에 저장 (관리자 조회용)
+        // 사용자 이미지 포함해서 모두 데이터베이스에 저장
+        dbSavedImage = await storage.saveImageTransformation(
           req.file.originalname,
           style,
           filePath,
           transformedImageUrl,
           variantId // Store which variant was used, if any
         );
-        console.log(`이미지가 데이터베이스에 저장되었습니다. (관리자: ${isAdmin}, 변형 테스트: ${isVariantTest})`);
-      } else {
-        // 일반 사용자 요청인 경우 데이터베이스에 저장하지 않고 응답만 전송
-        console.log("일반 사용자 요청: 이미지가 일시적으로만 제공됩니다.");
         
-        // 긴 base64 문자열을 로컬 파일로 저장 (세션에 저장하는 대신)
-        try {
+        if (isAdmin || isVariantTest) {
+          // 관리자 패널이나 A/B 테스트 요청은 DB 이미지 직접 반환
+          savedImage = dbSavedImage;
+          console.log(`관리자 요청: 이미지가 데이터베이스에 저장됨 (ID: ${dbSavedImage.id})`);
+        } else {
+          // 일반 사용자 요청인 경우 - 데이터베이스에 저장은 했지만 임시 객체로 응답
+          console.log(`일반 사용자 이미지: DB에 저장됨 (ID: ${dbSavedImage.id}), 사용자에게는 임시 이미지로 제공`);
+          
+          // 긴 base64 문자열을 로컬 파일로 저장 (세션에 저장하는 대신)
           const title = `${style.charAt(0).toUpperCase() + style.slice(1)} ${path.basename(req.file.originalname, path.extname(req.file.originalname))}`;
           const tempImageResult = await storage.saveTemporaryImage(transformedImageUrl, title);
           
@@ -493,7 +498,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             transformedUrl: `/uploads/temp/${tempImageResult.filename}`, // 로컬 파일 경로
             localFilePath: tempImageResult.localPath, // 전체 파일 경로 (내부 사용)
             createdAt: new Date().toISOString(),
-            isTemporary: true // 클라이언트에서 임시 여부 식별을 위한 플래그
+            isTemporary: true, // 클라이언트에서 임시 여부 식별을 위한 플래그
+            dbImageId: dbSavedImage.id // 실제 DB에 저장된 ID (필요시 사용)
           };
           
           // 세션에 임시 이미지 정보 저장 (다운로드 처리를 위해)
@@ -503,19 +509,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } else {
             console.warn("세션 객체가 없어 임시 이미지를 저장할 수 없습니다.");
           }
-        } catch (error) {
-          console.error("임시 이미지 저장 중 오류:", error);
-          // 오류 발생 시 기본 응답 객체 생성
-          savedImage = {
-            id: -1,
-            title: `오류: ${style} 이미지`,
-            style,
-            originalUrl: filePath,
-            transformedUrl: transformedImageUrl,
-            createdAt: new Date().toISOString(),
-            isTemporary: true
-          };
         }
+      } catch (error) {
+        console.error("이미지 저장 중 오류:", error);
+        // 오류 발생 시 기본 응답 객체 생성
+        savedImage = {
+          id: -1,
+          title: `오류: ${style} 이미지`,
+          style,
+          originalUrl: filePath,
+          transformedUrl: transformedImageUrl,
+          createdAt: new Date().toISOString(),
+          isTemporary: true
+        };
       }
       
       return res.status(201).json(savedImage);
