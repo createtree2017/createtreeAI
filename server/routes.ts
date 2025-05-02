@@ -16,6 +16,7 @@ import {
 } from "./services/topmedia-music";
 import { exportChatHistoryAsHtml, exportChatHistoryAsText } from "./services/export-logs";
 import { exportDevChatAsHtml, exportDevChatAsText } from "./services/dev-chat-export";
+import { DevHistoryManager } from "./services/dev-history-manager";
 import { 
   music, 
   images, 
@@ -216,6 +217,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 개발 대화 내보내기 페이지 제공
   app.get('/dev-chat-export', (req, res) => {
     res.sendFile(path.join(process.cwd(), 'client/public/dev-chat-export.html'));
+  });
+  
+  // 개발 대화 히스토리 관리 페이지 제공
+  app.get('/dev-history', (req, res) => {
+    res.sendFile(path.join(process.cwd(), 'client/public/dev-history.html'));
   });
   
   // API routes
@@ -1978,6 +1984,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error exporting development chat history as text:", error);
       return res.status(500).json({ error: "Failed to export development chat history" });
+    }
+  });
+  
+  // ===== 개발자 대화 히스토리 관리 API =====
+  
+  // 날짜 목록 가져오기
+  app.get("/api/dev-history/dates", (req, res) => {
+    try {
+      const historyManager = new DevHistoryManager();
+      const dates = historyManager.getDateList();
+      return res.json({ dates });
+    } catch (error) {
+      console.error("Error getting dev history dates:", error);
+      return res.status(500).json({ error: "Failed to get history dates" });
+    }
+  });
+  
+  // 특정 날짜의 대화 히스토리 가져오기
+  app.get("/api/dev-history/:date", (req, res) => {
+    try {
+      const { date } = req.params;
+      const historyManager = new DevHistoryManager();
+      const htmlContent = historyManager.getHistoryByDate(date);
+      
+      // HTML 형식으로 반환
+      res.setHeader('Content-Type', 'text/html');
+      return res.send(htmlContent);
+    } catch (error) {
+      console.error(`Error getting dev history for date ${req.params.date}:`, error);
+      return res.status(500).json({ error: "Failed to get history for this date" });
+    }
+  });
+  
+  // 특정 날짜의 대화 히스토리 다운로드
+  app.get("/api/dev-history/:date/download", (req, res) => {
+    try {
+      const { date } = req.params;
+      const historyManager = new DevHistoryManager();
+      const htmlContent = historyManager.getHistoryByDate(date);
+      
+      // 파일 다운로드용 헤더 설정
+      res.setHeader('Content-Type', 'text/html');
+      res.setHeader('Content-Disposition', `attachment; filename="dev_chat_${date}.html"`);
+      
+      return res.send(htmlContent);
+    } catch (error) {
+      console.error(`Error downloading dev history for date ${req.params.date}:`, error);
+      return res.status(500).json({ error: "Failed to download history for this date" });
+    }
+  });
+  
+  // 현재 대화를 특정 날짜로 저장
+  app.post("/api/dev-history/save/:date", (req, res) => {
+    try {
+      const { date } = req.params;
+      const historyManager = new DevHistoryManager();
+      const success = historyManager.saveCurrentHistoryByDate(date);
+      
+      if (success) {
+        return res.json({ success: true, message: `개발 대화가 ${date} 날짜로 저장되었습니다.` });
+      } else {
+        return res.status(400).json({ error: "Failed to save the current chat history" });
+      }
+    } catch (error) {
+      console.error(`Error saving dev history for date ${req.params.date}:`, error);
+      return res.status(500).json({ error: "Failed to save history for this date" });
     }
   });
 
