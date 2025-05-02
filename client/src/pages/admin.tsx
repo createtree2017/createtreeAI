@@ -5,12 +5,14 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { transformImage, getImageList, downloadMedia, shareMedia } from "@/lib/api";
 import { 
   InsertPersona, 
   InsertPersonaCategory, 
   InsertConcept, 
   InsertConceptCategory 
 } from "@shared/schema";
+import { FileUpload } from "@/components/ui/file-upload";
 import BatchImportDialog from "@/components/BatchImportDialog";
 import { getLanguage, loadTranslations, setLanguage, t } from "@/lib/i18n";
 import { 
@@ -97,7 +99,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CheckCircle, Edit, PlusCircle, Trash2, X, Download, Upload, Globe, ExternalLink } from "lucide-react";
+import { CheckCircle, Edit, PlusCircle, Trash2, X, Upload, Globe, ExternalLink, Download, PaintbrushVertical, Image as ImageIcon, Share2, Eye } from "lucide-react";
 
 // Define form validation schemas using Zod
 const personaFormSchema = z.object({
@@ -258,6 +260,7 @@ export default function AdminPage() {
           <TabsTrigger value="concepts">{t('admin.tabs.concepts')}</TabsTrigger>
           <TabsTrigger value="concept-categories">{t('admin.tabs.conceptCategories')}</TabsTrigger>
           <TabsTrigger value="abtests">A/B Testing</TabsTrigger>
+          <TabsTrigger value="image-test">이미지 테스트</TabsTrigger>
           <TabsTrigger value="languages">Languages</TabsTrigger>
           <TabsTrigger value="dev-history">개발 대화 기록</TabsTrigger>
         </TabsList>
@@ -280,6 +283,10 @@ export default function AdminPage() {
         
         <TabsContent value="abtests">
           <ABTestManager />
+        </TabsContent>
+        
+        <TabsContent value="image-test">
+          <ImageTester />
         </TabsContent>
         
         <TabsContent value="languages">
