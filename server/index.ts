@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { startAutoChatSaver } from "./services/auto-chat-saver";
 
 const app = express();
 app.use(express.json());
@@ -66,5 +67,9 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    
+    // 서버 시작 시 자동 저장 기능 활성화 (30분 간격)
+    startAutoChatSaver(30);
+    log(`자동 채팅 저장 시스템이 활성화되었습니다 (30분 간격)`);
   });
 })();
