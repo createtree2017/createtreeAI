@@ -606,14 +606,14 @@ export default function Image() {
                       className="flex-1 text-xs bg-neutral-lightest hover:bg-neutral-light text-neutral-darkest"
                       onClick={() => handleViewImage(image)}
                     >
-                      <Eye className="mr-1 h-3 w-3" /> View
+                      <Eye className="mr-1 h-3 w-3" /> 보기
                     </Button>
                     <Button
                       size="sm"
                       className="flex-1 text-xs bg-primary-light hover:bg-primary/20 text-primary-dark"
                       onClick={() => handleDownload(image.id)}
                     >
-                      <Download className="mr-1 h-3 w-3" /> Save
+                      <Download className="mr-1 h-3 w-3" /> 저장
                     </Button>
                   </div>
                 </div>
@@ -623,15 +623,15 @@ export default function Image() {
         ) : (
           <div className="text-center py-8 bg-neutral-lightest rounded-xl border border-dashed border-neutral-light">
             <PaintbrushVertical className="h-8 w-8 mx-auto mb-2 text-neutral" />
-            <p className="text-neutral-dark font-medium">No magical memories yet</p>
-            <p className="text-sm mt-1 mb-4 text-neutral-dark">Transform your first photo to begin your collection</p>
+            <p className="text-neutral-dark font-medium">아직 추억이 없습니다</p>
+            <p className="text-sm mt-1 mb-4 text-neutral-dark">첫 번째 사진을 변환하여 추억 컬렉션을 시작하세요</p>
             <Button
               variant="outline"
               size="sm"
               className="bg-white hover:bg-neutral-lightest"
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             >
-              Upload a Photo
+              사진 업로드하기
             </Button>
           </div>
         )}
