@@ -37,8 +37,8 @@ export default function Home() {
 
   const features = [
     {
-      title: "Memory Art",
-      description: "Transform photos into beautiful artworks",
+      title: "추억 예술",
+      description: "사진을 아름다운 예술 작품으로 변환하세요",
       icon: PaintbrushVertical,
       bgColor: "bg-gradient-to-br from-[#ff9fb5] to-[#ff8aa3]", // Soft pink gradient
       textColor: "text-white",
@@ -46,24 +46,24 @@ export default function Home() {
       highlight: true,  // Special property to mark this as the highlighted card
     },
     {
-      title: "Lullaby Creator",
-      description: "Create personalized music for your baby",
+      title: "자장가 제작",
+      description: "아기를 위한 맞춤형 음악을 만들어보세요",
       icon: Music,
       bgColor: "bg-primary-mint",
       textColor: "text-neutral-darkest",
       href: "/music",
     },
     {
-      title: "AI Companion",
-      description: "Chat with your supportive mom advisor",
+      title: "AI 도우미",
+      description: "엄마 상담사와 대화하세요",
       icon: MessageCircle,
       bgColor: "bg-primary-lavender",
       textColor: "text-neutral-darkest",
       href: "/chat",
     },
     {
-      title: "My Gallery",
-      description: "View all your creations and memories",
+      title: "내 갤러리",
+      description: "모든 창작물과 추억을 확인하세요",
       icon: Images,
       bgColor: "bg-primary-beige",
       textColor: "text-neutral-darkest",
@@ -73,16 +73,16 @@ export default function Home() {
 
   const programs = [
     {
-      title: "Magical Memories",
-      description: "Create special moments with your little one",
+      title: "마법 같은 추억",
+      description: "아이와 함께 특별한 순간을 만들어보세요",
       icon: Baby,
       bgColor: "bg-primary-lavender",
       textColor: "text-neutral-darkest",
       href: "/programs/memories",
     },
     {
-      title: "Prenatal Care",
-      description: "Essential guidance for expectant mothers",
+      title: "산전 관리",
+      description: "예비 엄마를 위한 필수 가이드",
       icon: Sparkles,
       bgColor: "bg-gradient-to-br from-[#FFD1B3] to-[#FFBF99]", // Peach gradient based on style guide
       textColor: "text-neutral-darkest",
@@ -90,8 +90,8 @@ export default function Home() {
       highlight: true, // Add highlight to make it stand out
     },
     {
-      title: "Mom Stories",
-      description: "Inspiring stories from other mothers",
+      title: "엄마 이야기",
+      description: "다른 엄마들의 영감을 주는 이야기",
       icon: BookOpen,
       bgColor: "bg-primary-mint",
       textColor: "text-neutral-darkest",
@@ -115,9 +115,9 @@ export default function Home() {
     <div className="pb-6 animate-fadeIn">
       {/* Hero Section */}
       <HeroSection
-        title="Create Magical Moments"
-        subtitle="Transform your photos and create personalized lullabies for your little one"
-        ctaText="Create Now"
+        title="마법 같은 순간을 만들어보세요"
+        subtitle="사진을 변환하고 아이를 위한 맞춤형 자장가를 만들어보세요"
+        ctaText="지금 시작하기"
         ctaLink="/image"
         imageSrc={heroImageUrl}
       />
@@ -126,9 +126,9 @@ export default function Home() {
         {/* AI Tools Section */}
         <section className="mb-8 bg-gradient-to-r from-primary-lavender/30 to-primary-mint/30 p-5 rounded-xl shadow-soft">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="font-semibold text-2xl text-neutral-darkest font-heading">AI Tools</h2>
+            <h2 className="font-semibold text-2xl text-neutral-darkest font-heading">AI 도구</h2>
             <a href="/all-tools" className="text-sm font-medium bg-primary-lavender text-white px-4 py-2 rounded-full shadow-button hover:opacity-90 transition-all">
-              View All
+              모두 보기
             </a>
           </div>
           
@@ -148,9 +148,9 @@ export default function Home() {
         {/* Programs Section */}
         <section className="mb-8 bg-gradient-to-r from-primary-peach/30 to-primary-beige/50 p-5 rounded-xl shadow-soft">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="font-semibold text-2xl text-neutral-darkest font-heading">Programs</h2>
+            <h2 className="font-semibold text-2xl text-neutral-darkest font-heading">프로그램</h2>
             <a href="/programs" className="text-sm font-medium bg-gradient-to-r from-[#FFD1B3] to-[#FFBF99] text-neutral-darkest px-4 py-2 rounded-full shadow-button hover:opacity-90 transition-all">
-              View All
+              모두 보기
             </a>
           </div>
           
@@ -165,7 +165,7 @@ export default function Home() {
         
         {/* Recent Activity */}
         <section className="mb-8 bg-white p-5 rounded-xl shadow-soft border border-neutral-light">
-          <h2 className="font-semibold text-2xl text-neutral-darkest mb-5 font-heading">Recent Activity</h2>
+          <h2 className="font-semibold text-2xl text-neutral-darkest mb-5 font-heading">최근 활동</h2>
           {isLoading ? (
             <div className="space-y-3" data-testid="loading-skeleton">
               <div key="loading-skeleton-1" className="bg-neutral-light h-16 rounded-lg animate-pulse"></div>
@@ -188,8 +188,8 @@ export default function Home() {
             </div>
           ) : (
             <div className="text-center py-6 bg-neutral-light rounded-lg">
-              <p className="text-neutral-dark">No recent activities yet</p>
-              <p className="text-sm mt-1">Try creating a lullaby or transforming a photo!</p>
+              <p className="text-neutral-dark">아직 최근 활동이 없습니다</p>
+              <p className="text-sm mt-1">자장가를 만들거나 사진을 변환해보세요!</p>
             </div>
           )}
         </section>
@@ -202,8 +202,8 @@ export default function Home() {
                 <Lightbulb className="h-6 w-6" />
               </div>
               <div>
-                <h3 className="font-semibold text-xl mb-2 font-heading">Daily Tip</h3>
-                <p className="text-neutral-dark font-body">{dailyTip}</p>
+                <h3 className="font-semibold text-xl mb-2 font-heading">오늘의 팁</h3>
+                <p className="text-neutral-dark font-body">아기에게 노래를 불러주면 매우 어린 나이부터 언어 능력 발달에 도움이 됩니다.</p>
               </div>
             </div>
           </div>
