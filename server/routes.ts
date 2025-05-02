@@ -1,11 +1,27 @@
-import type { Express } from "express";
+import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import 'express-session';
 import { DevHistoryManager } from "./services/dev-history-manager";
+
+// Express session 타입 확장
+declare module 'express-session' {
+  interface SessionData {
+    tempImage?: {
+      id: number;
+      title: string;
+      style: string;
+      originalUrl: string;
+      transformedUrl: string;
+      createdAt: string;
+      isTemporary: boolean;
+    };
+  }
+}
 // Chat 시스템에서는 simple 버전으로 import하고, 이미지는 DALL-E 3 버전을 사용
 import { generateChatResponse } from "./services/openai-simple";
 import { generateMusic } from "./services/replicate";
@@ -458,6 +474,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           createdAt: new Date().toISOString(),
           isTemporary: true // 클라이언트에서 임시 여부 식별을 위한 플래그
         };
+        
+        // 세션에 임시 이미지 정보 저장 (다운로드 처리를 위해)
+        if (req.session) {
+          req.session.tempImage = savedImage;
+          console.log("임시 이미지 정보를 세션에 저장했습니다:", savedImage.title);
+        }
       }
       
       return res.status(201).json(savedImage);
@@ -636,28 +658,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/media/download/:type/:id", async (req, res) => {
     try {
       const { type, id } = req.params;
+      const parsedId = parseInt(id);
       
       if (type !== "music" && type !== "image") {
         return res.status(400).json({ error: "Invalid media type" });
       }
       
-      const mediaItem = await storage.getMediaItem(parseInt(id), type);
-      
-      if (!mediaItem) {
-        return res.status(404).json({ error: "Media not found" });
-      }
-      
+      // 임시 이미지 처리 (-1 ID인 경우 임시 캐시에서 찾기)
       let url = '';
       let filename = '';
+      let mediaItem;
       
-      if (type === "music") {
-        const musicItem = mediaItem as typeof music.$inferSelect;
-        url = musicItem.url;
-        filename = `${musicItem.title || 'music'}.mp3`;
+      // 세션에서 임시 이미지 확인 (ID가 -1인 경우)
+      if (type === "image" && parsedId === -1 && req.session.tempImage) {
+        url = req.session.tempImage.transformedUrl;
+        filename = `${req.session.tempImage.title || 'transformed_image'}.jpg`;
       } else {
-        const imageItem = mediaItem as typeof images.$inferSelect;
-        url = imageItem.transformedUrl;
-        filename = `${imageItem.title || 'transformed_image'}.jpg`;
+        // 정상적인 데이터베이스 조회
+        mediaItem = await storage.getMediaItem(parsedId, type);
+        
+        if (!mediaItem) {
+          return res.status(404).json({ error: "Media not found" });
+        }
+        
+        if (type === "music") {
+          const musicItem = mediaItem as typeof music.$inferSelect;
+          url = musicItem.url;
+          filename = `${musicItem.title || 'music'}.mp3`;
+        } else {
+          const imageItem = mediaItem as typeof images.$inferSelect;
+          url = imageItem.transformedUrl;
+          filename = `${imageItem.title || 'transformed_image'}.jpg`;
+        }
       }
       
       // Try to download directly from source and stream to client
