@@ -257,7 +257,10 @@ interface ImageItem {
 function ImageGallery() {
   const { data: images, isLoading, error } = useQuery({
     queryKey: ["/api/image"],
-    queryFn: () => apiRequest('GET', '/api/image').then(res => res.json())
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/image');
+      return response.json();
+    }
   });
 
   const queryClient = useQueryClient();
@@ -272,14 +275,7 @@ function ImageGallery() {
 
   const handleDownload = async (image: ImageItem) => {
     try {
-      // Create a hidden anchor element to trigger download
-      const a = document.createElement('a');
-      a.href = image.url;
-      a.download = `${image.title || 'image'}.jpg`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      
+      await downloadMedia(image.id, 'image');
       toast({
         title: "다운로드 성공",
         description: "이미지가 성공적으로 다운로드되었습니다.",
@@ -296,15 +292,15 @@ function ImageGallery() {
 
   const handleShare = async (image: ImageItem) => {
     try {
-      // Create a share link - using image URL directly for simplicity
-      const shareUrl = `${window.location.origin}/share?type=image&id=${image.id}`;
-      
-      // Copy to clipboard
-      navigator.clipboard.writeText(shareUrl);
-      toast({
-        title: "공유 링크 생성됨",
-        description: "공유 링크가 클립보드에 복사되었습니다.",
-      });
+      const result = await shareMedia(image.id, 'image');
+      if (result.shareUrl) {
+        // Copy to clipboard
+        navigator.clipboard.writeText(result.shareUrl);
+        toast({
+          title: "공유 링크 생성됨",
+          description: "공유 링크가 클립보드에 복사되었습니다.",
+        });
+      }
     } catch (error) {
       console.error("Error sharing image:", error);
       toast({
