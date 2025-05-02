@@ -112,7 +112,7 @@ const favoriteToggleSchema = z.object({
 
 // Schema for media sharing
 const mediaShareSchema = z.object({
-  id: z.number().int().positive(),
+  id: z.number().int(), // -1 값도 허용
   type: z.enum(["music", "image"]),
 });
 
@@ -933,6 +933,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/media/share", async (req, res) => {
     try {
+      console.log("미디어 공유 요청 수신:", req.body);
       const validatedData = mediaShareSchema.parse(req.body);
       
       // CORS 헤더 추가
@@ -941,18 +942,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Origin, X-Requested-With');
       
       try {
-        // 먼저 미디어 아이템이 존재하는지 확인
+        // 임시 이미지 처리 (ID가 -1인 경우)
+        if (validatedData.type === 'image' && validatedData.id === -1 && req.session && req.session.tempImage) {
+          console.log("임시 이미지 공유 시도:", req.session.tempImage.title);
+          
+          // 임시 이미지의 URL 생성
+          let shareUrl = '';
+          if (req.session.tempImage.localFilePath) {
+            // 현재 도메인 기반으로 URL 생성
+            const baseUrl = `${req.protocol}://${req.get('host')}`;
+            const relativePath = req.session.tempImage.localFilePath.replace(process.cwd(), '');
+            shareUrl = `${baseUrl}${relativePath.replace(/\\/g, '/').replace('/uploads', '/uploads')}`;
+            console.log("임시 이미지 공유 URL 생성:", shareUrl);
+            
+            // URL이 올바른 형식인지 확인
+            if (!shareUrl.includes('://')) {
+              shareUrl = `${req.protocol}://${req.get('host')}${shareUrl.startsWith('/') ? '' : '/'}${shareUrl}`;
+            }
+            
+            return res.json({ 
+              shareUrl,
+              message: "임시 이미지 URL이 생성되었습니다. 이 URL을 통해 미디어를 공유할 수 있습니다."
+            });
+          }
+        }
+        
+        // 미디어 아이템 조회
+        console.log(`미디어 조회 시도 - ID: ${validatedData.id}, 타입: ${validatedData.type}`);
         const mediaItem = await storage.getMediaItem(
           validatedData.id,
           validatedData.type
         );
         
         if (!mediaItem) {
+          console.error(`미디어 항목을 찾을 수 없음 - ID: ${validatedData.id}, 타입: ${validatedData.type}`);
           return res.status(404).json({ 
             error: "Media not found",
             message: "공유할 미디어 항목을 찾을 수 없습니다."
           });
         }
+        
+        console.log("미디어 항목 찾음:", mediaItem);
         
         // 미디어 타입에 따라 URL 직접 반환
         let shareUrl = '';
@@ -960,15 +990,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const imageItem = mediaItem as typeof images.$inferSelect;
           shareUrl = imageItem.transformedUrl;
           
-          if (!shareUrl.startsWith('http')) {
-            shareUrl = `https://${shareUrl}`;
+          // URL이 로컬 파일 경로인 경우 웹 접근 가능한 URL로 변환
+          if (!shareUrl.includes('://')) {
+            const baseUrl = `${req.protocol}://${req.get('host')}`;
+            shareUrl = `${baseUrl}${shareUrl.startsWith('/') ? '' : '/'}${shareUrl}`;
           }
         } else if (validatedData.type === 'music') {
           const musicItem = mediaItem as typeof music.$inferSelect;
           shareUrl = musicItem.url;
           
-          if (!shareUrl.startsWith('http')) {
-            shareUrl = `https://${shareUrl}`;
+          // URL이 로컬 파일 경로인 경우 웹 접근 가능한 URL로 변환
+          if (!shareUrl.includes('://')) {
+            const baseUrl = `${req.protocol}://${req.get('host')}`;
+            shareUrl = `${baseUrl}${shareUrl.startsWith('/') ? '' : '/'}${shareUrl}`;
           }
         }
         
