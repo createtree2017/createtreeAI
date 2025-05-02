@@ -97,7 +97,7 @@ export const storage = {
         );
         
         if (!transformedImageUrl.includes("placehold.co")) {
-          console.log(`[Storage] OpenAI GPT-Image-1 transformation succeeded, URL: ${transformedImageUrl.substring(0, 30)}...`);
+          console.log(`[Storage] OpenAI GPT-Image-1 transformation succeeded [이미지 데이터 로그 생략]`);
           return transformedImageUrl;
         } else if (transformedImageUrl.includes("safety_system")) {
           // 안전 시스템 필터에 걸린 경우

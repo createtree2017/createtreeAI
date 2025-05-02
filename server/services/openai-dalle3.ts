@@ -185,7 +185,7 @@ async function callGptImage1Api(prompt: string, imageBuffer: Buffer): Promise<st
         console.log("이미지 URL이 없고 base64 데이터가 있습니다. base64 데이터를 사용합니다.");
         // base64 데이터를 데이터 URL로 변환
         imageUrl = `data:image/png;base64,${base64Data}`;
-        console.log("base64 데이터 URL 생성 완료:", imageUrl.substring(0, 50) + "...");
+        console.log("base64 데이터 URL 생성 완료 [base64 데이터 로그 생략]");
       }
       
       if (!imageUrl) {
