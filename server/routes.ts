@@ -691,6 +691,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Media management endpoints
+  // OPTIONS 요청을 위한 헤더 추가
+  app.options("/api/media/download/:type/:id", (req, res) => {
+    res.header('Allow', 'GET, HEAD, OPTIONS');
+    res.status(200).end();
+  });
+  
+  // HEAD 요청 처리 추가 (다운로드 검증용)
+  app.head("/api/media/download/:type/:id", async (req, res) => {
+    try {
+      const { type, id } = req.params;
+      const parsedId = parseInt(id);
+      
+      if (type !== "music" && type !== "image") {
+        return res.status(400).end();
+      }
+      
+      // 세션 이미지 확인 또는 DB 조회
+      let url = '';
+      let contentType = '';
+      
+      if (type === "image" && parsedId === -1 && req.session && req.session.tempImage) {
+        url = req.session.tempImage.transformedUrl;
+        contentType = 'image/jpeg';
+        
+        // 로컬 파일이 있으면 성공 응답
+        if (req.session.tempImage.localFilePath && fs.existsSync(req.session.tempImage.localFilePath)) {
+          res.setHeader('Content-Type', contentType);
+          return res.status(200).end();
+        }
+      } else {
+        // DB 조회
+        const mediaItem = await storage.getMediaItem(parsedId, type);
+        if (!mediaItem) {
+          return res.status(404).end();
+        }
+        
+        if (type === "music") {
+          url = (mediaItem as typeof music.$inferSelect).url;
+          contentType = 'audio/mpeg';
+        } else {
+          url = (mediaItem as typeof images.$inferSelect).transformedUrl;
+          contentType = 'image/jpeg';
+          
+          // 로컬 파일 확인
+          const urlBasename = path.basename(url);
+          const possibleLocalPaths = [
+            path.join(process.cwd(), 'uploads', urlBasename),
+            path.join(process.cwd(), 'uploads', 'temp', urlBasename)
+          ];
+          
+          for (const localPath of possibleLocalPaths) {
+            if (fs.existsSync(localPath)) {
+              res.setHeader('Content-Type', contentType);
+              return res.status(200).end();
+            }
+          }
+        }
+      }
+      
+      // 로컬 파일이 없는 경우 원격 URL 확인
+      if (!url.startsWith('http')) {
+        url = `https://${url}`;
+      }
+      
+      try {
+        const response = await fetch(url, {
+          method: 'HEAD',
+          headers: {
+            'Accept': 'image/*,audio/*,*/*',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          }
+        });
+        
+        if (!response.ok) {
+          return res.status(502).json({ 
+            error: "원격 서버에서 파일을 찾을 수 없습니다",
+            url: url
+          });
+        }
+        
+        // 성공 시 컨텐츠 타입 설정
+        res.setHeader('Content-Type', response.headers.get('content-type') || contentType);
+        return res.status(200).end();
+      } catch (error) {
+        return res.status(502).json({ 
+          error: "원격 URL에 접근할 수 없습니다",
+          url: url,
+          message: error instanceof Error ? error.message : String(error)
+        });
+      }
+    } catch (error) {
+      console.error("Error in HEAD request:", error);
+      return res.status(500).end();
+    }
+  });
+  
+  // GET 요청 처리 (실제 다운로드)
   app.get("/api/media/download/:type/:id", async (req, res) => {
     try {
       const { type, id } = req.params;

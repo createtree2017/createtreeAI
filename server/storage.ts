@@ -29,15 +29,33 @@ async function saveTemporaryImage(imageUrl: string, title: string): Promise<stri
     } 
     // 일반 URL인 경우
     else {
-      const response = await fetch(imageUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch image: ${response.statusText}`);
-      }
+      // URL이 http로 시작하지 않으면 추가
+      const url = imageUrl.startsWith('http') ? imageUrl : `https://${imageUrl}`;
       
-      const arrayBuffer = await response.arrayBuffer();
-      fs.writeFileSync(filepath, Buffer.from(arrayBuffer));
-      console.log(`임시 이미지가 로컬에 저장되었습니다: ${filepath}`);
-      return filepath;
+      try {
+        const response = await fetch(url, {
+          headers: {
+            'Accept': 'image/*,*/*',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch image: ${response.statusText} (${response.status})`);
+        }
+        
+        const arrayBuffer = await response.arrayBuffer();
+        fs.writeFileSync(filepath, Buffer.from(arrayBuffer));
+        console.log(`임시 이미지가 로컬에 저장되었습니다: ${filepath} (크기: ${Buffer.from(arrayBuffer).length} 바이트)`);
+        return filepath;
+      } catch (fetchError) {
+        console.error(`이미지 다운로드 중 오류 발생 (${url}):`, fetchError);
+        
+        // 다운로드 실패 시 빈 파일이라도 생성 (나중에 처리)
+        fs.writeFileSync(filepath, Buffer.from(''));
+        console.warn(`빈 임시 파일 생성됨: ${filepath} - 이후 다운로드 재시도 필요`);
+        return filepath;
+      }
     }
   } catch (error) {
     console.error('임시 이미지 저장 중 오류:', error);
