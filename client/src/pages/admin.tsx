@@ -247,22 +247,19 @@ function DevHistoryManager() {
 interface ImageItem {
   id: number;
   title: string;
-  url: string;
+  url?: string;
+  transformedUrl?: string;
+  originalUrl?: string;
   thumbnailUrl?: string;
   createdAt: string;
-  type: string;
+  type?: string;
+  style?: string;
   isFavorite?: boolean;
 }
 
 function ImageGallery() {
   const { data: images, isLoading, error } = useQuery({
-    queryKey: ["/api/image"],
-    onSuccess: (data) => {
-      console.log("Received image data:", data);
-      if (data && data.length > 0) {
-        console.log("First image properties:", Object.keys(data[0]));
-      }
-    }
+    queryKey: ["/api/image"]
   });
 
   const queryClient = useQueryClient();
@@ -364,9 +361,13 @@ function ImageGallery() {
           <Card key={image.id} className="overflow-hidden group">
             <div className="relative h-48">
               <img 
-                src={image.url} 
+                src={image.transformedUrl || image.url} 
                 alt={image.title}
                 className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                onError={(e) => {
+                  console.error("이미지 로드 실패:", image);
+                  e.currentTarget.src = "/placeholder-image.jpg";
+                }}
               />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
                 <Button size="sm" variant="secondary" onClick={() => handleViewImage(image)}>
@@ -409,9 +410,13 @@ function ImageGallery() {
             </DialogHeader>
             <div className="relative aspect-video bg-gray-100 rounded-md overflow-hidden">
               <img 
-                src={selectedImage.url} 
+                src={selectedImage.transformedUrl || selectedImage.url} 
                 alt={selectedImage.title}
-                className="w-full h-full object-contain" 
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  console.error("상세 이미지 로드 실패:", selectedImage);
+                  e.currentTarget.src = "/placeholder-image.jpg";
+                }}
               />
             </div>
             <DialogFooter>
