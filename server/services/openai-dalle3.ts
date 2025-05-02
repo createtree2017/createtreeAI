@@ -1,8 +1,11 @@
 /**
- * OpenAI DALL-E 3와 GPT-4o를 활용한 이미지 생성 및 변환 서비스
- * 프로젝트 API 키 사용하여 직접 API 호출 방식으로 구현
+ * OpenAI GPT-4o Vision 및 gpt-image-1 모델을 활용한 이미지 생성 및 변환 서비스
+ * 원본 이미지 특성을 더 정확하게 유지하는 이미지 변환 구현
  */
 import fetch from 'node-fetch';
+import fs from 'fs';
+import FormData from 'form-data';
+import { Blob } from 'node:buffer';
 
 // OpenAI API 키 - 환경 변수에서 가져옴
 const API_KEY = process.env.OPENAI_API_KEY;
@@ -16,7 +19,7 @@ function isValidApiKey(apiKey: string | undefined): boolean {
 }
 
 // OpenAI API 엔드포인트
-const OPENAI_GENERATIONS_URL = "https://api.openai.com/v1/images/generations";
+const OPENAI_IMAGE_CREATION_URL = "https://api.openai.com/v1/images/create";
 const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 
 // API 응답 타입 정의
@@ -50,45 +53,45 @@ interface OpenAIChatResponse {
 }
 
 /**
- * DALL-E 3로 직접 이미지 생성 요청 보내기
+ * gpt-image-1 모델로 이미지 변환 요청 보내기
+ * 프롬프트와 원본 이미지를 함께 전송하여 원본 이미지의 특성 유지
  */
-async function callDALLE3Api(prompt: string): Promise<string> {
+async function callGptImage1Api(prompt: string, imageBuffer: Buffer): Promise<string> {
   if (!isValidApiKey(API_KEY)) {
     console.log("유효한 API 키가 없습니다");
     return SERVICE_UNAVAILABLE;
   }
 
   try {
-    // API 요청 헤더 및 바디 구성
+    // API 요청 헤더 구성
     const headers = {
-      'Content-Type': 'application/json',
       'Authorization': `Bearer ${API_KEY}`
     };
     
     // 프롬프트 검증: 빈 프롬프트 또는 undefined인 경우 로그 출력
     if (!prompt || prompt.trim() === '') {
-      console.error("DALL-E API 호출 오류: 프롬프트가 비어 있습니다!");
+      console.error("GPT-Image-1 API 호출 오류: 프롬프트가 비어 있습니다!");
       return SERVICE_UNAVAILABLE;
     }
     
-    console.log("=== DALL-E API에 전송되는 최종 프롬프트 ===");
+    console.log("=== GPT-Image-1 API에 전송되는 최종 프롬프트 ===");
     console.log(prompt);
-    console.log("=== DALL-E API 프롬프트 종료 ===");
+    console.log("=== GPT-Image-1 API 프롬프트 종료 ===");
     console.log("프롬프트 길이:", prompt.length);
     
-    const body = {
-      model: "dall-e-3",
-      prompt: prompt,
-      n: 1,
-      size: "1024x1024",
-      quality: "standard"
-    };
+    // Multipart form 데이터 생성
+    const formData = new FormData();
+    formData.append('model', 'gpt-image-1');
+    formData.append('prompt', prompt);
+    formData.append('image', new Blob([imageBuffer], { type: 'image/jpeg' }), 'image.jpg');
+    formData.append('size', '1024x1024');
+    formData.append('response_format', 'url');
     
     // API 호출
-    const response = await fetch(OPENAI_GENERATIONS_URL, {
+    const response = await fetch(OPENAI_IMAGE_CREATION_URL, {
       method: 'POST',
       headers: headers,
-      body: JSON.stringify(body)
+      body: formData
     });
     
     // 응답 텍스트로 가져오기
@@ -107,7 +110,7 @@ async function callDALLE3Api(prompt: string): Promise<string> {
     // 오류 응답 확인
     if (!response.ok || responseData.error) {
       const errorMessage = responseData.error?.message || `HTTP 오류: ${response.status}`;
-      console.error("DALL-E 3 API 오류:", errorMessage);
+      console.error("GPT-Image-1 API 오류:", errorMessage);
       return SERVICE_UNAVAILABLE;
     }
     
@@ -307,8 +310,8 @@ ${prompt ? `위 정보를 바탕으로 DALL-E 3가 원본 이미지의 특성(�
       return SERVICE_UNAVAILABLE;
     }
     
-    // 3단계: DALL-E 3로 이미지 생성 
-    console.log("3단계: DALL-E 3로 이미지 생성 중...");
+    // 3단계: gpt-image-1로 이미지 생성 (원본 이미지를 함께 전송)
+    console.log("3단계: GPT-Image-1로 이미지 생성 중...");
     console.log("생성된 프롬프트:", generatedPrompt.substring(0, 150) + "...");
     
     // 이미지 설명에서 연령 정보 추출 시도
@@ -336,33 +339,109 @@ ${prompt ? `위 정보를 바탕으로 DALL-E 3가 원본 이미지의 특성(�
     // 기본 프롬프트 없음 - 사용자나 관리자가 명시적으로 제공한 프롬프트만 사용
     let systemInstructions = "";
     if (systemPrompt && systemPrompt.trim() !== "") {
-      systemInstructions = `System Instructions:\n${systemPrompt}`;
+      systemInstructions = `Additional instructions: ${systemPrompt}`;
       console.log("제공된 시스템 프롬프트를 사용합니다.");
     } else {
       console.log("시스템 프롬프트가 없습니다. 기본 시스템 프롬프트도 적용하지 않습니다.");
     }
     
-    // 최종 프롬프트 구조 개선 - 시스템 프롬프트가 있는 경우에만 포함
-    const finalPrompt = `
-${userStylePrompt}
-
-Please apply this style while preserving the subject's identity, age, gender, clothing, pose, and expression.
-
-Visual characteristics extracted from the uploaded photo:
-${generatedPrompt}
-${systemInstructions ? `\n${systemInstructions}` : ''}
-`;
+    // GPT-Image-1용 간결한 프롬프트 구조
+    // 분석된 이미지 정보와 스타일 요청을 결합하여 명확한 지시문 생성
+    const finalPrompt = `${userStylePrompt}. 
+${systemInstructions}
+Key characteristics to preserve: ${isChild ? "This is a CHILD - DO NOT AGE UP. " : ""}Maintain exact facial features, expression, pose, clothing, and background composition.`;
     
-    console.log("최종 프롬프트 구조:", 
-      "1. 사용자 스타일 요청 (최우선)",
-      "2. 정체성 보존 지침",
-      "3. 원본 이미지 특성 설명",
-      "4. 시스템 지침");
+    console.log("GPT-Image-1 프롬프트 구조:", 
+      "1. 스타일 요청", 
+      "2. 시스템 지침 (있는 경우)",
+      "3. 특성 보존 지침");
     
-    // DALL-E 3로 이미지 생성
-    return await callDALLE3Api(finalPrompt);
+    // 새로운 GPT-Image-1 API 호출 (원본 이미지와 프롬프트 함께 전송)
+    return await callGptImage1Api(finalPrompt, imageBuffer);
   } catch (error) {
     console.error("멀티모달 이미지 변환 중 오류:", error);
+    return SERVICE_UNAVAILABLE;
+  }
+}
+
+/**
+ * DALL-E 3로 직접 이미지 생성 요청 보내기
+ * (gpt-image-1은 원본 이미지가 필요하므로 이 함수는 새 이미지 생성시만 사용)
+ */
+async function callDALLE3Api(prompt: string): Promise<string> {
+  if (!isValidApiKey(API_KEY)) {
+    console.log("유효한 API 키가 없습니다");
+    return SERVICE_UNAVAILABLE;
+  }
+
+  try {
+    // API 요청 헤더 및 바디 구성
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${API_KEY}`
+    };
+    
+    // 프롬프트 검증: 빈 프롬프트 또는 undefined인 경우 로그 출력
+    if (!prompt || prompt.trim() === '') {
+      console.error("DALL-E API 호출 오류: 프롬프트가 비어 있습니다!");
+      return SERVICE_UNAVAILABLE;
+    }
+    
+    console.log("=== DALL-E API에 전송되는 최종 프롬프트 ===");
+    console.log(prompt);
+    console.log("=== DALL-E API 프롬프트 종료 ===");
+    console.log("프롬프트 길이:", prompt.length);
+    
+    const body = {
+      model: "dall-e-3",
+      prompt: prompt,
+      n: 1,
+      size: "1024x1024",
+      quality: "standard"
+    };
+    
+    // API 호출
+    const response = await fetch(OPENAI_IMAGE_CREATION_URL, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(body)
+    });
+    
+    // 응답 텍스트로 가져오기
+    const responseText = await response.text();
+    
+    // JSON 파싱 시도
+    let responseData: OpenAIImageGenerationResponse;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (e) {
+      console.error("응답 JSON 파싱 오류:", e);
+      console.error("원본 응답:", responseText);
+      return SERVICE_UNAVAILABLE;
+    }
+    
+    // 오류 응답 확인
+    if (!response.ok || responseData.error) {
+      const errorMessage = responseData.error?.message || `HTTP 오류: ${response.status}`;
+      console.error("DALL-E 3 API 오류:", errorMessage);
+      return SERVICE_UNAVAILABLE;
+    }
+    
+    // 응답 데이터 검증
+    if (!responseData.data || responseData.data.length === 0) {
+      console.error("이미지 데이터가 없습니다");
+      return SERVICE_UNAVAILABLE;
+    }
+    
+    const imageUrl = responseData.data[0]?.url;
+    if (!imageUrl) {
+      console.error("이미지 URL이 없습니다");
+      return SERVICE_UNAVAILABLE;
+    }
+    
+    return imageUrl;
+  } catch (error) {
+    console.error("API 호출 중 오류:", error);
     return SERVICE_UNAVAILABLE;
   }
 }
