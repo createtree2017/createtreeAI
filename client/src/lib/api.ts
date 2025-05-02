@@ -202,16 +202,38 @@ export const shareMedia = async (id: number, type: string) => {
     
     // 공유 URL이 있는지 확인
     if (result.shareUrl) {
-      // 클립보드에 복사
-      navigator.clipboard.writeText(result.shareUrl)
-        .then(() => console.log('URL이 클립보드에 복사되었습니다.'))
-        .catch(err => console.error('클립보드 복사 실패:', err));
+      try {
+        // 클립보드에 복사
+        await navigator.clipboard.writeText(result.shareUrl);
+        console.log('URL이 클립보드에 복사되었습니다.');
+        
+        // 클립보드 복사 성공 플래그 추가
+        result.clipboardCopySuccess = true;
+      } catch (clipboardError) {
+        console.error('클립보드 복사 실패:', clipboardError);
+        // 클립보드 복사 실패 처리 - UI에는 수동으로 복사할 수 있도록 URL은 표시
+        result.clipboardCopySuccess = false;
+        result.clipboardErrorMessage = clipboardError instanceof Error 
+          ? clipboardError.message 
+          : '클립보드에 복사할 수 없습니다. 직접 URL을 복사해주세요.';
+      }
+    } else {
+      console.error('서버에서 공유 URL을 반환하지 않았습니다.', result);
+      result.error = '서버에서 공유 URL을 생성하지 못했습니다.';
     }
     
     return result;
   } catch (error) {
     console.error('API error during sharing:', error);
-    throw error;
+    
+    // 더 자세한 오류 정보 제공
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return {
+      error: '미디어 공유 중 오류가 발생했습니다.',
+      details: errorMessage,
+      shareUrl: null,
+      clipboardCopySuccess: false
+    };
   }
 };
 
