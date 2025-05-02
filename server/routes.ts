@@ -199,6 +199,9 @@ const conceptSchema = z.object({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // 개발 대화 기록을 관리하기 위한 인스턴스 생성
+  const devHistoryManager = new DevHistoryManager();
+  
   // Serve uploaded files from the uploads directory
   app.use('/uploads', (req, res, next) => {
     // 정적 파일 제공 - 직접 파일 읽고 제공
