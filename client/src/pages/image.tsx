@@ -340,16 +340,16 @@ export default function Image() {
   return (
     <div className="p-5 animate-fadeIn">
       <div className="text-center mb-6">
-        <h2 className="font-heading font-bold text-2xl mb-2">Maternity Art Magic</h2>
-        <p className="text-neutral-dark">Transform your pregnancy and baby photos into beautiful memories</p>
+        <h2 className="font-heading font-bold text-2xl mb-2">마터니티 아트 매직</h2>
+        <p className="text-neutral-dark">임신 및 아기 사진을 아름다운 추억으로 변환해보세요</p>
       </div>
 
       {/* Preview Styles Section (NEW) */}
       <div className="bg-white rounded-xl p-5 shadow-soft border border-neutral-light mb-6">
         <div className="text-center mb-5">
-          <h3 className="font-heading font-semibold text-lg mb-2">Choose from these magical styles!</h3>
+          <h3 className="font-heading font-semibold text-lg mb-2">이 마법같은 스타일 중에서 선택하세요!</h3>
           <p className="text-neutral-dark mb-4 max-w-md mx-auto">
-            See how your special moments can be transformed. Click on a style that speaks to you.
+            특별한 순간을 어떻게 변환할 수 있는지 확인해보세요. 마음에 드는 스타일을 클릭하세요.
           </p>
         </div>
 
@@ -400,26 +400,26 @@ export default function Image() {
         <div className="text-center mb-5">
           <div className="mb-4 text-primary-dark">
             <PaintbrushVertical className="h-10 w-10 mx-auto mb-2" />
-            <h3 className="font-heading font-semibold text-lg">Create Beautiful Memories</h3>
+            <h3 className="font-heading font-semibold text-lg">아름다운 추억 만들기</h3>
           </div>
           <p className="text-neutral-dark mb-4 max-w-md mx-auto">
-            Turn your maternity photos, ultrasound images, or baby pictures into enchanting artworks to cherish forever.
+            임신 사진, 초음파 이미지, 아기 사진을 영원히 간직할 수 있는 매력적인 예술 작품으로 변환해보세요.
           </p>
         </div>
 
         <div className="mb-6">
-          <label className="block font-medium mb-3 text-neutral-darkest">Upload Your Photo</label>
+          <label className="block font-medium mb-3 text-neutral-darkest">사진 업로드하기</label>
           
           {/* Image preview */}
           {previewUrl && (
             <div className="mb-4 rounded-lg overflow-hidden border border-neutral-light">
               <img 
                 src={previewUrl} 
-                alt="Selected image preview" 
+                alt="선택한 이미지 미리보기" 
                 className="w-full max-h-64 object-contain"
               />
               <div className="bg-neutral-lightest p-2 text-xs text-neutral-dark">
-                <p className="font-medium">File selected: {selectedFile?.name}</p>
+                <p className="font-medium">선택된 파일: {selectedFile?.name}</p>
               </div>
             </div>
           )}
@@ -430,7 +430,7 @@ export default function Image() {
             maxSize={10 * 1024 * 1024} // 10MB
           />
           <p className="text-xs text-neutral-dark mt-2">
-            Supported: Ultrasound images, maternity photos, baby pictures, family moments
+            지원: 초음파 이미지, 임신 사진, 아기 사진, 가족 순간들
           </p>
         </div>
 
@@ -438,7 +438,7 @@ export default function Image() {
         {selectedFile && (
           <div id="transform-section">
             <div className="mb-5">
-              <label className="block font-medium mb-3 text-neutral-darkest">Your Selected Style</label>
+              <label className="block font-medium mb-3 text-neutral-darkest">선택한 스타일</label>
               {selectedStyle ? (
                 <div className="flex items-center p-4 bg-primary/5 border border-primary/20 rounded-lg relative overflow-hidden">
                   <div className="absolute top-0 left-0 bg-primary text-white text-xs py-1 px-3 rounded-br-lg font-semibold">
@@ -514,9 +514,9 @@ export default function Image() {
       {transformedImage && (
         <div className="mt-8">
           <div className="flex items-center mb-3">
-            <h3 className="font-heading font-semibold text-lg">Your Magical Memory</h3>
+            <h3 className="font-heading font-semibold text-lg">당신의 마법 같은 추억</h3>
             <div className="ml-2 bg-primary-light rounded-full px-2 py-0.5">
-              <span className="text-xs font-medium text-primary-dark">New</span>
+              <span className="text-xs font-medium text-primary-dark">새로운</span>
             </div>
           </div>
 
@@ -535,7 +535,7 @@ export default function Image() {
                   <span className="inline-block bg-neutral-lightest rounded-full px-2 py-0.5 text-xs mr-2">
                     {transformedImage.style}
                   </span>
-                  Created {transformedImage.createdAt}
+                  생성 날짜: {transformedImage.createdAt}
                 </p>
               </div>
             </div>
@@ -546,7 +546,7 @@ export default function Image() {
                 onClick={() => handleDownload(transformedImage.id)}
               >
                 <Download className="mr-2 h-4 w-4" />
-                <span>Save to Photos</span>
+                <span>사진으로 저장하기</span>
               </Button>
             </div>
           </div>
@@ -567,10 +567,10 @@ export default function Image() {
       {/* Previous Art */}
       <div className="mt-8">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="font-heading font-semibold text-lg">Your Memory Collection</h3>
+          <h3 className="font-heading font-semibold text-lg">내 추억 컬렉션</h3>
           {imageList && imageList.length > 0 && (
             <span className="text-xs bg-neutral-lightest rounded-full px-3 py-1 text-neutral-dark">
-              {imageList.length} memories
+              {imageList.length}개의 추억
             </span>
           )}
         </div>
@@ -594,7 +594,7 @@ export default function Image() {
                     className="w-full h-36 object-cover"
                   />
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-2">
-                    <p className="text-white text-xs font-medium">{image.style} Style</p>
+                    <p className="text-white text-xs font-medium">{image.style} 스타일</p>
                   </div>
                 </div>
                 <div className="p-3">
