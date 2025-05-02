@@ -30,6 +30,7 @@ interface OpenAIImageGenerationResponse {
   data?: Array<{
     url?: string;
     revised_prompt?: string;
+    b64_json?: string;  // GPT-Image-1 API는 base64 인코딩된 이미지 데이터도 제공
   }>;
   error?: {
     message: string;
@@ -167,12 +168,29 @@ async function callGptImage1Api(prompt: string, imageBuffer: Buffer): Promise<st
       }
       
       // 세부 로깅으로 데이터 구조 파악
-      console.log("이미지 데이터 첫 번째 항목:", JSON.stringify(responseData.data[0], null, 2));
+      console.log("이미지 데이터 첫 번째 항목 구조:", JSON.stringify({
+        hasData: !!responseData.data[0],
+        hasUrl: !!responseData.data[0]?.url,
+        hasBase64: !!responseData.data[0]?.b64_json,
+        hasRevisedPrompt: !!responseData.data[0]?.revised_prompt,
+        allKeys: Object.keys(responseData.data[0] || {})
+      }, null, 2));
       
-      const imageUrl = responseData.data[0]?.url;
+      // 이미지 URL 또는 base64 데이터 가져오기
+      let imageUrl = responseData.data[0]?.url;
+      const base64Data = responseData.data[0]?.b64_json;
+      
+      // base64 데이터가 있고 URL이 없는 경우, base64 데이터를 URL로 변환
+      if (!imageUrl && base64Data) {
+        console.log("이미지 URL이 없고 base64 데이터가 있습니다. base64 데이터를 사용합니다.");
+        // base64 데이터를 데이터 URL로 변환
+        imageUrl = `data:image/png;base64,${base64Data}`;
+        console.log("base64 데이터 URL 생성 완료:", imageUrl.substring(0, 50) + "...");
+      }
+      
       if (!imageUrl) {
-        console.error("이미지 URL이 없습니다");
-        throw new Error("GPT-Image-1 응답에 이미지 URL 없음");
+        console.error("이미지 URL과 base64 데이터가 모두 없습니다");
+        throw new Error("GPT-Image-1 응답에 이미지 데이터 없음");
       }
       
       return imageUrl;
@@ -491,9 +509,29 @@ async function callGptImage1ForNewImage(prompt: string): Promise<string> {
       return SERVICE_UNAVAILABLE;
     }
     
-    const imageUrl = responseData.data[0]?.url;
+    // 세부 로깅으로 데이터 구조 파악
+    console.log("이미지 데이터 첫 번째 항목 구조:", JSON.stringify({
+      hasData: !!responseData.data[0],
+      hasUrl: !!responseData.data[0]?.url,
+      hasBase64: !!responseData.data[0]?.b64_json,
+      hasRevisedPrompt: !!responseData.data[0]?.revised_prompt,
+      allKeys: Object.keys(responseData.data[0] || {})
+    }, null, 2));
+    
+    // 이미지 URL 또는 base64 데이터 가져오기
+    let imageUrl = responseData.data[0]?.url;
+    const base64Data = responseData.data[0]?.b64_json;
+    
+    // base64 데이터가 있고 URL이 없는 경우, base64 데이터를 URL로 변환
+    if (!imageUrl && base64Data) {
+      console.log("이미지 URL이 없고 base64 데이터가 있습니다. base64 데이터를 사용합니다.");
+      // base64 데이터를 데이터 URL로 변환
+      imageUrl = `data:image/png;base64,${base64Data}`;
+      console.log("base64 데이터 URL 생성 완료:", imageUrl.substring(0, 50) + "...");
+    }
+    
     if (!imageUrl) {
-      console.error("이미지 URL이 없습니다");
+      console.error("이미지 URL과 base64 데이터가 모두 없습니다");
       return SERVICE_UNAVAILABLE;
     }
     
