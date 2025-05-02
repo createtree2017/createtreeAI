@@ -6,6 +6,7 @@ import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { transformImage, getImageList, downloadMedia, shareMedia, getMusicList } from "@/lib/api";
+
 import { format } from "date-fns";
 import { 
   InsertPersona, 
@@ -260,7 +261,9 @@ interface ImageItem {
 function ImageGallery() {
   const { data: images, isLoading, error, refetch } = useQuery({
     queryKey: ["/api/image"],
-    refetchInterval: 5000, // 5초마다 자동 갱신
+    refetchInterval: 3000, // 3초마다 자동 갱신
+    staleTime: 0, // 항상 최신 데이터 가져오기
+    refetchOnWindowFocus: true, // 창이 포커스를 얻을 때마다 갱신
   });
 
   const queryClient = useQueryClient();
@@ -273,20 +276,37 @@ function ImageGallery() {
     setViewImageDialog(true);
   };
 
-  const handleDownload = async (image: ImageItem) => {
+  // 이미지 형식 선택 상태 (기본값은 PNG)
+  const [imageFormat, setImageFormat] = useState<'png' | 'jpeg'>('png');
+  const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
+
+  const handleDownloadClick = (image: ImageItem) => {
+    setSelectedImage(image);
+    setDownloadDialogOpen(true);
+  };
+
+  const handleDownload = async (image: ImageItem, format: 'png' | 'jpeg' = 'png') => {
     try {
-      // 이미지 URL 직접 다운로드 방식으로 변경
+      // 이미지 URL 가져오기
       const imageUrl = image.transformedUrl || image.url;
       if (!imageUrl) {
         throw new Error("이미지 URL이 유효하지 않습니다.");
       }
       
-      // 이미지 직접 열기
-      window.open(imageUrl, '_blank');
+      // 이미지 다운로드 링크 생성 및 자동 클릭
+      const link = document.createElement("a");
+      link.href = imageUrl;
+      link.download = `${image.title || 'image'}.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // 다운로드 대화상자 닫기
+      setDownloadDialogOpen(false);
       
       toast({
-        title: "다운로드 준비",
-        description: "새 창에서 이미지를 확인하세요. 저장하려면 이미지를 우클릭하세요.",
+        title: "다운로드 중",
+        description: `이미지가 ${format.toUpperCase()} 형식으로 다운로드됩니다.`,
       });
       
       // 백엔드 API도 호출하여 로그 기록
@@ -294,7 +314,6 @@ function ImageGallery() {
         await downloadMedia(image.id, 'image');
       } catch (backendError) {
         console.warn("백엔드 다운로드 로깅 실패:", backendError);
-        // 사용자에게는 알리지 않음 (이미 이미지는 열렸으므로)
       }
     } catch (error) {
       console.error("Error downloading image:", error);
@@ -388,8 +407,14 @@ function ImageGallery() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">이미지 갤러리</h2>
-        <div className="text-sm text-gray-500">
-          총 {images.length}개의 이미지
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            <RefreshCw className="h-4 w-4 mr-1" />
+            새로고침
+          </Button>
+          <div className="text-sm text-gray-500">
+            총 {images.length}개의 이미지
+          </div>
         </div>
       </div>
 
@@ -424,7 +449,7 @@ function ImageGallery() {
               </p>
             </CardContent>
             <CardFooter className="px-4 py-2 border-t flex justify-between bg-gray-50">
-              <Button variant="ghost" size="sm" onClick={() => handleDownload(image)}>
+              <Button variant="ghost" size="sm" onClick={() => handleDownloadClick(image)}>
                 <Download className="h-4 w-4 mr-1" />
                 다운로드
               </Button>
