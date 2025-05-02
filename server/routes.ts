@@ -5,6 +5,7 @@ import { z } from "zod";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { DevHistoryManager } from "./services/dev-history-manager";
 // Chat 시스템에서는 simple 버전으로 import하고, 이미지는 DALL-E 3 버전을 사용
 import { generateChatResponse } from "./services/openai-simple";
 import { generateMusic } from "./services/replicate";
@@ -16,7 +17,6 @@ import {
 } from "./services/topmedia-music";
 import { exportChatHistoryAsHtml, exportChatHistoryAsText } from "./services/export-logs";
 import { exportDevChatAsHtml, exportDevChatAsText } from "./services/dev-chat-export";
-import { DevHistoryManager } from "./services/dev-history-manager";
 import { AutoChatSaver } from "./services/auto-chat-saver";
 import { 
   music, 
