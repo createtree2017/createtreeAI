@@ -5,7 +5,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { transformImage, getImageList, downloadMedia, shareMedia } from "@/lib/api";
+import { transformImage, getImageList, downloadMedia, shareMedia, getMusicList } from "@/lib/api";
+import { format } from "date-fns";
 import { 
   InsertPersona, 
   InsertPersonaCategory, 
@@ -242,6 +243,191 @@ function DevHistoryManager() {
   );
 }
 
+// Image Gallery Component
+interface ImageItem {
+  id: number;
+  title: string;
+  url: string;
+  thumbnailUrl?: string;
+  createdAt: string;
+  type: string;
+  isFavorite?: boolean;
+}
+
+function ImageGallery() {
+  const { data: images, isLoading, error } = useQuery({
+    queryKey: ["/api/image"],
+    queryFn: getImageList
+  });
+
+  const queryClient = useQueryClient();
+
+  const [viewImageDialog, setViewImageDialog] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<ImageItem | null>(null);
+
+  const handleViewImage = (image: ImageItem) => {
+    setSelectedImage(image);
+    setViewImageDialog(true);
+  };
+
+  const handleDownload = async (image: ImageItem) => {
+    try {
+      await downloadMedia(image.id, 'image');
+      toast({
+        title: "다운로드 성공",
+        description: "이미지가 성공적으로 다운로드되었습니다.",
+      });
+    } catch (error) {
+      console.error("Error downloading image:", error);
+      toast({
+        title: "다운로드 실패",
+        description: "이미지 다운로드 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleShare = async (image: ImageItem) => {
+    try {
+      const result = await shareMedia(image.id, 'image');
+      if (result.shareUrl) {
+        // Copy to clipboard
+        navigator.clipboard.writeText(result.shareUrl);
+        toast({
+          title: "공유 링크 생성됨",
+          description: "공유 링크가 클립보드에 복사되었습니다.",
+        });
+      }
+    } catch (error) {
+      console.error("Error sharing image:", error);
+      toast({
+        title: "공유 실패",
+        description: "이미지 공유 링크 생성 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-10">
+        <div className="text-center">
+          <p className="text-gray-500">이미지 데이터를 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center p-10">
+        <div className="text-center">
+          <p className="text-red-500">이미지를 불러오는 중 오류가 발생했습니다.</p>
+          <Button 
+            variant="outline" 
+            onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/image"] })}
+            className="mt-4"
+          >
+            다시 시도
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!images || images.length === 0) {
+    return (
+      <div className="text-center p-10 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+        <ImageIcon className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+        <p className="text-gray-500 mb-2">저장된 이미지가 없습니다.</p>
+        <p className="text-sm text-gray-400">이미지 테스트 탭에서 이미지를 생성하여 갤러리에 추가할 수 있습니다.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">이미지 갤러리</h2>
+        <div className="text-sm text-gray-500">
+          총 {images.length}개의 이미지
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {images.map((image: ImageItem) => (
+          <Card key={image.id} className="overflow-hidden group">
+            <div className="relative h-48">
+              <img 
+                src={image.url} 
+                alt={image.title}
+                className="w-full h-full object-cover transition-transform group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                <Button size="sm" variant="secondary" onClick={() => handleViewImage(image)}>
+                  <Eye className="h-4 w-4 mr-1" />
+                  보기
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => handleDownload(image)}>
+                  <Download className="h-4 w-4 mr-1" />
+                  다운로드
+                </Button>
+              </div>
+            </div>
+            <CardContent className="p-4">
+              <h3 className="font-medium truncate">{image.title}</h3>
+              <p className="text-sm text-gray-500 mt-1">
+                {format(new Date(image.createdAt), "yyyy년 MM월 dd일")}
+              </p>
+            </CardContent>
+            <CardFooter className="px-4 py-2 border-t flex justify-between bg-gray-50">
+              <Button variant="ghost" size="sm" onClick={() => handleShare(image)}>
+                <Share2 className="h-4 w-4 mr-1" />
+                공유
+              </Button>
+              <Badge variant="outline" className="text-xs">
+                ID: {image.id}
+              </Badge>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+
+      {selectedImage && (
+        <Dialog open={viewImageDialog} onOpenChange={setViewImageDialog}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>{selectedImage.title}</DialogTitle>
+              <DialogDescription>
+                {format(new Date(selectedImage.createdAt), "yyyy년 MM월 dd일 HH:mm")} 생성됨
+              </DialogDescription>
+            </DialogHeader>
+            <div className="relative aspect-video bg-gray-100 rounded-md overflow-hidden">
+              <img 
+                src={selectedImage.url} 
+                alt={selectedImage.title}
+                className="w-full h-full object-contain" 
+              />
+            </div>
+            <DialogFooter>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={() => handleDownload(selectedImage)}>
+                  <Download className="h-4 w-4 mr-1" />
+                  다운로드
+                </Button>
+                <Button variant="outline" onClick={() => handleShare(selectedImage)}>
+                  <Share2 className="h-4 w-4 mr-1" />
+                  공유
+                </Button>
+              </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
+
 // Main admin component
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("personas");
@@ -261,6 +447,7 @@ export default function AdminPage() {
           <TabsTrigger value="concept-categories">{t('admin.tabs.conceptCategories')}</TabsTrigger>
           <TabsTrigger value="abtests">A/B Testing</TabsTrigger>
           <TabsTrigger value="image-test">이미지 테스트</TabsTrigger>
+          <TabsTrigger value="image-gallery">이미지 갤러리</TabsTrigger>
           <TabsTrigger value="languages">Languages</TabsTrigger>
           <TabsTrigger value="dev-history">개발 대화 기록</TabsTrigger>
         </TabsList>
@@ -289,6 +476,10 @@ export default function AdminPage() {
           <ImageTester />
         </TabsContent>
         
+        <TabsContent value="image-gallery">
+          <ImageGallery />
+        </TabsContent>
+
         <TabsContent value="languages">
           <LanguageSettings />
         </TabsContent>
