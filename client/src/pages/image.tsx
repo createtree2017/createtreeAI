@@ -46,9 +46,27 @@ export default function Image() {
   // Fetch image list with more aggressive refresh option
   const { data: imageList, isLoading: isLoadingImages, refetch } = useQuery({
     queryKey: ["/api/image"], 
-    queryFn: getImageList,
-    refetchOnMount: true, // 컴포넌트 마운트 시 항상 리페치
+    // 직접 fetch 함수로 대체하여 캐시 제어 헤더 추가
+    queryFn: async () => {
+      const response = await fetch("/api/image", {
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "Pragma": "no-cache",
+          "Expires": "0"
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error("이미지 목록을 불러오는 데 실패했습니다");
+      }
+      
+      return response.json();
+    },
+    refetchOnMount: "always", // 컴포넌트 마운트 시 항상 새로 불러오기
+    refetchInterval: 1000, // 1초마다 자동 갱신
     staleTime: 0, // 항상 최신 데이터를 가져오도록 staleTime 0으로 설정
+    refetchOnWindowFocus: true, // 창이 포커스될 때마다 최신 데이터 가져오기
+    refetchOnReconnect: true, // 네트워크 재연결 시 새로고침
   });
 
   // Fetch individual image if ID is provided
@@ -81,11 +99,29 @@ export default function Image() {
     onSuccess: async (data) => {
       setTransformedImage(data);
       
+      console.log("이미지 변환 성공, 새 이미지:", data);
+      
       // 이미지 목록 강제 리프레시 - 캐시 초기화 후 다시 가져오기
       await queryClient.invalidateQueries({ queryKey: ["/api/image"] });
       
-      // 데이터가 확실히 업데이트되도록 직접 refetch 호출
-      refetch();
+      // 강제로 데이터를 다시 가져오기 위해 timeout 추가
+      setTimeout(() => {
+        // 직접 fetch 호출로 서버에서 새로운 데이터 요청
+        fetch("/api/image", {
+          cache: "no-store",
+          headers: {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+          }
+        }).then(res => res.json())
+          .then(newData => {
+            console.log("새로운 이미지 데이터 수신:", newData.length, "개 항목");
+            // 강제로 refetch 실행
+            refetch();
+          })
+          .catch(err => console.error("이미지 데이터 갱신 중 오류:", err));
+      }, 300);
       
       // Check if there's an active A/B test for this style and show it if available
       if (selectedStyle) {
