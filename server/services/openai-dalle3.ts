@@ -476,6 +476,10 @@ async function callGptImage1ForNewImage(prompt: string): Promise<string> {
       quality: "high"
     };
     
+    // 디버깅용 로그 추가
+    console.log("🔥 이미지 생성 요청 모델:", body.model);
+    console.log("🔥 사용된 프롬프트:", prompt);
+    
     // API 호출
     const response = await fetch(OPENAI_IMAGE_CREATION_URL, {
       method: 'POST',
