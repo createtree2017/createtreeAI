@@ -259,8 +259,11 @@ interface ImageItem {
 }
 
 function ImageGallery() {
+  // 새로운 캐시 키 생성용 카운터
+  const [refreshCounter, setRefreshCounter] = useState(0);
+  
   const { data: images, isLoading, error, refetch } = useQuery({
-    queryKey: ["/api/image"],
+    queryKey: ["/api/image", refreshCounter], 
     refetchInterval: 3000, // 3초마다 자동 갱신
     staleTime: 0, // 항상 최신 데이터 가져오기
     refetchOnWindowFocus: true, // 창이 포커스를 얻을 때마다 갱신
@@ -408,7 +411,30 @@ function ImageGallery() {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">이미지 갤러리</h2>
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" onClick={() => refetch()}>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => {
+              // 쿼리 캐시를 완전히 무효화
+              queryClient.invalidateQueries({ queryKey: ["/api/image"] });
+              
+              // 카운터를 증가시켜 새로운 캐시 키 생성
+              setRefreshCounter(prev => prev + 1);
+              
+              // 강제로 새로운 쿼리 키로 다시 로드
+              refetch();
+              
+              // 서버에 요청 헤더에 Cache-Control: no-cache 추가 (브라우저 캐시 방지)
+              fetch('/api/image', { 
+                headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+              });
+              
+              toast({
+                title: "새로고침 중",
+                description: "최신 이미지 데이터를 불러오는 중입니다",
+              });
+            }}
+          >
             <RefreshCw className="h-4 w-4 mr-1" />
             새로고침
           </Button>
