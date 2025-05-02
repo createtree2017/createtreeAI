@@ -3,7 +3,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useEphemeralChatStore, useSendEphemeralMessage, suggestedTopics, chatPersonas, personaCategories, type ChatMessage, type ChatPersona, type PersonaCategory } from "@/lib/openai";
-import { Bot, Send, User, Trash2, RefreshCw, Check, BookmarkIcon, Heart } from "lucide-react";
+import { Bot, Send, User, Trash2, RefreshCw, Check, BookmarkIcon, Heart, Download, FileText } from "lucide-react";
 import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
 import SaveChatDialog from "@/components/SaveChatDialog";
@@ -317,6 +317,41 @@ export default function Chat() {
                 <Heart className="h-4 w-4 mr-1" />
                 <span className="text-xs">Save</span>
               </Button>
+
+              <div className="relative group">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className="text-neutral-dark hover:text-blue-500 hover:bg-blue-50"
+                  title="Export chat history"
+                  disabled={chatMessages.length < 1}
+                >
+                  <Download className="h-4 w-4 mr-1" />
+                  <span className="text-xs">Export</span>
+                </Button>
+                
+                {/* Export dropdown menu */}
+                <div className="absolute right-0 mt-1 bg-white shadow-md rounded-md overflow-hidden border border-neutral-light invisible group-hover:visible z-10">
+                  <a 
+                    href="/api/export/chat/html" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center px-4 py-2 text-sm hover:bg-neutral-lightest"
+                  >
+                    <FileText className="h-4 w-4 mr-2 text-blue-500" />
+                    <span>HTML Format</span>
+                  </a>
+                  <a 
+                    href="/api/export/chat/text" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center px-4 py-2 text-sm hover:bg-neutral-lightest"
+                  >
+                    <FileText className="h-4 w-4 mr-2 text-green-500" />
+                    <span>Text Format</span>
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         </div>
