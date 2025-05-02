@@ -122,10 +122,29 @@ async function callGptImage1Api(prompt: string, imageBuffer: Buffer): Promise<st
       // 응답 텍스트로 가져오기
       const responseText = await apiResponse.text();
       
+      // 전체 응답 내용 상세 로깅 (디버깅 목적)
+      console.log("GPT-Image-1 API 응답 전체 내용:", responseText);
+      
       // JSON 파싱 시도
       let responseData: OpenAIImageGenerationResponse;
       try {
         responseData = JSON.parse(responseText);
+        
+        // 응답 데이터 구조 상세 로깅
+        console.log("GPT-Image-1 응답 구조:", JSON.stringify({
+          created: responseData.created,
+          dataLength: responseData.data ? responseData.data.length : 0,
+          firstDataItem: responseData.data && responseData.data.length > 0 ? {
+            hasUrl: !!responseData.data[0].url,
+            urlPrefix: responseData.data[0].url ? responseData.data[0].url.substring(0, 30) : "없음"
+          } : "데이터 없음",
+          errorInfo: responseData.error ? {
+            message: responseData.error.message,
+            type: responseData.error.type,
+            code: responseData.error.code
+          } : "오류 없음"
+        }, null, 2));
+        
       } catch (e) {
         console.error("GPT-Image-1 Edit API 응답 파싱 오류:", e);
         console.error("원본 응답:", responseText);
@@ -146,6 +165,9 @@ async function callGptImage1Api(prompt: string, imageBuffer: Buffer): Promise<st
         console.error("이미지 데이터가 없습니다");
         throw new Error("GPT-Image-1 응답에 이미지 데이터 없음");
       }
+      
+      // 세부 로깅으로 데이터 구조 파악
+      console.log("이미지 데이터 첫 번째 항목:", JSON.stringify(responseData.data[0], null, 2));
       
       const imageUrl = responseData.data[0]?.url;
       if (!imageUrl) {
