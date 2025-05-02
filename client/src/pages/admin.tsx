@@ -782,12 +782,12 @@ function PersonaManager() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Character</TableHead>
-                <TableHead>Categories</TableHead>
-                <TableHead>Time</TableHead>
-                <TableHead>Active</TableHead>
-                <TableHead>Featured</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead>캐릭터</TableHead>
+                <TableHead>카테고리</TableHead>
+                <TableHead>시간대</TableHead>
+                <TableHead>활성화</TableHead>
+                <TableHead>추천</TableHead>
+                <TableHead>작업</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -852,7 +852,7 @@ function PersonaManager() {
         </Card>
       ) : (
         <div className="text-center py-10 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-          <p className="text-gray-500">No characters found. Create your first character!</p>
+          <p className="text-gray-500">캐릭터가 없습니다. 첫 번째 캐릭터를 만들어보세요!</p>
         </div>
       )}
       
@@ -860,9 +860,9 @@ function PersonaManager() {
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Create New Character</DialogTitle>
+            <DialogTitle>새 캐릭터 만들기</DialogTitle>
             <DialogDescription>
-              Add a new AI chat character to your system.
+              시스템에 새 AI 채팅 캐릭터를 추가합니다.
             </DialogDescription>
           </DialogHeader>
           
@@ -880,9 +880,9 @@ function PersonaManager() {
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Character</DialogTitle>
+            <DialogTitle>캐릭터 편집</DialogTitle>
             <DialogDescription>
-              Modify this AI chat character's details.
+              이 AI 채팅 캐릭터의 세부 정보를 수정합니다.
             </DialogDescription>
           </DialogHeader>
           
@@ -903,9 +903,9 @@ function PersonaManager() {
       <Dialog open={isBatchImportOpen} onOpenChange={setIsBatchImportOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Batch Import Characters</DialogTitle>
+            <DialogTitle>캐릭터 일괄 가져오기</DialogTitle>
             <DialogDescription>
-              Import multiple characters from JSON format.
+              JSON 형식에서 여러 캐릭터를 가져옵니다.
             </DialogDescription>
           </DialogHeader>
           
@@ -1029,7 +1029,7 @@ function PersonaForm({ initialData, categories, onSuccess }: PersonaFormProps) {
           <div className="space-y-4">
             {/* Basic info */}
             <div className="space-y-4">
-              <h3 className="text-md font-semibold">Basic Information</h3>
+              <h3 className="text-md font-semibold">기본 정보</h3>
               
               <FormField
                 control={form.control}
