@@ -256,8 +256,7 @@ interface ImageItem {
 
 function ImageGallery() {
   const { data: images, isLoading, error } = useQuery({
-    queryKey: ["/api/image"],
-    queryFn: getImageList
+    queryKey: ["/api/image"]
   });
 
   const queryClient = useQueryClient();
