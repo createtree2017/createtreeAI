@@ -94,9 +94,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CheckCircle, Edit, PlusCircle, Trash2, X, Download, Upload, Globe } from "lucide-react";
+import { CheckCircle, Edit, PlusCircle, Trash2, X, Download, Upload, Globe, ExternalLink } from "lucide-react";
 
 // Define form validation schemas using Zod
 const personaFormSchema = z.object({
@@ -160,6 +161,85 @@ const conceptSchema = z.object({
   order: z.number().int().default(0),
 });
 
+// Development Chat History Manager Component
+function DevHistoryManager() {
+  const [dateFilter, setDateFilter] = useState<string>("");
+  const [availableDates, setAvailableDates] = useState<string[]>([]);
+  
+  // Fetch available dates
+  useEffect(() => {
+    const fetchDates = async () => {
+      try {
+        const response = await fetch('/api/dev-history/dates');
+        if (response.ok) {
+          const data = await response.json();
+          setAvailableDates(data.dates || []);
+          if (data.dates && data.dates.length > 0) {
+            // Set most recent date as default
+            setDateFilter(data.dates[0]);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching dev history dates:", error);
+      }
+    };
+    
+    fetchDates();
+  }, []);
+
+  // Handler for opening the dev history page
+  const handleOpenDevHistory = () => {
+    const url = dateFilter ? `/dev-history.html?date=${dateFilter}` : '/dev-history.html';
+    window.open(url, '_blank');
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">개발 채팅 기록</h2>
+      </div>
+      
+      <Card className="p-6">
+        <div className="space-y-4">
+          <div className="flex flex-col space-y-2">
+            <Label htmlFor="date-filter">날짜 선택</Label>
+            <Select value={dateFilter} onValueChange={setDateFilter}>
+              <SelectTrigger id="date-filter" className="w-full md:w-[300px]">
+                <SelectValue placeholder="Select date" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableDates.length > 0 ? (
+                  availableDates.map((date) => (
+                    <SelectItem key={date} value={date}>
+                      {date}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="" disabled>
+                    No dates available
+                  </SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+            <p className="text-sm text-gray-500">
+              시스템은 30분마다 자동으로 대화를 저장합니다. 채팅창에서 "채팅저장" 명령어로 수동 저장도 가능합니다.
+            </p>
+          </div>
+          
+          <Button 
+            onClick={handleOpenDevHistory}
+            className="w-full md:w-auto"
+            disabled={availableDates.length === 0}
+          >
+            <ExternalLink className="h-4 w-4 mr-2" />
+            선택한 날짜의 개발 대화 기록 보기
+          </Button>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 // Main admin component
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("personas");
@@ -179,6 +259,7 @@ export default function AdminPage() {
           <TabsTrigger value="concept-categories">{t('admin.tabs.conceptCategories')}</TabsTrigger>
           <TabsTrigger value="abtests">A/B Testing</TabsTrigger>
           <TabsTrigger value="languages">Languages</TabsTrigger>
+          <TabsTrigger value="dev-history">개발 대화 기록</TabsTrigger>
         </TabsList>
         
         <TabsContent value="personas">
@@ -203,6 +284,10 @@ export default function AdminPage() {
         
         <TabsContent value="languages">
           <LanguageSettings />
+        </TabsContent>
+        
+        <TabsContent value="dev-history">
+          <DevHistoryManager />
         </TabsContent>
       </Tabs>
     </div>
