@@ -793,6 +793,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { type, id } = req.params;
       const parsedId = parseInt(id);
       
+      // CORS 헤더 추가
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Origin, X-Requested-With');
+      
       if (type !== "music" && type !== "image") {
         return res.status(400).json({ error: "Invalid media type" });
       }
@@ -811,7 +816,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           try {
             console.log(`로컬 파일에서 읽기: ${req.session.tempImage.localFilePath}`);
             const imageBuffer = fs.readFileSync(req.session.tempImage.localFilePath);
-            const filename = `${req.session.tempImage.title || 'transformed_image'}.jpg`;
+            filename = `${req.session.tempImage.title || 'transformed_image'}.jpg`;
             
             // 응답 헤더 설정
             res.setHeader('Content-Type', 'image/jpeg');
@@ -832,94 +837,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       } else {
         // 정상적인 데이터베이스 조회
-        mediaItem = await storage.getMediaItem(parsedId, type);
-        
-        if (!mediaItem) {
-          return res.status(404).json({ error: "Media not found" });
-        }
-        
-        if (type === "music") {
-          const musicItem = mediaItem as typeof music.$inferSelect;
-          url = musicItem.url;
-          filename = `${musicItem.title || 'music'}.mp3`;
-        } else {
-          const imageItem = mediaItem as typeof images.$inferSelect;
-          url = imageItem.transformedUrl;
-          filename = `${imageItem.title || 'transformed_image'}.jpg`;
+        try {
+          mediaItem = await storage.getMediaItem(parsedId, type);
           
-          // uploads 폴더 내에 이미지 파일이 존재하는지 확인
-          const urlBasename = path.basename(imageItem.transformedUrl);
-          const possibleLocalPaths = [
-            path.join(process.cwd(), 'uploads', urlBasename),
-            path.join(process.cwd(), 'uploads', 'temp', urlBasename)
-          ];
+          if (!mediaItem) {
+            return res.status(404).json({ error: "Media not found" });
+          }
           
-          for (const localPath of possibleLocalPaths) {
-            if (fs.existsSync(localPath)) {
-              console.log(`로컬에서 이미지 파일 찾음: ${localPath}`);
-              try {
-                const imageBuffer = fs.readFileSync(localPath);
-                // 응답 헤더 설정
-                res.setHeader('Content-Type', 'image/jpeg');
-                res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
-                // 파일 데이터 전송
-                return res.send(imageBuffer);
-              } catch (fileError) {
-                console.error('로컬 파일 읽기 실패:', fileError);
-                // 파일 읽기 실패 시 계속 진행 (원격 URL 시도)
-                break;
+          if (type === "music") {
+            const musicItem = mediaItem as typeof music.$inferSelect;
+            url = musicItem.url;
+            filename = `${musicItem.title || 'music'}.mp3`;
+          } else {
+            const imageItem = mediaItem as typeof images.$inferSelect;
+            url = imageItem.transformedUrl;
+            filename = `${imageItem.title || 'transformed_image'}.jpg`;
+            
+            // uploads 폴더 내에 이미지 파일이 존재하는지 확인
+            const urlBasename = path.basename(imageItem.transformedUrl);
+            const possibleLocalPaths = [
+              path.join(process.cwd(), 'uploads', urlBasename),
+              path.join(process.cwd(), 'uploads', 'temp', urlBasename)
+            ];
+            
+            for (const localPath of possibleLocalPaths) {
+              if (fs.existsSync(localPath)) {
+                console.log(`로컬에서 이미지 파일 찾음: ${localPath}`);
+                try {
+                  const imageBuffer = fs.readFileSync(localPath);
+                  // 응답 헤더 설정
+                  res.setHeader('Content-Type', 'image/jpeg');
+                  res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+                  // 파일 데이터 전송
+                  return res.send(imageBuffer);
+                } catch (fileError) {
+                  console.error('로컬 파일 읽기 실패:', fileError);
+                  // 파일 읽기 실패 시 계속 진행 (원격 URL 시도)
+                  break;
+                }
               }
             }
           }
+        } catch (dbError) {
+          console.error("DB에서 미디어 조회 실패:", dbError);
+          return res.status(500).json({ error: "데이터베이스 조회 실패", message: dbError instanceof Error ? dbError.message : String(dbError) });
         }
       }
       
-      // Try to download directly from source and stream to client
-      try {
-        console.log(`Attempting to download from URL: ${url} for ${type} with ID ${id}`);
-        
-        // Validate URL (add http/https if missing)
+      // 이미지 없이 바로 클라이언트에게 URL 반환하는 방식으로 변경
+      if (url) {
+        // URL이 로컬 파일 경로인 경우, 해당 파일 직접 전송
+        if (url.startsWith('/') || url.startsWith('./') || url.startsWith('../')) {
+          try {
+            // 로컬 파일 존재 확인
+            if (fs.existsSync(url)) {
+              const fileBuffer = fs.readFileSync(url);
+              const contentType = type === 'image' ? 'image/jpeg' : 'audio/mpeg';
+              res.setHeader('Content-Type', contentType);
+              res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+              return res.send(fileBuffer);
+            }
+          } catch (localFileError) {
+            console.error("로컬 파일 읽기 실패:", localFileError);
+          }
+        }
+
+        // 안전한 URL 형식 확인
         if (!url.startsWith('http')) {
           url = `https://${url}`;
         }
         
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'Accept': 'image/*,audio/*,*/*',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch from source URL: ${response.statusText} (${response.status})`);
+        // URL이 placeholder인 경우 확인
+        if (url.includes('placehold.co')) {
+          return res.redirect(url);
         }
         
-        // Get content type from response or use default
-        const contentType = response.headers.get('content-type') || 
-                          (type === 'image' ? 'image/jpeg' : 'audio/mpeg');
-        
-        // Set appropriate headers for download
-        res.setHeader('Content-Type', contentType);
-        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
-        
-        // Stream the response
-        const arrayBuffer = await response.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        
-        console.log(`Successfully downloaded ${buffer.length} bytes from ${url}`);
-        
-        return res.send(buffer);
-      } catch (error) {
-        console.error("Error proxying media:", error);
-        
-        // Fallback to just returning the URL for the client to try directly
-        return res.status(502).json({ 
-          error: "Failed to proxy media from source",
+        console.log(`클라이언트에게 URL 전달: ${url}`);
+        return res.json({
+          success: true,
           url: url,
           filename: filename,
-          message: error instanceof Error ? error.message : String(error)
+          message: "다운로드 URL입니다. 브라우저에서 이 URL을 열어주세요."
         });
+      } else {
+        return res.status(404).json({ error: "다운로드할 URL을 찾을 수 없습니다." });
       }
     } catch (error) {
       console.error("Error downloading media:", error);

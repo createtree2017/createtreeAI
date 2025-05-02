@@ -120,51 +120,20 @@ export const downloadMedia = async (id: number, type: string) => {
     // Direct navigation approach - server will proxy the content and handle download
     const downloadUrl = `/api/media/download/${type}/${id}`;
     
-    // 파일 다운로드 전에 API 응답 확인 (다운로드 가능성 검증)
-    const checkResponse = await fetch(downloadUrl, { method: 'HEAD' });
-    if (!checkResponse.ok) {
-      console.error(`다운로드 검증 실패: ${checkResponse.status} ${checkResponse.statusText}`);
-      if (checkResponse.status === 502) {
-        // 원격 URL에서 다운로드 실패했을 경우 URL을 직접 확인
-        const errorData = await checkResponse.json();
-        if (errorData && errorData.url) {
-          console.log(`원격 URL로 다운로드 시도: ${errorData.url}`);
-          // 새 창에서 원본 URL 열기
-          window.open(errorData.url, '_blank');
-          return { success: true, message: "원본 URL로 다운로드를 시도합니다." };
-        }
-      }
-      throw new Error(`다운로드 요청 실패: ${checkResponse.statusText}`);
-    }
+    // HEAD 요청으로 검증하는 대신 간단히 바로 다운로드 시도
+    console.log(`다운로드 시도: ${downloadUrl}`);
     
-    // 컨텐츠 타입 확인
-    const contentType = checkResponse.headers.get('content-type');
-    const isImage = contentType && contentType.startsWith('image/');
-    const isAudio = contentType && contentType.startsWith('audio/');
+    // 새 창에서 다운로드 URL 열기
+    window.open(downloadUrl, '_blank');
     
-    // 이미지나 오디오인 경우 새 탭에서 열기 option 추가
-    if (isImage || isAudio) {
-      // 사용자에게 다운로드 방식 선택 옵션 제공
-      if (confirm('다운로드 방식을 선택하세요.\n\n확인: 즉시 다운로드\n취소: 새 창에서 열기')) {
-        // 즉시 다운로드
-        window.location.href = downloadUrl;
-      } else {
-        // 새 창에서 열기
-        window.open(downloadUrl, '_blank');
-      }
-    } else {
-      // 기본 다운로드 방식
-      window.location.href = downloadUrl;
-    }
-    
-    // Add a small delay before returning to allow the navigation to start
+    // 작은 지연 시간 추가
     await new Promise(resolve => setTimeout(resolve, 100));
     
-    // Return success - we've started the download process
+    // 성공 반환 - 다운로드 프로세스 시작됨
     return { success: true };
   } catch (error) {
     console.error('Error downloading media:', error);
-    // Let the UI know about the error
+    // UI에 오류 알림
     throw error;
   }
 };

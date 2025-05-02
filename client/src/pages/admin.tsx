@@ -274,11 +274,22 @@ function ImageGallery() {
 
   const handleDownload = async (image: ImageItem) => {
     try {
-      await downloadMedia(image.id, 'image');
-      toast({
-        title: "다운로드 성공",
-        description: "이미지가 성공적으로 다운로드되었습니다.",
-      });
+      const result = await downloadMedia(image.id, 'image');
+      console.log("다운로드 응답:", result);
+      
+      // 직접 URL이 반환된 경우 새 창에서 열기
+      if (result && result.url) {
+        window.open(result.url, '_blank');
+        toast({
+          title: "다운로드 준비",
+          description: "새 창에서 이미지를 확인하세요. 저장하려면 이미지를 우클릭하세요.",
+        });
+      } else {
+        toast({
+          title: "다운로드 성공",
+          description: "이미지가 다운로드되었습니다.",
+        });
+      }
     } catch (error) {
       console.error("Error downloading image:", error);
       toast({
