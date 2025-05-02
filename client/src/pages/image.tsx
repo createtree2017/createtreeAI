@@ -504,20 +504,13 @@ export default function Image() {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
+            <div className="flex justify-center">
               <Button
-                className="bg-neutral-light hover:bg-neutral text-neutral-darkest font-medium py-2.5 px-4 rounded-lg transition-colors"
+                className="bg-primary hover:bg-primary-dark text-white font-medium py-2.5 px-4 rounded-lg transition-colors w-full max-w-xs"
                 onClick={() => handleDownload(transformedImage.id)}
               >
                 <Download className="mr-2 h-4 w-4" />
                 <span>Save to Photos</span>
-              </Button>
-              <Button
-                className="bg-primary hover:bg-primary-dark text-white font-medium py-2.5 px-4 rounded-lg transition-colors"
-                onClick={() => handleShare(transformedImage.id)}
-              >
-                <Share2 className="mr-2 h-4 w-4" />
-                <span>Share with Family</span>
               </Button>
             </div>
           </div>
@@ -582,9 +575,9 @@ export default function Image() {
                     <Button
                       size="sm"
                       className="flex-1 text-xs bg-primary-light hover:bg-primary/20 text-primary-dark"
-                      onClick={() => handleShare(image.id)}
+                      onClick={() => handleDownload(image.id)}
                     >
-                      <Share2 className="mr-1 h-3 w-3" /> Share
+                      <Download className="mr-1 h-3 w-3" /> Save
                     </Button>
                   </div>
                 </div>

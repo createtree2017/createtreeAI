@@ -54,7 +54,7 @@ export const queryClient = new QueryClient({
       refetchInterval: false,
       refetchOnWindowFocus: true, // 창이 포커스될 때 자동으로 리페치 (새로운 데이터가 있는지 확인)
       staleTime: 10000, // 10초 후에 데이터를 stale로 간주 (기존 Infinity에서 변경)
-      cacheTime: 300000, // 비활성 캐시 유지 시간 (5분)
+      gcTime: 300000, // 비활성 캐시 유지 시간 (5분) - v5에서는 cacheTime이 gcTime으로 변경됨
       retry: false,
     },
     mutations: {
