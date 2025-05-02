@@ -20,7 +20,7 @@ function isValidApiKey(apiKey: string | undefined): boolean {
 
 // OpenAI API 엔드포인트
 const OPENAI_IMAGE_CREATION_URL = "https://api.openai.com/v1/images/generations"; // 이미지 생성용 (DALL-E 3 또는 gpt-image-1)
-const OPENAI_IMAGE_EDITING_URL = "https://api.openai.com/v1/images/edit"; // 이미지 편집용 (gpt-image-1)
+const OPENAI_IMAGE_EDITING_URL = "https://api.openai.com/v1/images/edits"; // 이미지 편집용 (gpt-image-1) - 복수형으로 수정
 const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 
 // API 응답 타입 정의
@@ -89,13 +89,14 @@ async function callGptImage1Api(prompt: string, imageBuffer: Buffer): Promise<st
       console.log("GPT-Image-1 Edit API 호출 (원본 이미지 참조 가능)");
       
       // Edit API 요청 본문 (이미지 편집 - 원본 이미지 유지)
+      // 문서 형식에 맞게 데이터 구조 수정
       const requestBody = {
         model: "gpt-image-1",
         prompt: prompt,
-        image: [`data:image/jpeg;base64,${base64Image}`],
+        image: `data:image/jpeg;base64,${base64Image}`, // base64 이미지는 data URL 형식으로 전달
         size: "1024x1024",
         quality: "medium",
-        output_format: "url"
+        response_format: "url" // output_format이 아닌 response_format
       };
       
       // API 호출
@@ -140,9 +141,11 @@ async function callGptImage1Api(prompt: string, imageBuffer: Buffer): Promise<st
       }
       
       return imageUrl;
-    } catch (editError) {
+    } catch (editError: any) {
       // GPT-Image-1 Edit API가 실패하면 DALL-E 3로 폴백
-      console.log("GPT-Image-1 Edit API 오류 발생, DALL-E 3로 폴백:", editError.message);
+      // editError를 any 타입으로 처리하고 message 속성 안전하게 접근
+      const errorMessage = editError instanceof Error ? editError.message : 'Unknown error';
+      console.log("GPT-Image-1 Edit API 오류 발생, DALL-E 3로 폴백:", errorMessage);
       
       // DALL-E 3 요청 본문 
       const requestBody = {
@@ -408,7 +411,7 @@ ${prompt ? `위 정보를 바탕으로 DALL-E 3가 원본 이미지의 특성(�
     let systemInstructions = "";
     if (systemPrompt && systemPrompt.trim() !== "") {
       systemInstructions = `Additional instructions: ${systemPrompt}`;
-      console.log("제공된 시스템 프롬프트를 사용합니다.");
+      console.log("제공된 시스템 프롬프트를 사용합니다:", systemPrompt.substring(0, 50) + "...");
     } else {
       console.log("시스템 프롬프트가 없습니다. 기본 시스템 프롬프트도 적용하지 않습니다.");
     }
@@ -545,21 +548,20 @@ export async function transformImage(
   systemPrompt?: string | null
 ): Promise<string> {
   try {
-    // 스타일별 프롬프트 템플릿
+    // 기본 스타일별 프롬프트 템플릿 (관리자 페이지에서 오버라이드되므로 실제로는 사용되지 않음)
+    // 해당 기능은 관리자 페이지의 '컨셉' 설정으로 대체되었습니다
     const stylePrompts: Record<string, string> = {
-      watercolor: "Transform this image into a beautiful watercolor painting with soft, flowing colors and gentle brush strokes",
-      sketch: "Convert this image into a detailed pencil sketch with elegant lines and shading",
-      cartoon: "Transform this image into a charming cartoon style with bold outlines and vibrant colors",
-      oil: "Convert this image into a classic oil painting style with rich textures and depth",
-      fantasy: "Transform this image into a magical fantasy art style with ethereal lighting and dreamlike qualities",
-      storybook: "Convert this image into a sweet children's storybook illustration style with gentle colors and charming details",
-      // 스타일 정의 - 지브리/지블리 다양한 표기에 대응
-      ghibli: "Transform this image into an EXACT Studio Ghibli anime style as seen in films like 'Spirited Away' and 'Howl's Moving Castle'. The style MUST include: 1) Hand-drawn 2D animation look with visible brush strokes and line work, 2) Miyazaki's signature soft pastel color palette with teal blue skies and verdant greens, 3) Characters with distinctively large, expressive anime eyes and simplified facial features, 4) A dreamy, otherworldly atmosphere with magical lighting effects, 5) Whimsical exaggerated proportions typical of Japanese animation. This MUST look like a screenshot from an actual Studio Ghibli film, not a subtle stylization. While maintaining this strong Studio Ghibli aesthetic, preserve the subject's hair length/style, basic facial structure, clothing style/colors, and pose. No photorealistic elements should remain - convert EVERYTHING to pure hand-drawn Ghibli animation style.",
-      // 오타 대응 (gibli)
-      gibli: "Transform this image into an EXACT Studio Ghibli anime style as seen in films like 'Spirited Away' and 'Howl's Moving Castle'. The style MUST include: 1) Hand-drawn 2D animation look with visible brush strokes and line work, 2) Miyazaki's signature soft pastel color palette with teal blue skies and verdant greens, 3) Characters with distinctively large, expressive anime eyes and simplified facial features, 4) A dreamy, otherworldly atmosphere with magical lighting effects, 5) Whimsical exaggerated proportions typical of Japanese animation. This MUST look like a screenshot from an actual Studio Ghibli film, not a subtle stylization. While maintaining this strong Studio Ghibli aesthetic, preserve the subject's hair length/style, basic facial structure, clothing style/colors, and pose. No photorealistic elements should remain - convert EVERYTHING to pure hand-drawn Ghibli animation style.",
-      disney: "Transform this image into a Disney animation style with expressive characters, vibrant colors, and enchanting details",
-      korean_webtoon: "Transform this image into a Korean webtoon style with clean lines, pastel colors, and expressive characters",
-      fairytale: "Transform this image into a fairytale illustration with magical elements, dreamy atmosphere, and storybook aesthetics"
+      watercolor: "Transform this image into a beautiful watercolor painting with soft colors",
+      sketch: "Convert this image into a detailed pencil sketch with elegant lines",
+      cartoon: "Transform this image into a charming cartoon style with bold outlines",
+      oil: "Convert this image into a classic oil painting style with rich textures",
+      fantasy: "Transform this image into a magical fantasy art style with dreamlike qualities",
+      storybook: "Convert this image into a sweet children's storybook illustration style",
+      ghibli: "Transform this image into a Studio Ghibli anime style with soft colors",
+      gibli: "Transform this image into a Studio Ghibli anime style with soft colors",
+      disney: "Transform this image into a Disney animation style with expressive characters",
+      korean_webtoon: "Transform this image into a Korean webtoon style with clean lines",
+      fairytale: "Transform this image into a fairytale illustration with magical elements"
     };
 
     // 프롬프트 선택 (커스텀 또는 빈 프롬프트 유지)
