@@ -256,7 +256,13 @@ interface ImageItem {
 
 function ImageGallery() {
   const { data: images, isLoading, error } = useQuery({
-    queryKey: ["/api/image"]
+    queryKey: ["/api/image"],
+    onSuccess: (data) => {
+      console.log("Received image data:", data);
+      if (data && data.length > 0) {
+        console.log("First image properties:", Object.keys(data[0]));
+      }
+    }
   });
 
   const queryClient = useQueryClient();
