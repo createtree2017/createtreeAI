@@ -603,10 +603,10 @@ export default function AdminPage() {
           <TabsTrigger value="categories">{t('admin.tabs.categories')}</TabsTrigger>
           <TabsTrigger value="concepts">{t('admin.tabs.concepts')}</TabsTrigger>
           <TabsTrigger value="concept-categories">{t('admin.tabs.conceptCategories')}</TabsTrigger>
-          <TabsTrigger value="abtests">A/B Testing</TabsTrigger>
+          <TabsTrigger value="abtests">A/B 테스트</TabsTrigger>
           <TabsTrigger value="image-test">이미지 테스트</TabsTrigger>
           <TabsTrigger value="image-gallery">이미지 갤러리</TabsTrigger>
-          <TabsTrigger value="languages">Languages</TabsTrigger>
+          <TabsTrigger value="languages">언어 설정</TabsTrigger>
           <TabsTrigger value="dev-history">개발 대화 기록</TabsTrigger>
         </TabsList>
         
@@ -764,15 +764,15 @@ function PersonaManager() {
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold">Chat Characters</h2>
+        <h2 className="text-2xl font-bold">채팅 캐릭터</h2>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setIsBatchImportOpen(true)}>
             <Download className="h-4 w-4 mr-2" />
-            Batch Import
+            일괄 가져오기
           </Button>
           <Button onClick={() => setIsCreateDialogOpen(true)}>
             <PlusCircle className="h-4 w-4 mr-2" />
-            Add New Character
+            새 캐릭터 추가
           </Button>
         </div>
       </div>
