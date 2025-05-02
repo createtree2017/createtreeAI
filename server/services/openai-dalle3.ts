@@ -19,8 +19,8 @@ function isValidApiKey(apiKey: string | undefined): boolean {
 }
 
 // OpenAI API 엔드포인트
-const OPENAI_IMAGE_CREATION_URL = "https://api.openai.com/v1/images/generations"; // 이미지 생성용 (DALL-E)
-const OPENAI_IMAGE_EDITING_URL = "https://api.openai.com/v1/images/edits"; // 이미지 편집용 
+const OPENAI_IMAGE_CREATION_URL = "https://api.openai.com/v1/images/generations"; // 이미지 생성용 (DALL-E 3 또는 gpt-image-1)
+const OPENAI_IMAGE_EDITING_URL = "https://api.openai.com/v1/images/edit"; // 이미지 편집용 (gpt-image-1)
 const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 
 // API 응답 타입 정의
@@ -54,8 +54,8 @@ interface OpenAIChatResponse {
 }
 
 /**
- * DALL-E 3 API로 이미지 변환 요청 (gpt-image-1은 현재 지원되지 않음)
- * 프롬프트만 전송하여 이미지 생성 (원본 이미지 참조 불가) 
+ * GPT-Image-1 모델로 이미지 편집 요청
+ * 원본 이미지와 프롬프트를 함께 전송하여 원본 특성을 유지하는 변환 지원
  */
 async function callGptImage1Api(prompt: string, imageBuffer: Buffer): Promise<string> {
   if (!isValidApiKey(API_KEY)) {
@@ -70,67 +70,131 @@ async function callGptImage1Api(prompt: string, imageBuffer: Buffer): Promise<st
       return SERVICE_UNAVAILABLE;
     }
     
-    console.log("=== DALL-E 3 API에 전송되는 최종 프롬프트 ===");
+    console.log("=== GPT-Image-1 API에 전송되는 최종 프롬프트 ===");
     console.log(prompt);
-    console.log("=== DALL-E 3 API 프롬프트 종료 ===");
+    console.log("=== GPT-Image-1 API 프롬프트 종료 ===");
     console.log("프롬프트 길이:", prompt.length);
     
-    // DALL-E 3 API 요청 헤더 (JSON 형식)
+    // 이미지를 Base64로 인코딩
+    const base64Image = imageBuffer.toString('base64');
+    
+    // API 요청 헤더 (JSON 형식)
     const headers = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${API_KEY}`
     };
     
-    // DALL-E 3 요청 본문 
-    const requestBody = {
-      model: "dall-e-3",
-      prompt: prompt,
-      n: 1,
-      size: "1024x1024",
-      quality: "standard",
-      response_format: "url"
-    };
-    
-    // API 호출
-    const response = await fetch(OPENAI_IMAGE_CREATION_URL, {
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify(requestBody)
-    });
-    
-    // 응답 텍스트로 가져오기
-    const responseText = await response.text();
-    
-    // JSON 파싱 시도
-    let responseData: OpenAIImageGenerationResponse;
     try {
-      responseData = JSON.parse(responseText);
-    } catch (e) {
-      console.error("응답 JSON 파싱 오류:", e);
-      console.error("원본 응답:", responseText);
-      return SERVICE_UNAVAILABLE;
+      // GPT-Image-1 Edit API 요청 (원본 이미지 참조)
+      console.log("GPT-Image-1 Edit API 호출 (원본 이미지 참조 가능)");
+      
+      // Edit API 요청 본문 (이미지 편집 - 원본 이미지 유지)
+      const requestBody = {
+        model: "gpt-image-1",
+        prompt: prompt,
+        image: [`data:image/jpeg;base64,${base64Image}`],
+        size: "1024x1024",
+        quality: "medium",
+        output_format: "url"
+      };
+      
+      // API 호출
+      const response = await fetch(OPENAI_IMAGE_EDITING_URL, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(requestBody)
+      });
+      
+      // 응답 텍스트로 가져오기
+      const responseText = await response.text();
+      
+      // JSON 파싱 시도
+      let responseData: OpenAIImageGenerationResponse;
+      try {
+        responseData = JSON.parse(responseText);
+      } catch (e) {
+        console.error("GPT-Image-1 Edit API 응답 파싱 오류:", e);
+        console.error("원본 응답:", responseText);
+        // Edit API가 실패하면 DALL-E 3로 폴백
+        console.log("GPT-Image-1 Edit API 실패, DALL-E 3로 폴백");
+        throw new Error("GPT-Image-1 Edit API 실패");
+      }
+      
+      // 오류 응답 확인
+      if (!response.ok || responseData.error) {
+        const errorMessage = responseData.error?.message || `HTTP 오류: ${response.status}`;
+        console.error("GPT-Image-1 Edit API 오류:", errorMessage);
+        throw new Error("GPT-Image-1 Edit API 오류");
+      }
+      
+      // 응답 데이터 검증
+      if (!responseData.data || responseData.data.length === 0) {
+        console.error("이미지 데이터가 없습니다");
+        throw new Error("GPT-Image-1 응답에 이미지 데이터 없음");
+      }
+      
+      const imageUrl = responseData.data[0]?.url;
+      if (!imageUrl) {
+        console.error("이미지 URL이 없습니다");
+        throw new Error("GPT-Image-1 응답에 이미지 URL 없음");
+      }
+      
+      return imageUrl;
+    } catch (editError) {
+      // GPT-Image-1 Edit API가 실패하면 DALL-E 3로 폴백
+      console.log("GPT-Image-1 Edit API 오류 발생, DALL-E 3로 폴백:", editError.message);
+      
+      // DALL-E 3 요청 본문 
+      const requestBody = {
+        model: "dall-e-3",
+        prompt: prompt,
+        n: 1,
+        size: "1024x1024",
+        quality: "standard",
+        response_format: "url"
+      };
+      
+      // API 호출
+      const response = await fetch(OPENAI_IMAGE_CREATION_URL, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(requestBody)
+      });
+      
+      // 응답 텍스트로 가져오기
+      const responseText = await response.text();
+      
+      // JSON 파싱 시도
+      let responseData: OpenAIImageGenerationResponse;
+      try {
+        responseData = JSON.parse(responseText);
+      } catch (e) {
+        console.error("DALL-E 3 응답 JSON 파싱 오류:", e);
+        console.error("원본 응답:", responseText);
+        return SERVICE_UNAVAILABLE;
+      }
+      
+      // 오류 응답 확인
+      if (!response.ok || responseData.error) {
+        const errorMessage = responseData.error?.message || `HTTP 오류: ${response.status}`;
+        console.error("DALL-E 3 API 오류:", errorMessage);
+        return SERVICE_UNAVAILABLE;
+      }
+      
+      // 응답 데이터 검증
+      if (!responseData.data || responseData.data.length === 0) {
+        console.error("이미지 데이터가 없습니다");
+        return SERVICE_UNAVAILABLE;
+      }
+      
+      const imageUrl = responseData.data[0]?.url;
+      if (!imageUrl) {
+        console.error("이미지 URL이 없습니다");
+        return SERVICE_UNAVAILABLE;
+      }
+      
+      return imageUrl;
     }
-    
-    // 오류 응답 확인
-    if (!response.ok || responseData.error) {
-      const errorMessage = responseData.error?.message || `HTTP 오류: ${response.status}`;
-      console.error("DALL-E 3 API 오류:", errorMessage);
-      return SERVICE_UNAVAILABLE;
-    }
-    
-    // 응답 데이터 검증
-    if (!responseData.data || responseData.data.length === 0) {
-      console.error("이미지 데이터가 없습니다");
-      return SERVICE_UNAVAILABLE;
-    }
-    
-    const imageUrl = responseData.data[0]?.url;
-    if (!imageUrl) {
-      console.error("이미지 URL이 없습니다");
-      return SERVICE_UNAVAILABLE;
-    }
-    
-    return imageUrl;
   } catch (error) {
     console.error("API 호출 중 오류:", error);
     return SERVICE_UNAVAILABLE;
