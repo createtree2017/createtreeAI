@@ -14,6 +14,7 @@ import {
   getAvailableMusicStyles, 
   getAvailableDurations 
 } from "./services/topmedia-music";
+import { exportChatHistoryAsHtml, exportChatHistoryAsText } from "./services/export-logs";
 import { 
   music, 
   images, 
@@ -1907,6 +1908,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching active A/B test:", error);
       return res.status(500).json({ error: "Failed to fetch active A/B test" });
+    }
+  });
+
+  // 채팅 기록 내보내기 - HTML 형식
+  app.get("/api/export/chat/html", async (req, res) => {
+    try {
+      const htmlContent = await exportChatHistoryAsHtml();
+      
+      // Set headers for file download
+      res.setHeader('Content-Type', 'text/html');
+      res.setHeader('Content-Disposition', 'attachment; filename="chat_history.html"');
+      
+      return res.send(htmlContent);
+    } catch (error) {
+      console.error("Error exporting chat history as HTML:", error);
+      return res.status(500).json({ error: "Failed to export chat history" });
+    }
+  });
+
+  // 채팅 기록 내보내기 - 텍스트 형식
+  app.get("/api/export/chat/text", async (req, res) => {
+    try {
+      const textContent = await exportChatHistoryAsText();
+      
+      // Set headers for file download
+      res.setHeader('Content-Type', 'text/plain');
+      res.setHeader('Content-Disposition', 'attachment; filename="chat_history.txt"');
+      
+      return res.send(textContent);
+    } catch (error) {
+      console.error("Error exporting chat history as text:", error);
+      return res.status(500).json({ error: "Failed to export chat history" });
     }
   });
 
