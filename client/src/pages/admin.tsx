@@ -3598,6 +3598,325 @@ function ABTestForm({ initialData, concepts, onSuccess }: ABTestFormProps) {
   );
 }
 
+// ImageTester component for admin image transformation testing
+function ImageTester() {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
+  const [transformedImage, setTransformedImage] = useState<any | null>(null);
+  const queryClient = useQueryClient();
+
+  // Get list of previously transformed images
+  const { data: imageList = [], isLoading: isLoadingImages } = useQuery({
+    queryKey: ["/api/image"],
+    queryFn: getImageList,
+  });
+
+  // Fetch concepts for style selection
+  const { data: concepts = [] } = useQuery({
+    queryKey: ["/api/concepts"],
+  });
+
+  // Transform image mutation
+  const { mutate: transformImageMutation, isPending: isTransforming } = useMutation({
+    // 관리자 페이지에서는 isAdmin=true로 호출하여 이미지를 영구 저장
+    mutationFn: (data: FormData) => transformImage(data, true),
+    onSuccess: (data) => {
+      setTransformedImage(data);
+      queryClient.invalidateQueries({ queryKey: ["/api/image"] });
+      toast({
+        title: "이미지 변환 완료",
+        description: "이미지가 성공적으로 변환되었습니다.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "이미지 변환 실패",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleFileSelected = (file: File) => {
+    setSelectedFile(file);
+    
+    // Create a preview URL for the selected image
+    const fileReader = new FileReader();
+    fileReader.onload = (e) => {
+      setPreviewUrl(e.target?.result as string);
+    };
+    fileReader.readAsDataURL(file);
+  };
+
+  const handleTransformImage = () => {
+    if (!selectedFile || !selectedStyle) {
+      toast({
+        title: "누락된 정보",
+        description: selectedFile ? "스타일을 선택해주세요" : "이미지를 업로드해주세요",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("image", selectedFile);
+    formData.append("style", selectedStyle);
+
+    // 관리자 페이지에서 변환 (자동으로 저장됨)
+    transformImageMutation(formData);
+  };
+
+  const handleDownload = async (id: number) => {
+    try {
+      await downloadMedia(id, "image");
+      toast({
+        title: "다운로드 시작",
+        description: "이미지 다운로드가 시작되었습니다."
+      });
+    } catch (error) {
+      toast({
+        title: "다운로드 실패",
+        description: "다시 시도해주세요",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleShare = async (id: number) => {
+    try {
+      const shareData = await shareMedia(id, "image");
+      toast({
+        title: "공유 링크 생성됨",
+        description: "작품을 공유할 준비가 완료되었습니다!",
+      });
+    } catch (error) {
+      toast({
+        title: "공유 링크 생성 실패",
+        description: "나중에 다시 시도해주세요",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleViewImage = (image: any) => {
+    setTransformedImage(image);
+  };
+
+  // Define expected concept shape
+  interface Concept {
+    id: number;
+    conceptId: string;
+    title: string;
+    description?: string;
+    promptTemplate: string;
+    thumbnailUrl?: string;
+    categoryId?: string;
+    isActive: boolean;
+    isFeatured: boolean;
+    order: number;
+    createdAt: string;
+    updatedAt: string;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">이미지 테스트</h2>
+        <p className="text-sm text-gray-500">관리자 모드: 모든 이미지가 데이터베이스에 저장됩니다</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>이미지 업로드</CardTitle>
+              <CardDescription>테스트할 이미지를 업로드하고 스타일을 선택하세요</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Image upload */}
+              <div>
+                <Label htmlFor="image-upload">이미지</Label>
+                <div className="mt-2">
+                  <FileUpload 
+                    onFileSelect={handleFileSelected} 
+                    accept="image/*"
+                    maxSize={10 * 1024 * 1024} // 10MB
+                  />
+                </div>
+              </div>
+
+              {/* Preview */}
+              {previewUrl && (
+                <div className="mt-4 border rounded-md overflow-hidden">
+                  <img 
+                    src={previewUrl} 
+                    alt="Preview" 
+                    className="w-full max-h-[300px] object-contain"
+                  />
+                </div>
+              )}
+
+              {/* Style selection */}
+              <div className="mt-6">
+                <Label htmlFor="style-select">스타일</Label>
+                <Select value={selectedStyle || ""} onValueChange={setSelectedStyle}>
+                  <SelectTrigger id="style-select">
+                    <SelectValue placeholder="스타일 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.isArray(concepts) && concepts.map((concept: Concept) => (
+                      <SelectItem key={concept.conceptId} value={concept.conceptId}>
+                        {concept.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Transform button */}
+              <Button 
+                onClick={handleTransformImage} 
+                className="w-full mt-6"
+                disabled={!selectedFile || !selectedStyle || isTransforming}
+              >
+                {isTransforming ? (
+                  <span className="flex items-center">
+                    <PaintbrushVertical className="mr-2 h-4 w-4 animate-spin" />
+                    변환 중...
+                  </span>
+                ) : (
+                  <span className="flex items-center">
+                    <PaintbrushVertical className="mr-2 h-4 w-4" />
+                    이미지 변환하기
+                  </span>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>이미지 목록</CardTitle>
+              <CardDescription>이전에 변환된 이미지들</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingImages ? (
+                <div className="flex justify-center p-8">
+                  <p>이미지 로딩 중...</p>
+                </div>
+              ) : imageList.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {imageList.map((image: any) => (
+                    <div 
+                      key={image.id} 
+                      className="relative border rounded-md overflow-hidden cursor-pointer group"
+                      onClick={() => handleViewImage(image)}
+                    >
+                      <img 
+                        src={image.transformedUrl} 
+                        alt={image.title || "변환된 이미지"} 
+                        className="w-full h-24 object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                        <Eye className="w-6 h-6 text-white" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center p-8 text-gray-500">
+                  <ImageIcon className="mx-auto h-12 w-12 text-gray-400 mb-3" />
+                  <p>변환된 이미지가 없습니다</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div>
+          <Card>
+            <CardHeader>
+              <CardTitle>변환 결과</CardTitle>
+              <CardDescription>이미지 변환 결과를 확인하세요</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {transformedImage ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium mb-2">원본 이미지</p>
+                      <div className="border rounded-md overflow-hidden h-[200px]">
+                        <img 
+                          src={transformedImage.originalUrl} 
+                          alt="원본 이미지" 
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium mb-2">변환된 이미지</p>
+                      <div className="border rounded-md overflow-hidden h-[200px]">
+                        <img 
+                          src={transformedImage.transformedUrl} 
+                          alt="변환된 이미지" 
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-between mt-4">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleDownload(transformedImage.id)}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      다운로드
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleShare(transformedImage.id)}
+                    >
+                      <Share2 className="mr-2 h-4 w-4" />
+                      공유하기
+                    </Button>
+                  </div>
+                  
+                  <div className="mt-6">
+                    <h4 className="text-sm font-medium mb-2">정보</h4>
+                    <div className="text-sm space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">스타일:</span>
+                        <span>{transformedImage.style}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">생성 시간:</span>
+                        <span>{new Date(transformedImage.createdAt).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">이미지 ID:</span>
+                        <span>{transformedImage.id}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-[400px] text-center text-gray-500">
+                  <PaintbrushVertical className="h-12 w-12 text-gray-400 mb-3" />
+                  <p>이미지를 변환하거나 기존 이미지를 선택하세요</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function LanguageSettings() {
   const [currentLanguage, setCurrentLanguage] = useState(getLanguage());
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
