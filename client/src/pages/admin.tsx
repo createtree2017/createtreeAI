@@ -275,21 +275,26 @@ function ImageGallery() {
 
   const handleDownload = async (image: ImageItem) => {
     try {
-      const result = await downloadMedia(image.id, 'image');
-      console.log("다운로드 응답:", result);
+      // 이미지 URL 직접 다운로드 방식으로 변경
+      const imageUrl = image.transformedUrl || image.url;
+      if (!imageUrl) {
+        throw new Error("이미지 URL이 유효하지 않습니다.");
+      }
       
-      // 직접 URL이 반환된 경우 새 창에서 열기
-      if (result && result.url) {
-        window.open(result.url, '_blank');
-        toast({
-          title: "다운로드 준비",
-          description: "새 창에서 이미지를 확인하세요. 저장하려면 이미지를 우클릭하세요.",
-        });
-      } else {
-        toast({
-          title: "다운로드 성공",
-          description: "이미지가 다운로드되었습니다.",
-        });
+      // 이미지 직접 열기
+      window.open(imageUrl, '_blank');
+      
+      toast({
+        title: "다운로드 준비",
+        description: "새 창에서 이미지를 확인하세요. 저장하려면 이미지를 우클릭하세요.",
+      });
+      
+      // 백엔드 API도 호출하여 로그 기록
+      try {
+        await downloadMedia(image.id, 'image');
+      } catch (backendError) {
+        console.warn("백엔드 다운로드 로깅 실패:", backendError);
+        // 사용자에게는 알리지 않음 (이미 이미지는 열렸으므로)
       }
     } catch (error) {
       console.error("Error downloading image:", error);
@@ -419,9 +424,9 @@ function ImageGallery() {
               </p>
             </CardContent>
             <CardFooter className="px-4 py-2 border-t flex justify-between bg-gray-50">
-              <Button variant="ghost" size="sm" onClick={() => handleShare(image)}>
-                <Share2 className="h-4 w-4 mr-1" />
-                공유
+              <Button variant="ghost" size="sm" onClick={() => handleDownload(image)}>
+                <Download className="h-4 w-4 mr-1" />
+                다운로드
               </Button>
               <Badge variant="outline" className="text-xs">
                 ID: {image.id}
@@ -453,13 +458,9 @@ function ImageGallery() {
             </div>
             <DialogFooter>
               <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={() => handleDownload(selectedImage)}>
+                <Button variant="default" onClick={() => handleDownload(selectedImage)}>
                   <Download className="h-4 w-4 mr-1" />
                   다운로드
-                </Button>
-                <Button variant="outline" onClick={() => handleShare(selectedImage)}>
-                  <Share2 className="h-4 w-4 mr-1" />
-                  공유
                 </Button>
               </div>
             </DialogFooter>
