@@ -194,14 +194,52 @@ export default function Image() {
   const handleShare = async (id: number) => {
     try {
       const shareData = await shareMedia(id, "image");
-      toast({
-        title: "Share link created",
-        description: "Ready to share your artwork!",
-      });
+      
+      // 클립보드 복사 상태 확인 및 적절한 사용자 피드백 제공
+      if (shareData.error) {
+        // 에러가 있는 경우
+        toast({
+          title: "공유 링크 생성 실패",
+          description: shareData.error,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (shareData.shareUrl) {
+        if (shareData.clipboardCopySuccess) {
+          // 클립보드 복사 성공
+          toast({
+            title: "공유 링크가 복사되었습니다",
+            description: "링크가 클립보드에 복사되었습니다. 원하는 곳에 붙여넣기 하세요.",
+          });
+        } else if (shareData.clipboardErrorMessage) {
+          // 클립보드 복사 실패했지만 URL은 있음
+          toast({
+            title: "공유 링크 생성됨",
+            description: "클립보드 복사에 실패했습니다. 직접 URL을 복사해주세요: " + shareData.shareUrl.substring(0, 30) + "...",
+            duration: 5000,
+          });
+        } else {
+          // 일반 성공
+          toast({
+            title: "공유 링크 생성됨",
+            description: "이미지를 공유할 수 있는 링크가 생성되었습니다.",
+          });
+        }
+      } else {
+        // URL이 없는 경우
+        toast({
+          title: "공유 링크 생성 실패",
+          description: "공유 URL을 생성하지 못했습니다. 다시 시도해주세요.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
+      console.error("공유 기능 오류:", error);
       toast({
-        title: "Error creating share link",
-        description: "Please try again later",
+        title: "공유 기능 오류",
+        description: "공유 링크를 생성하는 중 문제가 발생했습니다. 다시 시도해주세요.",
         variant: "destructive",
       });
     }
