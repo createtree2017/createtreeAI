@@ -6,6 +6,7 @@
 import fetch from 'node-fetch';
 import fs from 'fs';
 import FormData from 'form-data';
+import path from 'path';
 
 // OpenAI API 키 - 환경 변수에서 가져옴
 const API_KEY = process.env.OPENAI_API_KEY;
@@ -88,22 +89,34 @@ async function callGptImage1Api(prompt: string, imageBuffer: Buffer): Promise<st
       // GPT-Image-1 Edit API 요청 (원본 이미지 참조)
       console.log("GPT-Image-1 Edit API 호출 (원본 이미지 참조 가능)");
       
-      // Edit API 요청 본문 (이미지 편집 - 원본 이미지 유지)
-      // 문서 형식에 맞게 데이터 구조 수정
-      const requestBody = {
-        model: "gpt-image-1",
-        prompt: prompt,
-        image: `data:image/jpeg;base64,${base64Image}`, // base64 이미지는 data URL 형식으로 전달
-        size: "1024x1024",
-        quality: "medium",
-        response_format: "url" // output_format이 아닌 response_format
+      // GPT-image-1 API는 JSON이 아닌 multipart/form-data 형식을 요구함
+      // 임시 파일 경로 설정 (Buffer를 파일로 저장)
+      const tempFilePath = path.join(process.cwd(), 'temp_image.jpg');
+      
+      // 이미지 Buffer를 임시 파일로 저장
+      fs.writeFileSync(tempFilePath, imageBuffer);
+      
+      // FormData 객체 생성
+      const formData = new FormData();
+      formData.append('model', 'gpt-image-1');
+      formData.append('prompt', prompt);
+      formData.append('image', fs.createReadStream(tempFilePath));
+      formData.append('size', '1024x1024');
+      formData.append('quality', 'medium');
+      formData.append('response_format', 'url');
+      
+      // multipart/form-data를 사용하므로 Content-Type 헤더는 자동 설정됨
+      const authHeader = {
+        'Authorization': `Bearer ${API_KEY}`
       };
+      
+      console.log("multipart/form-data 형식으로 GPT-Image-1 Edit API 호출");
       
       // API 호출
       const response = await fetch(OPENAI_IMAGE_EDITING_URL, {
         method: 'POST',
-        headers: headers,
-        body: JSON.stringify(requestBody)
+        headers: authHeader,
+        body: formData
       });
       
       // 응답 텍스트로 가져오기
