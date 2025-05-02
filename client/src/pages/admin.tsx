@@ -101,7 +101,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CheckCircle, Edit, PlusCircle, Trash2, X, Upload, Globe, ExternalLink, Download, PaintbrushVertical, Image as ImageIcon, Share2, Eye } from "lucide-react";
+import { CheckCircle, Edit, PlusCircle, Trash2, X, Upload, Globe, ExternalLink, Download, PaintbrushVertical, Image as ImageIcon, Share2, Eye, RefreshCw } from "lucide-react";
 
 // Define form validation schemas using Zod
 const personaFormSchema = z.object({
@@ -436,7 +436,7 @@ function ImageGallery() {
                   <Eye className="h-4 w-4 mr-1" />
                   보기
                 </Button>
-                <Button size="sm" variant="secondary" onClick={() => handleDownload(image)}>
+                <Button size="sm" variant="secondary" onClick={() => handleDownloadClick(image)}>
                   <Download className="h-4 w-4 mr-1" />
                   다운로드
                 </Button>
@@ -483,11 +483,54 @@ function ImageGallery() {
             </div>
             <DialogFooter>
               <div className="flex items-center gap-2">
-                <Button variant="default" onClick={() => handleDownload(selectedImage)}>
+                <Button variant="default" onClick={() => handleDownloadClick(selectedImage)}>
                   <Download className="h-4 w-4 mr-1" />
                   다운로드
                 </Button>
               </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+      
+      {/* 이미지 다운로드 형식 선택 다이얼로그 */}
+      {selectedImage && (
+        <Dialog open={downloadDialogOpen} onOpenChange={setDownloadDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>이미지 다운로드</DialogTitle>
+              <DialogDescription>
+                원하는 이미지 형식을 선택하세요
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-4 py-4">
+              <div 
+                className={`p-4 rounded-lg border-2 text-center cursor-pointer transition-all ${
+                  imageFormat === 'png' ? 'border-primary bg-primary/10' : 'border-gray-200 hover:border-gray-300'
+                }`}
+                onClick={() => setImageFormat('png')}
+              >
+                <div className="text-2xl mb-2">PNG</div>
+                <div className="text-sm text-gray-500">선명한 품질, 투명 배경 지원</div>
+              </div>
+              <div 
+                className={`p-4 rounded-lg border-2 text-center cursor-pointer transition-all ${
+                  imageFormat === 'jpeg' ? 'border-primary bg-primary/10' : 'border-gray-200 hover:border-gray-300'
+                }`}
+                onClick={() => setImageFormat('jpeg')}
+              >
+                <div className="text-2xl mb-2">JPEG</div>
+                <div className="text-sm text-gray-500">작은 파일 크기, 웹 공유에 최적화</div>
+              </div>
+            </div>
+            <DialogFooter className="flex justify-between items-center">
+              <Button variant="outline" onClick={() => setDownloadDialogOpen(false)}>
+                취소
+              </Button>
+              <Button onClick={() => selectedImage && handleDownload(selectedImage, imageFormat)}>
+                <Download className="h-4 w-4 mr-1" />
+                {imageFormat.toUpperCase()}로 다운로드
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
