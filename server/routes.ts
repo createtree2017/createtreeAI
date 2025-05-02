@@ -17,6 +17,7 @@ import {
 import { exportChatHistoryAsHtml, exportChatHistoryAsText } from "./services/export-logs";
 import { exportDevChatAsHtml, exportDevChatAsText } from "./services/dev-chat-export";
 import { DevHistoryManager } from "./services/dev-history-manager";
+import { AutoChatSaver } from "./services/auto-chat-saver";
 import { 
   music, 
   images, 
@@ -2050,6 +2051,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error(`Error saving dev history for date ${req.params.date}:`, error);
       return res.status(500).json({ error: "Failed to save history for this date" });
+    }
+  });
+  
+  // "채팅저장" 명령어 처리 엔드포인트 - 현재 날짜로 자동 저장
+  app.post("/api/dev-history/save-by-command", (req, res) => {
+    try {
+      const autoChatSaver = AutoChatSaver.getInstance();
+      const success = autoChatSaver.saveByCommand();
+      
+      if (success) {
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD 형식
+        return res.json({ 
+          success: true, 
+          message: `"채팅저장" 명령에 의해 대화가 ${today} 날짜로 성공적으로 저장되었습니다.` 
+        });
+      } else {
+        return res.status(400).json({ 
+          error: "채팅 저장 실패", 
+          message: "변경된 내용이 없거나 저장할 내용이 없습니다." 
+        });
+      }
+    } catch (error) {
+      console.error("Error saving chat by command:", error);
+      return res.status(500).json({ 
+        error: "채팅 저장 실패", 
+        message: error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다."
+      });
     }
   });
 
