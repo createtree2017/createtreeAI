@@ -16,11 +16,18 @@ export const getMusicList = async () => {
 };
 
 // Image API endpoints
-export const transformImage = async (data: FormData) => {
-  const response = await fetch('/api/image/transform', {
+export const transformImage = async (data: FormData, isAdmin: boolean = false) => {
+  // isAdmin 파라미터를 사용하여 관리자 요청인지 표시
+  const url = isAdmin ? '/api/image/transform?admin=true' : '/api/image/transform';
+  
+  const response = await fetch(url, {
     method: 'POST',
     body: data,
     credentials: 'include',
+    headers: {
+      // 헤더를 통해서도 관리자 요청임을 표시 (URL 파라미터와 함께 중복 보장)
+      'X-Admin-Request': isAdmin ? 'true' : 'false'
+    }
   });
   
   if (!response.ok) {

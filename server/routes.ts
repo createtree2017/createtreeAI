@@ -427,14 +427,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         categorySystemPrompt
       );
       
-      // Save to database
-      const savedImage = await storage.saveImageTransformation(
-        req.file.originalname,
-        style,
-        filePath,
-        transformedImageUrl,
-        variantId // Store which variant was used, if any
-      );
+      // Check if this is a request from admin panel or if it's a variant test
+      // Admin 요청이거나 A/B 테스트 변형일 경우에만 데이터베이스에 저장
+      const isAdmin = req.query.admin === 'true' || req.headers['x-admin-request'] === 'true';
+      const isVariantTest = !!variantId;
+      
+      let savedImage;
+      
+      if (isAdmin || isVariantTest) {
+        // 관리자 패널에서의 요청이거나 A/B 테스트 변형인 경우 이미지를 데이터베이스에 저장
+        savedImage = await storage.saveImageTransformation(
+          req.file.originalname,
+          style,
+          filePath,
+          transformedImageUrl,
+          variantId // Store which variant was used, if any
+        );
+        console.log(`이미지가 데이터베이스에 저장되었습니다. (관리자: ${isAdmin}, 변형 테스트: ${isVariantTest})`);
+      } else {
+        // 일반 사용자 요청인 경우 데이터베이스에 저장하지 않고 응답만 전송
+        console.log("일반 사용자 요청: 이미지가 일시적으로만 제공됩니다.");
+        
+        // 임시 응답 객체 생성 (실제 저장된 것이 아니라 구조만 맞춤)
+        savedImage = {
+          id: -1, // -1은 저장되지 않은 임시 ID
+          title: `${style.charAt(0).toUpperCase() + style.slice(1)} ${path.basename(req.file.originalname, path.extname(req.file.originalname))}`,
+          style,
+          originalUrl: filePath,
+          transformedUrl: transformedImageUrl,
+          createdAt: new Date().toISOString(),
+          isTemporary: true // 클라이언트에서 임시 여부 식별을 위한 플래그
+        };
+      }
       
       return res.status(201).json(savedImage);
     } catch (error) {
