@@ -2,8 +2,56 @@ import { db } from "@db";
 import { music, images, chatMessages, favorites, savedChats, eq, desc, and } from "@shared/schema";
 import fs from "fs";
 import path from "path";
+import fetch from "node-fetch";
+
+// 임시 이미지 저장을 위한 경로
+const TEMP_IMAGE_DIR = path.join(process.cwd(), 'uploads', 'temp');
+
+// 임시 이미지를 파일로 저장하고 URL 경로를 반환하는 함수
+async function saveTemporaryImage(imageUrl: string, title: string): Promise<string> {
+  try {
+    // 임시 디렉토리가 없으면 생성
+    if (!fs.existsSync(TEMP_IMAGE_DIR)) {
+      fs.mkdirSync(TEMP_IMAGE_DIR, { recursive: true });
+    }
+    
+    // 파일 이름 생성 (타임스탬프 추가)
+    const timestamp = Date.now();
+    const filename = `temp_${timestamp}_${title.replace(/[^a-zA-Z0-9]/g, '_')}.jpg`;
+    const filepath = path.join(TEMP_IMAGE_DIR, filename);
+    
+    // 이미지가 base64 인코딩된 경우
+    if (imageUrl.startsWith('data:image')) {
+      const base64Data = imageUrl.split(',')[1];
+      fs.writeFileSync(filepath, Buffer.from(base64Data, 'base64'));
+      console.log(`임시 이미지가 로컬에 저장되었습니다: ${filepath}`);
+      return filepath;
+    } 
+    // 일반 URL인 경우
+    else {
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.statusText}`);
+      }
+      
+      const arrayBuffer = await response.arrayBuffer();
+      fs.writeFileSync(filepath, Buffer.from(arrayBuffer));
+      console.log(`임시 이미지가 로컬에 저장되었습니다: ${filepath}`);
+      return filepath;
+    }
+  } catch (error) {
+    console.error('임시 이미지 저장 중 오류:', error);
+    throw error;
+  }
+}
 
 export const storage = {
+  // 임시 이미지 관련 함수들
+  async saveTemporaryImage(imageUrl: string, title: string) {
+    const localPath = await saveTemporaryImage(imageUrl, title);
+    return { localPath, filename: path.basename(localPath) };
+  },
+  
   // Music related functions
   async saveMusicGeneration(
     babyName: string,

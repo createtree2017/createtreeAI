@@ -19,6 +19,7 @@ declare module 'express-session' {
       transformedUrl: string;
       createdAt: string;
       isTemporary: boolean;
+      localFilePath?: string; // 로컬 파일 시스템 경로 추가
     };
   }
 }
@@ -222,9 +223,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/uploads', (req, res, next) => {
     // 정적 파일 제공 - 직접 파일 읽고 제공
     const filePath = path.join(process.cwd(), 'uploads', req.path);
+    console.log(`Serving static file: ${filePath}`);
     res.sendFile(filePath, (err) => {
       if (err) {
         console.error(`Error serving static file: ${filePath}`, err);
+        next();
+      }
+    });
+  });
+  
+  // 임시 이미지 파일 제공 (별도 라우트로 처리)
+  app.use('/uploads/temp', (req, res, next) => {
+    // 임시 파일 제공
+    const tempFilePath = path.join(process.cwd(), 'uploads', 'temp', req.path);
+    console.log(`Serving temporary file: ${tempFilePath}`);
+    res.sendFile(tempFilePath, (err) => {
+      if (err) {
+        console.error(`Error serving temporary file: ${tempFilePath}`, err);
         next();
       }
     });
@@ -464,23 +479,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // 일반 사용자 요청인 경우 데이터베이스에 저장하지 않고 응답만 전송
         console.log("일반 사용자 요청: 이미지가 일시적으로만 제공됩니다.");
         
-        // 임시 응답 객체 생성 (실제 저장된 것이 아니라 구조만 맞춤)
-        savedImage = {
-          id: -1, // -1은 저장되지 않은 임시 ID
-          title: `${style.charAt(0).toUpperCase() + style.slice(1)} ${path.basename(req.file.originalname, path.extname(req.file.originalname))}`,
-          style,
-          originalUrl: filePath,
-          transformedUrl: transformedImageUrl,
-          createdAt: new Date().toISOString(),
-          isTemporary: true // 클라이언트에서 임시 여부 식별을 위한 플래그
-        };
-        
-        // 세션에 임시 이미지 정보 저장 (다운로드 처리를 위해)
-        if (req.session) {
-          req.session.tempImage = savedImage;
-          console.log("임시 이미지 정보를 세션에 저장했습니다:", savedImage.title);
-        } else {
-          console.warn("세션 객체가 없어 임시 이미지를 저장할 수 없습니다.");
+        // 긴 base64 문자열을 로컬 파일로 저장 (세션에 저장하는 대신)
+        try {
+          const title = `${style.charAt(0).toUpperCase() + style.slice(1)} ${path.basename(req.file.originalname, path.extname(req.file.originalname))}`;
+          const tempImageResult = await storage.saveTemporaryImage(transformedImageUrl, title);
+          
+          // 임시 응답 객체 생성 (로컬 파일 경로를 사용)
+          savedImage = {
+            id: -1, // -1은 저장되지 않은 임시 ID
+            title,
+            style,
+            originalUrl: filePath,
+            transformedUrl: `/uploads/temp/${tempImageResult.filename}`, // 로컬 파일 경로
+            localFilePath: tempImageResult.localPath, // 전체 파일 경로 (내부 사용)
+            createdAt: new Date().toISOString(),
+            isTemporary: true // 클라이언트에서 임시 여부 식별을 위한 플래그
+          };
+          
+          // 세션에 임시 이미지 정보 저장 (다운로드 처리를 위해)
+          if (req.session) {
+            req.session.tempImage = savedImage;
+            console.log("임시 이미지 정보를 세션에 저장했습니다:", savedImage.title);
+          } else {
+            console.warn("세션 객체가 없어 임시 이미지를 저장할 수 없습니다.");
+          }
+        } catch (error) {
+          console.error("임시 이미지 저장 중 오류:", error);
+          // 오류 발생 시 기본 응답 객체 생성
+          savedImage = {
+            id: -1,
+            title: `오류: ${style} 이미지`,
+            style,
+            originalUrl: filePath,
+            transformedUrl: transformedImageUrl,
+            createdAt: new Date().toISOString(),
+            isTemporary: true
+          };
         }
       }
       
@@ -674,8 +708,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // 세션에서 임시 이미지 확인 (ID가 -1인 경우)
       if (type === "image" && parsedId === -1 && req.session && req.session.tempImage) {
         console.log("임시 이미지 다운로드 요청 처리 중:", req.session.tempImage.title);
-        url = req.session.tempImage.transformedUrl;
-        filename = `${req.session.tempImage.title || 'transformed_image'}.jpg`;
+        
+        // 로컬 파일 경로가 있으면 직접 파일을 읽어서 반환
+        if (req.session.tempImage.localFilePath) {
+          try {
+            console.log(`로컬 파일에서 읽기: ${req.session.tempImage.localFilePath}`);
+            const imageBuffer = fs.readFileSync(req.session.tempImage.localFilePath);
+            const filename = `${req.session.tempImage.title || 'transformed_image'}.jpg`;
+            
+            // 응답 헤더 설정
+            res.setHeader('Content-Type', 'image/jpeg');
+            res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+            
+            // 파일 데이터 전송
+            return res.send(imageBuffer);
+          } catch (fileError) {
+            console.error('로컬 파일 읽기 실패:', fileError);
+            // 파일 읽기 실패 시 원래 URL 사용
+            url = req.session.tempImage.transformedUrl;
+            filename = `${req.session.tempImage.title || 'transformed_image'}.jpg`;
+          }
+        } else {
+          // 기존 방식으로 URL에서 읽기
+          url = req.session.tempImage.transformedUrl;
+          filename = `${req.session.tempImage.title || 'transformed_image'}.jpg`;
+        }
       } else {
         // 정상적인 데이터베이스 조회
         mediaItem = await storage.getMediaItem(parsedId, type);
