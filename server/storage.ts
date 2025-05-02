@@ -219,9 +219,24 @@ export const storage = {
   },
   
   async getImageList() {
-    return db.query.images.findMany({
-      orderBy: [desc(images.createdAt)],
-    });
+    try {
+      // 데이터베이스에서 이미지를 최신순으로 가져옴
+      const results = await db.query.images.findMany({
+        orderBy: [desc(images.createdAt)],
+      });
+      
+      // 최신 생성 이미지 로그 출력 (디버깅용)
+      if (results.length > 0) {
+        console.log(`최신 이미지 ${results.length}개 조회됨, 가장 최근 ID: ${results[0].id}, 생성일: ${results[0].createdAt}`);
+      } else {
+        console.log('저장된 이미지가 없습니다.');
+      }
+      
+      return results;
+    } catch (error) {
+      console.error("Error fetching images:", error);
+      return [];
+    }
   },
   
   // Chat related functions
