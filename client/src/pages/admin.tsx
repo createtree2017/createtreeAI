@@ -602,7 +602,6 @@ export default function AdminPage() {
           <TabsTrigger value="chat-menu">채팅 메뉴</TabsTrigger>
           <TabsTrigger value="image-menu">이미지 생성</TabsTrigger>
           <TabsTrigger value="test-menu">TEST</TabsTrigger>
-          <TabsTrigger value="image-gallery">이미지 갤러리</TabsTrigger>
           <TabsTrigger value="languages">언어 설정</TabsTrigger>
           <TabsTrigger value="dev-history">개발 대화 기록</TabsTrigger>
         </TabsList>
@@ -640,6 +639,7 @@ export default function AdminPage() {
               <TabsList>
                 <TabsTrigger value="image-concepts">이미지 컨셉</TabsTrigger>
                 <TabsTrigger value="image-categories">이미지 카테고리</TabsTrigger>
+                <TabsTrigger value="image-gallery">이미지 갤러리</TabsTrigger>
               </TabsList>
               
               <TabsContent value="image-concepts">
@@ -651,6 +651,12 @@ export default function AdminPage() {
               <TabsContent value="image-categories">
                 <div className="mt-6">
                   <ConceptCategoryManager />
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="image-gallery">
+                <div className="mt-6">
+                  <ImageGallery />
                 </div>
               </TabsContent>
             </Tabs>
@@ -682,9 +688,7 @@ export default function AdminPage() {
           </div>
         </TabsContent>
         
-        <TabsContent value="image-gallery">
-          <ImageGallery />
-        </TabsContent>
+
 
         <TabsContent value="languages">
           <LanguageSettings />
