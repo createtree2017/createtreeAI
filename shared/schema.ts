@@ -379,5 +379,23 @@ export type AbTestVariant = typeof abTestVariants.$inferSelect;
 export type InsertAbTestResult = z.infer<typeof insertAbTestResultSchema>;
 export type AbTestResult = typeof abTestResults.$inferSelect;
 
+// 배너 데이터 스키마
+export const banners = pgTable("banners", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  imageSrc: text("image_src").notNull(),
+  href: text("href").notNull(),
+  isNew: boolean("is_new").default(false),
+  isActive: boolean("is_active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertBannerSchema = createInsertSchema(banners);
+export type InsertBanner = z.infer<typeof insertBannerSchema>;
+export type Banner = typeof banners.$inferSelect;
+
 // Export operators for query building
 export { eq, desc, and, asc, sql, gte, lte, gt, lt, ne, like, notLike, isNull, isNotNull, inArray } from "drizzle-orm";
