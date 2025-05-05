@@ -91,7 +91,7 @@ export default function Home() {
   const displayBanners = banners?.length ? banners : tempBanners;
   
   // 스타일 카드 데이터 가져오기
-  const { data: styleCardData, isLoading: styleCardsLoading } = useQuery({
+  const { data: styleCardData = [], isLoading: styleCardsLoading } = useQuery<StyleCard[]>({
     queryKey: ["/api/style-cards"],
     queryFn: async () => {
       const response = await fetch("/api/style-cards");
@@ -201,8 +201,8 @@ export default function Home() {
     <div className="pb-16 animate-fadeIn">
       {/* 헤더 */}
       <div className="mb-8 px-4 md:px-6 pt-8">
-        <h1 className="text-white text-2xl font-semibold mb-2">Mom's Service</h1>
-        <p className="text-neutral-400 text-sm">
+        <h1 className="text-white text-3xl font-semibold mb-3">Mom's Service</h1>
+        <p className="text-neutral-400 text-base">
           AI로 만드는 특별한 순간, 소중한 기억을 남겨보세요
         </p>
       </div>
@@ -218,7 +218,7 @@ export default function Home() {
       {/* AI 스타일 그리드 - Pollo.ai 스타일 */}
       <section className="px-4 md:px-6 py-6 md:py-8">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-white text-lg font-medium">AI 이미지 스타일</h2>
+          <h2 className="text-white text-xl md:text-2xl font-medium">AI 이미지 스타일</h2>
         </div>
         
         <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-3 lg:grid-cols-4">
