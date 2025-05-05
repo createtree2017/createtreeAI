@@ -77,31 +77,30 @@ export default function FeaturedSlider({ items, title }: FeaturedSliderProps) {
             <Link 
               key={item.id} 
               href={item.href}
-              className="relative min-w-full block aspect-[2.2/1] overflow-hidden rounded-2xl group"
+              className="relative min-w-full block aspect-[1.8/1] overflow-hidden rounded-2xl group"
             >
-              {/* 이미지 배경 */}
-              <div className="absolute inset-0">
+              {/* 이미지 배경 - 상단 2/3 부분 */}
+              <div className="absolute inset-0 h-2/3">
                 <img 
                   src={item.imageSrc} 
                   alt={item.title} 
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-black/20" />
               </div>
               
-              {/* 텍스트 콘텐츠 */}
-              <div className="absolute bottom-0 left-0 p-8 md:p-10 w-full">
-                <h3 className="text-white text-3xl md:text-4xl font-bold mb-3">{item.title}</h3>
-                <p className="text-white/90 text-lg md:text-xl line-clamp-2 mb-5 max-w-3xl">{item.description}</p>
-                <div className="mt-4 inline-flex items-center bg-pink-500 hover:bg-pink-600 transition-colors px-8 py-4 rounded-full text-white text-lg font-medium">
-                  무료로 시작하기
-                  <ChevronRight size={20} className="ml-2" />
+              {/* 텍스트 콘텐츠 - 하단 1/3 부분 */}
+              <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-[#2C3E50] p-5 md:p-6">
+                <h3 className="text-white text-2xl md:text-3xl font-bold">{item.title}</h3>
+                <p className="text-white/90 text-sm md:text-base line-clamp-2 mt-2 md:mt-3 max-w-3xl">{item.description}</p>
+                <div className="mt-4 inline-flex items-center bg-[#FF4D6D] hover:bg-[#FF3A5F] transition-colors px-6 py-2 rounded-full text-white text-base font-medium">
+                  Try for free
+                  <ChevronRight size={18} className="ml-1" />
                 </div>
               </div>
               
               {/* NEW 배지 */}
               {item.isNew && (
-                <div className="absolute top-6 right-6 px-4 py-2 bg-purple-600 text-white text-sm font-bold rounded-full">
+                <div className="absolute top-3 right-3 px-3 py-1 bg-[#FF4D6D] text-white text-xs font-bold rounded-md">
                   NEW
                 </div>
               )}
@@ -113,30 +112,30 @@ export default function FeaturedSlider({ items, title }: FeaturedSliderProps) {
       {/* 네비게이션 버튼 */}
       <button 
         onClick={scrollPrev} 
-        className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-black/50 hover:bg-black/70 text-white rounded-full p-3 transition-colors"
+        className="absolute left-4 top-1/3 -translate-y-1/2 z-10 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors"
         aria-label="이전 슬라이드"
       >
-        <ChevronLeft size={24} />
+        <ChevronLeft size={20} />
       </button>
       <button 
         onClick={scrollNext} 
-        className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-black/50 hover:bg-black/70 text-white rounded-full p-3 transition-colors"
+        className="absolute right-4 top-1/3 -translate-y-1/2 z-10 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors"
         aria-label="다음 슬라이드"
       >
-        <ChevronRight size={24} />
+        <ChevronRight size={20} />
       </button>
       
       {/* 도트 인디케이터 */}
       {scrollSnaps.length > 1 && (
-        <div className="flex justify-center gap-2 mt-4">
+        <div className="flex justify-center gap-3 mt-3">
           {scrollSnaps.map((_, index) => (
             <button
               key={index}
               onClick={() => emblaApi?.scrollTo(index)}
-              className={`w-2 h-2 rounded-full transition-all ${
+              className={`h-2 rounded-full transition-all ${
                 index === selectedIndex 
-                  ? 'bg-primary-lavender w-4' 
-                  : 'bg-neutral-600 hover:bg-neutral-500'
+                  ? 'bg-[#FF4D6D] w-6' 
+                  : 'bg-gray-400/50 w-2 hover:bg-gray-400'
               }`}
               aria-label={`슬라이드 ${index + 1}로 이동`}
             />

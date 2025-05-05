@@ -200,7 +200,7 @@ export default function Home() {
   return (
     <div className="pb-16 animate-fadeIn">
       {/* 배너 슬라이더 */}
-      <section className="mb-8 px-4 md:px-6 pt-4">
+      <section className="mb-6 px-2 md:px-4 pt-2">
         <FeaturedSlider 
           items={displayBanners} 
         />
@@ -228,8 +228,8 @@ export default function Home() {
                       className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                     />
                     {card.isNew && (
-                      <div className="absolute top-4 right-4 bg-purple-600 text-white text-sm font-semibold px-4 py-1.5 rounded-full">
-                        New
+                      <div className="absolute top-3 right-3 px-3 py-1 bg-[#FF4D6D] text-white text-xs font-bold rounded-md">
+                        NEW
                       </div>
                     )}
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-16">
@@ -251,8 +251,8 @@ export default function Home() {
                       alt="지브리 AI 생성기" 
                       className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                     />
-                    <div className="absolute top-4 right-4 bg-purple-600 text-white text-sm font-semibold px-4 py-1.5 rounded-full">
-                      New
+                    <div className="absolute top-3 right-3 px-3 py-1 bg-[#FF4D6D] text-white text-xs font-bold rounded-md">
+                      NEW
                     </div>
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-16">
                       <h3 className="text-white font-bold text-xl">지브리 AI 생성기</h3>
@@ -286,8 +286,8 @@ export default function Home() {
                       alt="심슨 AI 생성기" 
                       className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                     />
-                    <div className="absolute top-4 right-4 bg-purple-600 text-white text-sm font-semibold px-4 py-1.5 rounded-full">
-                      New
+                    <div className="absolute top-3 right-3 px-3 py-1 bg-[#FF4D6D] text-white text-xs font-bold rounded-md">
+                      NEW
                     </div>
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-16">
                       <h3 className="text-white font-bold text-xl">심슨 AI 생성기</h3>
@@ -305,8 +305,8 @@ export default function Home() {
                       alt="픽사 AI 생성기" 
                       className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                     />
-                    <div className="absolute top-4 right-4 bg-purple-600 text-white text-sm font-semibold px-4 py-1.5 rounded-full">
-                      New
+                    <div className="absolute top-3 right-3 px-3 py-1 bg-[#FF4D6D] text-white text-xs font-bold rounded-md">
+                      NEW
                     </div>
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-16">
                       <h3 className="text-white font-bold text-xl">픽사 AI 생성기</h3>
