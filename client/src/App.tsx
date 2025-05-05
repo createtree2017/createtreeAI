@@ -93,7 +93,7 @@ function Layout({ children }: { children: React.ReactNode }) {
 
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#121217]">
-            <div className="max-w-6xl mx-auto w-full p-8 lg:p-12 pb-20">
+            <div className="max-w-7xl mx-auto w-full p-6 lg:p-8 pb-16">
               {children}
             </div>
           </div>
@@ -152,7 +152,7 @@ function Layout({ children }: { children: React.ReactNode }) {
       
       {/* Main content */}
       <main className={`flex-1 overflow-y-auto custom-scrollbar ${useMobileLayout ? "pb-16" : "pb-4"}`}>
-        <div className={`${isInIframe ? "p-0" : "p-6"} mx-auto ${isMobile ? "max-w-lg" : ""}`}>
+        <div className={`${isInIframe ? "p-0" : "p-4"} mx-auto ${isMobile ? "max-w-xl" : ""}`}>
           {children}
         </div>
       </main>

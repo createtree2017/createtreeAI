@@ -208,7 +208,7 @@ export default function Home() {
       </div>
       
       {/* 배너 슬라이더 */}
-      <section className="mb-14 px-4 md:px-6">
+      <section className="mb-8 px-4 md:px-6">
         <FeaturedSlider 
           items={displayBanners} 
           title="추천 기능"
@@ -216,12 +216,12 @@ export default function Home() {
       </section>
       
       {/* AI 스타일 그리드 - Pollo.ai 스타일 */}
-      <section className="px-4 md:px-6 py-8 md:py-10">
-        <div className="flex items-center justify-between mb-8">
+      <section className="px-4 md:px-6 py-6 md:py-8">
+        <div className="flex items-center justify-between mb-6">
           <h2 className="text-white text-lg font-medium">AI 이미지 스타일</h2>
         </div>
         
-        <div className="grid grid-cols-2 gap-6 md:gap-10 md:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 md:gap-6 md:grid-cols-3 lg:grid-cols-4">
           {styleCardData?.length > 0 ? (
             // 데이터베이스에서 가져온 스타일 카드 렌더링
             styleCardData.map((card: StyleCard) => (
@@ -237,7 +237,7 @@ export default function Home() {
                       className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                     />
                     {card.isNew && (
-                      <div className="absolute top-3 right-3 bg-purple-600 text-white text-sm font-semibold px-3 py-1 rounded-full">
+                      <div className="absolute top-4 right-4 bg-purple-600 text-white text-sm font-semibold px-4 py-1.5 rounded-full">
                         New
                       </div>
                     )}
