@@ -77,10 +77,10 @@ export default function FeaturedSlider({ items, title }: FeaturedSliderProps) {
             <Link 
               key={item.id} 
               href={item.href}
-              className="relative min-w-full block aspect-[16/9] overflow-hidden rounded-2xl group"
+              className="relative min-w-full block aspect-[4/5] md:aspect-[16/9] overflow-hidden rounded-2xl group"
             >
-              {/* 이미지 배경 - 상단 2/3 부분 */}
-              <div className="absolute inset-0 h-2/3">
+              {/* 이미지 배경 - 모바일에서는 3/4, 데스크톱에서는 2/3 */}
+              <div className="absolute inset-0 h-3/4 md:h-2/3">
                 <img 
                   src={item.imageSrc} 
                   alt={item.title} 
@@ -88,8 +88,8 @@ export default function FeaturedSlider({ items, title }: FeaturedSliderProps) {
                 />
               </div>
               
-              {/* 텍스트 콘텐츠 - 하단 1/3 부분 */}
-              <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-[#2C3E50] p-3 md:p-4">
+              {/* 텍스트 콘텐츠 - 모바일에서는 1/4, 데스크톱에서는 1/3 */}
+              <div className="absolute bottom-0 left-0 right-0 h-1/4 md:h-1/3 bg-[#2C3E50] p-3 md:p-4">
                 <h3 className="text-white text-lg md:text-xl font-bold">{item.title}</h3>
                 <p className="text-white/90 text-xs md:text-sm line-clamp-1 mt-1 md:mt-2 max-w-3xl">{item.description}</p>
                 <div className="mt-1 inline-flex items-center bg-[#FF4D6D] hover:bg-[#FF3A5F] transition-colors px-3 py-1 rounded-full text-white text-xs font-medium">
