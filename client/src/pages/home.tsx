@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import PolioCard from "@/components/PolioCard";
+import FeaturedSlider from "@/components/FeaturedSlider";
 import { 
   Music, 
   PaintbrushVertical, 
@@ -23,26 +24,56 @@ interface RecentActivity {
   type: "music" | "image";
 }
 
+interface Banner {
+  id: number;
+  title: string;
+  description: string;
+  imageSrc: string;
+  href: string;
+  isNew?: boolean;
+  isActive: boolean;
+  sortOrder: number;
+}
+
 export default function Home() {
-  // 피처링 기능
-  const featuredTools = [
+  // 배너 데이터 가져오기
+  const { data: banners, isLoading: bannersLoading } = useQuery({
+    queryKey: ["/api/banners"],
+    queryFn: async () => {
+      const response = await fetch("/api/banners");
+      if (!response.ok) {
+        throw new Error("배너 데이터를 가져오는데 실패했습니다");
+      }
+      return response.json() as Promise<Banner[]>;
+    }
+  });
+  
+  // 임시 배너 데이터 (API가 준비되기 전까지 사용)
+  const tempBanners = [
     {
-      title: "추억 예술",
-      description: "사진을 아름다운 예술 스타일로 변환하세요",
-      icon: PaintbrushVertical,
+      id: 1,
+      title: "추억 예술 체험하기",
+      description: "사진을 아름다운 예술 작품으로 변환하세요. 지브리, 디즈니, 픽사 등 다양한 스타일을 지원합니다.",
       imageSrc: "https://images.pexels.com/photos/235615/pexels-photo-235615.jpeg?auto=compress&cs=tinysrgb&w=600",
       href: "/image",
       isNew: true,
-      aspectRatio: "landscape" as const,
+      isActive: true,
+      sortOrder: 1
     },
     {
-      title: "자장가 제작",
-      description: "아기를 위한 맞춤형 음악을 만들어보세요",
-      icon: Music,
+      id: 2,
+      title: "자장가 생성기",
+      description: "아기를 위한 맞춤형 음악을 AI로 만들어보세요. 아이의 이름을 넣어 특별한 자장가를 만들 수 있습니다.",
+      imageSrc: "https://images.pexels.com/photos/3662850/pexels-photo-3662850.jpeg?auto=compress&cs=tinysrgb&w=600",
       href: "/music",
       isNew: true,
-    },
+      isActive: true,
+      sortOrder: 2
+    }
   ];
+  
+  // 실제 배너 데이터 또는 임시 데이터 사용
+  const displayBanners = banners?.length ? banners : tempBanners;
 
   // AI 도구
   const aiTools = [
@@ -149,26 +180,12 @@ export default function Home() {
         </p>
       </div>
       
-      {/* 피처링 기능 */}
+      {/* 배너 슬라이더 */}
       <section className="mb-8 px-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-white text-lg font-medium">추천 기능</h2>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {featuredTools.map((item, i) => (
-            <PolioCard
-              key={i}
-              title={item.title}
-              description={item.description}
-              icon={item.icon}
-              imageSrc={item.imageSrc}
-              href={item.href}
-              isNew={item.isNew}
-              aspectRatio={item.aspectRatio}
-            />
-          ))}
-        </div>
+        <FeaturedSlider 
+          items={displayBanners} 
+          title="추천 기능"
+        />
       </section>
       
       {/* AI 도구 그리드 */}

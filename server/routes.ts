@@ -51,6 +51,7 @@ import {
   insertBannerSchema,
   eq,
   asc,
+  desc,
   and,
   sql
 } from "../shared/schema";
@@ -2420,6 +2421,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: "채팅 저장 실패", 
         message: error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다."
       });
+    }
+  });
+  
+  // 배너 관리 API
+  app.get("/api/banners", async (req, res) => {
+    try {
+      const allBanners = await db.query.banners.findMany({
+        where: eq(banners.isActive, true),
+        orderBy: [asc(banners.sortOrder), desc(banners.createdAt)]
+      });
+      res.json(allBanners);
+    } catch (error) {
+      console.error("Error getting banners:", error);
+      res.status(500).json({ error: "Failed to get banners" });
+    }
+  });
+  
+  app.post("/api/admin/banners", async (req, res) => {
+    try {
+      const bannerData = insertBannerSchema.parse(req.body);
+      const newBanner = await db.insert(banners).values(bannerData).returning();
+      res.status(201).json(newBanner[0]);
+    } catch (error) {
+      console.error("Error creating banner:", error);
+      res.status(500).json({ error: "Failed to create banner" });
+    }
+  });
+  
+  app.put("/api/admin/banners/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid banner ID" });
+      }
+      
+      const bannerData = insertBannerSchema.partial().parse(req.body);
+      const updatedBanner = await db
+        .update(banners)
+        .set({
+          ...bannerData,
+          updatedAt: new Date()
+        })
+        .where(eq(banners.id, id))
+        .returning();
+        
+      if (updatedBanner.length === 0) {
+        return res.status(404).json({ error: "Banner not found" });
+      }
+      
+      res.json(updatedBanner[0]);
+    } catch (error) {
+      console.error("Error updating banner:", error);
+      res.status(500).json({ error: "Failed to update banner" });
+    }
+  });
+  
+  app.delete("/api/admin/banners/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid banner ID" });
+      }
+      
+      const result = await db
+        .delete(banners)
+        .where(eq(banners.id, id))
+        .returning({ id: banners.id });
+        
+      if (result.length === 0) {
+        return res.status(404).json({ error: "Banner not found" });
+      }
+      
+      res.json({ message: "Banner deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting banner:", error);
+      res.status(500).json({ error: "Failed to delete banner" });
     }
   });
 
