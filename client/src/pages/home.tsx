@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import PolioCard from "@/components/PolioCard";
 import FeaturedSlider from "@/components/FeaturedSlider";
 import { 
@@ -74,6 +75,18 @@ export default function Home() {
   
   // 실제 배너 데이터 또는 임시 데이터 사용
   const displayBanners = banners?.length ? banners : tempBanners;
+  
+  // 스타일 카드 데이터 가져오기
+  const { data: styleCardData, isLoading: styleCardsLoading } = useQuery({
+    queryKey: ["/api/style-cards"],
+    queryFn: async () => {
+      const response = await fetch("/api/style-cards");
+      if (!response.ok) {
+        throw new Error("스타일 카드 데이터를 가져오는데 실패했습니다");
+      }
+      return response.json();
+    }
+  });
 
   // AI 도구
   const aiTools = [
@@ -188,61 +201,116 @@ export default function Home() {
         />
       </section>
       
-      {/* AI 도구 그리드 */}
-      <section className="mb-8 px-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-white text-lg font-medium">AI 도구</h2>
-        </div>
-        
-        <div className="grid grid-cols-3 gap-3">
-          {aiTools.map((item, i) => (
-            <PolioCard
-              key={i}
-              title={item.title}
-              icon={item.icon}
-              href={item.href}
-              isNew={item.isNew}
-            />
-          ))}
-        </div>
-      </section>
-      
-      {/* 캐릭터 도우미 */}
-      <section className="mb-8 px-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-white text-lg font-medium">AI 도우미 캐릭터</h2>
-        </div>
-        
-        <div className="grid grid-cols-3 gap-3">
-          {characterHelpers.map((item, i) => (
-            <PolioCard
-              key={i}
-              title={item.title}
-              description={item.description}
-              imageSrc={item.imageSrc}
-              href={item.href}
-              aspectRatio={item.aspectRatio}
-            />
-          ))}
-        </div>
-      </section>
-      
-      {/* 인기 컨텐츠 */}
+      {/* AI 스타일 그리드 - Pollo.ai 스타일 */}
       <section className="px-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-white text-lg font-medium">인기 스타일</h2>
+          <h2 className="text-white text-lg font-medium">AI 이미지 스타일</h2>
         </div>
         
-        <div className="grid grid-cols-2 gap-3">
-          {trendingResources.map((item, i) => (
-            <PolioCard
-              key={i}
-              title={item.title}
-              icon={item.icon}
-              imageSrc={item.imageSrc}
-              href={item.href}
-            />
-          ))}
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+          {styleCardData?.length > 0 ? (
+            // 데이터베이스에서 가져온 스타일 카드 렌더링
+            styleCardData.map((card) => (
+              <div
+                key={card.id}
+                className="relative rounded-2xl overflow-hidden bg-neutral-800 border border-neutral-700 hover:border-primary-lavender transition-colors"
+              >
+                <Link href={card.href} className="block">
+                  <div className="aspect-[1/1] relative overflow-hidden">
+                    <img
+                      src={card.imageSrc}
+                      alt={card.title}
+                      className="w-full h-full object-cover"
+                    />
+                    {card.isNew && (
+                      <div className="absolute top-2 right-2 bg-primary-lavender text-white text-xs font-semibold px-2 py-1 rounded-full">
+                        New
+                      </div>
+                    )}
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                      <h3 className="text-white font-bold text-lg">{card.title}</h3>
+                    </div>
+                  </div>
+                </Link>
+              </div>
+            ))
+          ) : (
+            // 기본 더미 데이터 (데이터베이스에 데이터가 없을 경우)
+            <>
+              {/* 지브리 AI 스타일 */}
+              <div className="relative rounded-2xl overflow-hidden bg-neutral-800 border border-neutral-700 hover:border-primary-lavender transition-colors">
+                <Link href="/image?style=ghibli" className="block">
+                  <div className="aspect-[1/1] relative overflow-hidden">
+                    <img 
+                      src="https://images.pexels.com/photos/1590549/pexels-photo-1590549.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" 
+                      alt="지브리 AI 생성기" 
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute top-2 right-2 bg-primary-lavender text-white text-xs font-semibold px-2 py-1 rounded-full">
+                      New
+                    </div>
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                      <h3 className="text-white font-bold text-lg">지브리 AI 생성기</h3>
+                    </div>
+                  </div>
+                </Link>
+              </div>
+              
+              {/* 디즈니 스타일 */}
+              <div className="relative rounded-2xl overflow-hidden bg-neutral-800 border border-neutral-700 hover:border-primary-lavender transition-colors">
+                <Link href="/image?style=disney" className="block">
+                  <div className="aspect-[1/1] relative overflow-hidden">
+                    <img 
+                      src="https://images.pexels.com/photos/3608263/pexels-photo-3608263.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" 
+                      alt="디즈니 AI 생성기" 
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                      <h3 className="text-white font-bold text-lg">디즈니 AI 생성기</h3>
+                    </div>
+                  </div>
+                </Link>
+              </div>
+              
+              {/* 심슨 스타일 */}
+              <div className="relative rounded-2xl overflow-hidden bg-neutral-800 border border-neutral-700 hover:border-primary-lavender transition-colors">
+                <Link href="/image?style=simpsons" className="block">
+                  <div className="aspect-[1/1] relative overflow-hidden">
+                    <img 
+                      src="https://images.pexels.com/photos/1405773/pexels-photo-1405773.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" 
+                      alt="심슨 AI 생성기" 
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute top-2 right-2 bg-primary-lavender text-white text-xs font-semibold px-2 py-1 rounded-full">
+                      New
+                    </div>
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                      <h3 className="text-white font-bold text-lg">심슨 AI 생성기</h3>
+                    </div>
+                  </div>
+                </Link>
+              </div>
+              
+              {/* 픽사 스타일 */}
+              <div className="relative rounded-2xl overflow-hidden bg-neutral-800 border border-neutral-700 hover:border-primary-lavender transition-colors">
+                <Link href="/image?style=pixar" className="block">
+                  <div className="aspect-[1/1] relative overflow-hidden">
+                    <img 
+                      src="https://images.pexels.com/photos/1314550/pexels-photo-1314550.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" 
+                      alt="픽사 AI 생성기" 
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute top-2 right-2 bg-primary-lavender text-white text-xs font-semibold px-2 py-1 rounded-full">
+                      New
+                    </div>
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                      <h3 className="text-white font-bold text-lg">픽사 AI 생성기</h3>
+                    </div>
+                  </div>
+                </Link>
+              </div>
+            </>
+          )}
         </div>
       </section>
       

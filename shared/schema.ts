@@ -397,5 +397,23 @@ export const insertBannerSchema = createInsertSchema(banners);
 export type InsertBanner = z.infer<typeof insertBannerSchema>;
 export type Banner = typeof banners.$inferSelect;
 
+// 이미지 스타일 카드 스키마 
+export const styleCards = pgTable("style_cards", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  imageSrc: text("image_src").notNull(),
+  styleId: text("style_id").notNull(),
+  href: text("href").notNull(),
+  isNew: boolean("is_new").default(false),
+  isActive: boolean("is_active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertStyleCardSchema = createInsertSchema(styleCards);
+export type InsertStyleCard = z.infer<typeof insertStyleCardSchema>;
+export type StyleCard = typeof styleCards.$inferSelect;
+
 // Export operators for query building
 export { eq, desc, and, asc, sql, gte, lte, gt, lt, ne, like, notLike, isNull, isNotNull, inArray } from "drizzle-orm";

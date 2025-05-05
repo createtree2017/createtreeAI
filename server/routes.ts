@@ -46,9 +46,11 @@ import {
   abTestVariants,
   abTestResults,
   banners,
+  styleCards,
   insertConceptSchema,
   insertConceptCategorySchema,
   insertBannerSchema,
+  insertStyleCardSchema,
   eq,
   asc,
   desc,
@@ -2497,6 +2499,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting banner:", error);
       res.status(500).json({ error: "Failed to delete banner" });
+    }
+  });
+  
+  // 스타일 카드 API
+  app.get("/api/style-cards", async (req, res) => {
+    try {
+      const allStyleCards = await db.query.styleCards.findMany({
+        where: eq(styleCards.isActive, true),
+        orderBy: [asc(styleCards.sortOrder), desc(styleCards.createdAt)]
+      });
+      res.json(allStyleCards);
+    } catch (error) {
+      console.error("Error getting style cards:", error);
+      res.status(500).json({ error: "Failed to get style cards" });
+    }
+  });
+  
+  app.post("/api/admin/style-cards", async (req, res) => {
+    try {
+      const styleCardData = insertStyleCardSchema.parse(req.body);
+      const newStyleCard = await db.insert(styleCards).values(styleCardData).returning();
+      res.status(201).json(newStyleCard[0]);
+    } catch (error) {
+      console.error("Error creating style card:", error);
+      res.status(500).json({ error: "Failed to create style card" });
+    }
+  });
+  
+  app.put("/api/admin/style-cards/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid style card ID" });
+      }
+      
+      const styleCardData = insertStyleCardSchema.partial().parse(req.body);
+      const updatedStyleCard = await db
+        .update(styleCards)
+        .set({
+          ...styleCardData,
+          updatedAt: new Date()
+        })
+        .where(eq(styleCards.id, id))
+        .returning();
+        
+      if (updatedStyleCard.length === 0) {
+        return res.status(404).json({ error: "Style card not found" });
+      }
+      
+      res.json(updatedStyleCard[0]);
+    } catch (error) {
+      console.error("Error updating style card:", error);
+      res.status(500).json({ error: "Failed to update style card" });
+    }
+  });
+  
+  app.delete("/api/admin/style-cards/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid style card ID" });
+      }
+      
+      const result = await db
+        .delete(styleCards)
+        .where(eq(styleCards.id, id))
+        .returning({ id: styleCards.id });
+        
+      if (result.length === 0) {
+        return res.status(404).json({ error: "Style card not found" });
+      }
+      
+      res.json({ message: "Style card deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting style card:", error);
+      res.status(500).json({ error: "Failed to delete style card" });
     }
   });
 
