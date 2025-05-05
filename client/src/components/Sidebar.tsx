@@ -78,6 +78,18 @@ export default function Sidebar({ collapsed = false }) {
           ariaLabel: '내 프로필 페이지',
         },
       ]
+    },
+    {
+      id: 'admin',
+      title: '관리자',
+      items: [
+        {
+          path: '/admin',
+          icon: Settings,
+          label: '관리자 도구',
+          ariaLabel: '관리자 도구 페이지',
+        },
+      ]
     }
   ];
   
