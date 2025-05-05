@@ -77,10 +77,10 @@ export default function FeaturedSlider({ items, title }: FeaturedSliderProps) {
             <Link 
               key={item.id} 
               href={item.href}
-              className="relative min-w-full block aspect-[1.8/1] overflow-hidden rounded-2xl group"
+              className="relative min-w-full block aspect-[4/5] overflow-hidden rounded-2xl group"
             >
-              {/* 이미지 배경 - 상단 2/3 부분 */}
-              <div className="absolute inset-0 h-2/3">
+              {/* 이미지 배경 - 상단 3/4 부분 */}
+              <div className="absolute inset-0 h-3/4">
                 <img 
                   src={item.imageSrc} 
                   alt={item.title} 
@@ -88,13 +88,13 @@ export default function FeaturedSlider({ items, title }: FeaturedSliderProps) {
                 />
               </div>
               
-              {/* 텍스트 콘텐츠 - 하단 1/3 부분 */}
-              <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-[#2C3E50] p-5 md:p-6">
-                <h3 className="text-white text-2xl md:text-3xl font-bold">{item.title}</h3>
-                <p className="text-white/90 text-sm md:text-base line-clamp-2 mt-2 md:mt-3 max-w-3xl">{item.description}</p>
-                <div className="mt-4 inline-flex items-center bg-[#FF4D6D] hover:bg-[#FF3A5F] transition-colors px-6 py-2 rounded-full text-white text-base font-medium">
+              {/* 텍스트 콘텐츠 - 하단 1/4 부분 */}
+              <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-[#2C3E50] p-3 md:p-4">
+                <h3 className="text-white text-lg md:text-xl font-bold">{item.title}</h3>
+                <p className="text-white/90 text-xs md:text-sm line-clamp-1 mt-1 md:mt-2 max-w-3xl">{item.description}</p>
+                <div className="mt-1 inline-flex items-center bg-[#FF4D6D] hover:bg-[#FF3A5F] transition-colors px-3 py-1 rounded-full text-white text-xs font-medium">
                   Try for free
-                  <ChevronRight size={18} className="ml-1" />
+                  <ChevronRight size={12} className="ml-1" />
                 </div>
               </div>
               
@@ -112,14 +112,14 @@ export default function FeaturedSlider({ items, title }: FeaturedSliderProps) {
       {/* 네비게이션 버튼 */}
       <button 
         onClick={scrollPrev} 
-        className="absolute left-4 top-1/3 -translate-y-1/2 z-10 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors"
+        className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors"
         aria-label="이전 슬라이드"
       >
         <ChevronLeft size={20} />
       </button>
       <button 
         onClick={scrollNext} 
-        className="absolute right-4 top-1/3 -translate-y-1/2 z-10 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors"
+        className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors"
         aria-label="다음 슬라이드"
       >
         <ChevronRight size={20} />
