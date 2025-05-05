@@ -597,10 +597,9 @@ export default function AdminPage() {
         {t('admin.subtitle')}
       </p>
       
-      <Tabs defaultValue="personas" value={activeTab} onValueChange={setActiveTab}>
+      <Tabs defaultValue="chat-menu" value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex flex-wrap mb-8">
-          <TabsTrigger value="personas">{t('admin.tabs.personas')}</TabsTrigger>
-          <TabsTrigger value="categories">{t('admin.tabs.categories')}</TabsTrigger>
+          <TabsTrigger value="chat-menu">채팅 메뉴</TabsTrigger>
           <TabsTrigger value="concepts">{t('admin.tabs.concepts')}</TabsTrigger>
           <TabsTrigger value="concept-categories">{t('admin.tabs.conceptCategories')}</TabsTrigger>
           <TabsTrigger value="abtests">A/B 테스트</TabsTrigger>
@@ -610,12 +609,29 @@ export default function AdminPage() {
           <TabsTrigger value="dev-history">개발 대화 기록</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="personas">
-          <PersonaManager />
-        </TabsContent>
-        
-        <TabsContent value="categories">
-          <CategoryManager />
+        <TabsContent value="chat-menu">
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">채팅 메뉴</h2>
+            
+            <Tabs defaultValue="chat-characters">
+              <TabsList>
+                <TabsTrigger value="chat-characters">채팅 캐릭터</TabsTrigger>
+                <TabsTrigger value="chat-categories">채팅 카테고리</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="chat-characters">
+                <div className="mt-6">
+                  <PersonaManager />
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="chat-categories">
+                <div className="mt-6">
+                  <CategoryManager />
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
         </TabsContent>
         
         <TabsContent value="concepts">
