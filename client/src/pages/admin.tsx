@@ -600,8 +600,7 @@ export default function AdminPage() {
       <Tabs defaultValue="chat-menu" value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex flex-wrap mb-8">
           <TabsTrigger value="chat-menu">채팅 메뉴</TabsTrigger>
-          <TabsTrigger value="concepts">{t('admin.tabs.concepts')}</TabsTrigger>
-          <TabsTrigger value="concept-categories">{t('admin.tabs.conceptCategories')}</TabsTrigger>
+          <TabsTrigger value="image-menu">이미지 생성</TabsTrigger>
           <TabsTrigger value="abtests">A/B 테스트</TabsTrigger>
           <TabsTrigger value="image-test">이미지 테스트</TabsTrigger>
           <TabsTrigger value="image-gallery">이미지 갤러리</TabsTrigger>
@@ -634,12 +633,29 @@ export default function AdminPage() {
           </div>
         </TabsContent>
         
-        <TabsContent value="concepts">
-          <ConceptManager />
-        </TabsContent>
-        
-        <TabsContent value="concept-categories">
-          <ConceptCategoryManager />
+        <TabsContent value="image-menu">
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">이미지 생성</h2>
+            
+            <Tabs defaultValue="image-concepts">
+              <TabsList>
+                <TabsTrigger value="image-concepts">이미지 컨셉</TabsTrigger>
+                <TabsTrigger value="image-categories">이미지 카테고리</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="image-concepts">
+                <div className="mt-6">
+                  <ConceptManager />
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="image-categories">
+                <div className="mt-6">
+                  <ConceptCategoryManager />
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
         </TabsContent>
         
         <TabsContent value="abtests">
