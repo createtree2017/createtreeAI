@@ -601,8 +601,7 @@ export default function AdminPage() {
         <TabsList className="flex flex-wrap mb-8">
           <TabsTrigger value="chat-menu">채팅 메뉴</TabsTrigger>
           <TabsTrigger value="image-menu">이미지 생성</TabsTrigger>
-          <TabsTrigger value="abtests">A/B 테스트</TabsTrigger>
-          <TabsTrigger value="image-test">이미지 테스트</TabsTrigger>
+          <TabsTrigger value="test-menu">TEST</TabsTrigger>
           <TabsTrigger value="image-gallery">이미지 갤러리</TabsTrigger>
           <TabsTrigger value="languages">언어 설정</TabsTrigger>
           <TabsTrigger value="dev-history">개발 대화 기록</TabsTrigger>
@@ -658,12 +657,29 @@ export default function AdminPage() {
           </div>
         </TabsContent>
         
-        <TabsContent value="abtests">
-          <ABTestManager />
-        </TabsContent>
-        
-        <TabsContent value="image-test">
-          <ImageTester />
+        <TabsContent value="test-menu">
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">TEST</h2>
+            
+            <Tabs defaultValue="ab-test">
+              <TabsList>
+                <TabsTrigger value="ab-test">A/B 테스트</TabsTrigger>
+                <TabsTrigger value="image-test">이미지 테스트</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="ab-test">
+                <div className="mt-6">
+                  <ABTestManager />
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="image-test">
+                <div className="mt-6">
+                  <ImageTester />
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
         </TabsContent>
         
         <TabsContent value="image-gallery">
