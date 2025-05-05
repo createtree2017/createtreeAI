@@ -200,15 +200,15 @@ export default function Home() {
   return (
     <div className="pb-16 animate-fadeIn">
       {/* 헤더 */}
-      <div className="mb-6 px-6 pt-6">
-        <h1 className="text-white text-2xl font-semibold mb-1">Mom's Service</h1>
+      <div className="mb-8 px-4 md:px-6 pt-8">
+        <h1 className="text-white text-2xl font-semibold mb-2">Mom's Service</h1>
         <p className="text-neutral-400 text-sm">
           AI로 만드는 특별한 순간, 소중한 기억을 남겨보세요
         </p>
       </div>
       
       {/* 배너 슬라이더 */}
-      <section className="mb-8 px-6">
+      <section className="mb-14 px-4 md:px-6">
         <FeaturedSlider 
           items={displayBanners} 
           title="추천 기능"
@@ -216,12 +216,12 @@ export default function Home() {
       </section>
       
       {/* AI 스타일 그리드 - Pollo.ai 스타일 */}
-      <section className="px-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-white text-2xl font-bold">AI 이미지 스타일</h2>
+      <section className="px-4 md:px-6 py-8 md:py-10">
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-white text-lg font-medium">AI 이미지 스타일</h2>
         </div>
         
-        <div className="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-6 md:gap-10 md:grid-cols-3 lg:grid-cols-4">
           {styleCardData?.length > 0 ? (
             // 데이터베이스에서 가져온 스타일 카드 렌더링
             styleCardData.map((card: StyleCard) => (

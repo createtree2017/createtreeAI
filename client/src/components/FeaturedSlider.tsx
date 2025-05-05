@@ -64,14 +64,14 @@ export default function FeaturedSlider({ items, title }: FeaturedSliderProps) {
   }, [emblaApi]);
 
   return (
-    <div className="relative">
+    <div className="relative my-6">
       {title && (
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-6">
           <h2 className="text-white text-lg font-medium">{title}</h2>
         </div>
       )}
       
-      <div className="overflow-hidden rounded-2xl" ref={emblaRef}>
+      <div className="overflow-hidden rounded-xl" ref={emblaRef}>
         <div className="flex">
           {items.map((item) => (
             <Link 
