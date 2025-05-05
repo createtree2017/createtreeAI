@@ -11,17 +11,17 @@ import Chat from "@/pages/chat";
 import Gallery from "@/pages/gallery";
 import Admin from "@/pages/admin";
 import Milestones from "@/pages/milestones";
-import Header from "@/components/Header";
 import BottomNavigation from "@/components/BottomNavigation";
 import Sidebar from "@/components/Sidebar";
 import { useMobile } from "./hooks/use-mobile";
-import { Menu } from "lucide-react";
+import { Menu, X, ChevronLeft, ChevronRight } from "lucide-react";
 
 // Main layout component
 function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const isMobile = useMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
   // Check if we're in an iframe
   const [isInIframe, setIsInIframe] = useState(false);
@@ -73,15 +73,27 @@ function Layout({ children }: { children: React.ReactNode }) {
   const useDesktopLayout = !isMobile && showNavigation;
   const useMobileLayout = isMobile && showNavigation;
   
+  const toggleCollapsed = () => {
+    setSidebarCollapsed(!sidebarCollapsed);
+  };
+  
   if (useDesktopLayout) {
     return (
-      <div className="flex h-screen bg-neutral-50 overflow-hidden">
-        <div className="sidebar">
-          <Sidebar />
+      <div className="flex h-screen bg-[#18181d] overflow-hidden">
+        <div className="sidebar relative">
+          <Sidebar collapsed={sidebarCollapsed} />
+          <button 
+            onClick={toggleCollapsed}
+            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-20 bg-[#27272e] text-neutral-300 hover:text-white
+              rounded-full p-1 shadow-md border border-neutral-700"
+          >
+            {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          </button>
         </div>
+
         <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto custom-scrollbar bg-white">
-            <div className="max-w-4xl mx-auto w-full p-6">
+          <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#121217]">
+            <div className="max-w-5xl mx-auto w-full p-6 pb-20">
               {children}
             </div>
           </div>
@@ -91,41 +103,49 @@ function Layout({ children }: { children: React.ReactNode }) {
   }
   
   return (
-    <div className={`flex flex-col ${isInIframe ? "h-full" : "min-h-screen"} bg-white`}>
+    <div className={`flex flex-col ${isInIframe ? "h-full" : "min-h-screen"} bg-[#121217]`}>
       {/* Mobile sidebar overlay */}
       {useMobileLayout && sidebarOpen && (
-        <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setSidebarOpen(false)} />
+        <div className="fixed inset-0 bg-black/70 z-40" onClick={() => setSidebarOpen(false)} />
       )}
       
       {/* Mobile sidebar */}
       {useMobileLayout && (
-        <div className={`sidebar fixed top-0 bottom-0 left-0 w-64 z-50 transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-          <Sidebar />
+        <div className={`sidebar fixed top-0 bottom-0 left-0 z-50 transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+          <Sidebar collapsed={false} />
+          <button 
+            className="absolute top-4 right-4 text-white p-1.5 bg-neutral-800 rounded-full"
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Close sidebar"
+          >
+            <X size={18} />
+          </button>
         </div>
       )}
       
-      {/* Mobile header with menu button */}
+      {/* Mobile header */}
       {useMobileLayout && (
-        <header className="sticky top-0 z-30 w-full bg-gradient-to-r from-primary-lavender to-primary-mint safe-area-top shadow-md">
-          <div className="mx-auto px-4 h-16 flex items-center justify-between">
+        <header className="sticky top-0 z-30 w-full bg-[#121212] safe-area-top border-b border-neutral-800">
+          <div className="px-4 h-14 flex items-center justify-between">
             {/* Menu button */}
             <button 
-              className="sidebar-toggle w-10 h-10 flex items-center justify-center text-white rounded-full bg-white/20"
+              className="sidebar-toggle w-9 h-9 flex items-center justify-center text-neutral-300 hover:text-white 
+                       rounded-md hover:bg-neutral-800 transition-colors"
               onClick={() => setSidebarOpen(!sidebarOpen)}
               aria-label="Toggle sidebar"
             >
-              <Menu size={24} />
+              <Menu size={22} />
             </button>
             
             {/* Logo */}
             <div className="flex items-center">
-              <h1 className="text-xl font-semibold tracking-tight text-neutral-darkest font-heading">
-                <span className="text-white">Mom's</span> <span className="text-neutral-darkest">Service</span>
+              <h1 className="text-lg font-semibold tracking-tight font-heading">
+                <span className="text-white">Mom's</span> <span className="text-primary-lavender">Service</span>
               </h1>
             </div>
             
             {/* Spacer for alignment */}
-            <div className="w-10"></div>
+            <div className="w-9"></div>
           </div>
         </header>
       )}

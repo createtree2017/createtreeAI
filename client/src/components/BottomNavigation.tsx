@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'wouter';
-import { Home, Image, MessageCircle, Grid, User, Award } from 'lucide-react';
+import { Home, Image, ImagePlus, Music, MessageCircle, User, Award } from 'lucide-react';
 
 export default function BottomNavigation() {
   const [location] = useLocation();
@@ -13,15 +13,23 @@ export default function BottomNavigation() {
       ariaLabel: '홈 페이지',
     },
     {
-      path: '/milestones',
-      icon: Award,
-      label: '마일스톤',
-      ariaLabel: '임신 마일스톤 페이지',
+      path: '/image',
+      icon: ImagePlus,
+      label: '추억 예술',
+      ariaLabel: '이미지 변환 페이지',
+      new: true,
+    },
+    {
+      path: '/music',
+      icon: Music,
+      label: '자장가',
+      ariaLabel: '음악 생성 페이지',
+      new: true,
     },
     {
       path: '/chat',
       icon: MessageCircle,
-      label: 'AI 채팅',
+      label: 'AI 도우미',
       ariaLabel: 'AI 채팅 페이지',
     },
     {
@@ -30,17 +38,11 @@ export default function BottomNavigation() {
       label: '갤러리',
       ariaLabel: '갤러리 페이지',
     },
-    {
-      path: '/profile',
-      icon: User,
-      label: '마이페이지',
-      ariaLabel: '내 프로필 페이지',
-    },
   ];
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 safe-area-bottom">
-      <nav className="flex items-center justify-between bg-white border-t border-neutral-light px-1 h-16 shadow-md">
+      <nav className="flex items-center justify-between bg-[#121212] border-t border-neutral-800 px-1 h-16">
         {navItems.map((item) => {
           const isActive = location === item.path;
           return (
@@ -49,25 +51,33 @@ export default function BottomNavigation() {
               href={item.path}
               aria-label={item.ariaLabel}
               className={`
-                flex flex-col items-center justify-center flex-1 py-1.5 px-2
+                flex flex-col items-center justify-center flex-1 py-1 px-1 relative
                 ${isActive 
                   ? 'text-primary-lavender'
-                  : 'text-neutral-dark hover:text-primary-lavender'}
-                transition-all duration-200 rounded-xl
-                ${isActive ? 'scale-110' : ''}
+                  : 'text-neutral-400 hover:text-white'}
+                transition-all duration-200
               `}
             >
               <div className={`
-                flex items-center justify-center rounded-full w-10 h-10
+                flex items-center justify-center w-8 h-8
                 ${isActive 
-                  ? 'bg-gradient-to-r from-primary-lavender/20 to-primary-mint/20' 
+                  ? 'bg-primary-lavender/10 rounded-lg' 
                   : 'bg-transparent'}
               `}>
-                <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+                <item.icon size={20} strokeWidth={isActive ? 2 : 1.5} />
               </div>
-              <span className="text-xs font-medium font-body mt-0.5">{item.label}</span>
+              <span className="text-xs font-medium mt-1">{item.label}</span>
+              
+              {/* NEW 배지 */}
+              {item.new && (
+                <div className="absolute -top-1 right-0 px-1 py-0.5 text-[8px] rounded-sm bg-primary-lavender/20 text-primary-lavender font-bold">
+                  NEW
+                </div>
+              )}
+              
+              {/* 활성 항목 표시 */}
               {isActive && (
-                <div className="absolute bottom-0 w-8 h-1 rounded-t-full bg-primary-lavender" />
+                <div className="absolute -bottom-1 w-6 h-0.5 rounded-full bg-primary-lavender" />
               )}
             </Link>
           );

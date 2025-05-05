@@ -1,8 +1,18 @@
 import React from 'react';
 import { Link, useLocation } from 'wouter';
-import { Home, Image, Music, MessageCircle, User, Award, ImagePlus, PencilLine } from 'lucide-react';
+import { 
+  Home, 
+  Image, 
+  Music, 
+  MessageCircle, 
+  User, 
+  Award, 
+  ImagePlus, 
+  Sparkles,
+  Settings
+} from 'lucide-react';
 
-export default function Sidebar() {
+export default function Sidebar({ collapsed = false }) {
   const [location] = useLocation();
   
   // 메뉴 그룹 정의
@@ -34,12 +44,14 @@ export default function Sidebar() {
           icon: ImagePlus,
           label: '추억 예술',
           ariaLabel: '이미지 변환 페이지',
+          new: true
         },
         {
           path: '/music',
           icon: Music,
           label: '자장가',
           ariaLabel: '음악 생성 페이지',
+          new: true
         },
         {
           path: '/chat',
@@ -70,24 +82,34 @@ export default function Sidebar() {
   ];
   
   return (
-    <aside className="h-full w-60 flex-shrink-0 bg-[#121212] text-white flex flex-col border-r border-neutral-800 overflow-y-auto custom-scrollbar">
+    <aside className={`h-full flex-shrink-0 bg-[#121212] text-white flex flex-col border-r border-neutral-800 overflow-y-auto custom-scrollbar transition-all duration-300 ${
+      collapsed ? "w-16" : "w-60"
+    }`}>
       {/* 로고 */}
-      <div className="p-4 mb-2">
+      <div className="p-4 mb-4">
         <Link href="/" className="flex items-center">
-          <h1 className="text-xl font-semibold tracking-tight font-heading">
-            <span className="text-white">Mom's</span> <span className="text-primary-lavender">Service</span>
-          </h1>
+          {collapsed ? (
+            <div className="w-8 h-8 rounded-full bg-primary-lavender/20 flex items-center justify-center">
+              <span className="text-primary-lavender font-bold">M</span>
+            </div>
+          ) : (
+            <h1 className="text-xl font-semibold tracking-tight font-heading">
+              <span className="text-white">Mom's</span> <span className="text-primary-lavender">Service</span>
+            </h1>
+          )}
         </Link>
       </div>
 
       {/* 메뉴 그룹 */}
-      <div className="flex-1 flex flex-col gap-4">
+      <div className="flex-1 flex flex-col gap-5">
         {groups.map((group) => (
-          <div key={group.id} className="px-2">
-            <div className="text-xs text-neutral-400 uppercase tracking-wider px-3 mb-1.5">
-              {group.title}
-            </div>
-            <div className="space-y-0.5">
+          <div key={group.id} className={`${collapsed ? "px-1" : "px-2"}`}>
+            {!collapsed && (
+              <div className="text-xs text-neutral-400 uppercase tracking-wider px-3 mb-2">
+                {group.title}
+              </div>
+            )}
+            <div className="space-y-1">
               {group.items.map((item) => {
                 const isActive = location === item.path;
                 return (
@@ -96,14 +118,30 @@ export default function Sidebar() {
                     href={item.path}
                     aria-label={item.ariaLabel}
                     className={`
-                      flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors
+                      flex items-center ${collapsed ? "justify-center" : "justify-between"} 
+                      ${collapsed ? "px-2" : "px-3"} py-2.5 rounded-md transition-colors
                       ${isActive 
                         ? 'bg-primary-lavender/20 text-primary-lavender' 
-                        : 'text-neutral-300 hover:bg-white/5 hover:text-white'}
+                        : 'text-neutral-300 hover:bg-white/10 hover:text-white'}
+                      relative
                     `}
                   >
-                    <item.icon size={18} />
-                    <span className="text-sm font-medium">{item.label}</span>
+                    <div className="flex items-center gap-3">
+                      <item.icon size={20} strokeWidth={1.5} />
+                      {!collapsed && (
+                        <span className="text-sm font-medium">{item.label}</span>
+                      )}
+                    </div>
+                    
+                    {!collapsed && item.new && (
+                      <div className="flex-shrink-0 px-1.5 py-0.5 text-[10px] rounded bg-primary-lavender/20 text-primary-lavender font-semibold">
+                        NEW
+                      </div>
+                    )}
+                    
+                    {collapsed && item.new && (
+                      <div className="absolute top-0 right-0 w-2 h-2 rounded-full bg-primary-lavender"></div>
+                    )}
                   </Link>
                 );
               })}
@@ -112,9 +150,20 @@ export default function Sidebar() {
         ))}
       </div>
       
-      {/* 하단 버전 정보 */}
-      <div className="p-4 text-xs text-neutral-500">
-        Mom's Service v1.0
+      {/* 하단 버전 정보 및 설정 */}
+      <div className={`p-4 ${collapsed ? "flex justify-center" : "flex items-center justify-between"} border-t border-neutral-800`}>
+        {!collapsed && (
+          <div className="text-xs text-neutral-500">
+            v1.0
+          </div>
+        )}
+        <Link 
+          href="/settings" 
+          className="text-neutral-400 hover:text-white transition-colors" 
+          aria-label="설정"
+        >
+          <Settings size={collapsed ? 20 : 18} strokeWidth={1.5} />
+        </Link>
       </div>
     </aside>
   );
