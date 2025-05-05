@@ -2577,6 +2577,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to delete style card" });
     }
   });
+  
+  // 썸네일 이미지 업로드 API
+  app.post("/api/admin/upload-thumbnail", upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+      
+      // 파일 경로에서 URL 생성 (상대 경로)
+      const fileUrl = `/uploads/${req.file.filename}`;
+      
+      res.status(201).json({
+        url: fileUrl,
+        originalName: req.file.originalname,
+        size: req.file.size,
+        mimetype: req.file.mimetype
+      });
+    } catch (error) {
+      console.error("Error uploading thumbnail:", error);
+      res.status(500).json({ error: "Failed to upload thumbnail" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
