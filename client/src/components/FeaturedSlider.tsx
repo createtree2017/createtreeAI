@@ -77,7 +77,7 @@ export default function FeaturedSlider({ items, title }: FeaturedSliderProps) {
             <Link 
               key={item.id} 
               href={item.href}
-              className="relative min-w-full block aspect-[2/1] overflow-hidden rounded-2xl group"
+              className="relative min-w-full block aspect-[16/9] overflow-hidden rounded-2xl group"
             >
               {/* 이미지 배경 */}
               <div className="absolute inset-0">
@@ -90,18 +90,18 @@ export default function FeaturedSlider({ items, title }: FeaturedSliderProps) {
               </div>
               
               {/* 텍스트 콘텐츠 */}
-              <div className="absolute bottom-0 left-0 p-6 w-full">
-                <h3 className="text-white text-xl md:text-2xl font-semibold mb-2">{item.title}</h3>
-                <p className="text-white/80 text-sm md:text-base line-clamp-2">{item.description}</p>
-                <div className="mt-4 inline-flex items-center bg-white/20 hover:bg-white/30 transition-colors px-4 py-2 rounded-full text-white text-sm">
-                  바로가기
-                  <ChevronRight size={16} className="ml-1" />
+              <div className="absolute bottom-0 left-0 p-8 w-full">
+                <h3 className="text-white text-2xl md:text-3xl font-bold mb-3">{item.title}</h3>
+                <p className="text-white/90 text-base md:text-lg line-clamp-2 mb-4 max-w-2xl">{item.description}</p>
+                <div className="mt-4 inline-flex items-center bg-pink-500 hover:bg-pink-600 transition-colors px-6 py-3 rounded-full text-white text-base font-medium">
+                  무료로 시작하기
+                  <ChevronRight size={18} className="ml-1" />
                 </div>
               </div>
               
               {/* NEW 배지 */}
               {item.isNew && (
-                <div className="absolute top-4 right-4 px-2 py-1 bg-primary-lavender text-white text-xs font-bold rounded-md">
+                <div className="absolute top-4 right-4 px-3 py-1.5 bg-purple-600 text-white text-sm font-bold rounded-full">
                   NEW
                 </div>
               )}

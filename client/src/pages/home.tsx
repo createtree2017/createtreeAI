@@ -217,32 +217,32 @@ export default function Home() {
       
       {/* AI 스타일 그리드 - Pollo.ai 스타일 */}
       <section className="px-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-white text-lg font-medium">AI 이미지 스타일</h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-white text-2xl font-bold">AI 이미지 스타일</h2>
         </div>
         
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4">
           {styleCardData?.length > 0 ? (
             // 데이터베이스에서 가져온 스타일 카드 렌더링
             styleCardData.map((card: StyleCard) => (
               <div
                 key={card.id}
-                className="relative rounded-2xl overflow-hidden bg-neutral-800 border border-neutral-700 hover:border-primary-lavender transition-colors"
+                className="relative rounded-2xl overflow-hidden bg-neutral-800 border border-neutral-700 hover:border-primary-lavender hover:shadow-lg transition-all duration-300"
               >
                 <Link href={card.href} className="block">
-                  <div className="aspect-[1/1] relative overflow-hidden">
+                  <div className="aspect-square relative overflow-hidden">
                     <img
                       src={card.imageSrc}
                       alt={card.title}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                     />
                     {card.isNew && (
-                      <div className="absolute top-2 right-2 bg-primary-lavender text-white text-xs font-semibold px-2 py-1 rounded-full">
+                      <div className="absolute top-3 right-3 bg-purple-600 text-white text-sm font-semibold px-3 py-1 rounded-full">
                         New
                       </div>
                     )}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-                      <h3 className="text-white font-bold text-lg">{card.title}</h3>
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-16">
+                      <h3 className="text-white font-bold text-xl">{card.title}</h3>
                     </div>
                   </div>
                 </Link>
@@ -252,73 +252,73 @@ export default function Home() {
             // 기본 더미 데이터 (데이터베이스에 데이터가 없을 경우)
             <>
               {/* 지브리 AI 스타일 */}
-              <div className="relative rounded-2xl overflow-hidden bg-neutral-800 border border-neutral-700 hover:border-primary-lavender transition-colors">
+              <div className="relative rounded-2xl overflow-hidden bg-neutral-800 border border-neutral-700 hover:border-primary-lavender hover:shadow-lg transition-all duration-300">
                 <Link href="/image?style=ghibli" className="block">
-                  <div className="aspect-[1/1] relative overflow-hidden">
+                  <div className="aspect-square relative overflow-hidden">
                     <img 
                       src="https://images.pexels.com/photos/1590549/pexels-photo-1590549.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" 
                       alt="지브리 AI 생성기" 
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                     />
-                    <div className="absolute top-2 right-2 bg-primary-lavender text-white text-xs font-semibold px-2 py-1 rounded-full">
+                    <div className="absolute top-3 right-3 bg-purple-600 text-white text-sm font-semibold px-3 py-1 rounded-full">
                       New
                     </div>
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-                      <h3 className="text-white font-bold text-lg">지브리 AI 생성기</h3>
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-16">
+                      <h3 className="text-white font-bold text-xl">지브리 AI 생성기</h3>
                     </div>
                   </div>
                 </Link>
               </div>
               
               {/* 디즈니 스타일 */}
-              <div className="relative rounded-2xl overflow-hidden bg-neutral-800 border border-neutral-700 hover:border-primary-lavender transition-colors">
+              <div className="relative rounded-2xl overflow-hidden bg-neutral-800 border border-neutral-700 hover:border-primary-lavender hover:shadow-lg transition-all duration-300">
                 <Link href="/image?style=disney" className="block">
-                  <div className="aspect-[1/1] relative overflow-hidden">
+                  <div className="aspect-square relative overflow-hidden">
                     <img 
                       src="https://images.pexels.com/photos/3608263/pexels-photo-3608263.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" 
                       alt="디즈니 AI 생성기" 
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                     />
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-                      <h3 className="text-white font-bold text-lg">디즈니 AI 생성기</h3>
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-16">
+                      <h3 className="text-white font-bold text-xl">디즈니 AI 생성기</h3>
                     </div>
                   </div>
                 </Link>
               </div>
               
               {/* 심슨 스타일 */}
-              <div className="relative rounded-2xl overflow-hidden bg-neutral-800 border border-neutral-700 hover:border-primary-lavender transition-colors">
+              <div className="relative rounded-2xl overflow-hidden bg-neutral-800 border border-neutral-700 hover:border-primary-lavender hover:shadow-lg transition-all duration-300">
                 <Link href="/image?style=simpsons" className="block">
-                  <div className="aspect-[1/1] relative overflow-hidden">
+                  <div className="aspect-square relative overflow-hidden">
                     <img 
                       src="https://images.pexels.com/photos/1405773/pexels-photo-1405773.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" 
                       alt="심슨 AI 생성기" 
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                     />
-                    <div className="absolute top-2 right-2 bg-primary-lavender text-white text-xs font-semibold px-2 py-1 rounded-full">
+                    <div className="absolute top-3 right-3 bg-purple-600 text-white text-sm font-semibold px-3 py-1 rounded-full">
                       New
                     </div>
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-                      <h3 className="text-white font-bold text-lg">심슨 AI 생성기</h3>
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-16">
+                      <h3 className="text-white font-bold text-xl">심슨 AI 생성기</h3>
                     </div>
                   </div>
                 </Link>
               </div>
               
               {/* 픽사 스타일 */}
-              <div className="relative rounded-2xl overflow-hidden bg-neutral-800 border border-neutral-700 hover:border-primary-lavender transition-colors">
+              <div className="relative rounded-2xl overflow-hidden bg-neutral-800 border border-neutral-700 hover:border-primary-lavender hover:shadow-lg transition-all duration-300">
                 <Link href="/image?style=pixar" className="block">
-                  <div className="aspect-[1/1] relative overflow-hidden">
+                  <div className="aspect-square relative overflow-hidden">
                     <img 
                       src="https://images.pexels.com/photos/1314550/pexels-photo-1314550.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" 
                       alt="픽사 AI 생성기" 
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                     />
-                    <div className="absolute top-2 right-2 bg-primary-lavender text-white text-xs font-semibold px-2 py-1 rounded-full">
+                    <div className="absolute top-3 right-3 bg-purple-600 text-white text-sm font-semibold px-3 py-1 rounded-full">
                       New
                     </div>
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-                      <h3 className="text-white font-bold text-lg">픽사 AI 생성기</h3>
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-16">
+                      <h3 className="text-white font-bold text-xl">픽사 AI 생성기</h3>
                     </div>
                   </div>
                 </Link>
