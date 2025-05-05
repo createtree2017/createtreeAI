@@ -280,6 +280,21 @@ export default function StyleCardManagement() {
       isActive: styleCard.isActive,
       sortOrder: styleCard.sortOrder,
     });
+    
+    // 이미지가 있는 경우 미리보기 설정
+    if (styleCard.imageSrc) {
+      // URL이 외부 URL인 경우 직접 설정
+      if (styleCard.imageSrc.startsWith('http')) {
+        setSelectedImage(styleCard.imageSrc);
+      }
+      // 내부 업로드 이미지인 경우 (상대경로)
+      else if (styleCard.imageSrc.startsWith('/uploads/')) {
+        setSelectedImage(styleCard.imageSrc);
+      }
+    } else {
+      setSelectedImage(null);
+    }
+    
     setIsEditDialogOpen(true);
   };
   
