@@ -11,6 +11,7 @@ import { ArrowLeft } from "lucide-react";
 import PersonaManagement from "@/components/admin/PersonaManagement";
 import ConceptManagement from "@/components/admin/ConceptManagement";
 import BannerManagement from "@/components/admin/BannerManagement";
+import StyleCardManagement from "@/components/admin/StyleCardManagement";
 import ABTestManagement from "@/components/admin/ABTestManagement";
 
 export default function AdminPage() {
@@ -38,6 +39,7 @@ export default function AdminPage() {
         <TabsList className="w-full border-b rounded-none justify-start mb-6 bg-background">
           <TabsTrigger value="personas">AI 캐릭터</TabsTrigger>
           <TabsTrigger value="concepts">스타일 컨셉</TabsTrigger>
+          <TabsTrigger value="style-cards">스타일 카드</TabsTrigger>
           <TabsTrigger value="banners">배너 관리</TabsTrigger>
           <TabsTrigger value="ab-tests">A/B 테스트</TabsTrigger>
         </TabsList>
@@ -48,6 +50,10 @@ export default function AdminPage() {
         
         <TabsContent value="concepts">
           <ConceptManagement />
+        </TabsContent>
+        
+        <TabsContent value="style-cards">
+          <StyleCardManagement />
         </TabsContent>
         
         <TabsContent value="banners">

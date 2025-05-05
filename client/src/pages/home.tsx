@@ -18,6 +18,20 @@ import {
 } from "lucide-react";
 import { getGalleryItems } from "@/lib/api";
 
+// 스타일 카드 타입 정의
+interface StyleCard {
+  id: number;
+  title: string;
+  styleId: string;
+  imageSrc: string;
+  href: string;
+  isNew: boolean;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface RecentActivity {
   id: number;
   title: string;
@@ -84,7 +98,7 @@ export default function Home() {
       if (!response.ok) {
         throw new Error("스타일 카드 데이터를 가져오는데 실패했습니다");
       }
-      return response.json();
+      return response.json() as Promise<StyleCard[]>;
     }
   });
 
@@ -210,7 +224,7 @@ export default function Home() {
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
           {styleCardData?.length > 0 ? (
             // 데이터베이스에서 가져온 스타일 카드 렌더링
-            styleCardData.map((card) => (
+            styleCardData.map((card: StyleCard) => (
               <div
                 key={card.id}
                 className="relative rounded-2xl overflow-hidden bg-neutral-800 border border-neutral-700 hover:border-primary-lavender transition-colors"
