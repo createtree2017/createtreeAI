@@ -67,7 +67,7 @@ export default function FeaturedSlider({ items, title }: FeaturedSliderProps) {
     <div className="relative my-6">
       {title && (
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-white text-lg font-medium">{title}</h2>
+          <h2 className="text-white text-xl md:text-2xl font-medium">{title}</h2>
         </div>
       )}
       
