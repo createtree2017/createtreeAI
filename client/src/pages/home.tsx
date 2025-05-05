@@ -221,8 +221,8 @@ export default function Home() {
           <h2 className="text-white text-lg font-medium">AI 이미지 스타일</h2>
         </div>
         
-        <div className="grid grid-cols-2 gap-4 md:gap-6 md:grid-cols-3 lg:grid-cols-4">
-          {styleCardData?.length > 0 ? (
+        <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-3 lg:grid-cols-4">
+          {styleCardData && styleCardData.length > 0 ? (
             // 데이터베이스에서 가져온 스타일 카드 렌더링
             styleCardData.map((card: StyleCard) => (
               <div
@@ -260,7 +260,7 @@ export default function Home() {
                       alt="지브리 AI 생성기" 
                       className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                     />
-                    <div className="absolute top-3 right-3 bg-purple-600 text-white text-sm font-semibold px-3 py-1 rounded-full">
+                    <div className="absolute top-4 right-4 bg-purple-600 text-white text-sm font-semibold px-4 py-1.5 rounded-full">
                       New
                     </div>
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-16">
@@ -295,7 +295,7 @@ export default function Home() {
                       alt="심슨 AI 생성기" 
                       className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                     />
-                    <div className="absolute top-3 right-3 bg-purple-600 text-white text-sm font-semibold px-3 py-1 rounded-full">
+                    <div className="absolute top-4 right-4 bg-purple-600 text-white text-sm font-semibold px-4 py-1.5 rounded-full">
                       New
                     </div>
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-16">
@@ -314,7 +314,7 @@ export default function Home() {
                       alt="픽사 AI 생성기" 
                       className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                     />
-                    <div className="absolute top-3 right-3 bg-purple-600 text-white text-sm font-semibold px-3 py-1 rounded-full">
+                    <div className="absolute top-4 right-4 bg-purple-600 text-white text-sm font-semibold px-4 py-1.5 rounded-full">
                       New
                     </div>
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-16">
