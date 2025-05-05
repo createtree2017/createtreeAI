@@ -199,19 +199,10 @@ export default function Home() {
 
   return (
     <div className="pb-16 animate-fadeIn">
-      {/* 헤더 */}
-      <div className="mb-8 px-4 md:px-6 pt-8">
-        <h1 className="text-white text-3xl font-semibold mb-3">Mom's Service</h1>
-        <p className="text-neutral-400 text-base">
-          AI로 만드는 특별한 순간, 소중한 기억을 남겨보세요
-        </p>
-      </div>
-      
       {/* 배너 슬라이더 */}
-      <section className="mb-8 px-4 md:px-6">
+      <section className="mb-8 px-4 md:px-6 pt-4">
         <FeaturedSlider 
           items={displayBanners} 
-          title="추천 기능"
         />
       </section>
       
