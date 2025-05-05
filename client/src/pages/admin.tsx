@@ -17,6 +17,8 @@ import {
 import { FileUpload } from "@/components/ui/file-upload";
 import BatchImportDialog from "@/components/BatchImportDialog";
 import { getLanguage, loadTranslations, setLanguage, t } from "@/lib/i18n";
+import BannerManagement from "@/components/admin/BannerManagement";
+import StyleCardManagement from "@/components/admin/StyleCardManagement";
 import { 
   getLanguages, 
   uploadTranslations,
@@ -601,6 +603,7 @@ export default function AdminPage() {
         <TabsList className="flex flex-wrap mb-8">
           <TabsTrigger value="chat-menu">채팅 메뉴</TabsTrigger>
           <TabsTrigger value="image-menu">이미지 생성</TabsTrigger>
+          <TabsTrigger value="ui-content">UI 컨텐츠 관리</TabsTrigger>
           <TabsTrigger value="test-menu">TEST</TabsTrigger>
           <TabsTrigger value="languages">언어 설정</TabsTrigger>
           <TabsTrigger value="dev-history">개발 대화 기록</TabsTrigger>
@@ -663,6 +666,31 @@ export default function AdminPage() {
           </div>
         </TabsContent>
         
+        <TabsContent value="ui-content">
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">UI 컨텐츠 관리</h2>
+            
+            <Tabs defaultValue="banners">
+              <TabsList>
+                <TabsTrigger value="banners">슬라이드 배너</TabsTrigger>
+                <TabsTrigger value="style-cards">AI 이미지 스타일</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="banners">
+                <div className="mt-6">
+                  <BannerManagement />
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="style-cards">
+                <div className="mt-6">
+                  <StyleCardManagement />
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </TabsContent>
+        
         <TabsContent value="test-menu">
           <div className="space-y-6">
             <h2 className="text-2xl font-bold">TEST</h2>
@@ -688,8 +716,6 @@ export default function AdminPage() {
           </div>
         </TabsContent>
         
-
-
         <TabsContent value="languages">
           <LanguageSettings />
         </TabsContent>
