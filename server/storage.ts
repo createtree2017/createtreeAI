@@ -100,9 +100,16 @@ export const storage = {
   },
   
   // Image related functions
-  async transformImage(filePath: string, style: string, customPromptTemplate?: string | null, systemPrompt?: string | null, aspectRatio?: string | null) {
+  async transformImage(
+    filePath: string, 
+    style: string, 
+    customPromptTemplate?: string | null, 
+    systemPrompt?: string | null, 
+    aspectRatio?: string | null,
+    modelType: string = 'gpt-image-1' // 기본 모델은 gpt-image-1
+  ) {
     try {
-      console.log(`[Storage] Starting image transformation with style: "${style}"`);
+      console.log(`[Storage] Starting image transformation with style: "${style}" using model: ${modelType}`);
       if (customPromptTemplate) {
         console.log(`[Storage] Using custom prompt template: "${customPromptTemplate.substring(0, 100)}..."`);
       } else {
@@ -155,21 +162,35 @@ export const storage = {
       }
       
       try {
-        // OpenAI GPT-Image-1 호출 (GPT-4o Vision 이미지 분석 포함)
-        console.log(`[Storage] Calling OpenAI GPT-Image-1 image transformation service...`);
-        if (systemPrompt) {
-          console.log(`[Storage] Using system prompt for GPT-4o image analysis: ${systemPrompt.substring(0, 50)}...`);
+        // 모델 타입에 따라 다른 서비스 호출
+        let transformedImageUrl = "";
+        
+        if (modelType === 'dall-e-3') {
+          // DALL-E 3 모델 사용
+          console.log(`[Storage] Calling OpenAI DALL-E 3 image generation service...`);
+          const { transformImageWithDallE3 } = await import('./services/openai-dalle3');
+          transformedImageUrl = await transformImageWithDallE3(
+            imageBuffer, 
+            style,
+            prompt
+          );
+        } else {
+          // 기본 GPT-Image-1 모델 사용 (GPT-4o Vision 이미지 분석 포함)
+          console.log(`[Storage] Calling OpenAI GPT-Image-1 image transformation service...`);
+          if (systemPrompt) {
+            console.log(`[Storage] Using system prompt for GPT-4o image analysis: ${systemPrompt.substring(0, 50)}...`);
+          }
+          const { transformImage } = await import('./services/openai-dalle3'); // 파일명은 호환성 유지
+          transformedImageUrl = await transformImage(
+            imageBuffer, 
+            style, 
+            prompt,
+            systemPrompt // 시스템 프롬프트 전달 (GPT-4o Vision의 이미지 분석 지침)
+          );
         }
-        const { transformImage } = await import('./services/openai-dalle3'); // 파일명은 호환성 유지
-        const transformedImageUrl = await transformImage(
-          imageBuffer, 
-          style, 
-          prompt,
-          systemPrompt // 시스템 프롬프트 전달 (GPT-4o Vision의 이미지 분석 지침)
-        );
         
         if (!transformedImageUrl.includes("placehold.co")) {
-          console.log(`[Storage] OpenAI GPT-Image-1 transformation succeeded [이미지 데이터 로그 생략]`);
+          console.log(`[Storage] ${modelType === 'dall-e-3' ? 'DALL-E 3' : 'GPT-Image-1'} transformation succeeded [이미지 데이터 로그 생략]`);
           return transformedImageUrl;
         } else if (transformedImageUrl.includes("safety_system")) {
           // 안전 시스템 필터에 걸린 경우
@@ -177,11 +198,11 @@ export const storage = {
           return "https://placehold.co/1024x1024/A7C1E2/FFF?text=안전+시스템에+의해+이미지+변환이+거부되었습니다.+다른+스타일이나+이미지를+시도해보세요";
         } else {
           // 기타 오류 시 서비스 종료 메시지 반환
-          console.log(`[Storage] OpenAI GPT-Image-1 service unavailable`);
+          console.log(`[Storage] ${modelType} service unavailable`);
           return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
         }
       } catch (error) {
-        console.error(`[Storage] OpenAI GPT-Image-1 error:`, error);
+        console.error(`[Storage] ${modelType} error:`, error);
         return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
       }
     } catch (error) {
