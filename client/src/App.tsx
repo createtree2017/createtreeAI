@@ -65,12 +65,14 @@ function Layout({ children }: { children: React.ReactNode }) {
     };
   }, [isMobile, isOpen]);
   
-  // Close sidebar when location changes on mobile
+  // Close sidebar when location changes on mobile (Zustand store 활용)
   useEffect(() => {
-    if (isMobile && sidebarOpen) {
+    if (isMobile && isOpen) {
+      // 로컬 상태와 Zustand 상태 모두 업데이트
       setSidebarOpen(false);
+      useSidebarStore.getState().closeSidebar();
     }
-  }, [location, isMobile, sidebarOpen]);
+  }, [location, isMobile, isOpen]);
   
   // Determine if direct page mode (for iframe embedding of single features)
   const isDirectPage = 
@@ -116,18 +118,18 @@ function Layout({ children }: { children: React.ReactNode }) {
   
   return (
     <div className={`flex flex-col ${isInIframe ? "h-full" : "min-h-screen"} bg-[#121217]`}>
-      {/* Mobile sidebar overlay */}
-      {useMobileLayout && sidebarOpen && (
-        <div className="fixed inset-0 bg-black/70 z-40" onClick={() => setSidebarOpen(false)} />
+      {/* Mobile sidebar overlay - Zustand 사용 */}
+      {useMobileLayout && isOpen && (
+        <div className="fixed inset-0 bg-black/70 z-40" onClick={useSidebarStore.getState().closeSidebar} />
       )}
       
-      {/* Mobile sidebar */}
+      {/* Mobile sidebar - Zustand 사용 */}
       {useMobileLayout && (
-        <div className={`sidebar fixed top-0 bottom-0 left-0 z-50 transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className={`sidebar fixed top-0 bottom-0 left-0 z-50 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <Sidebar collapsed={false} />
           <button 
             className="absolute top-4 right-4 text-white p-1.5 bg-neutral-800 rounded-full"
-            onClick={() => setSidebarOpen(false)}
+            onClick={useSidebarStore.getState().closeSidebar}
             aria-label="Close sidebar"
           >
             <X size={18} />
