@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'wouter';
+import { useQuery } from '@tanstack/react-query';
 import { 
   Home, 
   Image, 
@@ -13,10 +14,13 @@ import {
   PaintBucket,
   Music2,
   Users,
-  Heart
+  Heart,
+  Layers,
+  BarChart3,
+  MessageSquare
 } from 'lucide-react';
 
-// 메뉴 아이템 타입 정의 추가
+// 메뉴 아이템 타입 정의
 interface MenuItem {
   path: string;
   icon: React.ComponentType<any>;
@@ -25,7 +29,7 @@ interface MenuItem {
   new?: boolean; // optional new flag
 }
 
-// 메뉴 그룹 타입 정의 추가
+// 메뉴 그룹 타입 정의
 interface MenuGroup {
   id: string;
   title: string;
@@ -35,8 +39,18 @@ interface MenuGroup {
 
 export default function Sidebar({ collapsed = false }) {
   const [location] = useLocation();
+  const { data: serviceCategories } = useQuery({
+    queryKey: ['/api/service-categories'],
+    queryFn: async () => {
+      const response = await fetch('/api/service-categories');
+      if (!response.ok) {
+        throw new Error('서비스 카테고리를 가져오는 데 실패했습니다.');
+      }
+      return response.json();
+    }
+  });
   
-  // 메뉴 그룹 정의 - 요청에 따라 재구성
+  // 메뉴 그룹 정의
   const groups: MenuGroup[] = [
     {
       id: 'main',
@@ -142,10 +156,67 @@ export default function Sidebar({ collapsed = false }) {
     }
   ];
   
+  // 아이콘 컴포넌트 맵핑 함수
+  const getIconComponent = (iconName: string) => {
+    const iconMap: {[key: string]: React.ComponentType<any>} = {
+      'image': Image,
+      'music': Music2,
+      'message-circle': MessageCircle,
+      'message-square': MessageSquare,
+      'layers': Layers,
+      'bar-chart': BarChart3,
+      'heart': Heart,
+      'user': User,
+      'home': Home,
+      'award': Award,
+      'settings': Settings,
+      'image-plus': ImagePlus,
+      'paint-bucket': PaintBucket
+    };
+    
+    return iconMap[iconName] || Layers; // 기본값으로 Layers 아이콘 사용
+  };
+  
+  // 카테고리 필터링 및 제목 업데이트
+  const visibleGroups = React.useMemo(() => {
+    return groups.filter(group => {
+      // 카테고리 ID가 없는 그룹은 항상 표시
+      if (!group.categoryId) return true;
+      
+      // 서비스 카테고리 정보가 로드되지 않았으면 모두 표시
+      if (!serviceCategories) return true;
+      
+      // 해당 카테고리 ID를 가진 서비스 카테고리 찾기
+      const category = serviceCategories.find(
+        (cat: any) => cat.categoryId === group.categoryId
+      );
+      
+      // 카테고리가 없거나 공개 상태인 경우에만 표시
+      return !category || category.isPublic;
+    }).map(group => {
+      // 그룹 객체 복사하여 수정
+      const updatedGroup = { ...group };
+      
+      // 서비스 카테고리 정보가 있을 경우 카테고리 제목 업데이트
+      if (group.categoryId && serviceCategories) {
+        const category = serviceCategories.find(
+          (cat: any) => cat.categoryId === group.categoryId
+        );
+        if (category) {
+          updatedGroup.title = category.title;
+        }
+      }
+      
+      return updatedGroup;
+    });
+  }, [groups, serviceCategories]);
+
   return (
-    <aside className={`h-full flex-shrink-0 bg-[#121212] text-white flex flex-col border-r border-neutral-800 overflow-y-auto custom-scrollbar transition-all duration-300 ${
-      collapsed ? "w-16" : "w-60"
-    }`}>
+    <aside 
+      className={`h-full flex-shrink-0 bg-[#121212] text-white flex flex-col border-r border-neutral-800 overflow-y-auto custom-scrollbar transition-all duration-300 ${
+        collapsed ? "w-16" : "w-60"
+      }`}
+    >
       {/* 로고 */}
       <div className="p-4 mb-4">
         <Link href="/" className="flex items-center">
@@ -163,7 +234,7 @@ export default function Sidebar({ collapsed = false }) {
 
       {/* 메뉴 그룹 */}
       <div className="flex-1 flex flex-col gap-5">
-        {groups.map((group) => (
+        {visibleGroups.map((group) => (
           <div key={group.id} className={`${collapsed ? "px-1" : "px-2"}`}>
             {!collapsed && (
               <div className="text-xs text-neutral-400 uppercase tracking-wider px-3 mb-2">
@@ -194,13 +265,13 @@ export default function Sidebar({ collapsed = false }) {
                       )}
                     </div>
                     
-                    {!collapsed && 'new' in item && item.new && (
+                    {!collapsed && item.new && (
                       <div className="flex-shrink-0 px-1.5 py-0.5 text-[10px] rounded bg-primary-lavender/20 text-primary-lavender font-semibold">
                         NEW
                       </div>
                     )}
                     
-                    {collapsed && 'new' in item && item.new && (
+                    {collapsed && item.new && (
                       <div className="absolute top-0 right-0 w-2 h-2 rounded-full bg-primary-lavender"></div>
                     )}
                   </Link>

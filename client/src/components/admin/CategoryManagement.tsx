@@ -30,6 +30,9 @@ import {
 
 // Zod 스키마 정의
 const categoryFormSchema = z.object({
+  categoryId: z.string()
+    .min(1, "카테고리 ID는 필수입니다.")
+    .max(50, "카테고리 ID는 50자 이내로 입력해주세요."),
   title: z.string()
     .min(1, "카테고리 이름은 필수입니다.")
     .max(100, "카테고리 이름은 100자 이내로 입력해주세요."),
@@ -154,7 +157,8 @@ export default function CategoryManagement() {
     return categories.map((category: any) => (
       <TableRow key={category.id}>
         <TableCell>{category.id}</TableCell>
-        <TableCell className="font-medium">{category.title}</TableCell>
+        <TableCell className="font-medium">{category.categoryId}</TableCell>
+        <TableCell>{category.title}</TableCell>
         <TableCell>{category.icon}</TableCell>
         <TableCell>{category.isPublic ? "공개" : "비공개"}</TableCell>
         <TableCell>{category.order}</TableCell>
@@ -199,6 +203,7 @@ export default function CategoryManagement() {
           <TableHeader>
             <TableRow>
               <TableHead>ID</TableHead>
+              <TableHead>카테고리 ID</TableHead>
               <TableHead>이름</TableHead>
               <TableHead>아이콘</TableHead>
               <TableHead>공개 상태</TableHead>
@@ -250,11 +255,13 @@ function CategoryForm({ initialData, onSubmit, onCancel }: CategoryFormProps) {
   const form = useForm<CategoryFormValues>({
     resolver: zodResolver(categoryFormSchema),
     defaultValues: initialData ? {
+      categoryId: initialData.categoryId,
       title: initialData.title,
       icon: initialData.icon,
       isPublic: initialData.isPublic,
       order: initialData.order,
     } : {
+      categoryId: "",
       title: "",
       icon: "layout",
       isPublic: true,
@@ -265,6 +272,23 @@ function CategoryForm({ initialData, onSubmit, onCancel }: CategoryFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="categoryId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>카테고리 ID</FormLabel>
+              <FormControl>
+                <Input placeholder="image" {...field} disabled={!!initialData} />
+              </FormControl>
+              <FormDescription>
+                고유한 카테고리 식별자입니다 (예: 'image', 'music', 'chat')
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
         <FormField
           control={form.control}
           name="title"
