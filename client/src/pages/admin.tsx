@@ -645,6 +645,7 @@ export default function AdminPage() {
                 <TabsTrigger value="image-concepts">이미지 컨셉</TabsTrigger>
                 <TabsTrigger value="image-categories">이미지 카테고리</TabsTrigger>
                 <TabsTrigger value="image-gallery">이미지 갤러리</TabsTrigger>
+                <TabsTrigger value="image-templates">이미지 템플릿</TabsTrigger>
               </TabsList>
               
               <TabsContent value="image-concepts">
@@ -662,6 +663,12 @@ export default function AdminPage() {
               <TabsContent value="image-gallery">
                 <div className="mt-6">
                   <ImageGallery />
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="image-templates">
+                <div className="mt-6">
+                  <ImageTemplateManagement />
                 </div>
               </TabsContent>
             </Tabs>
