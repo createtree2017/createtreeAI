@@ -29,6 +29,11 @@ export const images = pgTable("images", {
   originalUrl: text("original_url").notNull(),
   transformedUrl: text("transformed_url").notNull(),
   metadata: text("metadata").default("{}"),
+  // 이미지 합성 관련 필드 추가
+  isComposite: boolean("is_composite").default(false), // 합성 이미지 여부
+  templateId: integer("template_id"), // 사용된 템플릿 ID (null이면 일반 이미지 변환)
+  compositeMask: text("composite_mask"), // 합성에 사용된 마스크 정보 (URL 또는 base64)
+  facePositions: jsonb("face_positions"), // 감지된 얼굴 위치 정보 (JSON 형식)
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -192,6 +197,10 @@ export const imagesRelations = relations(images, ({ one }) => ({
     fields: [images.id],
     references: [favorites.itemId],
     relationName: 'image_favorite',
+  }),
+  template: one(imageTemplates, {
+    fields: [images.templateId],
+    references: [imageTemplates.id],
   }),
 }));
 
@@ -411,9 +420,32 @@ export const styleCards = pgTable("style_cards", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// 이미지 템플릿 테이블 - 합성을 위한 관리자 업로드 템플릿
+export const imageTemplates = pgTable("image_templates", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description"),
+  templateImageUrl: text("template_image_url").notNull(), // 관리자가 업로드한 템플릿 이미지 URL
+  templateType: text("template_type").notNull(), // 템플릿 유형 (얼굴교체, 몸교체, 시나리오 등)
+  promptTemplate: text("prompt_template").notNull(), // 합성에 사용할 프롬프트 템플릿
+  maskArea: jsonb("mask_area"), // 마스킹 영역 정보 (x, y, width, height - JSON 형식)
+  thumbnailUrl: text("thumbnail_url"), // 미리보기용 썸네일
+  categoryId: text("category_id").references(() => conceptCategories.categoryId),
+  isActive: boolean("is_active").default(true),
+  isFeatured: boolean("is_featured").default(false),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const insertStyleCardSchema = createInsertSchema(styleCards);
 export type InsertStyleCard = z.infer<typeof insertStyleCardSchema>;
 export type StyleCard = typeof styleCards.$inferSelect;
+
+// 이미지 템플릿 스키마 및 타입
+export const insertImageTemplateSchema = createInsertSchema(imageTemplates);
+export type InsertImageTemplate = z.infer<typeof insertImageTemplateSchema>;
+export type ImageTemplate = typeof imageTemplates.$inferSelect;
 
 // 서비스 카테고리 테이블 (사이드바 메뉴 관리)
 export const serviceCategories = pgTable("service_categories", {
