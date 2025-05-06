@@ -398,7 +398,7 @@ export default function Image() {
             </DialogHeader>
             
             <div className="grid grid-cols-2 gap-4 mt-4">
-              {artStyles.map((style) => (
+              {filteredStyles.map((style) => (
                 <div 
                   key={style.value}
                   className={`cursor-pointer rounded-xl overflow-hidden transition-all duration-200 border-2
