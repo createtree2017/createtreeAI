@@ -15,13 +15,14 @@ import BottomNavigation from "@/components/BottomNavigation";
 import Sidebar from "@/components/Sidebar";
 import { useMobile } from "./hooks/use-mobile";
 import { Menu, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { useSidebarStore } from "./lib/store";
 
 // Main layout component
 function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const isMobile = useMobile();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const { isOpen: sidebarOpen, closeSidebar } = useSidebarStore();
   
   // Check if we're in an iframe
   const [isInIframe, setIsInIframe] = useState(false);
@@ -43,7 +44,7 @@ function Layout({ children }: { children: React.ReactNode }) {
         !target.closest('.sidebar') && 
         !target.closest('.sidebar-toggle')
       ) {
-        setSidebarOpen(false);
+        closeSidebar();
       }
     };
     
@@ -51,14 +52,14 @@ function Layout({ children }: { children: React.ReactNode }) {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isMobile, sidebarOpen]);
+  }, [isMobile, sidebarOpen, closeSidebar]);
   
   // Close sidebar when location changes on mobile
   useEffect(() => {
     if (isMobile && sidebarOpen) {
-      setSidebarOpen(false);
+      closeSidebar();
     }
-  }, [location, isMobile]);
+  }, [location, isMobile, sidebarOpen, closeSidebar]);
   
   // Determine if direct page mode (for iframe embedding of single features)
   const isDirectPage = 
@@ -106,7 +107,7 @@ function Layout({ children }: { children: React.ReactNode }) {
     <div className={`flex flex-col ${isInIframe ? "h-full" : "min-h-screen"} bg-[#121217]`}>
       {/* Mobile sidebar overlay */}
       {useMobileLayout && sidebarOpen && (
-        <div className="fixed inset-0 bg-black/70 z-40" onClick={() => setSidebarOpen(false)} />
+        <div className="fixed inset-0 bg-black/70 z-40" onClick={() => closeSidebar()} />
       )}
       
       {/* Mobile sidebar */}
@@ -115,7 +116,7 @@ function Layout({ children }: { children: React.ReactNode }) {
           <Sidebar collapsed={false} />
           <button 
             className="absolute top-4 right-4 text-white p-1.5 bg-neutral-800 rounded-full"
-            onClick={() => setSidebarOpen(false)}
+            onClick={() => closeSidebar()}
             aria-label="Close sidebar"
           >
             <X size={18} />
@@ -131,7 +132,7 @@ function Layout({ children }: { children: React.ReactNode }) {
             <button 
               className="sidebar-toggle w-9 h-9 flex items-center justify-center text-neutral-300 hover:text-white 
                        rounded-md hover:bg-neutral-800 transition-colors"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
+              onClick={() => useSidebarStore.getState().toggleSidebar()}
               aria-label="Toggle sidebar"
             >
               <Menu size={22} />

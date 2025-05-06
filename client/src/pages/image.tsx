@@ -389,47 +389,53 @@ export default function Image() {
       
         {/* 스타일 선택 다이얼로그 */}
         <Dialog open={styleDialogOpen} onOpenChange={setStyleDialogOpen}>
-          <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto bg-[#1c1c24]">
             <DialogHeader>
-              <DialogTitle className="text-xl font-heading font-bold text-center">스타일 선택</DialogTitle>
-              <DialogDescription className="text-center">
+              <DialogTitle className="text-xl font-heading font-bold text-center text-white">스타일 선택</DialogTitle>
+              <DialogDescription className="text-center text-gray-300">
                 원하는 스타일을 클릭하여 선택하세요
               </DialogDescription>
             </DialogHeader>
             
-            <div className="grid grid-cols-2 gap-4 mt-4">
+            <div className="grid grid-cols-2 gap-3 mt-4">
               {filteredStyles.map((style) => (
                 <div 
                   key={style.value}
-                  className={`cursor-pointer rounded-xl overflow-hidden transition-all duration-200 border-2
+                  className={`cursor-pointer overflow-hidden transition-all duration-200
                     ${selectedStyle === style.value 
-                      ? 'border-primary shadow-lg' 
-                      : 'border-transparent hover:border-primary/30'
-                    }`}
+                      ? 'ring-2 ring-[#ff2d55] shadow-lg' 
+                      : 'hover:ring-1 hover:ring-[#ff2d55]/50'
+                    } rounded-lg`}
                   onClick={() => {
                     handleStyleSelected(style.value);
                     setStyleDialogOpen(false);
                   }}
                 >
-                  <div className="relative">
+                  <div className="relative flex flex-col">
                     <img 
                       src={style.thumbnailUrl} 
                       alt={style.label} 
-                      className="w-full h-40 object-cover"
+                      className="w-full h-36 object-cover"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
-                      <div className="p-3 w-full">
-                        <h3 className="text-white font-medium">{style.label}</h3>
-                        {style.description && (
-                          <p className="text-white/80 text-xs mt-1">{style.description}</p>
-                        )}
-                      </div>
+                    <div className="p-2.5 bg-[#272730] w-full flex justify-center">
+                      <h3 className={`font-medium text-center ${
+                        selectedStyle === style.value ? 'text-[#ff2d55]' : 'text-gray-200'
+                      }`}>
+                        {style.label}
+                      </h3>
                     </div>
+                    
                     {selectedStyle === style.value && (
-                      <div className="absolute top-2 right-2 bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center shadow-md">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <div className="absolute top-2 right-2 bg-[#ff2d55] text-white rounded-full w-5 h-5 flex items-center justify-center shadow-md">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
+                      </div>
+                    )}
+                    
+                    {style.isNew && (
+                      <div className="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-1.5 py-0.5 rounded">
+                        New
                       </div>
                     )}
                   </div>
