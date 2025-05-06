@@ -199,11 +199,11 @@ export const storage = {
       
       // templateImageUrl이 변경된 경우 새 이미지 저장
       if (updateData.templateImageUrl && updateData.templateImageUrl !== existingTemplate.templateImageUrl) {
-        const { localPath } = await this.saveTemporaryImage(
+        const { localPath, webUrl } = await this.saveTemporaryImage(
           updateData.templateImageUrl,
           `template_${(updateData.title || existingTemplate.title).replace(/\s+/g, '_')}`
         );
-        updateData.templateImageUrl = localPath;
+        updateData.templateImageUrl = webUrl;
       }
       
       // categoryId가 null이거나 빈 문자열이면 명시적으로 null로 설정
@@ -262,7 +262,11 @@ export const storage = {
       const userImageBuffer = fs.readFileSync(userImagePath);
       
       // 템플릿 이미지 읽기
-      const templateImageBuffer = fs.readFileSync(template.templateImageUrl);
+      // templateImageUrl이 웹 URL 형식이면 파일 시스템 경로로 변환
+      const templatePath = template.templateImageUrl.startsWith('/') 
+        ? path.join(process.cwd(), template.templateImageUrl.substring(1)) 
+        : template.templateImageUrl;
+      const templateImageBuffer = fs.readFileSync(templatePath);
       
       console.log(`[Storage] 템플릿 및 사용자 이미지 로드 완료, OpenAI API 호출 준비`);
       
