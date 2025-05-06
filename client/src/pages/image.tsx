@@ -720,7 +720,7 @@ export default function Image() {
                   className="w-full object-cover"
                   onError={(e) => {
                     console.error("이미지 로딩 실패", transformedImage.transformedUrl);
-                    e.currentTarget.src = transformedImage.originalUrl || "/placeholder.jpg";
+                    e.currentTarget.src = transformedImage.originalUrl || "/placeholder.svg";
                     e.currentTarget.alt = "이미지 로딩 실패 - 원본 표시";
                   }}
                 />
@@ -790,7 +790,7 @@ export default function Image() {
                     className="w-full h-36 object-cover"
                     onError={(e) => {
                       console.error("컬렉션 이미지 로딩 실패", image.transformedUrl);
-                      e.currentTarget.src = '/placeholder.jpg';
+                      e.currentTarget.src = '/placeholder.svg';
                       e.currentTarget.alt = "이미지 로딩 실패";
                     }}
                   />
