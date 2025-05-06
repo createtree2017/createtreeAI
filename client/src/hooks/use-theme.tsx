@@ -14,13 +14,13 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 // 테마 프로바이더 컴포넌트
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // 로컬 스토리지에서 테마 가져오기 (없으면 'light'를 기본값으로 사용)
+  // 로컬 스토리지에서 테마 가져오기 (없으면 'dark'를 기본값으로 사용)
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window !== 'undefined') {
       const savedTheme = localStorage.getItem('theme') as Theme;
-      return savedTheme || 'light';
+      return savedTheme || 'dark';
     }
-    return 'light';
+    return 'dark';
   });
 
   // 테마 변경 시 로컬 스토리지에 저장하고 HTML 클래스 업데이트
@@ -39,12 +39,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   // 시스템 테마 감지 (초기 로드 시에만)
   useEffect(() => {
-    // 저장된 테마가 없는 경우에만 시스템 테마를 감지
+    // 저장된 테마가 없는 경우에만 시스템 테마를 감지하되, 기본값은 항상 dark
     const savedTheme = localStorage.getItem('theme');
     if (!savedTheme) {
-      // 시스템이 다크 모드인지 확인
-      const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setTheme(isDarkMode ? 'dark' : 'light');
+      // 기본값을 다크모드로 설정
+      setTheme('dark');
     }
   }, []);
 
