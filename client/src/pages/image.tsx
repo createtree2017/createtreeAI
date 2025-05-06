@@ -378,8 +378,8 @@ export default function Image() {
   return (
     <div className="p-5 animate-fadeIn">
       <div className="text-center mb-6">
-        <h2 className="font-heading font-bold text-2xl mb-2">마터니티 아트 매직</h2>
-        <p className="text-neutral-dark">임신 및 아기 사진을 아름다운 추억으로 변환해보세요</p>
+        <h2 className="font-heading font-bold text-2xl mb-2">AI 이미지 생성</h2>
+        <p className="text-neutral-dark">임신 및 가족의 사진을 아름다운 추억으로 변환해 보세요</p>
       </div>
       
       {/* 스타일 선택 다이얼로그 */}
