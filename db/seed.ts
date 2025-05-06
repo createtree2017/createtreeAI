@@ -269,6 +269,55 @@ async function seed() {
     const insertedFavorites = await db.insert(schema.favorites).values(favoriteData).returning();
     console.log(`Inserted ${insertedFavorites.length} favorites`);
 
+    // Seed Service Categories
+    console.log("Seeding service categories...");
+    const defaultServiceCategories = [
+      {
+        categoryId: "image",
+        title: "AI 이미지 만들기",
+        icon: "image",
+        isPublic: true,
+        order: 0,
+      },
+      {
+        categoryId: "music",
+        title: "AI 노래 만들기",
+        icon: "music",
+        isPublic: false, // 기본적으로 비공개 상태
+        order: 1,
+      },
+      {
+        categoryId: "chat",
+        title: "AI 친구 만들기",
+        icon: "message-circle",
+        isPublic: false, // 기본적으로 비공개 상태
+        order: 2,
+      }
+    ];
+    
+    for (const category of defaultServiceCategories) {
+      // 카테고리가 이미 존재하는지 확인
+      const existingCategory = await db.query.serviceCategories.findFirst({
+        where: schema.eq(schema.serviceCategories.categoryId, category.categoryId)
+      });
+      
+      if (!existingCategory) {
+        // 새 카테고리 생성
+        await db.insert(schema.serviceCategories).values({
+          categoryId: category.categoryId,
+          title: category.title,
+          icon: category.icon,
+          isPublic: category.isPublic,
+          order: category.order,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+        console.log(`Created service category: ${category.title}`);
+      } else {
+        console.log(`Service category already exists: ${category.title}`);
+      }
+    }
+
     // Seed Pregnancy Milestones
     console.log("Seeding pregnancy milestones...");
     
