@@ -77,8 +77,14 @@ export async function transformImage(
     // 참고: 이 부분은 실제 GPT-Image 1 API 연동 구현이 필요합니다.
     // 현재는 테스트를 위해 DALL-E 3로 대체합니다.
     
-    // GPT-Image 1 프롬프트
-    const gptImageStepPrompt = `Create a photorealistic portrait of the person in this image, preserving their exact facial features, expression, body proportions, and pose. Maintain all identifying characteristics. This is step 1 of a transformation process focusing only on the person's structure and identity, without any style changes yet.`;
+    // GPT-Image 1 프롬프트 - 원본 이미지에서 사람의 특징과 포즈를 정확히 포착하는 데 중점
+    const gptImageStepPrompt = `Transform the uploaded image using the following instruction: 
+1. Create a photorealistic portrait of the EXACT person in this image
+2. Precisely preserve their facial features, exact expression, hair style, body proportions, and pose 
+3. Maintain all identifying characteristics, hand positions, and body orientation
+4. Focus ONLY on reconstructing the person with perfect accuracy - do not add any stylistic elements yet
+5. Clean background is acceptable but preserve the exact composition and framing
+6. This is step 1 of a 2-step transformation process focusing only on accurate subject reconstruction`;
     
     // 5. GPT-Image 1 변환 결과 처리 (이 단계에서는 임시로 DALL-E 3를 사용)
     console.log("GPT-Image 1 단계 실행 중...");
@@ -95,23 +101,42 @@ export async function transformImage(
     
     console.log("GPT-Image 1 처리 완료, DALL-E 3 스타일 적용 단계로 진행...");
     
-    // 6. DALL-E 3 스타일 적용 단계 (실제로는 GPT-Image 1에서 생성된 이미지 사용)
-    // 현재는 원본 이미지를 사용하여 DALL-E 3 호출
+    // 6. DALL-E 3 스타일 적용 단계
+    // 중간 이미지를 다운로드하여 이 이미지를 DALL-E 3의 입력으로 사용해야 하지만,
+    // 현재 OpenAI API에서는 이미지 URL을 직접 입력으로 사용할 수 없습니다.
+    // 이미지 파이프라인 구현을 위해 프롬프트에 이 점을 반영합니다.
     
     // DALL-E 3 스타일 프롬프트 구성
     let dalleStylePrompt = "";
     
+    // 스타일별 세부 프롬프트 구성
     if (style.includes("여신컨셉")) {
-      dalleStylePrompt = `Keep the person's facial identity and pose from the image, and apply warm studio lighting, elegant angel wings, and a stylish slim-fit dress with color tones matching the ${style} style. Do not change the person or their position.`;
+      dalleStylePrompt = `Based on the reference image (which was created in step 1), create an image with the same person but add: 
+1. Elegant angel wings 
+2. Warm studio lighting with golden/bronze tones
+3. A stylish slim-fit dress matching the ${style} aesthetic
+4. Ensure you EXACTLY preserve the person's facial identity, hairstyle, pose and proportions from the first image
+5. Create a warm, ethereal atmosphere`;
     } else if (style.includes("동화")) {
-      dalleStylePrompt = `Keep the person's facial identity and pose from the image, and transform into a fairytale storybook illustration style with ${style} aesthetic. Maintain the person's identity and pose while adding magical elements.`;
+      dalleStylePrompt = `Based on the reference image (which was created in step 1), transform it into:
+1. A fairy tale storybook illustration with ${style} aesthetic
+2. Maintain the EXACT same facial features, hairstyle, and pose as the reference
+3. Add magical elements and fantasy atmosphere
+4. Use soft, dreamy colors and lighting
+5. Keep the composition and positioning identical to the reference`;
     } else {
-      dalleStylePrompt = `Transform this image to match ${style} style while preserving the subject's identity, pose, and key elements. Focus on changing only the style, background, and decorative elements.`;
+      dalleStylePrompt = `Based on the reference image (which was created in step 1), transform it to match ${style} style:
+1. EXACTLY preserve the person's face, identity, hair, pose, and body proportions 
+2. Change only the style, background, clothing details, and decorative elements
+3. Maintain the same composition and positioning
+4. Apply appropriate lighting and color treatment for ${style} aesthetic`;
     }
     
     console.log(`DALL-E 3 단계2 변환 프롬프트: "${dalleStylePrompt.substring(0, 100)}..."`);
     
-    // 7. DALL-E 3로 최종 스타일 적용
+    // 7. DALL-E 3로 최종 스타일 적용 (현재는 원본 이미지 사용, 향후 중간 이미지 사용으로 개선 필요)
+    // DALL-E 3는 이미지 입력을 직접 받지 못하므로, 중간 이미지를 다운로드하는 로직은 구현했지만
+    // 현재는 원본 이미지와 향상된 프롬프트 조합으로 대체합니다.
     const finalImageUrl = await transformImageWithDallE3(imageBuffer, style, dalleStylePrompt);
     
     console.log("변환 파이프라인 완료: GPT-Image 1 → DALL-E 3");
