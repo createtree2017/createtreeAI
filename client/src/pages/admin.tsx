@@ -19,6 +19,7 @@ import BatchImportDialog from "@/components/BatchImportDialog";
 import { getLanguage, loadTranslations, setLanguage, t } from "@/lib/i18n";
 import BannerManagement from "@/components/admin/BannerManagement";
 import StyleCardManagement from "@/components/admin/StyleCardManagement";
+import CategoryManagement from "@/components/admin/CategoryManagement";
 import { 
   getLanguages, 
   uploadTranslations,
@@ -674,6 +675,7 @@ export default function AdminPage() {
               <TabsList>
                 <TabsTrigger value="banners">슬라이드 배너</TabsTrigger>
                 <TabsTrigger value="style-cards">AI 이미지 스타일</TabsTrigger>
+                <TabsTrigger value="categories">카테고리</TabsTrigger>
               </TabsList>
               
               <TabsContent value="banners">
@@ -685,6 +687,12 @@ export default function AdminPage() {
               <TabsContent value="style-cards">
                 <div className="mt-6">
                   <StyleCardManagement />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="categories">
+                <div className="mt-6">
+                  <CategoryManagement />
                 </div>
               </TabsContent>
             </Tabs>

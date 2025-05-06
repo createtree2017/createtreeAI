@@ -504,3 +504,36 @@ export const recordAbTestResult = async (resultData: {
   const response = await apiRequest('POST', '/api/abtests/result', resultData);
   return response.json();
 };
+
+// Service Categories API endpoints
+export const getServiceCategories = async () => {
+  const response = await apiRequest('GET', '/api/admin/service-categories');
+  return response.json();
+};
+
+export const createServiceCategory = async (categoryData: {
+  categoryId: string;
+  title: string;
+  isPublic: boolean;
+  icon: string;
+  order?: number;
+}) => {
+  const response = await apiRequest('POST', '/api/admin/service-categories', categoryData);
+  return response.json();
+};
+
+export const updateServiceCategory = async (id: number, categoryData: {
+  categoryId: string;
+  title: string;
+  isPublic: boolean;
+  icon: string;
+  order?: number;
+}) => {
+  const response = await apiRequest('PUT', `/api/admin/service-categories/${id}`, categoryData);
+  return response.json();
+};
+
+export const deleteServiceCategory = async (id: number) => {
+  const response = await apiRequest('DELETE', `/api/admin/service-categories/${id}`);
+  return response.json();
+};
