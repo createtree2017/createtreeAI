@@ -720,8 +720,15 @@ export default function Image() {
                   className="w-full object-cover"
                   onError={(e) => {
                     console.error("이미지 로딩 실패", transformedImage.transformedUrl);
-                    e.currentTarget.src = transformedImage.originalUrl || "/placeholder.svg";
-                    e.currentTarget.alt = "이미지 로딩 실패 - 원본 표시";
+                    // 서버 기반 URL이 아닌 경우 경로 재구성 (서버 URL에 상대 경로 추가)
+                    if (transformedImage.transformedUrl && transformedImage.transformedUrl.startsWith('/')) {
+                      const baseUrl = window.location.origin;
+                      console.log("이미지 URL 수정 시도:", baseUrl + transformedImage.transformedUrl);
+                      e.currentTarget.src = baseUrl + transformedImage.transformedUrl;
+                    } else {
+                      e.currentTarget.src = transformedImage.originalUrl || "/placeholder.svg";
+                      e.currentTarget.alt = "이미지 로딩 실패 - 원본 표시";
+                    }
                   }}
                 />
               </div>
@@ -790,8 +797,15 @@ export default function Image() {
                     className="w-full h-36 object-cover"
                     onError={(e) => {
                       console.error("컬렉션 이미지 로딩 실패", image.transformedUrl);
-                      e.currentTarget.src = '/placeholder.svg';
-                      e.currentTarget.alt = "이미지 로딩 실패";
+                      // 서버 기반 URL이 아닌 경우 경로 재구성 (서버 URL에 상대 경로 추가)
+                      if (image.transformedUrl && image.transformedUrl.startsWith('/')) {
+                        const baseUrl = window.location.origin;
+                        console.log("컬렉션 이미지 URL 수정 시도:", baseUrl + image.transformedUrl);
+                        e.currentTarget.src = baseUrl + image.transformedUrl;
+                      } else {
+                        e.currentTarget.src = '/placeholder.svg';
+                        e.currentTarget.alt = "이미지 로딩 실패";
+                      }
                     }}
                   />
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-2">
