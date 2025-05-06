@@ -20,6 +20,7 @@ import { getLanguage, loadTranslations, setLanguage, t } from "@/lib/i18n";
 import BannerManagement from "@/components/admin/BannerManagement";
 import StyleCardManagement from "@/components/admin/StyleCardManagement";
 import CategoryManagement from "@/components/admin/CategoryManagement";
+import ImageTemplateManagement from "@/components/admin/ImageTemplateManagement";
 import { 
   getLanguages, 
   uploadTranslations,
