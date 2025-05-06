@@ -183,9 +183,9 @@ export const storage = {
           const { transformImage } = await import('./services/openai-dalle3'); // 파일명은 호환성 유지
           transformedImageUrl = await transformImage(
             imageBuffer, 
-            style, 
-            prompt,
-            systemPrompt // 시스템 프롬프트 전달 (GPT-4o Vision의 이미지 분석 지침)
+            style,
+            modelType, // 선택한 모델 타입 전달 (gpt-image-1 또는 dalle-e-3)
+            prompt
           );
         }
         

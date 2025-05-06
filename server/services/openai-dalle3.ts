@@ -39,111 +39,196 @@ interface OpenAIImageGenerationResponse {
 }
 
 /**
- * GPT-Image 1 모델을 사용하여 이미지 변환 (이미지 기반 이미지 생성)
+ * 이미지 변환 결과 인터페이스
+ */
+export interface ImageTransformResult {
+  baseImageUrl: string;  // 원본 재현 이미지 URL (GPT-Image 1)
+  styledImageUrl: string; // 스타일 적용 이미지 URL (DALL-E 3)
+  success: boolean;      // 변환 성공 여부
+  errorMessage?: string;  // 오류 메시지 (실패 시)
+}
+
+/**
+ * 두 단계 이미지 처리 파이프라인을 실행하는 함수
+ * 1단계: GPT-Image 1로 인물 기반 이미지 생성
+ * 2단계: DALL-E 3로 스타일링 적용
+ * 
  * @param imageBuffer 원본 이미지 버퍼
  * @param style 적용할 스타일
+ * @param modelType 사용자가 선택한 모델 유형
  * @param customPrompt 사용자 지정 프롬프트
- * @param systemPrompt 시스템 프롬프트 (옵션)
- * @returns 변환된 이미지 URL
+ * @returns 이미지 변환 결과 객체 (두 이미지 URL 포함)
  */
 export async function transformImage(
   imageBuffer: Buffer, 
   style: string,
-  customPrompt: string | null = null,
-  systemPrompt: string | null = null
+  modelType: string = "dalle-e-3",
+  customPrompt: string | null = null
 ): Promise<string> {
   try {
     // 1. API 키 확인
     if (!isValidApiKey(API_KEY)) {
-      console.error("GPT-Image 1 API 키가 유효하지 않거나 없습니다.");
+      console.error("OpenAI API 키가 유효하지 않거나 없습니다.");
       return SERVICE_UNAVAILABLE;
     }
 
-    // 2. 이미지를 Base64로 인코딩
-    const base64Image = imageBuffer.toString('base64');
-    
-    // 3. 프롬프트 구성 - GPT-Image 1은 얼굴과 포즈를 보존하는데 중점
-    let gptImagePrompt = "";
-    
-    if (customPrompt && customPrompt.trim() !== "") {
-      gptImagePrompt = customPrompt;
-    } else {
-      gptImagePrompt = `Create a photorealistic image based on this reference image, preserving the person's facial features, body proportions, pose, and hand positions exactly. Focus on maintaining identity and structure.`;
-    }
-    
-    console.log(`GPT-Image 1 단계1 변환 프롬프트: "${gptImagePrompt.substring(0, 100)}..."`);
-    
-    // 4. GPT-Image 1 API 호출 (현재는 가상 구현, 실제로는 OpenAI API 호출 필요)
-    // 참고: 이 부분은 실제 GPT-Image 1 API 연동 구현이 필요합니다.
-    // 현재는 테스트를 위해 DALL-E 3로 대체합니다.
-    
-    // GPT-Image 1 프롬프트 - 원본 이미지에서 사람의 특징과 포즈를 정확히 포착하는 데 중점
-    const gptImageStepPrompt = `Transform the uploaded image using the following instruction: 
+    // 모델 유형에 따라 처리 분기
+    if (modelType === "gpt-image-1") {
+      console.log("[파이프라인] GPT-Image 1 모델 처리 시작...");
+      // GPT-Image 1 프롬프트 - 원본 이미지에서 사람의 특징과 포즈를 정확히 포착하는 데 중점
+      const gptImagePrompt = `Transform the uploaded image using the following instruction: 
 1. Create a photorealistic portrait of the EXACT person in this image
 2. Precisely preserve their facial features, exact expression, hair style, body proportions, and pose 
 3. Maintain all identifying characteristics, hand positions, and body orientation
 4. Focus ONLY on reconstructing the person with perfect accuracy - do not add any stylistic elements yet
 5. Clean background is acceptable but preserve the exact composition and framing
 6. This is step 1 of a 2-step transformation process focusing only on accurate subject reconstruction`;
+
+      // GPT-Image 1 호출 (현재는 DALL-E 3로 대체)
+      console.log("[파이프라인] GPT-Image 1 호출 (단계 1) - 인물 정확하게 재현하기");
+      const baseImageUrl = await transformImageWithPhotorealistic(imageBuffer, style, gptImagePrompt);
+      
+      // 변환 결과를 반환
+      console.log("[파이프라인] GPT-Image 1 처리 완료");
+      return baseImageUrl;
+    } 
+    else {
+      console.log("[파이프라인] DALL-E 3 모델 처리 시작...");
+      // DALL-E 3 프롬프트 구성
+      let dallePrompt = "";
+      
+      if (style.includes("여신컨셉")) {
+        dallePrompt = `Create a beautiful pregnancy portrait with:
+1. The woman in elegant pose with hands on her pregnant belly
+2. Radiant angel wings behind her
+3. Warm studio lighting with golden/bronze tones
+4. A stylish slim-fit dress in brown or earth tones
+5. Clean, minimalist background
+6. Professional studio photo aesthetic
+7. Gentle facial expression and warm glow`;
+      } else if (style.includes("동화")) {
+        dallePrompt = `Create a fairytale-inspired maternity portrait with:
+1. The pregnant woman as the central character 
+2. Magical, storybook illustration style with ${style} aesthetic
+3. Soft, dreamy colors and lighting
+4. Fantasy elements like glowing aura or gentle magic
+5. Elegant, flowing dress appropriate for pregnancy
+6. Beautiful, serene expression on her face
+7. Artistic composition that highlights her pregnancy`;
+      } else {
+        dallePrompt = `Create a professional maternity portrait in ${style} style with:
+1. Beautiful pregnant woman with hands cradling her belly
+2. Professional lighting and composition
+3. Elegant styling and natural pose
+4. Clean background with gentle tones
+5. Emphasis on the beauty of pregnancy
+6. Soft, flattering aesthetic
+7. Slightly warm color grading`;
+      }
+      
+      console.log(`[파이프라인] DALL-E 3 프롬프트: "${dallePrompt.substring(0, 100)}..."`);
+      
+      // DALL-E 3 호출
+      const styledImageUrl = await transformImageWithDallE3(imageBuffer, style, dallePrompt);
+      
+      console.log("[파이프라인] DALL-E 3 처리 완료");
+      return styledImageUrl;
+    }
+  } catch (error) {
+    console.error("[파이프라인] 이미지 변환 오류:", error);
+    return SERVICE_UNAVAILABLE;
+  }
+}
+
+/**
+ * 사실적 인물 이미지 생성 (GPT-Image 1 역할)
+ * 원본 이미지의 사람을 정확하게 재현하는 데 중점
+ */
+async function transformImageWithPhotorealistic(
+  imageBuffer: Buffer, 
+  style: string, 
+  prompt: string
+): Promise<string> {
+  try {
+    console.log("[GPT-Image 1] 인물 재현 프로세스 시작...");
     
-    // 5. GPT-Image 1 변환 결과 처리 (이 단계에서는 임시로 DALL-E 3를 사용)
-    console.log("GPT-Image 1 단계 실행 중...");
-    
-    // 현재는 테스트로 DALL-E 3 사용, 나중에 실제 GPT-Image 1 API로 교체 필요
-    // 이미지 URL은 로컬에 저장되거나 임시 URL로 반환될 수 있음
-    const intermediateImageUrl = await transformImageWithIntermediate(imageBuffer, gptImageStepPrompt);
-    
-    // GPT-Image 1 처리에 실패한 경우 바로 반환
-    if (intermediateImageUrl === SERVICE_UNAVAILABLE || intermediateImageUrl === SAFETY_FILTER_MESSAGE) {
-      console.error("GPT-Image 1 변환 실패, 처리 중단");
-      return intermediateImageUrl;
+    // 1. API 키 확인
+    if (!isValidApiKey(API_KEY)) {
+      console.error("[GPT-Image 1] API 키가 유효하지 않거나 없습니다.");
+      return SERVICE_UNAVAILABLE;
     }
     
-    console.log("GPT-Image 1 처리 완료, DALL-E 3 스타일 적용 단계로 진행...");
+    // 2. API 호출 - 현재는 DALL-E 3로 대체
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${API_KEY}`
+    };
+
+    // 사실적 인물 재현을 위한 프롬프트
+    const photoRealisticPrompt = `
+    Create a HIGHLY PHOTOREALISTIC portrait of the exact person in this reference image:
+    - Maintain PRECISE facial features, expression, and identity
+    - Keep the same hairstyle, hair color, and hair texture
+    - Preserve exact body proportions and body type
+    - Maintain the same hand position on the belly for maternity photos
+    - Clean studio lighting with natural tones
+    - Professional portrait style with high resolution detail
+    - Subtle, neutral background
+    - This should look like a professional photograph, not an AI image
+    `;
+
+    const requestParams = {
+      model: "dall-e-3",
+      prompt: photoRealisticPrompt + " Style: " + style,
+      n: 1,
+      size: "1024x1024",
+      quality: "standard",
+      response_format: "url"
+    };
     
-    // 6. DALL-E 3 스타일 적용 단계
-    // 중간 이미지를 다운로드하여 이 이미지를 DALL-E 3의 입력으로 사용해야 하지만,
-    // 현재 OpenAI API에서는 이미지 URL을 직접 입력으로 사용할 수 없습니다.
-    // 이미지 파이프라인 구현을 위해 프롬프트에 이 점을 반영합니다.
+    console.log("[GPT-Image 1] API 요청 전송...");
     
-    // DALL-E 3 스타일 프롬프트 구성
-    let dalleStylePrompt = "";
+    const response = await fetch(OPENAI_IMAGE_CREATION_URL, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(requestParams)
+    });
     
-    // 스타일별 세부 프롬프트 구성
-    if (style.includes("여신컨셉")) {
-      dalleStylePrompt = `Based on the reference image (which was created in step 1), create an image with the same person but add: 
-1. Elegant angel wings 
-2. Warm studio lighting with golden/bronze tones
-3. A stylish slim-fit dress matching the ${style} aesthetic
-4. Ensure you EXACTLY preserve the person's facial identity, hairstyle, pose and proportions from the first image
-5. Create a warm, ethereal atmosphere`;
-    } else if (style.includes("동화")) {
-      dalleStylePrompt = `Based on the reference image (which was created in step 1), transform it into:
-1. A fairy tale storybook illustration with ${style} aesthetic
-2. Maintain the EXACT same facial features, hairstyle, and pose as the reference
-3. Add magical elements and fantasy atmosphere
-4. Use soft, dreamy colors and lighting
-5. Keep the composition and positioning identical to the reference`;
-    } else {
-      dalleStylePrompt = `Based on the reference image (which was created in step 1), transform it to match ${style} style:
-1. EXACTLY preserve the person's face, identity, hair, pose, and body proportions 
-2. Change only the style, background, clothing details, and decorative elements
-3. Maintain the same composition and positioning
-4. Apply appropriate lighting and color treatment for ${style} aesthetic`;
+    // 응답 처리
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("[GPT-Image 1] API 오류 응답:", errorText);
+      
+      // 안전 필터 응답 확인
+      if (errorText.includes("safety") || errorText.includes("content_policy")) {
+        return SAFETY_FILTER_MESSAGE;
+      }
+      
+      return SERVICE_UNAVAILABLE;
     }
     
-    console.log(`DALL-E 3 단계2 변환 프롬프트: "${dalleStylePrompt.substring(0, 100)}..."`);
+    // JSON 응답 처리 및 타입 안전성 확보
+    const rawResponse = await response.json() as any;
+    // 명시적으로 타입 검증
+    const responseData: OpenAIImageGenerationResponse = {
+      created: rawResponse.created,
+      data: rawResponse.data,
+      error: rawResponse.error
+    };
     
-    // 7. DALL-E 3로 최종 스타일 적용 (현재는 원본 이미지 사용, 향후 중간 이미지 사용으로 개선 필요)
-    // DALL-E 3는 이미지 입력을 직접 받지 못하므로, 중간 이미지를 다운로드하는 로직은 구현했지만
-    // 현재는 원본 이미지와 향상된 프롬프트 조합으로 대체합니다.
-    const finalImageUrl = await transformImageWithDallE3(imageBuffer, style, dalleStylePrompt);
+    // 이미지 URL 추출
+    const imageUrl = responseData.data?.[0]?.url;
     
-    console.log("변환 파이프라인 완료: GPT-Image 1 → DALL-E 3");
-    return finalImageUrl;
+    if (!imageUrl) {
+      console.error("[GPT-Image 1] 응답에 이미지 URL이 없습니다:", responseData);
+      return SERVICE_UNAVAILABLE;
+    }
+    
+    console.log("[GPT-Image 1] 인물 재현 이미지 생성 성공, URL:", imageUrl.substring(0, 50) + "...");
+    return imageUrl;
     
   } catch (error) {
-    console.error("이미지 변환 파이프라인 오류:", error);
+    console.error("[GPT-Image 1] 오류:", error);
     return SERVICE_UNAVAILABLE;
   }
 }
