@@ -1,5 +1,5 @@
 import { db } from "@db";
-import { music, images, chatMessages, favorites, savedChats, eq, desc, and } from "@shared/schema";
+import { music, images, chatMessages, favorites, savedChats, imageTemplates, eq, desc, and, asc } from "@shared/schema";
 import fs from "fs";
 import path from "path";
 import fetch from "node-fetch";
@@ -68,6 +68,249 @@ export const storage = {
   async saveTemporaryImage(imageUrl: string, title: string) {
     const localPath = await saveTemporaryImage(imageUrl, title);
     return { localPath, filename: path.basename(localPath) };
+  },
+  
+  // 이미지 템플릿 관련 함수들
+  async createImageTemplate(templateData: {
+    title: string;
+    description: string | null;
+    templateImageUrl: string;
+    templateType: string;
+    promptTemplate: string;
+    maskArea?: any;
+    thumbnailUrl?: string;
+    categoryId?: string;
+    isActive?: boolean;
+    isFeatured?: boolean;
+    sortOrder?: number;
+  }) {
+    try {
+      console.log(`[Storage] 이미지 템플릿 생성 시작: "${templateData.title}"`);
+      
+      // 로컬에 템플릿 이미지 저장
+      const { localPath } = await this.saveTemporaryImage(
+        templateData.templateImageUrl,
+        `template_${templateData.title.replace(/\s+/g, '_')}`
+      );
+      
+      // 썸네일이 제공되지 않은 경우 템플릿 이미지를 썸네일로 사용
+      if (!templateData.thumbnailUrl) {
+        templateData.thumbnailUrl = localPath;
+      }
+      
+      const [savedTemplate] = await db
+        .insert(imageTemplates)
+        .values({
+          title: templateData.title,
+          description: templateData.description,
+          templateImageUrl: localPath,
+          templateType: templateData.templateType,
+          promptTemplate: templateData.promptTemplate,
+          maskArea: templateData.maskArea ? templateData.maskArea : null,
+          thumbnailUrl: templateData.thumbnailUrl,
+          categoryId: templateData.categoryId,
+          isActive: templateData.isActive !== undefined ? templateData.isActive : true,
+          isFeatured: templateData.isFeatured !== undefined ? templateData.isFeatured : false,
+          sortOrder: templateData.sortOrder !== undefined ? templateData.sortOrder : 0,
+        })
+        .returning();
+      
+      console.log(`[Storage] 이미지 템플릿 생성 완료: ID ${savedTemplate.id}, 타이틀: "${savedTemplate.title}"`);
+      return savedTemplate;
+    } catch (error) {
+      console.error(`[Storage] 이미지 템플릿 생성 중 오류 발생:`, error);
+      throw error;
+    }
+  },
+  
+  async getImageTemplateList() {
+    try {
+      const templates = await db.query.imageTemplates.findMany({
+        orderBy: [asc(imageTemplates.sortOrder), desc(imageTemplates.createdAt)],
+      });
+      
+      if (templates.length > 0) {
+        console.log(`이미지 템플릿 ${templates.length}개 조회됨`);
+      } else {
+        console.log('저장된 이미지 템플릿이 없습니다.');
+      }
+      
+      return templates;
+    } catch (error) {
+      console.error("이미지 템플릿 조회 중 오류:", error);
+      return [];
+    }
+  },
+  
+  async getImageTemplateById(id: number) {
+    try {
+      const template = await db.query.imageTemplates.findFirst({
+        where: eq(imageTemplates.id, id),
+      });
+      
+      if (!template) {
+        console.log(`ID ${id}의 이미지 템플릿이 존재하지 않습니다.`);
+        return null;
+      }
+      
+      return template;
+    } catch (error) {
+      console.error(`ID ${id}의 이미지 템플릿 조회 중 오류:`, error);
+      return null;
+    }
+  },
+  
+  async updateImageTemplate(id: number, updateData: Partial<typeof imageTemplates.$inferInsert>) {
+    try {
+      console.log(`[Storage] 이미지 템플릿 업데이트 시작: ID ${id}`);
+      
+      // 기존 템플릿 확인
+      const existingTemplate = await this.getImageTemplateById(id);
+      if (!existingTemplate) {
+        throw new Error(`ID ${id}의 이미지 템플릿이 존재하지 않습니다.`);
+      }
+      
+      // templateImageUrl이 변경된 경우 새 이미지 저장
+      if (updateData.templateImageUrl && updateData.templateImageUrl !== existingTemplate.templateImageUrl) {
+        const { localPath } = await this.saveTemporaryImage(
+          updateData.templateImageUrl,
+          `template_${(updateData.title || existingTemplate.title).replace(/\s+/g, '_')}`
+        );
+        updateData.templateImageUrl = localPath;
+      }
+      
+      const [updatedTemplate] = await db
+        .update(imageTemplates)
+        .set(updateData)
+        .where(eq(imageTemplates.id, id))
+        .returning();
+      
+      console.log(`[Storage] 이미지 템플릿 업데이트 완료: ID ${updatedTemplate.id}`);
+      return updatedTemplate;
+    } catch (error) {
+      console.error(`[Storage] 이미지 템플릿 업데이트 중 오류 발생:`, error);
+      throw error;
+    }
+  },
+  
+  async deleteImageTemplate(id: number) {
+    try {
+      console.log(`[Storage] 이미지 템플릿 삭제 시작: ID ${id}`);
+      
+      // 삭제 전 템플릿 정보 가져오기
+      const template = await this.getImageTemplateById(id);
+      if (!template) {
+        throw new Error(`ID ${id}의 이미지 템플릿이 존재하지 않습니다.`);
+      }
+      
+      // 템플릿 삭제
+      await db
+        .delete(imageTemplates)
+        .where(eq(imageTemplates.id, id));
+      
+      console.log(`[Storage] 이미지 템플릿 삭제 완료: ID ${id}`);
+      return { success: true, id };
+    } catch (error) {
+      console.error(`[Storage] 이미지 템플릿 삭제 중 오류 발생:`, error);
+      throw error;
+    }
+  },
+  
+  async compositeImageWithTemplate(userImagePath: string, templateId: number) {
+    try {
+      console.log(`[Storage] 이미지 합성 시작: 템플릿 ID ${templateId}`);
+      
+      // 템플릿 정보 가져오기
+      const template = await this.getImageTemplateById(templateId);
+      if (!template) {
+        throw new Error(`ID ${templateId}의 이미지 템플릿이 존재하지 않습니다.`);
+      }
+      
+      // 사용자 이미지 읽기
+      const userImageBuffer = fs.readFileSync(userImagePath);
+      
+      // 템플릿 이미지 읽기
+      const templateImageBuffer = fs.readFileSync(template.templateImageUrl);
+      
+      console.log(`[Storage] 템플릿 및 사용자 이미지 로드 완료, OpenAI API 호출 준비`);
+      
+      // 템플릿 프롬프트 처리
+      let prompt = template.promptTemplate;
+      
+      // OpenAI API를 통한 이미지 합성
+      const { compositeImages } = await import('./services/openai-dalle3');
+      const compositedImageUrl = await compositeImages(
+        userImageBuffer,
+        templateImageBuffer,
+        template.templateType,
+        prompt,
+        template.maskArea
+      );
+      
+      if (!compositedImageUrl.includes("placehold.co")) {
+        console.log(`[Storage] 이미지 합성 성공`);
+        return compositedImageUrl;
+      } else {
+        console.log(`[Storage] 이미지 합성 실패`);
+        return "https://placehold.co/1024x1024/A7C1E2/FFF?text=이미지+합성+실패.+다시+시도해+주세요.";
+      }
+    } catch (error) {
+      console.error(`[Storage] 이미지 합성 중 오류 발생:`, error);
+      return "https://placehold.co/1024x1024/A7C1E2/FFF?text=이미지+합성+서비스+오류.+다시+시도해+주세요.";
+    }
+  },
+  
+  async saveCompositedImage(
+    originalFilename: string,
+    templateId: number,
+    originalPath: string,
+    compositedUrl: string,
+    facePositions?: any
+  ) {
+    try {
+      // 템플릿 정보 가져오기
+      const template = await this.getImageTemplateById(templateId);
+      if (!template) {
+        throw new Error(`ID ${templateId}의 이미지 템플릿이 존재하지 않습니다.`);
+      }
+      
+      // 파일명에서 확장자 제거
+      const nameWithoutExt = path.basename(
+        originalFilename,
+        path.extname(originalFilename)
+      );
+      
+      // 제목 생성
+      const title = `${template.title} ${nameWithoutExt}`;
+      
+      // 메타데이터 생성
+      const metadata: Record<string, any> = {
+        templateTitle: template.title,
+        templateType: template.templateType
+      };
+      
+      console.log(`[Storage] 합성 이미지 저장 시작: "${title}", 템플릿: ${template.title}`);
+      
+      const [savedImage] = await db
+        .insert(images)
+        .values({
+          title,
+          style: template.title, // 스타일에 템플릿 제목 사용
+          originalUrl: originalPath,
+          transformedUrl: compositedUrl,
+          isComposite: true,
+          templateId: templateId,
+          facePositions: facePositions,
+          metadata: JSON.stringify(metadata),
+        })
+        .returning();
+      
+      console.log(`[Storage] 합성 이미지 저장 완료: ID ${savedImage.id}, 타이틀: "${savedImage.title}"`);
+      return savedImage;
+    } catch (error) {
+      console.error(`[Storage] 합성 이미지 저장 중 오류 발생:`, error);
+      throw error;
+    }
   },
   
   // Music related functions
