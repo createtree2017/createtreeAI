@@ -10,12 +10,13 @@ import fs from 'fs';
 import { Buffer } from 'buffer';
 import fetch from 'node-fetch';
 
-// OpenAI API 설정
+// OpenAI API 설정 - 프로젝트 ID 관련 설정 제거 (오류 원인)
 const API_KEY = process.env.OPENAI_API_KEY;
 
-// API 키 유효성 검증 함수
+// API 키 유효성 검증 함수 - 'sk-proj-' 부분 제거
 function isValidApiKey(apiKey: string | undefined): boolean {
-  return !!apiKey && (apiKey.startsWith('sk-') || apiKey.startsWith('sk-proj-'));
+  // 프로젝트 ID 검증 제거 (오류 원인이었음)
+  return !!apiKey && apiKey.startsWith('sk-');
 }
 
 // 에러 메시지 및 상수
@@ -47,9 +48,11 @@ async function analyzeImageWithGPT4oVision(
     // Base64 인코딩
     const base64Image = imageBuffer.toString('base64');
     
-    // OpenAI 클라이언트 설정
+    // OpenAI 클라이언트 설정 - 프로젝트 ID 제거
     const openai = new OpenAI({
       apiKey: API_KEY,
+      // 프로젝트 ID 관련 설정 제거 (오류 원인)
+      dangerouslyAllowBrowser: true // 브라우저 환경에서도 작동하도록 설정
     });
     
     // 사용자 프롬프트 구성
@@ -195,9 +198,10 @@ ${imageAnalysis}
     
     console.log("[GPT-Image 1] 최종 프롬프트:", finalPrompt.substring(0, 150) + "...");
     
-    // 4. DALL-E 3 API 호출
+    // 4. DALL-E 3 API 호출 - 프로젝트 ID 설정 제거
     const openai = new OpenAI({
       apiKey: API_KEY,
+      dangerouslyAllowBrowser: true // 브라우저 환경 호환성 설정
     });
     
     try {

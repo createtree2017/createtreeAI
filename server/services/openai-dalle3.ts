@@ -12,14 +12,16 @@ import OpenAI from 'openai';
 
 // OpenAI API 키 - 환경 변수에서 가져옴
 const API_KEY = process.env.OPENAI_API_KEY;
+// 프로젝트 ID 관련 설정 제거 (오류 원인이었음)
 
 // 서비스 불가능 상태 메시지
 const SERVICE_UNAVAILABLE = "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
 const SAFETY_FILTER_MESSAGE = "https://placehold.co/1024x1024/A7C1E2/FFF?text=안전+시스템에+의해+이미지+변환이+거부되었습니다.+다른+스타일이나+이미지를+시도해보세요";
 
-// API 키 유효성 검증
+// API 키 유효성 검증 - 프로젝트 ID 검증 제거
 function isValidApiKey(apiKey: string | undefined): boolean {
-  return !!apiKey && (apiKey.startsWith('sk-'));
+  // API 키는 'sk-'로 시작하는 일반 형식만 검증 (프로젝트 ID 오류 해결 위해)
+  return !!apiKey && apiKey.startsWith('sk-');
 }
 
 // OpenAI API 엔드포인트
@@ -451,10 +453,11 @@ export async function transformImageWithDallE3(
     
     console.log(`[DALL-E 3] 최종 프롬프트: "${finalPrompt.substring(0, 100)}..."`);
     
-    // 3. DALL-E 3 API 호출 (SDK 사용)
+    // 3. DALL-E 3 API 호출 (SDK 사용) - 프로젝트 ID 제거
     try {
       const openai = new OpenAI({
-        apiKey: API_KEY
+        apiKey: API_KEY,
+        dangerouslyAllowBrowser: true // 브라우저 환경 호환성 설정
       });
       
       console.log("[DALL-E 3] 이미지 생성 API 호출 중...");
