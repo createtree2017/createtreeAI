@@ -2960,6 +2960,126 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
             )}
           />
           
+          {/* Image Composition Fields */}
+          <div className="col-span-1 md:col-span-2 mt-4 mb-2">
+            <Separator />
+            <h3 className="text-lg font-medium mt-4 mb-2">이미지 합성 설정</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              사용자 이미지에 템플릿을 합성할 때 필요한 설정입니다. 템플릿 이미지를 업로드하고 합성 방식을 설정하세요.
+            </p>
+          </div>
+          
+          <FormField
+            control={form.control}
+            name="isCompositeTemplate"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel>이미지 합성 사용</FormLabel>
+                  <FormDescription>
+                    이 옵션을 켜면 사용자 이미지와 템플릿 이미지를 합성하여 결과물을 생성합니다.
+                  </FormDescription>
+                </div>
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="templateImageUrl"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>템플릿 이미지</FormLabel>
+                <div className="space-y-3">
+                  {field.value && (
+                    <div className="border rounded-md overflow-hidden w-32 h-32 relative">
+                      <img 
+                        src={field.value.startsWith('http') ? field.value : field.value}
+                        alt="Template image"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          console.error('Failed to load image:', field.value);
+                          e.currentTarget.src = 'https://placehold.co/200x200/F5F5F5/AAAAAA?text=Template+Image+Error';
+                        }}
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-1 right-1 rounded-full w-6 h-6"
+                        onClick={() => field.onChange("")}
+                        type="button"
+                      >
+                        <X size={12} />
+                      </Button>
+                    </div>
+                  )}
+                  
+                  <div className="flex flex-col space-y-2">
+                    <FormControl>
+                      <Input 
+                        placeholder="https://example.com/template.jpg" 
+                        {...field} 
+                        value={field.value || ""}
+                      />
+                    </FormControl>
+                    <div className="text-sm text-muted-foreground">
+                      템플릿 이미지 업로드:
+                    </div>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          try {
+                            const result = await uploadThumbnail(file);
+                            if (result.url) {
+                              field.onChange(result.url);
+                            }
+                          } catch (error) {
+                            toast({
+                              title: "업로드 실패",
+                              description: error instanceof Error ? error.message : "이미지 업로드 실패",
+                              variant: "destructive"
+                            });
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="compositePrompt"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>합성 프롬프트</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="합성할 특징을 설명하세요 (예: 얼굴만 템플릿에서 가져오기, 배경만 합성하기 등)"
+                    className="min-h-20"
+                    {...field}
+                  />
+                </FormControl>
+                <FormDescription>
+                  사용자 이미지와 템플릿 이미지를 어떻게 합성할지 설명하는 프롬프트입니다.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
           <FormField
             control={form.control}
             name="order"
