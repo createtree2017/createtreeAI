@@ -433,11 +433,13 @@ export default function Image() {
                       </div>
                     )}
                     
+                    {/* New 뱃지 부분 - 필요시 활성화
                     {style.isNew && (
                       <div className="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-1.5 py-0.5 rounded">
                         New
                       </div>
                     )}
+                    */}
                   </div>
                 </div>
               ))}

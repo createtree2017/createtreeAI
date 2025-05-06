@@ -22,7 +22,8 @@ function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const isMobile = useMobile();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const { isOpen: sidebarOpen, closeSidebar } = useSidebarStore();
+  // 직접 사이드바 상태 관리 
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // Check if we're in an iframe
   const [isInIframe, setIsInIframe] = useState(false);
@@ -32,6 +33,22 @@ function Layout({ children }: { children: React.ReactNode }) {
       setIsInIframe(true);
       document.documentElement.classList.add('in-iframe');
     }
+  }, []);
+  
+  // 전역 상태로 사이드바 상태 관리를 위한 리스너
+  useEffect(() => {
+    // 함수 정의
+    const handleSidebarToggle = () => {
+      setSidebarOpen(prev => !prev);
+    };
+    
+    // 이벤트 리스너 등록
+    window.addEventListener('app:toggle-sidebar', handleSidebarToggle);
+    
+    // clean up
+    return () => {
+      window.removeEventListener('app:toggle-sidebar', handleSidebarToggle);
+    };
   }, []);
   
   // Close sidebar when clicking outside on mobile
@@ -44,7 +61,7 @@ function Layout({ children }: { children: React.ReactNode }) {
         !target.closest('.sidebar') && 
         !target.closest('.sidebar-toggle')
       ) {
-        closeSidebar();
+        setSidebarOpen(false);
       }
     };
     
@@ -52,14 +69,14 @@ function Layout({ children }: { children: React.ReactNode }) {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isMobile, sidebarOpen, closeSidebar]);
+  }, [isMobile, sidebarOpen]);
   
   // Close sidebar when location changes on mobile
   useEffect(() => {
     if (isMobile && sidebarOpen) {
-      closeSidebar();
+      setSidebarOpen(false);
     }
-  }, [location, isMobile, sidebarOpen, closeSidebar]);
+  }, [location, isMobile, sidebarOpen]);
   
   // Determine if direct page mode (for iframe embedding of single features)
   const isDirectPage = 
@@ -107,7 +124,7 @@ function Layout({ children }: { children: React.ReactNode }) {
     <div className={`flex flex-col ${isInIframe ? "h-full" : "min-h-screen"} bg-[#121217]`}>
       {/* Mobile sidebar overlay */}
       {useMobileLayout && sidebarOpen && (
-        <div className="fixed inset-0 bg-black/70 z-40" onClick={() => closeSidebar()} />
+        <div className="fixed inset-0 bg-black/70 z-40" onClick={() => setSidebarOpen(false)} />
       )}
       
       {/* Mobile sidebar */}
@@ -116,7 +133,7 @@ function Layout({ children }: { children: React.ReactNode }) {
           <Sidebar collapsed={false} />
           <button 
             className="absolute top-4 right-4 text-white p-1.5 bg-neutral-800 rounded-full"
-            onClick={() => closeSidebar()}
+            onClick={() => setSidebarOpen(false)}
             aria-label="Close sidebar"
           >
             <X size={18} />
@@ -132,7 +149,7 @@ function Layout({ children }: { children: React.ReactNode }) {
             <button 
               className="sidebar-toggle w-9 h-9 flex items-center justify-center text-neutral-300 hover:text-white 
                        rounded-md hover:bg-neutral-800 transition-colors"
-              onClick={() => useSidebarStore.getState().toggleSidebar()}
+              onClick={() => setSidebarOpen(!sidebarOpen)}
               aria-label="Toggle sidebar"
             >
               <Menu size={22} />
