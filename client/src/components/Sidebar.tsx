@@ -56,7 +56,7 @@ export default function Sidebar({ collapsed = false }) {
         {
           path: '/chat',
           icon: MessageCircle,
-          label: 'AI 도우미',
+          label: '스티커 만들기',
           ariaLabel: 'AI 채팅 페이지',
         },
       ]
