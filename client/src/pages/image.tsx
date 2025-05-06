@@ -627,7 +627,7 @@ export default function Image() {
         {/* 종횡비 선택 */}
         <div className="mb-5">
           <label className="block text-gray-300 text-sm mb-2">종횡비</label>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             <div 
               className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
                 selectedAspectRatio === "1:1" ? "bg-[#ff2d55] border-[#ff2d55]" : "bg-[#272730] border-gray-700 hover:border-gray-500"
@@ -658,8 +658,17 @@ export default function Image() {
                 <span className={`text-xs font-medium ${selectedAspectRatio === "3:2" ? "text-white" : "text-gray-300"}`}>3:2</span>
               </div>
             </div>
+            <div 
+              className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
+                selectedAspectRatio === "9:16" ? "bg-[#ff2d55] border-[#ff2d55]" : "bg-[#272730] border-gray-700 hover:border-gray-500"
+              }`}
+              onClick={() => setSelectedAspectRatio("9:16")}
+            >
+              <div className="aspect-[9/16] flex items-center justify-center">
+                <span className={`text-xs font-medium ${selectedAspectRatio === "9:16" ? "text-white" : "text-gray-300"}`}>9:16</span>
+              </div>
+            </div>
           </div>
-
         </div>
 
         {/* 만들기 버튼 */}
