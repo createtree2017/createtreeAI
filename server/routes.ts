@@ -22,6 +22,8 @@ declare module 'express-session' {
       localFilePath?: string; // 로컬 파일 시스템 경로 추가
       aspectRatio?: string; // 이미지 종횡비 추가
       dbImageId?: number; // 실제 DB에 저장된 ID도 추가
+      isComposite?: boolean; // 이미지 합성 여부
+      templateType?: string; // 템플릿 타입 (blend, frame, background 등)
     };
   }
 }
