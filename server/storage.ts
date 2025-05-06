@@ -238,7 +238,7 @@ export const storage = {
       let prompt = template.promptTemplate;
       
       // OpenAI API를 통한 이미지 합성
-      const { compositeImages } = await import('./services/openai-dalle3');
+      const { compositeImages } = await import('./services/openai-composite');
       const compositedImageUrl = await compositeImages(
         userImageBuffer,
         templateImageBuffer,

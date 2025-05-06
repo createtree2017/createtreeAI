@@ -2695,6 +2695,145 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 이미지 템플릿 관리 엔드포인트
+  app.get("/api/image-templates", async (req, res) => {
+    try {
+      const templates = await storage.getImageTemplateList();
+      return res.json(templates);
+    } catch (error) {
+      console.error("Error fetching image templates:", error);
+      return res.status(500).json({ error: "이미지 템플릿 조회 중 오류가 발생했습니다." });
+    }
+  });
+  
+  app.get("/api/image-templates/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const template = await storage.getImageTemplateById(parseInt(id));
+      
+      if (!template) {
+        return res.status(404).json({ error: "이미지 템플릿을 찾을 수 없습니다." });
+      }
+      
+      return res.json(template);
+    } catch (error) {
+      console.error("Error fetching image template:", error);
+      return res.status(500).json({ error: "이미지 템플릿 조회 중 오류가 발생했습니다." });
+    }
+  });
+  
+  app.post("/api/image-templates", async (req, res) => {
+    try {
+      const {
+        title,
+        description,
+        templateImageUrl,
+        templateType,
+        promptTemplate,
+        maskArea,
+        thumbnailUrl,
+        categoryId,
+        isActive,
+        isFeatured,
+        sortOrder
+      } = req.body;
+      
+      const template = await storage.createImageTemplate({
+        title,
+        description,
+        templateImageUrl,
+        templateType,
+        promptTemplate,
+        maskArea,
+        thumbnailUrl,
+        categoryId,
+        isActive,
+        isFeatured,
+        sortOrder
+      });
+      
+      return res.status(201).json(template);
+    } catch (error) {
+      console.error("Error creating image template:", error);
+      return res.status(500).json({ error: "이미지 템플릿 생성 중 오류가 발생했습니다." });
+    }
+  });
+  
+  app.put("/api/image-templates/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const template = await storage.updateImageTemplate(parseInt(id), req.body);
+      
+      if (!template) {
+        return res.status(404).json({ error: "이미지 템플릿을 찾을 수 없습니다." });
+      }
+      
+      return res.json(template);
+    } catch (error) {
+      console.error("Error updating image template:", error);
+      return res.status(500).json({ error: "이미지 템플릿 업데이트 중 오류가 발생했습니다." });
+    }
+  });
+  
+  app.delete("/api/image-templates/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = await storage.deleteImageTemplate(parseInt(id));
+      
+      if (!result.success) {
+        return res.status(404).json({ error: "이미지 템플릿을 찾을 수 없습니다." });
+      }
+      
+      return res.json({ message: "이미지 템플릿이 성공적으로 삭제되었습니다." });
+    } catch (error) {
+      console.error("Error deleting image template:", error);
+      return res.status(500).json({ error: "이미지 템플릿 삭제 중 오류가 발생했습니다." });
+    }
+  });
+  
+  // 이미지 합성 엔드포인트
+  app.post("/api/composite-image", upload.single("image"), async (req, res) => {
+    try {
+      const { templateId } = req.body;
+      
+      if (!req.file) {
+        return res.status(400).json({ error: "이미지 파일이 필요합니다." });
+      }
+      
+      if (!templateId) {
+        return res.status(400).json({ error: "템플릿 ID가 필요합니다." });
+      }
+      
+      const filePath = req.file.path;
+      
+      // 이미지 합성 처리
+      const compositedImageUrl = await storage.compositeImageWithTemplate(
+        filePath,
+        parseInt(templateId)
+      );
+      
+      if (compositedImageUrl.includes("placehold.co")) {
+        return res.status(400).json({ 
+          error: "이미지 합성 실패", 
+          errorImageUrl: compositedImageUrl 
+        });
+      }
+      
+      // 합성된 이미지 저장
+      const savedImage = await storage.saveCompositedImage(
+        req.file.originalname,
+        parseInt(templateId),
+        filePath,
+        compositedImageUrl
+      );
+      
+      return res.status(201).json(savedImage);
+    } catch (error) {
+      console.error("Error compositing image:", error);
+      return res.status(500).json({ error: "이미지 합성 중 오류가 발생했습니다." });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
