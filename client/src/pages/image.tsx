@@ -403,22 +403,19 @@ export default function Image() {
       </Dialog>
 
       {/* Preview Styles Section (NEW) */}
-      <div className="bg-white rounded-xl p-5 shadow-soft border border-neutral-light mb-6">
-        <div className="text-center mb-5">
-          <h3 className="font-heading font-semibold text-lg mb-2">이 마법같은 스타일 중에서 선택하세요!</h3>
-          <p className="text-neutral-dark mb-4 max-w-md mx-auto">
-            특별한 순간을 어떻게 변환할 수 있는지 확인해보세요. 마음에 드는 스타일을 클릭하세요.
-          </p>
+      <div className="bg-[#1c1c24] rounded-xl p-5 mb-6">
+        <div className="flex justify-between items-center mb-5">
+          <h3 className="font-heading font-semibold text-white text-lg">스타일</h3>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-6 gap-2">
           {artStyles.map((style) => (
             <div 
               key={style.value}
-              className={`cursor-pointer rounded-xl overflow-hidden transition-all duration-200 
+              className={`cursor-pointer rounded-lg overflow-hidden transition-all
                 ${selectedStyle === style.value 
-                  ? 'ring-4 ring-primary shadow-lg transform scale-105 z-10' 
-                  : 'shadow-sm hover:shadow-md'
+                  ? 'ring-2 ring-[#ff2d55]' 
+                  : 'border border-gray-700 hover:border-gray-500'
                 }`}
               onClick={() => handleStyleSelected(style.value)}
             >
@@ -426,27 +423,24 @@ export default function Image() {
                 <img 
                   src={style.thumbnailUrl} 
                   alt={style.label} 
-                  className="w-full h-32 object-cover"
+                  className="w-full h-16 object-cover"
                 />
                 <div className={`absolute inset-0 flex items-center justify-center ${
-                  selectedStyle === style.value ? 'bg-black/10' : 'bg-black/30'
+                  selectedStyle === style.value ? 'bg-[#ff2d55]/20' : ''
                 }`}>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
-                    selectedStyle === style.value 
-                    ? 'bg-primary text-white font-bold shadow-md scale-110' 
-                    : 'bg-white/80 text-primary-dark'
-                  }`}>
-                    {style.label}
-                    {selectedStyle === style.value && ' ✓'}
-                  </span>
+                  {selectedStyle === style.value && (
+                    <div className="absolute bottom-1 right-1 bg-[#ff2d55] text-white rounded-full w-5 h-5 flex items-center justify-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                  )}
                 </div>
-                {selectedStyle === style.value && (
-                  <div className="absolute top-2 right-2 bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center shadow-md">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                )}
+              </div>
+              <div className="bg-[#272730] text-center py-1 px-1">
+                <span className={`text-xs font-medium ${selectedStyle === style.value ? 'text-[#ff2d55]' : 'text-gray-300'}`}>
+                  {style.label}
+                </span>
               </div>
             </div>
           ))}
@@ -454,7 +448,7 @@ export default function Image() {
       </div>
 
       {/* Image Upload Section */}
-      <div className="bg-[#1c1c24] rounded-xl p-5 shadow-soft mb-6">
+      <div className="bg-[#1c1c24] rounded-xl p-5 mb-6">
         <div className="text-left mb-3">
           <h3 className="font-heading font-semibold text-white text-lg">이미지 업로드</h3>
         </div>
