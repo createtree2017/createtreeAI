@@ -31,7 +31,8 @@ interface TransformedImage {
 interface Category {
   id: number;
   categoryId: string;
-  title: string;
+  name: string;
+  title?: string;
   description?: string;
   order?: number;
   isActive?: boolean;
@@ -454,7 +455,7 @@ export default function Image() {
               >
                 <div className="flex items-center justify-between px-4 py-3">
                   <span className={`font-medium ${selectedCategory === category.categoryId ? 'text-[#ff2d55]' : 'text-gray-300'}`}>
-                    {category.title}
+                    {category.name}
                   </span>
                   {selectedCategory === category.categoryId && (
                     <CheckCircle2 className="h-5 w-5 text-[#ff2d55]" />
