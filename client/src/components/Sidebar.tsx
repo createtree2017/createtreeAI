@@ -49,7 +49,7 @@ export default function Sidebar({ collapsed = false }) {
         {
           path: '/music',
           icon: Music,
-          label: '자장가',
+          label: '가족사진',
           ariaLabel: '음악 생성 페이지',
           new: true
         },
