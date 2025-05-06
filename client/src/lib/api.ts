@@ -507,7 +507,7 @@ export const recordAbTestResult = async (resultData: {
 
 // Service Categories API endpoints
 export const getServiceCategories = async () => {
-  const response = await apiRequest('GET', '/api/admin/service-categories');
+  const response = await apiRequest('GET', '/api/service-categories');
   return response.json();
 };
 
