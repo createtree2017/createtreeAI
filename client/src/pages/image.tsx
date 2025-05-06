@@ -496,15 +496,18 @@ export default function Image() {
 
         {/* 스타일 선택 다이얼로그 */}
         <Dialog open={styleDialogOpen} onOpenChange={setStyleDialogOpen}>
-          <DialogContent className="sm:max-w-[650px] max-h-[80vh] overflow-y-auto bg-[#1c1c24] border border-gray-700">
-            <DialogHeader>
+          <DialogContent className="sm:max-w-[650px] max-h-[80vh] overflow-y-auto bg-[#1c1c24] border border-gray-700 fixed inset-0 z-50">
+            {/* 전체 배경을 어둡게 처리하는 오버레이 */}
+            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40" />
+            
+            <DialogHeader className="relative z-50">
               <DialogTitle className="text-xl font-heading font-bold text-white text-center">스타일 선택</DialogTitle>
               <DialogDescription className="text-center text-gray-400">
                 원하는 스타일을 선택하세요
               </DialogDescription>
             </DialogHeader>
             
-            <div className="grid grid-cols-2 gap-4 mt-4">
+            <div className="grid grid-cols-2 gap-4 mt-4 relative z-50">
               {filteredStyles.map((style) => (
                 <div 
                   key={style.value}
@@ -543,7 +546,7 @@ export default function Image() {
               ))}
             </div>
             
-            <DialogFooter className="sm:justify-center">
+            <DialogFooter className="sm:justify-center relative z-50">
               <Button 
                 className="bg-[#ff2d55] hover:bg-[#ff2d55]/90 text-white"
                 onClick={() => setStyleDialogOpen(false)}
