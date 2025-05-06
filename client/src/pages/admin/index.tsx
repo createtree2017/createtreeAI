@@ -13,6 +13,7 @@ import ConceptManagement from "@/components/admin/ConceptManagement";
 import BannerManagement from "@/components/admin/BannerManagement";
 import StyleCardManagement from "@/components/admin/StyleCardManagement";
 import ABTestManagement from "@/components/admin/ABTestManagement";
+import ImageTemplateManagement from "@/components/admin/ImageTemplateManagement";
 
 export default function AdminPage() {
   const [, setLocation] = useLocation();
@@ -41,6 +42,7 @@ export default function AdminPage() {
           <TabsTrigger value="concepts">스타일 컨셉</TabsTrigger>
           <TabsTrigger value="style-cards">스타일 카드</TabsTrigger>
           <TabsTrigger value="banners">배너 관리</TabsTrigger>
+          <TabsTrigger value="image-templates">이미지 템플릿</TabsTrigger>
           <TabsTrigger value="ab-tests">A/B 테스트</TabsTrigger>
         </TabsList>
         
@@ -58,6 +60,10 @@ export default function AdminPage() {
         
         <TabsContent value="banners">
           <BannerManagement />
+        </TabsContent>
+        
+        <TabsContent value="image-templates">
+          <ImageTemplateManagement />
         </TabsContent>
         
         <TabsContent value="ab-tests">
