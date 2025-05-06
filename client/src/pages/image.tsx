@@ -378,9 +378,6 @@ export default function Image() {
 
   return (
     <div className="animate-fadeIn">
-      {/* Top Menu Bar */}
-      <TopMenuBar title="Mom's Service" />
-      
       <div className="p-5">
         <div className="text-center mb-6">
           <h2 className="font-heading font-bold text-2xl mb-2">AI 이미지 생성</h2>
