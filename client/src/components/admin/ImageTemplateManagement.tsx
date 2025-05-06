@@ -102,10 +102,13 @@ export default function ImageTemplateManagement() {
   });
 
   // 템플릿 목록 조회
-  const { data: templates = [], isLoading } = useQuery({
+  const { data: templatesData, isLoading } = useQuery({
     queryKey: ["/api/image-templates"],
     queryFn: () => apiRequest({ url: "/api/image-templates" }),
   });
+  
+  // 데이터 타입 안전하게 처리
+  const templates = Array.isArray(templatesData) ? templatesData : [];
 
   // 템플릿 생성
   const createMutation = useMutation({
@@ -188,18 +191,59 @@ export default function ImageTemplateManagement() {
   });
 
   // 이미지 업로드 처리
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       setUploadedImage(file);
+      
+      // 파일 크기 및 형식 확인
+      if (file.size > 10 * 1024 * 1024) { // 10MB 제한
+        toast({
+          title: "파일 크기 초과",
+          description: "이미지 파일은 10MB 이하여야 합니다.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (!file.type.startsWith("image/")) {
+        toast({
+          title: "파일 형식 오류",
+          description: "이미지 파일만 업로드할 수 있습니다.",
+          variant: "destructive",
+        });
+        return;
+      }
       
       // 이미지 미리보기 URL 생성
       const imageUrl = URL.createObjectURL(file);
       setUploadedImageUrl(imageUrl);
       
-      // 이미지 URL을 폼에 설정
-      form.setValue("templateImageUrl", imageUrl);
+      try {
+        // 이미지를 base64로 인코딩하여 폼에 설정
+        const base64 = await convertFileToBase64(file);
+        form.setValue("templateImageUrl", base64);
+      } catch (error) {
+        console.error("이미지 변환 오류:", error);
+        toast({
+          title: "이미지 처리 오류",
+          description: "이미지를 처리하는 중 오류가 발생했습니다.",
+          variant: "destructive",
+        });
+      }
     }
+  };
+  
+  // 파일을 Base64로 변환하는 함수
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        resolve(reader.result as string);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   };
 
   // 템플릿 편집 시작
