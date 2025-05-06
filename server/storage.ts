@@ -176,16 +176,17 @@ export const storage = {
           );
         } else {
           // 기본 GPT-Image-1 모델 사용 (GPT-4o Vision 이미지 분석 포함)
-          console.log(`[Storage] Calling OpenAI GPT-Image-1 image transformation service...`);
+          console.log(`[Storage] OpenAI GPT-Image 1 이미지 변환 서비스 호출...`);
           if (systemPrompt) {
-            console.log(`[Storage] Using system prompt for GPT-4o image analysis: ${systemPrompt.substring(0, 50)}...`);
+            console.log(`[Storage] GPT-4o 이미지 분석용 시스템 프롬프트 사용: ${systemPrompt.substring(0, 50)}...`);
           }
-          const { transformImage } = await import('./services/openai-dalle3'); // 파일명은 호환성 유지
-          transformedImageUrl = await transformImage(
+          // 새로운 구현된 GPT-Image 1 서비스 호출
+          const { transformWithGPTImage1 } = await import('./services/openai-gpt-image');
+          transformedImageUrl = await transformWithGPTImage1(
             imageBuffer, 
             style,
-            modelType, // 선택한 모델 타입 전달 (gpt-image-1 또는 dalle-e-3)
-            prompt
+            systemPrompt,  // 카테고리 시스템 프롬프트 전달
+            prompt         // 처리된 프롬프트 전달
           );
         }
         
