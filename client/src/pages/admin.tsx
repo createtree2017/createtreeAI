@@ -3071,6 +3071,7 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
                     placeholder="합성할 특징을 설명하세요 (예: 얼굴만 템플릿에서 가져오기, 배경만 합성하기 등)"
                     className="min-h-20"
                     {...field}
+                    value={field.value || ""}
                   />
                 </FormControl>
                 <FormDescription>
