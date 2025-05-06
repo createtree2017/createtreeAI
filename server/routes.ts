@@ -47,10 +47,12 @@ import {
   abTestResults,
   banners,
   styleCards,
+  serviceCategories,
   insertConceptSchema,
   insertConceptCategorySchema,
   insertBannerSchema,
   insertStyleCardSchema,
+  insertServiceCategorySchema,
   eq,
   asc,
   desc,
@@ -2597,6 +2599,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error uploading thumbnail:", error);
       res.status(500).json({ error: "Failed to upload thumbnail" });
+    }
+  });
+  
+  // Service Categories 관련 API 엔드포인트
+  app.get("/api/service-categories", async (req, res) => {
+    try {
+      const categories = await db.query.serviceCategories.findMany({
+        orderBy: asc(serviceCategories.order)
+      });
+      
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching service categories:", error);
+      res.status(500).json({ error: "Failed to fetch service categories" });
+    }
+  });
+  
+  app.post("/api/admin/service-categories", async (req, res) => {
+    try {
+      const validatedData = insertServiceCategorySchema.parse(req.body);
+      
+      const [newCategory] = await db
+        .insert(serviceCategories)
+        .values(validatedData)
+        .returning();
+        
+      res.status(201).json(newCategory);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      console.error("Error creating service category:", error);
+      res.status(500).json({ error: "Failed to create service category" });
+    }
+  });
+  
+  app.put("/api/admin/service-categories/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid service category ID" });
+      }
+      
+      const validatedData = insertServiceCategorySchema.parse(req.body);
+      
+      const [updatedCategory] = await db
+        .update(serviceCategories)
+        .set(validatedData)
+        .where(eq(serviceCategories.id, id))
+        .returning();
+        
+      if (!updatedCategory) {
+        return res.status(404).json({ error: "Service category not found" });
+      }
+      
+      res.json(updatedCategory);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      console.error("Error updating service category:", error);
+      res.status(500).json({ error: "Failed to update service category" });
+    }
+  });
+  
+  app.delete("/api/admin/service-categories/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid service category ID" });
+      }
+      
+      const result = await db
+        .delete(serviceCategories)
+        .where(eq(serviceCategories.id, id))
+        .returning({ id: serviceCategories.id });
+        
+      if (result.length === 0) {
+        return res.status(404).json({ error: "Service category not found" });
+      }
+      
+      res.json({ message: "Service category deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting service category:", error);
+      res.status(500).json({ error: "Failed to delete service category" });
     }
   });
 
