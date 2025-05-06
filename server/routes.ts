@@ -371,10 +371,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No image file uploaded" });
       }
       
-      const { style } = req.body;
+      const { style, aspectRatio } = req.body;
       if (!style) {
         return res.status(400).json({ error: "No style selected" });
       }
+      
+      // 기본값 1:1로 설정하고, 제공된 경우 해당 값 사용
+      const selectedAspectRatio = aspectRatio || "1:1";
       
       // Check if this is a specific variant request for A/B testing
       const variantId = req.body.variant;
@@ -457,12 +460,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Process image using AI service (transforming to specified art style)
       const filePath = req.file.path;
-      // Pass the variant's prompt template and category's system prompt
+      // Pass the variant's prompt template, category's system prompt, and aspect ratio
       const transformedImageUrl = await storage.transformImage(
         filePath, 
         style, 
         promptTemplate, 
-        categorySystemPrompt
+        categorySystemPrompt,
+        selectedAspectRatio
       );
       
       // Check if this is a request from admin panel or if it's a variant test

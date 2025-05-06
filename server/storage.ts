@@ -100,13 +100,19 @@ export const storage = {
   },
   
   // Image related functions
-  async transformImage(filePath: string, style: string, customPromptTemplate?: string | null, systemPrompt?: string | null) {
+  async transformImage(filePath: string, style: string, customPromptTemplate?: string | null, systemPrompt?: string | null, aspectRatio?: string | null) {
     try {
       console.log(`[Storage] Starting image transformation with style: "${style}"`);
       if (customPromptTemplate) {
         console.log(`[Storage] Using custom prompt template: "${customPromptTemplate.substring(0, 100)}..."`);
       } else {
         console.log(`[Storage] No custom prompt template provided, using default`);
+      }
+      
+      if (aspectRatio) {
+        console.log(`[Storage] Using custom aspect ratio: ${aspectRatio}`);
+      } else {
+        console.log(`[Storage] No custom aspect ratio provided, using default 1:1`);
       }
       
       // Read the file
@@ -190,7 +196,8 @@ export const storage = {
     style: string,
     originalPath: string,
     transformedUrl: string,
-    variantId?: string | null
+    variantId?: string | null,
+    aspectRatio?: string | null
   ) {
     // Extract name without extension
     const nameWithoutExt = path.basename(
@@ -201,8 +208,10 @@ export const storage = {
     // Create a title
     const title = `${style.charAt(0).toUpperCase() + style.slice(1)} ${nameWithoutExt}`;
     
-    // Include the variant ID if it exists (for A/B testing)
-    const metadata = variantId ? { variantId } : {};
+    // Include the variant ID and aspectRatio if they exist
+    const metadata: Record<string, any> = {};
+    if (variantId) metadata.variantId = variantId;
+    if (aspectRatio) metadata.aspectRatio = aspectRatio;
     
     try {
       console.log(`[Storage] 새 이미지 저장 시작: "${title}", 스타일: ${style}`);
