@@ -165,7 +165,8 @@ export const storage = {
           imageBuffer, 
           style, 
           prompt,
-          systemPrompt // 시스템 프롬프트 전달 (GPT-4o Vision의 이미지 분석 지침)
+          systemPrompt, // 시스템 프롬프트 전달 (GPT-4o Vision의 이미지 분석 지침)
+          aspectRatio // 종횡비 전달
         );
         
         if (!transformedImageUrl.includes("placehold.co")) {

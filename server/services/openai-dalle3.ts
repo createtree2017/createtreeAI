@@ -59,7 +59,7 @@ interface OpenAIChatResponse {
  * GPT-Image-1 모델로 이미지 편집 요청
  * 원본 이미지와 프롬프트를 함께 전송하여 원본 특성을 유지하는 변환 지원
  */
-async function callGptImage1Api(prompt: string, imageBuffer: Buffer): Promise<string> {
+async function callGptImage1Api(prompt: string, imageBuffer: Buffer, aspectRatio: string | null = null): Promise<string> {
   if (!isValidApiKey(API_KEY)) {
     console.log("유효한 API 키가 없습니다");
     return SERVICE_UNAVAILABLE;
@@ -101,7 +101,35 @@ async function callGptImage1Api(prompt: string, imageBuffer: Buffer): Promise<st
       formData.append('model', 'gpt-image-1');
       formData.append('prompt', prompt);
       formData.append('image', fs.createReadStream(tempFilePath));
-      formData.append('size', '1024x1024');
+      
+      // 종횡비에 따라 적절한 size 값을 설정
+      if (aspectRatio) {
+        console.log(`종횡비 ${aspectRatio} 적용 중...`);
+        let size = '1024x1024'; // 기본값
+        
+        switch(aspectRatio) {
+          case '1:1':
+            size = '1024x1024';
+            break;
+          case '2:3':
+            size = '896x1344'; // 1:1 비율 대비 세로가 1.5배
+            break;
+          case '3:2':
+            size = '1344x896'; // 1:1 비율 대비 가로가 1.5배
+            break;
+          case '9:16':
+            size = '576x1024'; // 9:16 세로형 비율
+            break;
+          default:
+            console.log(`지원되지 않는 종횡비 ${aspectRatio}, 기본값 1:1 사용`);
+        }
+        
+        formData.append('size', size);
+        console.log(`최종 이미지 크기: ${size} (종횡비 ${aspectRatio} 기준)`);
+      } else {
+        formData.append('size', '1024x1024'); // 기본 정사각형 크기
+      }
+      
       formData.append('quality', 'high');  // GPT-Image-1에서는 'hd' 대신 'high' 사용
       formData.append('n', '1');  // 이미지 1개 생성
       // 'response_format' 파라미터 제거 - gpt-image-1에서는 지원하지 않음
@@ -213,7 +241,7 @@ async function callGptImage1Api(prompt: string, imageBuffer: Buffer): Promise<st
  * GPT-4o Vision으로 이미지를 분석하여 향상된 프롬프트 생성 후 gpt-image-1로 이미지 생성 요청
  * 멀티모달 분석을 통한 향상된 이미지 변환 기능
  */
-async function callGPT4oVisionAndImage1(imageBuffer: Buffer, prompt: string, systemPrompt: string | null = null, style: string = "artistic"): Promise<string> {
+async function callGPT4oVisionAndImage1(imageBuffer: Buffer, prompt: string, systemPrompt: string | null = null, style: string = "artistic", aspectRatio: string | null = null): Promise<string> {
   if (!isValidApiKey(API_KEY)) {
     console.log("유효한 API 키가 없습니다");
     return SERVICE_UNAVAILABLE;
@@ -421,6 +449,13 @@ ${prompt ? `위 정보를 바탕으로 DALL-E 3가 원본 이미지의 특성(�
       console.log("시스템 프롬프트가 없습니다. 기본 시스템 프롬프트도 적용하지 않습니다.");
     }
     
+    // 종횡비 로깅
+    if (aspectRatio) {
+      console.log(`선택된 종횡비 적용: ${aspectRatio}`);
+    } else {
+      console.log("종횡비 지정 없음: 기본값 사용");
+    }
+    
     // GPT-Image-1용 간결한 프롬프트 구조
     // 분석된 이미지 정보와 스타일 요청을 결합하여 명확한 지시문 생성
     const finalPrompt = `${userStylePrompt}. 
@@ -433,7 +468,7 @@ Key characteristics to preserve: ${isChild ? "This is a CHILD - DO NOT AGE UP. "
       "3. 특성 보존 지침");
     
     // 새로운 GPT-Image-1 API 호출 (원본 이미지와 프롬프트 함께 전송)
-    return await callGptImage1Api(finalPrompt, imageBuffer);
+    return await callGptImage1Api(finalPrompt, imageBuffer, aspectRatio);
   } catch (error) {
     console.error("멀티모달 이미지 변환 중 오류:", error);
     return SERVICE_UNAVAILABLE;
@@ -575,7 +610,8 @@ export async function transformImage(
   imageBuffer: Buffer,
   style: string,
   customPromptTemplate?: string | null,
-  systemPrompt?: string | null
+  systemPrompt?: string | null,
+  aspectRatio?: string | null
 ): Promise<string> {
   // 실패 시 재시도 카운터
   let retryCount = 0;
@@ -634,7 +670,7 @@ export async function transformImage(
     while (retryCount <= maxRetries) {
       try {
         // 원본 이미지를 참조하여 변환 (GPT-4o의 Vision 기능으로 분석 후 gpt-image-1로 변환)
-        imageUrl = await callGPT4oVisionAndImage1(imageBuffer, promptText, systemPrompt, style);
+        imageUrl = await callGPT4oVisionAndImage1(imageBuffer, promptText, systemPrompt, style, aspectRatio);
         
         // 안전 시스템 오류 확인
         if (imageUrl.includes("safety_system")) {
