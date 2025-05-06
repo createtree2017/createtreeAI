@@ -205,6 +205,11 @@ const conceptSchema = z.object({
   promptTemplate: z.string().min(1, "Prompt template is required"),
   systemPrompt: z.string().optional(), // GPT-4o 이미지 분석 지침 필드 추가
   thumbnailUrl: z.string().optional(),
+  // 이미지 합성 관련 필드 추가
+  templateImageUrl: z.string().optional(),
+  isCompositeTemplate: z.boolean().optional().default(false),
+  compositePrompt: z.string().optional(),
+  maskArea: z.any().optional(), // JSON 데이터를 위한 any 타입
   tagSuggestions: z.array(z.string()).optional(),
   variables: z.array(
     z.object({
@@ -2085,7 +2090,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(409).json({ error: "A concept with this ID already exists" });
       }
       
-      // Insert new concept
+      // Insert new concept (이미지 합성 필드 추가)
       const [newConcept] = await db.insert(concepts).values({
         conceptId: validatedData.conceptId,
         title: validatedData.title,
@@ -2093,6 +2098,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         promptTemplate: validatedData.promptTemplate,
         systemPrompt: validatedData.systemPrompt,  // 시스템 프롬프트 필드 추가
         thumbnailUrl: validatedData.thumbnailUrl,
+        // 이미지 합성 관련 필드 추가
+        templateImageUrl: validatedData.templateImageUrl,
+        isCompositeTemplate: validatedData.isCompositeTemplate,
+        compositePrompt: validatedData.compositePrompt,
+        maskArea: validatedData.maskArea,
         tagSuggestions: validatedData.tagSuggestions,
         variables: validatedData.variables,
         categoryId: validatedData.categoryId,
@@ -2128,7 +2138,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Concept not found" });
       }
       
-      // Update concept
+      // Update concept (이미지 합성 필드 추가)
       const [updatedConcept] = await db.update(concepts)
         .set({
           title: validatedData.title,
@@ -2136,6 +2146,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           promptTemplate: validatedData.promptTemplate,
           systemPrompt: validatedData.systemPrompt,  // 시스템 프롬프트 필드 추가
           thumbnailUrl: validatedData.thumbnailUrl,
+          // 이미지 합성 관련 필드 추가
+          templateImageUrl: validatedData.templateImageUrl,
+          isCompositeTemplate: validatedData.isCompositeTemplate,
+          compositePrompt: validatedData.compositePrompt,
+          maskArea: validatedData.maskArea,
           tagSuggestions: validatedData.tagSuggestions,
           variables: validatedData.variables,
           categoryId: validatedData.categoryId,
