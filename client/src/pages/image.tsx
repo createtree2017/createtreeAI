@@ -82,10 +82,13 @@ export default function Image() {
     queryKey: ["/api/concepts"]
   });
   
-  // Set first category as default if none selected
+  // Set default category if none selected
   useEffect(() => {
-    if (categories.length > 0 && !selectedCategory) {
+    if (Array.isArray(categories) && categories.length > 0 && !selectedCategory) {
       setSelectedCategory(categories[0].categoryId);
+    } else if (!selectedCategory) {
+      // 기본값으로 "만삭사진" 카테고리 선택
+      setSelectedCategory("mansak_img");
     }
   }, [categories, selectedCategory]);
   
@@ -437,26 +440,49 @@ export default function Image() {
         </div>
         
         <div className="grid grid-cols-3 gap-2">
-          {Array.isArray(categories) && categories.map((category) => (
-            <div 
-              key={category.categoryId}
-              className={`cursor-pointer rounded-lg border overflow-hidden transition-colors
-                ${selectedCategory === category.categoryId 
-                  ? 'ring-2 ring-[#ff2d55] border-[#ff2d55]' 
-                  : 'bg-[#272730] border-gray-700 hover:border-gray-500'
-                }`}
-              onClick={() => setSelectedCategory(category.categoryId)}
-            >
-              <div className="flex items-center justify-between px-4 py-3">
-                <span className={`font-medium ${selectedCategory === category.categoryId ? 'text-[#ff2d55]' : 'text-gray-300'}`}>
-                  {category.title}
-                </span>
-                {selectedCategory === category.categoryId && (
-                  <CheckCircle2 className="h-5 w-5 text-[#ff2d55]" />
-                )}
+          {Array.isArray(categories) && categories.length > 0 ? (
+            // 카테고리가 로드됐을 때
+            categories.map((category) => (
+              <div 
+                key={category.categoryId}
+                className={`cursor-pointer rounded-lg border overflow-hidden transition-colors
+                  ${selectedCategory === category.categoryId 
+                    ? 'ring-2 ring-[#ff2d55] border-[#ff2d55]' 
+                    : 'bg-[#272730] border-gray-700 hover:border-gray-500'
+                  }`}
+                onClick={() => setSelectedCategory(category.categoryId)}
+              >
+                <div className="flex items-center justify-between px-4 py-3">
+                  <span className={`font-medium ${selectedCategory === category.categoryId ? 'text-[#ff2d55]' : 'text-gray-300'}`}>
+                    {category.title}
+                  </span>
+                  {selectedCategory === category.categoryId && (
+                    <CheckCircle2 className="h-5 w-5 text-[#ff2d55]" />
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            // 카테고리가 없거나 로딩 중일 때 기본 카테고리 3개 표시
+            <>
+              <div className="cursor-pointer rounded-lg border overflow-hidden transition-colors bg-[#272730] border-gray-700 hover:border-gray-500">
+                <div className="flex items-center justify-between px-4 py-3">
+                  <span className="font-medium text-gray-300">임신사진</span>
+                </div>
+              </div>
+              <div className="cursor-pointer rounded-lg border overflow-hidden transition-colors ring-2 ring-[#ff2d55] border-[#ff2d55]">
+                <div className="flex items-center justify-between px-4 py-3">
+                  <span className="font-medium text-[#ff2d55]">만삭사진</span>
+                  <CheckCircle2 className="h-5 w-5 text-[#ff2d55]" />
+                </div>
+              </div>
+              <div className="cursor-pointer rounded-lg border overflow-hidden transition-colors bg-[#272730] border-gray-700 hover:border-gray-500">
+                <div className="flex items-center justify-between px-4 py-3">
+                  <span className="font-medium text-gray-300">가족사진</span>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
