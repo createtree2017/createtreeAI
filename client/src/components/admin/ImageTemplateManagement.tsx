@@ -271,13 +271,19 @@ export default function ImageTemplateManagement() {
 
   // 폼 제출 처리
   const onSubmit = (data: TemplateFormData) => {
+    // 카테고리ID가 빈 문자열이면 null로 설정 (외래 키 제약 조건 오류 방지)
+    const cleanedData = {
+      ...data,
+      categoryId: data.categoryId && data.categoryId.trim() !== "" ? data.categoryId : null
+    };
+    
     // 편집 모드
     if (editingTemplate) {
-      updateMutation.mutate({ ...data, id: editingTemplate.id });
+      updateMutation.mutate({ ...cleanedData, id: editingTemplate.id });
     } 
     // 생성 모드
     else {
-      createMutation.mutate(data);
+      createMutation.mutate(cleanedData);
     }
   };
 

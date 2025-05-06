@@ -108,7 +108,8 @@ export const storage = {
           promptTemplate: templateData.promptTemplate,
           maskArea: templateData.maskArea ? templateData.maskArea : null,
           thumbnailUrl: templateData.thumbnailUrl,
-          categoryId: templateData.categoryId,
+          // categoryId가 null이거나 빈 문자열이면 명시적으로 null로 설정
+          categoryId: templateData.categoryId && templateData.categoryId !== "" ? templateData.categoryId : null,
           isActive: templateData.isActive !== undefined ? templateData.isActive : true,
           isFeatured: templateData.isFeatured !== undefined ? templateData.isFeatured : false,
           sortOrder: templateData.sortOrder !== undefined ? templateData.sortOrder : 0,
@@ -177,6 +178,11 @@ export const storage = {
           `template_${(updateData.title || existingTemplate.title).replace(/\s+/g, '_')}`
         );
         updateData.templateImageUrl = localPath;
+      }
+      
+      // categoryId가 null이거나 빈 문자열이면 명시적으로 null로 설정
+      if (updateData.categoryId === "" || (typeof updateData.categoryId === 'string' && updateData.categoryId.trim() === "")) {
+        updateData.categoryId = null;
       }
       
       const [updatedTemplate] = await db
