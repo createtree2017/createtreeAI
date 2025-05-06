@@ -7,6 +7,7 @@ interface FileUploadProps {
   accept?: string;
   maxSize?: number;
   className?: string;
+  id?: string; // Added id property
 }
 
 export function FileUpload({
@@ -14,6 +15,7 @@ export function FileUpload({
   accept = "image/*",
   maxSize = 10 * 1024 * 1024, // 10MB default
   className = "",
+  id = "file-upload",
 }: FileUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -74,6 +76,7 @@ export function FileUpload({
         className="hidden"
         accept={accept}
         onChange={handleFileInputChange}
+        id={id}
       />
       <div
         className={`border-2 border-dashed ${

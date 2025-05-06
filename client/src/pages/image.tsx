@@ -460,38 +460,39 @@ export default function Image() {
         </div>
         
         {/* 이미지 업로드 영역 */}
-        <div className="mb-4">
-          {!previewUrl ? (
-            // 이미지 업로드 전 상태
-            <div className="border border-gray-700 h-48 rounded-lg flex flex-col items-center justify-center text-gray-400">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-2">
-                <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-                <circle cx="9" cy="9" r="2" />
-                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-              </svg>
-              <span className="text-sm">이미지를 업로드하려면 클릭하세요</span>
-              <span className="text-xs text-gray-500 mt-2">최대 15MB, 4096 × 4096픽셀의 JPEG, PNG 또는 WEBP 형식을 허용합니다.</span>
-            </div>
-          ) : (
-            // 이미지 업로드 후 미리보기
-            <div className="flex justify-center items-center h-48 border border-gray-700 rounded-lg overflow-hidden bg-black">
-              <img 
-                src={previewUrl} 
-                alt="선택한 이미지 미리보기" 
-                className="max-h-full max-w-full object-contain"
-              />
-            </div>
-          )}
+        <div className="mb-4 relative">
+          <label htmlFor="file-upload" className="block cursor-pointer">
+            {!previewUrl ? (
+              // 이미지 업로드 전 상태
+              <div className="border border-gray-700 h-48 rounded-lg flex flex-col items-center justify-center text-gray-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-2">
+                  <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                  <circle cx="9" cy="9" r="2" />
+                  <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                </svg>
+                <span className="text-sm">이미지를 업로드하려면 클릭하세요</span>
+                <span className="text-xs text-gray-500 mt-2">최대 15MB, 4096 × 4096픽셀의 JPEG, PNG 또는 WEBP 형식을 허용합니다.</span>
+              </div>
+            ) : (
+              // 이미지 업로드 후 미리보기
+              <div className="flex justify-center items-center h-48 border border-gray-700 rounded-lg overflow-hidden bg-black">
+                <img 
+                  src={previewUrl} 
+                  alt="선택한 이미지 미리보기" 
+                  className="max-h-full max-w-full object-contain"
+                />
+              </div>
+            )}
+          </label>
           
           {/* 숨겨진 파일 업로드 입력 필드 */}
-          <div className="relative">
-            <FileUpload 
-              onFileSelect={handleFileSelected} 
-              accept="image/*"
-              maxSize={15 * 1024 * 1024} // 15MB
-              className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
-            />
-          </div>
+          <FileUpload 
+            id="file-upload"
+            onFileSelect={handleFileSelected} 
+            accept="image/*"
+            maxSize={15 * 1024 * 1024} // 15MB
+            className="hidden"
+          />
         </div>
         
         {/* 종횡비 선택 */}
@@ -541,15 +542,15 @@ export default function Image() {
         {/* 만들기 버튼 */}
         <Button
           type="button"
-          className={`w-full flex items-center justify-center space-x-1 py-3 px-4 rounded-lg transition-all ${
-            previewUrl && selectedAspectRatio
+          className={`w-full flex items-center justify-center py-3 px-4 rounded-lg transition-all ${
+            previewUrl
               ? 'bg-[#ff2d55] hover:bg-[#ff2d55]/90 text-white cursor-pointer' 
               : 'bg-gray-700 text-gray-400 cursor-not-allowed'
           }`}
           onClick={handleTransformImage}
-          disabled={isTransforming || !selectedStyle || !previewUrl}
+          disabled={isTransforming || !previewUrl}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
             <path d="M12 2v20M2 12h20"/>
           </svg>
           <span>{isTransforming ? "생성 중..." : "만들기"}</span>
