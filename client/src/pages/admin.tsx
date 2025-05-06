@@ -154,6 +154,11 @@ const conceptSchema = z.object({
   promptTemplate: z.string().min(1, "Prompt template is required"),
   systemPrompt: z.string().optional(),  // 이미지 분석 및 변환을 위한 시스템 프롬프트 추가
   thumbnailUrl: z.string().optional(),
+  // 이미지 합성 관련 필드 추가
+  templateImageUrl: z.string().optional(),  // 이미지 합성용 템플릿 이미지 URL
+  isCompositeTemplate: z.boolean().default(false),  // 합성 템플릿 여부
+  compositePrompt: z.string().optional(),  // 합성에 사용할 프롬프트 (얼굴, 체형 등 특징 지정)
+  maskArea: z.any().optional(),  // 합성 시 마스킹 영역 정보 (JSON 형식)
   tagSuggestions: z.array(z.string()).optional().default([]),
   variables: z.array(z.object({
     name: z.string().min(1, "Variable name is required"),
@@ -2622,6 +2627,10 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
       promptTemplate: "",
       systemPrompt: "",
       thumbnailUrl: "",
+      templateImageUrl: "",
+      isCompositeTemplate: false,
+      compositePrompt: "",
+      maskArea: null,
       tagSuggestions: [],
       variables: [],
       categoryId: "",
