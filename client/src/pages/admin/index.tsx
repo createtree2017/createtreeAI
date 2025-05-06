@@ -36,7 +36,7 @@ export default function AdminPage() {
         </Button>
       </div>
 
-      <Tabs defaultValue="banners" className="w-full">
+      <Tabs defaultValue="image-templates" className="w-full">
         <TabsList className="w-full border-b rounded-none justify-start mb-6 bg-background">
           <TabsTrigger value="personas">AI 캐릭터</TabsTrigger>
           <TabsTrigger value="concepts">스타일 컨셉</TabsTrigger>
