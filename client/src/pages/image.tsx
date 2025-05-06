@@ -8,7 +8,7 @@ import { transformImage, downloadMedia, shareMedia, getActiveAbTest } from "@/li
 import { queryClient } from "@/lib/queryClient";
 import { PaintbrushVertical, Download, Share2, Eye, ChevronRight, X, CheckCircle2 } from "lucide-react";
 import ABTestComparer from "@/components/ABTestComparer";
-import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 interface ImageStyle {
   value: string;
