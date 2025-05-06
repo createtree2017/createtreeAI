@@ -476,16 +476,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isAdmin = req.query.admin === 'true' || req.headers['x-admin-request'] === 'true';
       const isVariantTest = !!variantId;
       
-      // 디버깅: 변환된 이미지 URL 로그
-      console.log(`변환된 이미지 URL: ${transformedImageUrl.substring(0, 100)}${transformedImageUrl.length > 100 ? '...' : ''}`);
-      if (transformedImageUrl.startsWith('data:image')) {
-        console.log('이미지는 base64 형식입니다');
-      } else if (transformedImageUrl.startsWith('http')) {
-        console.log('이미지는 HTTP URL 형식입니다');
-      } else {
-        console.log('이미지는 다른 형식입니다:', transformedImageUrl.substring(0, 20));
-      }
-      
       let savedImage;
       let dbSavedImage;
       
@@ -513,23 +503,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const tempImageResult = await storage.saveTemporaryImage(transformedImageUrl, title);
           
           // 임시 응답 객체 생성 (로컬 파일 경로를 사용)
-          // 임시 파일 경로 로그
-          console.log(`임시 이미지 filename: ${tempImageResult.filename}`);
-          console.log(`임시 이미지 localPath: ${tempImageResult.localPath}`);
-          
-          // 호스트 URL을 기준으로 절대 URL로 변환
-          const host = req.protocol + '://' + req.get('host');
-          const transformedUrlPath = `/uploads/temp/${tempImageResult.filename}`;
-          const absoluteTransformedUrl = host + transformedUrlPath;
-          
-          console.log(`URL 변환: 상대 경로 ${transformedUrlPath} → 절대 URL ${absoluteTransformedUrl}`);
-          
           savedImage = {
             id: -1, // -1은 저장되지 않은 임시 ID
             title,
             style,
             originalUrl: filePath,
-            transformedUrl: absoluteTransformedUrl, // 절대 URL 경로로 변경
+            transformedUrl: `/uploads/temp/${tempImageResult.filename}`, // 로컬 파일 경로
             localFilePath: tempImageResult.localPath, // 전체 파일 경로 (내부 사용)
             createdAt: new Date().toISOString(),
             isTemporary: true, // 클라이언트에서 임시 여부 식별을 위한 플래그
@@ -576,33 +555,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Surrogate-Control', 'no-store');
       
       const imageList = await storage.getImageList();
-      
-      // 호스트 URL을 가져옴
-      const host = req.protocol + '://' + req.get('host');
-      
-      // 이미지 URL 처리 및 절대 URL로 변환
-      const processedImageList = imageList.map(image => {
-        // 이미지 URL이 상대 경로인 경우 절대 URL로 변환
-        let transformedUrl = image.transformedUrl;
-        if (transformedUrl && transformedUrl.startsWith('/')) {
-          transformedUrl = host + transformedUrl;
-        }
-        
-        // 원본 URL도 절대 URL로 변환 (필요한 경우)
-        let originalUrl = image.originalUrl;
-        if (originalUrl && originalUrl.startsWith('/')) {
-          originalUrl = host + originalUrl;
-        }
-        
-        return {
-          ...image,
-          transformedUrl,
-          originalUrl
-        };
-      });
-      
-      console.log(`이미지 ${processedImageList.length}개의 URL을 절대 경로로 변환 완료`);
-      return res.json(processedImageList);
+      return res.json(imageList);
     } catch (error) {
       console.error("Error fetching image list:", error);
       return res.status(500).json({ error: "Failed to fetch image list" });
@@ -738,37 +691,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         galleryItems = await storage.getAllItems();
       }
       
-      // 호스트 URL을 가져옴
-      const host = req.protocol + '://' + req.get('host');
-      
-      // 이미지 URL을 절대 URL로 변환
-      const processedItems = galleryItems.map(item => {
-        // 이미지 타입인 경우만 URL 처리
-        if (item.type === 'image') {
-          // 상대 경로인 경우 절대 URL로 변환
-          let url = item.url;
-          if (url && url.startsWith('/')) {
-            url = host + url;
-          }
-          
-          // 원본 URL도 있는 경우 처리
-          let originalUrl = item.originalUrl;
-          if (originalUrl && originalUrl.startsWith('/')) {
-            originalUrl = host + originalUrl;
-          }
-          
-          return {
-            ...item,
-            url,
-            originalUrl
-          };
-        }
-        
-        return item;
-      });
-      
-      console.log(`갤러리 아이템 ${processedItems.length}개 URL 처리 완료`);
-      return res.json(processedItems);
+      return res.json(galleryItems);
     } catch (error) {
       console.error("Error fetching gallery items:", error);
       return res.status(500).json({ error: "Failed to fetch gallery items" });

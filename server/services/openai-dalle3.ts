@@ -59,7 +59,7 @@ interface OpenAIChatResponse {
  * GPT-Image-1 모델로 이미지 편집 요청
  * 원본 이미지와 프롬프트를 함께 전송하여 원본 특성을 유지하는 변환 지원
  */
-async function callGptImage1Api(prompt: string, imageBuffer: Buffer, aspectRatio: string | null = null): Promise<string> {
+async function callGptImage1Api(prompt: string, imageBuffer: Buffer): Promise<string> {
   if (!isValidApiKey(API_KEY)) {
     console.log("유효한 API 키가 없습니다");
     return SERVICE_UNAVAILABLE;
@@ -96,38 +96,12 @@ async function callGptImage1Api(prompt: string, imageBuffer: Buffer, aspectRatio
       // 이미지 Buffer를 임시 파일로 저장
       fs.writeFileSync(tempFilePath, imageBuffer);
       
-      // 이미지 파일을 확인하여 정상 저장되었는지 검증
-      try {
-        const tempFileStats = fs.statSync(tempFilePath);
-        console.log(`임시 파일 정상 저장됨: ${tempFilePath}, 크기: ${tempFileStats.size}바이트`);
-        
-        if (tempFileStats.size < 100) {
-          console.error("저장된 임시 파일 크기가 너무 작습니다. 이미지 데이터 문제 가능성 있음");
-        }
-      } catch (fileError) {
-        console.error("임시 파일 검증 오류:", fileError);
-      }
-      
       // FormData 객체 생성
       const formData = new FormData();
       formData.append('model', 'gpt-image-1');
       formData.append('prompt', prompt);
-      
-      // 파일 스트림 생성 시 오류 캐치
-      try {
-        const fileStream = fs.createReadStream(tempFilePath);
-        formData.append('image', fileStream);
-        console.log("이미지 파일 스트림 생성 및 FormData에 추가 완료");
-      } catch (streamError) {
-        console.error("이미지 파일 스트림 생성 오류:", streamError);
-        throw new Error("이미지 파일 스트림 생성 실패");
-      }
-      
-      // 비율 관련 처리를 제거하고 항상 기본값 사용
-      // GPT-Image-1은 현재 size 파라미터를 지원하지 않을 수 있음
-      console.log("안정적인 이미지 생성을 위해 기본 크기 사용");
-      // size 파라미터는 전달하지 않음 - API 기본값 사용
-      
+      formData.append('image', fs.createReadStream(tempFilePath));
+      formData.append('size', '1024x1024');
       formData.append('quality', 'high');  // GPT-Image-1에서는 'hd' 대신 'high' 사용
       formData.append('n', '1');  // 이미지 1개 생성
       // 'response_format' 파라미터 제거 - gpt-image-1에서는 지원하지 않음
@@ -239,7 +213,7 @@ async function callGptImage1Api(prompt: string, imageBuffer: Buffer, aspectRatio
  * GPT-4o Vision으로 이미지를 분석하여 향상된 프롬프트 생성 후 gpt-image-1로 이미지 생성 요청
  * 멀티모달 분석을 통한 향상된 이미지 변환 기능
  */
-async function callGPT4oVisionAndImage1(imageBuffer: Buffer, prompt: string, systemPrompt: string | null = null, style: string = "artistic", aspectRatio: string | null = null): Promise<string> {
+async function callGPT4oVisionAndImage1(imageBuffer: Buffer, prompt: string, systemPrompt: string | null = null, style: string = "artistic"): Promise<string> {
   if (!isValidApiKey(API_KEY)) {
     console.log("유효한 API 키가 없습니다");
     return SERVICE_UNAVAILABLE;
@@ -447,13 +421,6 @@ ${prompt ? `위 정보를 바탕으로 DALL-E 3가 원본 이미지의 특성(�
       console.log("시스템 프롬프트가 없습니다. 기본 시스템 프롬프트도 적용하지 않습니다.");
     }
     
-    // 종횡비 로깅
-    if (aspectRatio) {
-      console.log(`선택된 종횡비 적용: ${aspectRatio}`);
-    } else {
-      console.log("종횡비 지정 없음: 기본값 사용");
-    }
-    
     // GPT-Image-1용 간결한 프롬프트 구조
     // 분석된 이미지 정보와 스타일 요청을 결합하여 명확한 지시문 생성
     const finalPrompt = `${userStylePrompt}. 
@@ -466,7 +433,7 @@ Key characteristics to preserve: ${isChild ? "This is a CHILD - DO NOT AGE UP. "
       "3. 특성 보존 지침");
     
     // 새로운 GPT-Image-1 API 호출 (원본 이미지와 프롬프트 함께 전송)
-    return await callGptImage1Api(finalPrompt, imageBuffer, aspectRatio);
+    return await callGptImage1Api(finalPrompt, imageBuffer);
   } catch (error) {
     console.error("멀티모달 이미지 변환 중 오류:", error);
     return SERVICE_UNAVAILABLE;
@@ -608,8 +575,7 @@ export async function transformImage(
   imageBuffer: Buffer,
   style: string,
   customPromptTemplate?: string | null,
-  systemPrompt?: string | null,
-  aspectRatio?: string | null
+  systemPrompt?: string | null
 ): Promise<string> {
   // 실패 시 재시도 카운터
   let retryCount = 0;
@@ -668,7 +634,7 @@ export async function transformImage(
     while (retryCount <= maxRetries) {
       try {
         // 원본 이미지를 참조하여 변환 (GPT-4o의 Vision 기능으로 분석 후 gpt-image-1로 변환)
-        imageUrl = await callGPT4oVisionAndImage1(imageBuffer, promptText, systemPrompt, style, aspectRatio);
+        imageUrl = await callGPT4oVisionAndImage1(imageBuffer, promptText, systemPrompt, style);
         
         // 안전 시스템 오류 확인
         if (imageUrl.includes("safety_system")) {

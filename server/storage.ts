@@ -8,7 +8,7 @@ import fetch from "node-fetch";
 const TEMP_IMAGE_DIR = path.join(process.cwd(), 'uploads', 'temp');
 
 // 임시 이미지를 파일로 저장하고 URL 경로를 반환하는 함수
-async function saveTemporaryImage(imageUrl: string, title: string): Promise<{filename: string, localPath: string}> {
+async function saveTemporaryImage(imageUrl: string, title: string): Promise<string> {
   try {
     // 임시 디렉토리가 없으면 생성
     if (!fs.existsSync(TEMP_IMAGE_DIR)) {
@@ -25,7 +25,7 @@ async function saveTemporaryImage(imageUrl: string, title: string): Promise<{fil
       const base64Data = imageUrl.split(',')[1];
       fs.writeFileSync(filepath, Buffer.from(base64Data, 'base64'));
       console.log(`임시 이미지가 로컬에 저장되었습니다: ${filepath}`);
-      return { filename, localPath: filepath };
+      return filepath;
     } 
     // 일반 URL인 경우
     else {
@@ -47,14 +47,14 @@ async function saveTemporaryImage(imageUrl: string, title: string): Promise<{fil
         const arrayBuffer = await response.arrayBuffer();
         fs.writeFileSync(filepath, Buffer.from(arrayBuffer));
         console.log(`임시 이미지가 로컬에 저장되었습니다: ${filepath} (크기: ${Buffer.from(arrayBuffer).length} 바이트)`);
-        return { filename, localPath: filepath };
+        return filepath;
       } catch (fetchError) {
         console.error(`이미지 다운로드 중 오류 발생 (${url}):`, fetchError);
         
         // 다운로드 실패 시 빈 파일이라도 생성 (나중에 처리)
         fs.writeFileSync(filepath, Buffer.from(''));
         console.warn(`빈 임시 파일 생성됨: ${filepath} - 이후 다운로드 재시도 필요`);
-        return { filename, localPath: filepath };
+        return filepath;
       }
     }
   } catch (error) {
@@ -66,7 +66,8 @@ async function saveTemporaryImage(imageUrl: string, title: string): Promise<{fil
 export const storage = {
   // 임시 이미지 관련 함수들
   async saveTemporaryImage(imageUrl: string, title: string) {
-    return await saveTemporaryImage(imageUrl, title);
+    const localPath = await saveTemporaryImage(imageUrl, title);
+    return { localPath, filename: path.basename(localPath) };
   },
   
   // Music related functions
@@ -164,8 +165,7 @@ export const storage = {
           imageBuffer, 
           style, 
           prompt,
-          systemPrompt, // 시스템 프롬프트 전달 (GPT-4o Vision의 이미지 분석 지침)
-          aspectRatio // 종횡비 전달
+          systemPrompt // 시스템 프롬프트 전달 (GPT-4o Vision의 이미지 분석 지침)
         );
         
         if (!transformedImageUrl.includes("placehold.co")) {
