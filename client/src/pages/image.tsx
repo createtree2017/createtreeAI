@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/components/ui/file-upload";
 import { transformImage, getImageList, downloadMedia, shareMedia, getActiveAbTest } from "@/lib/api";
 import { queryClient } from "@/lib/queryClient";
-import { PaintbrushVertical, Download, Share2, Eye } from "lucide-react";
+import { PaintbrushVertical, Download, Share2, Eye, ChevronRight, X } from "lucide-react";
 import ABTestComparer from "@/components/ABTestComparer";
+import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription } from "@/components/ui/dialog";
 
 interface ImageStyle {
   value: string;
@@ -24,6 +25,7 @@ interface TransformedImage {
   originalUrl: string;
   transformedUrl: string;
   createdAt: string;
+  aspectRatio?: string;
 }
 
 export default function Image() {
@@ -33,6 +35,8 @@ export default function Image() {
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [transformedImage, setTransformedImage] = useState<TransformedImage | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [selectedAspectRatio, setSelectedAspectRatio] = useState<string>("1:1");
+  const [styleDialogOpen, setStyleDialogOpen] = useState<boolean>(false);
   
   // A/B Testing states
   const [activeAbTest, setActiveAbTest] = useState<any>(null);
@@ -213,6 +217,7 @@ export default function Image() {
     const formData = new FormData();
     formData.append("image", selectedFile);
     formData.append("style", selectedStyle);
+    formData.append("aspectRatio", selectedAspectRatio);
 
     // 일반 사용자 페이지에서는 관리자 플래그 없이 호출 (이미지 임시 표시용)
     transformImageMutation(formData);
@@ -343,6 +348,58 @@ export default function Image() {
         <h2 className="font-heading font-bold text-2xl mb-2">마터니티 아트 매직</h2>
         <p className="text-neutral-dark">임신 및 아기 사진을 아름다운 추억으로 변환해보세요</p>
       </div>
+      
+      {/* 스타일 선택 다이얼로그 */}
+      <Dialog open={styleDialogOpen} onOpenChange={setStyleDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-heading font-bold text-center">스타일 선택</DialogTitle>
+            <DialogDescription className="text-center">
+              원하는 스타일을 클릭하여 선택하세요
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            {artStyles.map((style) => (
+              <div 
+                key={style.value}
+                className={`cursor-pointer rounded-xl overflow-hidden transition-all duration-200 border-2
+                  ${selectedStyle === style.value 
+                    ? 'border-primary shadow-lg' 
+                    : 'border-transparent hover:border-primary/30'
+                  }`}
+                onClick={() => {
+                  handleStyleSelected(style.value);
+                  setStyleDialogOpen(false);
+                }}
+              >
+                <div className="relative">
+                  <img 
+                    src={style.thumbnailUrl} 
+                    alt={style.label} 
+                    className="w-full h-40 object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+                    <div className="p-3 w-full">
+                      <h3 className="text-white font-medium">{style.label}</h3>
+                      {style.description && (
+                        <p className="text-white/80 text-xs mt-1">{style.description}</p>
+                      )}
+                    </div>
+                  </div>
+                  {selectedStyle === style.value && (
+                    <div className="absolute top-2 right-2 bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center shadow-md">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Preview Styles Section (NEW) */}
       <div className="bg-white rounded-xl p-5 shadow-soft border border-neutral-light mb-6">
@@ -405,6 +462,124 @@ export default function Image() {
           <p className="text-neutral-dark mb-4 max-w-md mx-auto">
             임신 사진, 초음파 이미지, 아기 사진을 영원히 간직할 수 있는 매력적인 예술 작품으로 변환해보세요.
           </p>
+        </div>
+        
+        {/* 스타일 선택 버튼 */}
+        <div className="mb-6">
+          <label className="block font-medium mb-3 text-neutral-darkest">스타일</label>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full py-6 flex items-center justify-between border-dashed border-2 bg-neutral-lightest hover:bg-neutral-light"
+            onClick={() => setStyleDialogOpen(true)}
+          >
+            <div className="flex items-center">
+              {selectedStyle ? (
+                <>
+                  <div className="w-12 h-12 rounded-lg overflow-hidden mr-4 border border-neutral">
+                    <img 
+                      src={artStyles.find(s => s.value === selectedStyle)?.thumbnailUrl || ''} 
+                      alt={artStyles.find(s => s.value === selectedStyle)?.label || ''}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div>
+                    <p className="font-medium text-left">{artStyles.find(s => s.value === selectedStyle)?.label}</p>
+                    <p className="text-xs text-neutral-dark text-left">클릭하여 다른 스타일 선택</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="w-12 h-12 flex items-center justify-center rounded-lg bg-neutral-light mr-4">
+                    <PaintbrushVertical className="h-6 w-6 text-neutral" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-left">스타일 선택하기</p>
+                    <p className="text-xs text-neutral-dark text-left">클릭하여 이미지 스타일 선택</p>
+                  </div>
+                </>
+              )}
+            </div>
+            <ChevronRight className="h-5 w-5 text-neutral" />
+          </Button>
+        </div>
+        
+        {/* 비율 선택 UI */}
+        <div className="mb-6">
+          <label className="block font-medium mb-3 text-neutral-darkest">종횡비</label>
+          <div className="grid grid-cols-5 gap-2">
+            <div 
+              className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
+                selectedAspectRatio === "1:1" ? "bg-primary border-primary" : "bg-neutral-lightest border-neutral-light"
+              }`}
+              onClick={() => setSelectedAspectRatio("1:1")}
+            >
+              <div className="aspect-square flex items-center justify-center">
+                <span className={`text-xs font-medium ${selectedAspectRatio === "1:1" ? "text-white" : "text-neutral-dark"}`}>1:1</span>
+              </div>
+            </div>
+            <div 
+              className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
+                selectedAspectRatio === "16:9" ? "bg-primary border-primary" : "bg-neutral-lightest border-neutral-light"
+              }`}
+              onClick={() => setSelectedAspectRatio("16:9")}
+            >
+              <div className="aspect-[16/9] flex items-center justify-center">
+                <span className={`text-xs font-medium ${selectedAspectRatio === "16:9" ? "text-white" : "text-neutral-dark"}`}>16:9</span>
+              </div>
+            </div>
+            <div 
+              className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
+                selectedAspectRatio === "3:2" ? "bg-primary border-primary" : "bg-neutral-lightest border-neutral-light"
+              }`}
+              onClick={() => setSelectedAspectRatio("3:2")}
+            >
+              <div className="aspect-[3/2] flex items-center justify-center">
+                <span className={`text-xs font-medium ${selectedAspectRatio === "3:2" ? "text-white" : "text-neutral-dark"}`}>3:2</span>
+              </div>
+            </div>
+            <div 
+              className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
+                selectedAspectRatio === "2:3" ? "bg-primary border-primary" : "bg-neutral-lightest border-neutral-light"
+              }`}
+              onClick={() => setSelectedAspectRatio("2:3")}
+            >
+              <div className="aspect-[2/3] flex items-center justify-center">
+                <span className={`text-xs font-medium ${selectedAspectRatio === "2:3" ? "text-white" : "text-neutral-dark"}`}>2:3</span>
+              </div>
+            </div>
+            <div 
+              className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
+                selectedAspectRatio === "3:4" ? "bg-primary border-primary" : "bg-neutral-lightest border-neutral-light"
+              }`}
+              onClick={() => setSelectedAspectRatio("3:4")}
+            >
+              <div className="aspect-[3/4] flex items-center justify-center">
+                <span className={`text-xs font-medium ${selectedAspectRatio === "3:4" ? "text-white" : "text-neutral-dark"}`}>3:4</span>
+              </div>
+            </div>
+            <div 
+              className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
+                selectedAspectRatio === "4:3" ? "bg-primary border-primary" : "bg-neutral-lightest border-neutral-light"
+              }`}
+              onClick={() => setSelectedAspectRatio("4:3")}
+            >
+              <div className="aspect-[4/3] flex items-center justify-center">
+                <span className={`text-xs font-medium ${selectedAspectRatio === "4:3" ? "text-white" : "text-neutral-dark"}`}>4:3</span>
+              </div>
+            </div>
+            <div 
+              className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
+                selectedAspectRatio === "9:16" ? "bg-primary border-primary" : "bg-neutral-lightest border-neutral-light"
+              }`}
+              onClick={() => setSelectedAspectRatio("9:16")}
+            >
+              <div className="aspect-[9/16] flex items-center justify-center">
+                <span className={`text-xs font-medium ${selectedAspectRatio === "9:16" ? "text-white" : "text-neutral-dark"}`}>9:16</span>
+              </div>
+            </div>
+          </div>
+          <p className="text-xs text-neutral-dark mt-2">이미지 출력 비율을 선택하세요</p>
         </div>
 
         <div className="mb-6">
