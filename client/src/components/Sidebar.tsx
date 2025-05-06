@@ -16,11 +16,28 @@ import {
   Heart
 } from 'lucide-react';
 
+// 메뉴 아이템 타입 정의 추가
+interface MenuItem {
+  path: string;
+  icon: React.ComponentType<any>;
+  label: string;
+  ariaLabel: string;
+  new?: boolean; // optional new flag
+}
+
+// 메뉴 그룹 타입 정의 추가
+interface MenuGroup {
+  id: string;
+  title: string;
+  categoryId?: string; // optional for non-AI service categories
+  items: MenuItem[];
+}
+
 export default function Sidebar({ collapsed = false }) {
   const [location] = useLocation();
   
   // 메뉴 그룹 정의 - 요청에 따라 재구성
-  const groups = [
+  const groups: MenuGroup[] = [
     {
       id: 'main',
       title: '메인',
@@ -177,13 +194,13 @@ export default function Sidebar({ collapsed = false }) {
                       )}
                     </div>
                     
-                    {!collapsed && item.new && (
+                    {!collapsed && 'new' in item && item.new && (
                       <div className="flex-shrink-0 px-1.5 py-0.5 text-[10px] rounded bg-primary-lavender/20 text-primary-lavender font-semibold">
                         NEW
                       </div>
                     )}
                     
-                    {collapsed && item.new && (
+                    {collapsed && 'new' in item && item.new && (
                       <div className="absolute top-0 right-0 w-2 h-2 rounded-full bg-primary-lavender"></div>
                     )}
                   </Link>

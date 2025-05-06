@@ -415,5 +415,21 @@ export const insertStyleCardSchema = createInsertSchema(styleCards);
 export type InsertStyleCard = z.infer<typeof insertStyleCardSchema>;
 export type StyleCard = typeof styleCards.$inferSelect;
 
+// 서비스 카테고리 테이블 (사이드바 메뉴 관리)
+export const serviceCategories = pgTable("service_categories", {
+  id: serial("id").primaryKey(),
+  categoryId: text("category_id").notNull().unique(), // 'image', 'music', 'chat' 등 카테고리 식별자
+  title: text("title").notNull(), // 표시될 카테고리 제목
+  isPublic: boolean("is_public").notNull().default(true), // 공개/비공개 설정
+  icon: text("icon").notNull(), // Lucide 아이콘 이름
+  order: integer("order").notNull().default(0), // 표시 순서
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertServiceCategorySchema = createInsertSchema(serviceCategories);
+export type InsertServiceCategory = z.infer<typeof insertServiceCategorySchema>;
+export type ServiceCategory = typeof serviceCategories.$inferSelect;
+
 // Export operators for query building
 export { eq, desc, and, asc, sql, gte, lte, gt, lt, ne, like, notLike, isNull, isNotNull, inArray } from "drizzle-orm";
