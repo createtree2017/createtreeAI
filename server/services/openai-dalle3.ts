@@ -455,24 +455,53 @@ export async function transformImageWithDallE3(
     
     // 3. DALL-E 3 API 호출 (SDK 사용) - 프로젝트 ID 제거
     try {
-      const openai = new OpenAI({
-        apiKey: API_KEY,
-        dangerouslyAllowBrowser: true // 브라우저 환경 호환성 설정
-      });
-      
       console.log("[DALL-E 3] 이미지 생성 API 호출 중...");
+      console.log("[DALL-E 3] 프롬프트 처음 100자:", finalPrompt.substring(0, 100));
       
-      const imageResponse = await openai.images.generate({
+      // API 직접 호출로 변경
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_KEY}`
+      };
+
+      const requestParams = {
         model: "dall-e-3",
         prompt: finalPrompt,
         n: 1,
         size: "1024x1024",
         quality: "standard",
         response_format: "url"
+      };
+      
+      console.log("[DALL-E 3] fetch 직접 호출 시도...");
+      
+      const response = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(requestParams)
       });
       
+      // 응답 처리
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("[DALL-E 3] API 오류:", response.status, errorText);
+        throw new Error(`API 오류: ${response.status} - ${errorText}`);
+      }
+      
+      const rawResponseData = await response.json() as any;
+      console.log("[DALL-E 3] 응답 데이터:", JSON.stringify(rawResponseData).substring(0, 200));
+      
+      // 타입 안전성 보장
+      const responseData = {
+        created: rawResponseData.created as number,
+        data: rawResponseData.data as Array<{
+          url?: string;
+          revised_prompt?: string;
+        }>
+      };
+      
       // 생성된 이미지 URL 추출
-      const generatedImageUrl = imageResponse.data[0]?.url;
+      const generatedImageUrl = responseData.data?.[0]?.url;
       
       if (!generatedImageUrl) {
         console.error("[DALL-E 3] 응답에 이미지 URL이 없습니다");
