@@ -448,17 +448,25 @@ export default function ImageTemplateManagement() {
                     </div>
                     
                     <div className="flex justify-center">
-                      <label className="cursor-pointer">
+                      <div className="flex gap-2">
                         <Input
                           type="file"
                           accept="image/*"
+                          id="template-image-upload"
                           className="hidden"
                           onChange={handleImageUpload}
                         />
-                        <Button type="button" variant="outline" size="sm">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            document.getElementById('template-image-upload')?.click();
+                          }}
+                        >
                           {uploadedImageUrl ? "이미지 변경" : "이미지 업로드"}
                         </Button>
-                      </label>
+                      </div>
                     </div>
                   </div>
                   
