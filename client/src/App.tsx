@@ -15,6 +15,8 @@ import BottomNavigation from "@/components/BottomNavigation";
 import Sidebar from "@/components/Sidebar";
 import { useMobile } from "./hooks/use-mobile";
 import { Menu, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { ThemeProvider } from "@/hooks/use-theme";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 // Main layout component
 function Layout({ children }: { children: React.ReactNode }) {
@@ -125,12 +127,12 @@ function Layout({ children }: { children: React.ReactNode }) {
       
       {/* Mobile header */}
       {useMobileLayout && (
-        <header className="sticky top-0 z-30 w-full bg-[#121212] safe-area-top border-b border-neutral-800">
+        <header className="sticky top-0 z-30 w-full bg-card safe-area-top border-b border-border">
           <div className="px-4 h-14 flex items-center justify-between">
             {/* Menu button */}
             <button 
-              className="sidebar-toggle w-9 h-9 flex items-center justify-center text-neutral-300 hover:text-white 
-                       rounded-md hover:bg-neutral-800 transition-colors"
+              className="sidebar-toggle w-9 h-9 flex items-center justify-center text-foreground/80 hover:text-foreground 
+                       rounded-md hover:bg-muted transition-colors"
               onClick={() => setSidebarOpen(!sidebarOpen)}
               aria-label="Toggle sidebar"
             >
@@ -140,12 +142,12 @@ function Layout({ children }: { children: React.ReactNode }) {
             {/* Logo */}
             <div className="flex items-center">
               <h1 className="text-lg font-semibold tracking-tight font-heading">
-                <span className="text-white">Mom's</span> <span className="text-primary-lavender">Service</span>
+                <span className="text-foreground">Mom's</span> <span className="text-primary">Service</span>
               </h1>
             </div>
             
-            {/* Spacer for alignment */}
-            <div className="w-9"></div>
+            {/* Theme toggle */}
+            <ThemeToggle />
           </div>
         </header>
       )}
@@ -221,10 +223,12 @@ function App() {
   }, []);
   
   return (
-    <QueryClientProvider client={queryClient}>
-      <Router />
-      <Toaster />
-    </QueryClientProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <Router />
+        <Toaster />
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 

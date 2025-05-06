@@ -5,7 +5,7 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
+  :root, .light {
     /* Base colors */
     --background: 0 0% 100%;
     --foreground: 0 0% 20%;
@@ -65,39 +65,115 @@
   }
  
   .dark {
-    --background: 0 0% 10%;
-    --foreground: 0 0% 95%;
+    /* Base colors */
+    --background: 240 13% 10%;  /* 어두운 배경 */
+    --foreground: 0 0% 95%;     /* 밝은 텍스트 */
     
-    --card: 0 0% 13%;
-    --card-foreground: 0 0% 95%;
+    /* Card colors */
+    --card: 240 13% 13%;        /* 어두운 카드 배경 */
+    --card-foreground: 0 0% 95%; /* 카드 텍스트 */
     
-    --popover: 0 0% 13%;
-    --popover-foreground: 0 0% 95%;
+    /* Popover colors */
+    --popover: 240 13% 13%;     /* 팝오버 배경 */
+    --popover-foreground: 0 0% 95%; /* 팝오버 텍스트 */
     
-    --primary: 270 30% 75%;
-    --primary-foreground: 0 0% 100%;
+    /* Primary colors (어두운 보라) */
+    --primary: 270 30% 50%;     /* 어두운 환경에서의 보라색 */
+    --primary-foreground: 0 0% 100%; /* 보라색 위의 텍스트 */
     
-    --secondary: 158 30% 70%;
-    --secondary-foreground: 0 0% 100%;
+    /* Secondary colors (어두운 민트) */
+    --secondary: 158 30% 45%;   /* 어두운 환경에서의 민트색 */
+    --secondary-foreground: 0 0% 100%; /* 민트색 위의 텍스트 */
     
-    --muted: 0 0% 20%;
-    --muted-foreground: 0 0% 70%;
+    /* Muted colors */
+    --muted: 240 13% 17%;       /* 약간 밝은 배경 */
+    --muted-foreground: 0 0% 70%; /* 약간 어두운 텍스트 */
     
-    --accent: 145 15% 62%;
-    --accent-foreground: 0 0% 100%;
+    /* Accent colors (어두운 세이지) */
+    --accent: 145 15% 40%;      /* 어두운 환경에서의 세이지 */
+    --accent-foreground: 0 0% 100%; /* 세이지 위의 텍스트 */
     
-    --destructive: 0 55% 75%;
-    --destructive-foreground: 0 0% 100%;
+    /* Destructive colors */
+    --destructive: 0 55% 50%;   /* 어두운 환경에서의 빨간색 */
+    --destructive-foreground: 0 0% 100%; /* 빨간색 위의 텍스트 */
     
-    --border: 0 0% 25%;
-    --input: 0 0% 25%;
-    --ring: 270 30% 75%;
+    /* UI element colors */
+    --border: 240 13% 18%;      /* 경계선 */
+    --input: 240 13% 18%;       /* 입력 필드 */
+    --ring: 270 30% 50%;        /* 포커스 링 */
     
-    --chart-1: 270 30% 75%;
-    --chart-2: 158 30% 70%;
-    --chart-3: 145 15% 62%;
-    --chart-4: 35 50% 82%;
-    --chart-5: 208 40% 77%;
+    /* Chart colors */
+    --chart-1: 270 30% 50%;     /* 어두운 보라 */
+    --chart-2: 158 30% 45%;     /* 어두운 민트 */
+    --chart-3: 145 15% 40%;     /* 어두운 세이지 */
+    --chart-4: 35 50% 55%;      /* 어두운 베이지 */
+    --chart-5: 208 40% 45%;     /* 어두운 하늘색 */
+    
+    /* Sidebar colors */
+    --sidebar-background: 240 13% 13%; /* 사이드바 배경 */
+    --sidebar-foreground: 0 0% 95%;   /* 사이드바 텍스트 */
+    --sidebar-primary: 270 30% 50%;   /* 사이드바 주요 색상 */
+    --sidebar-primary-foreground: 0 0% 100%; /* 사이드바 주요 색상 위의 텍스트 */
+    --sidebar-accent: 158 30% 45%;    /* 사이드바 강조 색상 */
+    --sidebar-accent-foreground: 0 0% 100%; /* 사이드바 강조 색상 위의 텍스트 */
+    --sidebar-border: 240 13% 18%;    /* 사이드바 경계선 */
+    --sidebar-ring: 270 30% 50%;      /* 사이드바 링 */
+  }
+  
+  .pastel {
+    /* Base colors */
+    --background: 60 30% 96%;   /* 연한 베이지 배경 */
+    --foreground: 0 0% 20%;     /* 어두운 텍스트 */
+    
+    /* Card colors */
+    --card: 60 30% 98%;         /* 연한 베이지 카드 */
+    --card-foreground: 0 0% 20%; /* 카드 텍스트 */
+    
+    /* Popover colors */
+    --popover: 60 30% 98%;      /* 팝오버 배경 */
+    --popover-foreground: 0 0% 20%; /* 팝오버 텍스트 */
+    
+    /* Primary colors (파스텔 핑크) */
+    --primary: 340 70% 90%;     /* 파스텔 핑크 */
+    --primary-foreground: 340 70% 30%; /* 핑크 위의 텍스트 */
+    
+    /* Secondary colors (파스텔 민트) */
+    --secondary: 158 60% 90%;   /* 파스텔 민트 */
+    --secondary-foreground: 158 60% 30%; /* 민트 위의 텍스트 */
+    
+    /* Muted colors */
+    --muted: 60 30% 92%;        /* 아주 연한 배경 */
+    --muted-foreground: 0 0% 60%; /* 중간 어두운 텍스트 */
+    
+    /* Accent colors (파스텔 라벤더) */
+    --accent: 270 60% 90%;      /* 파스텔 라벤더 */
+    --accent-foreground: 270 60% 30%; /* 라벤더 위의 텍스트 */
+    
+    /* Destructive colors */
+    --destructive: 0 70% 90%;   /* 파스텔 빨간색 */
+    --destructive-foreground: 0 70% 30%; /* 빨간색 위의 텍스트 */
+    
+    /* UI element colors */
+    --border: 60 30% 90%;       /* 경계선 */
+    --input: 60 30% 90%;        /* 입력 필드 */
+    --ring: 340 70% 90%;        /* 포커스 링 */
+    
+    /* Chart colors */
+    --chart-1: 340 70% 90%;     /* 파스텔 핑크 */
+    --chart-2: 158 60% 90%;     /* 파스텔 민트 */
+    --chart-3: 270 60% 90%;     /* 파스텔 라벤더 */
+    --chart-4: 200 60% 90%;     /* 파스텔 하늘색 */
+    --chart-5: 50 70% 90%;      /* 파스텔 노란색 */
+    
+    /* Sidebar colors */
+    --sidebar-background: 60 30% 98%; /* 사이드바 배경 */
+    --sidebar-foreground: 0 0% 20%;  /* 사이드바 텍스트 */
+    --sidebar-primary: 340 70% 90%;  /* 사이드바 주요 색상 (핑크) */
+    --sidebar-primary-foreground: 340 70% 30%; /* 사이드바 주요 색상 위의 텍스트 */
+    --sidebar-accent: 270 60% 90%;   /* 사이드바 강조 색상 (라벤더) */
+    --sidebar-accent-foreground: 270 60% 30%; /* 사이드바 강조 색상 위의 텍스트 */
+    --sidebar-border: 60 30% 90%;    /* 사이드바 경계선 */
+    --sidebar-ring: 340 70% 90%;     /* 사이드바 링 */
   }
   
   * {
@@ -105,7 +181,7 @@
   }
   
   body {
-    @apply bg-neutral-lightest text-neutral-darkest font-body;
+    @apply bg-background text-foreground font-body;
   }
   
   h1, h2, h3, h4, h5, h6 {
