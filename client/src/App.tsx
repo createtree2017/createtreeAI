@@ -15,15 +15,13 @@ import BottomNavigation from "@/components/BottomNavigation";
 import Sidebar from "@/components/Sidebar";
 import { useMobile } from "./hooks/use-mobile";
 import { Menu, X, ChevronLeft, ChevronRight } from "lucide-react";
-import { useSidebarStore } from "./lib/store";
 
 // Main layout component
 function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const isMobile = useMobile();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  // 직접 사이드바 상태 관리 
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
   // Check if we're in an iframe
   const [isInIframe, setIsInIframe] = useState(false);
@@ -35,27 +33,17 @@ function Layout({ children }: { children: React.ReactNode }) {
     }
   }, []);
   
-  // Zustand 상태 연결
-  const { isOpen, toggleSidebar } = useSidebarStore();
-  
-  // 로컬 상태와 Zustand 상태 동기화
-  useEffect(() => {
-    setSidebarOpen(isOpen);
-  }, [isOpen]);
-  
-  // Close sidebar when clicking outside on mobile (using Zustand store)
+  // Close sidebar when clicking outside on mobile
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
       if (
         isMobile && 
-        isOpen && 
+        sidebarOpen && 
         !target.closest('.sidebar') && 
         !target.closest('.sidebar-toggle')
       ) {
-        // 로컬 상태 및 Zustand 상태 모두 업데이트
         setSidebarOpen(false);
-        useSidebarStore.getState().closeSidebar();
       }
     };
     
@@ -63,16 +51,14 @@ function Layout({ children }: { children: React.ReactNode }) {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isMobile, isOpen]);
+  }, [isMobile, sidebarOpen]);
   
-  // Close sidebar when location changes on mobile (Zustand store 활용)
+  // Close sidebar when location changes on mobile
   useEffect(() => {
-    if (isMobile && isOpen) {
-      // 로컬 상태와 Zustand 상태 모두 업데이트
+    if (isMobile && sidebarOpen) {
       setSidebarOpen(false);
-      useSidebarStore.getState().closeSidebar();
     }
-  }, [location, isMobile, isOpen]);
+  }, [location, isMobile]);
   
   // Determine if direct page mode (for iframe embedding of single features)
   const isDirectPage = 
@@ -118,18 +104,18 @@ function Layout({ children }: { children: React.ReactNode }) {
   
   return (
     <div className={`flex flex-col ${isInIframe ? "h-full" : "min-h-screen"} bg-[#121217]`}>
-      {/* Mobile sidebar overlay - Zustand 사용 */}
-      {useMobileLayout && isOpen && (
-        <div className="fixed inset-0 bg-black/70 z-40" onClick={useSidebarStore.getState().closeSidebar} />
+      {/* Mobile sidebar overlay */}
+      {useMobileLayout && sidebarOpen && (
+        <div className="fixed inset-0 bg-black/70 z-40" onClick={() => setSidebarOpen(false)} />
       )}
       
-      {/* Mobile sidebar - Zustand 사용 */}
+      {/* Mobile sidebar */}
       {useMobileLayout && (
-        <div className={`sidebar fixed top-0 bottom-0 left-0 z-50 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className={`sidebar fixed top-0 bottom-0 left-0 z-50 transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <Sidebar collapsed={false} />
           <button 
             className="absolute top-4 right-4 text-white p-1.5 bg-neutral-800 rounded-full"
-            onClick={useSidebarStore.getState().closeSidebar}
+            onClick={() => setSidebarOpen(false)}
             aria-label="Close sidebar"
           >
             <X size={18} />
@@ -145,7 +131,7 @@ function Layout({ children }: { children: React.ReactNode }) {
             <button 
               className="sidebar-toggle w-9 h-9 flex items-center justify-center text-neutral-300 hover:text-white 
                        rounded-md hover:bg-neutral-800 transition-colors"
-              onClick={toggleSidebar}
+              onClick={() => setSidebarOpen(!sidebarOpen)}
               aria-label="Toggle sidebar"
             >
               <Menu size={22} />

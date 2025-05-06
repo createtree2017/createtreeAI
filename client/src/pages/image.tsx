@@ -9,7 +9,6 @@ import { queryClient } from "@/lib/queryClient";
 import { PaintbrushVertical, Download, Share2, Eye, ChevronRight, X, CheckCircle2 } from "lucide-react";
 import ABTestComparer from "@/components/ABTestComparer";
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import TopMenuBar from "@/components/TopMenuBar";
 
 interface ImageStyle {
   value: string;
@@ -114,7 +113,7 @@ export default function Image() {
   }, [artStyles, selectedCategory]);
 
   // Fetch image list with more aggressive refresh option
-  const { data: imageList = [], isLoading: isLoadingImages, refetch } = useQuery({
+  const { data: imageList, isLoading: isLoadingImages, refetch } = useQuery({
     queryKey: ["/api/image"], 
     // 직접 fetch 함수로 대체하여 캐시 제어 헤더 추가
     queryFn: async () => {
@@ -373,363 +372,451 @@ export default function Image() {
     const category = Array.isArray(categories) 
       ? categories.find(cat => cat.categoryId === categoryId)
       : null;
-    return category ? category.name : categoryId;
+    return category ? category.title : categoryId;
   };
 
   return (
-    <div className="animate-fadeIn">
-      <div className="p-5">
-        <div className="text-center mb-6">
-          <h2 className="font-heading font-bold text-2xl mb-2">AI 이미지 생성</h2>
-          <p className="text-neutral-dark">임신 및 가족의 사진을 아름다운 추억으로 변환해 보세요</p>
-        </div>
+    <div className="p-5 animate-fadeIn">
+      <div className="text-center mb-6">
+        <h2 className="font-heading font-bold text-2xl mb-2">AI 이미지 생성</h2>
+        <p className="text-neutral-dark">임신 및 가족의 사진을 아름다운 추억으로 변환해 보세요</p>
+      </div>
       
+      {/* 스타일 선택 다이얼로그 */}
+      <Dialog open={styleDialogOpen} onOpenChange={setStyleDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-heading font-bold text-center">스타일 선택</DialogTitle>
+            <DialogDescription className="text-center">
+              원하는 스타일을 클릭하여 선택하세요
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            {artStyles.map((style) => (
+              <div 
+                key={style.value}
+                className={`cursor-pointer rounded-xl overflow-hidden transition-all duration-200 border-2
+                  ${selectedStyle === style.value 
+                    ? 'border-primary shadow-lg' 
+                    : 'border-transparent hover:border-primary/30'
+                  }`}
+                onClick={() => {
+                  handleStyleSelected(style.value);
+                  setStyleDialogOpen(false);
+                }}
+              >
+                <div className="relative">
+                  <img 
+                    src={style.thumbnailUrl} 
+                    alt={style.label} 
+                    className="w-full h-40 object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+                    <div className="p-3 w-full">
+                      <h3 className="text-white font-medium">{style.label}</h3>
+                      {style.description && (
+                        <p className="text-white/80 text-xs mt-1">{style.description}</p>
+                      )}
+                    </div>
+                  </div>
+                  {selectedStyle === style.value && (
+                    <div className="absolute top-2 right-2 bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center shadow-md">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* 카테고리 선택 섹션 */}
+      <div className="bg-[#1c1c24] rounded-xl p-5 mb-6">
+        <div className="flex justify-between items-center mb-5">
+          <h3 className="font-heading font-semibold text-white text-lg">카테고리</h3>
+        </div>
+        
+        <div className="grid grid-cols-3 gap-2">
+          {Array.isArray(categories) && categories.length > 0 ? (
+            // 카테고리가 로드됐을 때
+            categories.map((category) => (
+              <div 
+                key={category.categoryId}
+                className={`cursor-pointer rounded-lg border overflow-hidden transition-colors
+                  ${selectedCategory === category.categoryId 
+                    ? 'ring-2 ring-[#ff2d55] border-[#ff2d55]' 
+                    : 'bg-[#272730] border-gray-700 hover:border-gray-500'
+                  }`}
+                onClick={() => setSelectedCategory(category.categoryId)}
+              >
+                <div className="flex items-center justify-between px-4 py-3">
+                  <span className={`font-medium ${selectedCategory === category.categoryId ? 'text-[#ff2d55]' : 'text-gray-300'}`}>
+                    {category.name}
+                  </span>
+                  {selectedCategory === category.categoryId && (
+                    <CheckCircle2 className="h-5 w-5 text-[#ff2d55]" />
+                  )}
+                </div>
+              </div>
+            ))
+          ) : (
+            // 카테고리가 없거나 로딩 중일 때 기본 카테고리 3개 표시
+            <>
+              <div className="cursor-pointer rounded-lg border overflow-hidden transition-colors bg-[#272730] border-gray-700 hover:border-gray-500">
+                <div className="flex items-center justify-between px-4 py-3">
+                  <span className="font-medium text-gray-300">임신사진</span>
+                </div>
+              </div>
+              <div className="cursor-pointer rounded-lg border overflow-hidden transition-colors ring-2 ring-[#ff2d55] border-[#ff2d55]">
+                <div className="flex items-center justify-between px-4 py-3">
+                  <span className="font-medium text-[#ff2d55]">만삭사진</span>
+                  <CheckCircle2 className="h-5 w-5 text-[#ff2d55]" />
+                </div>
+              </div>
+              <div className="cursor-pointer rounded-lg border overflow-hidden transition-colors bg-[#272730] border-gray-700 hover:border-gray-500">
+                <div className="flex items-center justify-between px-4 py-3">
+                  <span className="font-medium text-gray-300">가족사진</span>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* 스타일 선택 섹션 */}
+      <div className="bg-[#1c1c24] rounded-xl p-5 mb-6">
+        <div className="flex justify-between items-center mb-5">
+          <h3 className="font-heading font-semibold text-white text-lg">스타일</h3>
+        </div>
+
+        {/* 스타일 선택 버튼 */}
+        <div 
+          className="cursor-pointer rounded-lg border border-gray-700 overflow-hidden flex items-center justify-between px-4 py-3 hover:border-gray-500 transition-all"
+          onClick={() => setStyleDialogOpen(true)}
+        >
+          <div className="flex items-center">
+            {selectedStyle && filteredStyles.find(style => style.value === selectedStyle) ? (
+              <>
+                <div className="w-10 h-10 rounded-lg overflow-hidden mr-3">
+                  <img 
+                    src={filteredStyles.find(style => style.value === selectedStyle)?.thumbnailUrl} 
+                    alt={filteredStyles.find(style => style.value === selectedStyle)?.label}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <span className="text-white font-medium">
+                  {filteredStyles.find(style => style.value === selectedStyle)?.label}
+                </span>
+              </>
+            ) : (
+              <span className="text-gray-400">스타일을 선택해주세요</span>
+            )}
+          </div>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
+
         {/* 스타일 선택 다이얼로그 */}
         <Dialog open={styleDialogOpen} onOpenChange={setStyleDialogOpen}>
-          <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto bg-[#1c1c24]">
+          <DialogContent className="sm:max-w-[650px] max-h-[85vh] overflow-y-auto bg-[#1c1c24] border border-gray-700 shadow-xl">
             <DialogHeader>
-              <DialogTitle className="text-xl font-heading font-bold text-center text-white">스타일 선택</DialogTitle>
-              <DialogDescription className="text-center text-gray-300">
-                원하는 스타일을 클릭하여 선택하세요
+              <DialogTitle className="text-xl font-heading font-bold text-white text-center">스타일 선택</DialogTitle>
+              <DialogDescription className="text-center text-gray-400">
+                원하는 스타일을 선택하세요
               </DialogDescription>
             </DialogHeader>
             
-            <div className="grid grid-cols-2 gap-3 mt-4">
+            <div className="grid grid-cols-2 gap-4 mt-4">
               {filteredStyles.map((style) => (
                 <div 
                   key={style.value}
-                  className={`cursor-pointer overflow-hidden transition-all duration-200
+                  className={`cursor-pointer rounded-lg overflow-hidden border transition-all
                     ${selectedStyle === style.value 
-                      ? 'ring-2 ring-[#ff2d55] shadow-lg' 
-                      : 'hover:ring-1 hover:ring-[#ff2d55]/50'
-                    } rounded-lg`}
+                      ? 'border-[#ff2d55] ring-2 ring-[#ff2d55]' 
+                      : 'border-gray-700 hover:border-gray-500'
+                    }`}
                   onClick={() => {
                     handleStyleSelected(style.value);
                     setStyleDialogOpen(false);
                   }}
                 >
-                  <div className="relative flex flex-col">
+                  <div className="relative">
                     <img 
                       src={style.thumbnailUrl} 
                       alt={style.label} 
-                      className="w-full h-36 object-cover"
+                      className="w-full h-40 object-cover"
                     />
-                    <div className="p-2.5 bg-[#272730] w-full flex justify-center">
-                      <h3 className={`font-medium text-center ${
-                        selectedStyle === style.value ? 'text-[#ff2d55]' : 'text-gray-200'
-                      }`}>
-                        {style.label}
-                      </h3>
+                    <div className={`absolute inset-0 ${selectedStyle === style.value ? 'bg-[#ff2d55]/20' : ''}`}>
+                      {selectedStyle === style.value && (
+                        <div className="absolute top-2 right-2 bg-[#ff2d55] text-white rounded-full w-6 h-6 flex items-center justify-center shadow-md">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      )}
                     </div>
-                    
-                    {selectedStyle === style.value && (
-                      <div className="absolute top-2 right-2 bg-[#ff2d55] text-white rounded-full w-5 h-5 flex items-center justify-center shadow-md">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                    )}
-                    
-                    {/* New 뱃지 부분 - 필요시 활성화
-                    {style.isNew && (
-                      <div className="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-1.5 py-0.5 rounded">
-                        New
-                      </div>
-                    )}
-                    */}
+                  </div>
+                  <div className="bg-[#272730] text-center py-3 px-2">
+                    <span className={`text-sm font-medium ${selectedStyle === style.value ? 'text-[#ff2d55]' : 'text-white'}`}>
+                      {style.label}
+                    </span>
                   </div>
                 </div>
               ))}
             </div>
+            
+            <DialogFooter className="sm:justify-center mt-6">
+              <Button 
+                className="bg-[#ff2d55] hover:bg-[#ff2d55]/90 text-white"
+                onClick={() => setStyleDialogOpen(false)}
+              >
+                확인
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
+      </div>
+
+      {/* Image Upload Section */}
+      <div className="bg-[#1c1c24] rounded-xl p-5 mb-6">
+        <div className="text-left mb-3">
+          <h3 className="font-heading font-semibold text-white text-lg">이미지 업로드</h3>
+        </div>
         
-        {/* 카테고리 선택 섹션 */}
-        <div className="bg-[#1c1c24] rounded-xl p-5 mb-6">
-          <div className="flex justify-between items-center mb-5">
-            <h3 className="font-heading font-semibold text-white text-lg">카테고리</h3>
-          </div>
-          
-          <div className="grid grid-cols-3 gap-2">
-            {Array.isArray(categories) && categories.length > 0 ? (
-              // 카테고리가 로드됐을 때
-              categories.map((category) => (
-                <div 
-                  key={category.categoryId}
-                  className={`cursor-pointer rounded-lg border overflow-hidden transition-colors
-                    ${selectedCategory === category.categoryId 
-                      ? 'ring-2 ring-[#ff2d55] border-[#ff2d55]' 
-                      : 'bg-[#272730] border-gray-700 hover:border-gray-500'
-                    }`}
-                  onClick={() => setSelectedCategory(category.categoryId)}
-                >
-                  <div className="flex items-center justify-between px-4 py-3">
-                    <span className={`font-medium ${selectedCategory === category.categoryId ? 'text-[#ff2d55]' : 'text-gray-300'}`}>
-                      {category.name}
-                    </span>
-                    {selectedCategory === category.categoryId && (
-                      <CheckCircle2 className="h-5 w-5 text-[#ff2d55]" />
-                    )}
-                  </div>
-                </div>
-              ))
+        {/* 이미지 업로드 영역 */}
+        <div className="mb-4 relative">
+          <label htmlFor="file-upload" className="block cursor-pointer">
+            {!previewUrl ? (
+              // 이미지 업로드 전 상태
+              <div className="border border-gray-700 h-48 rounded-lg flex flex-col items-center justify-center text-gray-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-2">
+                  <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                  <circle cx="9" cy="9" r="2" />
+                  <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                </svg>
+                <span className="text-sm">이미지를 업로드하려면 클릭하세요</span>
+                <span className="text-xs text-gray-500 mt-2">최대 15MB, 4096 × 4096픽셀의 JPEG, PNG 또는 WEBP 형식을 허용합니다.</span>
+              </div>
             ) : (
-              // 카테고리가 없거나 로딩 중일 때 기본 카테고리 3개 표시
-              <>
-                <div className="cursor-pointer rounded-lg border overflow-hidden transition-colors bg-[#272730] border-gray-700 hover:border-gray-500">
-                  <div className="flex items-center justify-between px-4 py-3">
-                    <span className="font-medium text-gray-300">임신사진</span>
-                  </div>
-                </div>
-                <div className="cursor-pointer rounded-lg border overflow-hidden transition-colors ring-2 ring-[#ff2d55] border-[#ff2d55]">
-                  <div className="flex items-center justify-between px-4 py-3">
-                    <span className="font-medium text-[#ff2d55]">만삭사진</span>
-                    <CheckCircle2 className="h-5 w-5 text-[#ff2d55]" />
-                  </div>
-                </div>
-                <div className="cursor-pointer rounded-lg border overflow-hidden transition-colors bg-[#272730] border-gray-700 hover:border-gray-500">
-                  <div className="flex items-center justify-between px-4 py-3">
-                    <span className="font-medium text-gray-300">가족사진</span>
-                  </div>
-                </div>
-              </>
+              // 이미지 업로드 후 미리보기
+              <div className="flex justify-center items-center h-48 border border-gray-700 rounded-lg overflow-hidden bg-black">
+                <img 
+                  src={previewUrl} 
+                  alt="선택한 이미지 미리보기" 
+                  className="max-h-full max-w-full object-contain"
+                />
+              </div>
             )}
-          </div>
-        </div>
-
-        {/* 스타일 선택 섹션 */}
-        <div className="bg-[#1c1c24] rounded-xl p-5 mb-6">
-          <div className="flex justify-between items-center mb-5">
-            <h3 className="font-heading font-semibold text-white text-lg">스타일</h3>
-          </div>
-
-          {/* 스타일 선택 버튼 */}
-          <div 
-            className="cursor-pointer rounded-lg border border-gray-700 overflow-hidden flex items-center justify-between px-4 py-3 hover:border-gray-500 transition-all"
-            onClick={() => setStyleDialogOpen(true)}
-          >
-            <div className="flex items-center">
-              {selectedStyle && filteredStyles.find(style => style.value === selectedStyle) ? (
-                <>
-                  <div className="w-10 h-10 rounded-lg overflow-hidden mr-3">
-                    <img 
-                      src={filteredStyles.find(style => style.value === selectedStyle)?.thumbnailUrl} 
-                      alt={filteredStyles.find(style => style.value === selectedStyle)?.label}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <span className="text-white font-medium">
-                    {filteredStyles.find(style => style.value === selectedStyle)?.label}
-                  </span>
-                </>
-              ) : (
-                <span className="text-gray-400">스타일을 선택해주세요</span>
-              )}
-            </div>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </div>
-        </div>
-
-        {/* Image Upload Section */}
-        <div className="bg-[#1c1c24] rounded-xl p-5 mb-6">
-          <div className="text-left mb-3">
-            <h3 className="font-heading font-semibold text-white text-lg">이미지 업로드</h3>
-          </div>
+          </label>
           
-          {/* 이미지 업로드 영역 */}
-          <div className="mb-4 relative">
-            <label htmlFor="file-upload" className="block cursor-pointer">
-              {!previewUrl ? (
-                // 이미지 업로드 전 상태
-                <div className="border border-gray-700 h-48 rounded-lg flex flex-col items-center justify-center text-gray-400">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-2">
-                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-                    <circle cx="9" cy="9" r="2" />
-                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-                  </svg>
-                  <span className="text-sm">이미지를 업로드하려면 클릭하세요</span>
-                  <span className="text-xs text-gray-500 mt-2">최대 15MB, 4096 × 4096픽셀의 JPEG, PNG 또는 WEBP 형식을 허용합니다.</span>
-                </div>
-              ) : (
-                // 이미지 업로드 후 미리보기
-                <div className="flex justify-center items-center h-48 border border-gray-700 rounded-lg overflow-hidden bg-black">
-                  <img 
-                    src={previewUrl} 
-                    alt="선택한 이미지 미리보기" 
-                    className="max-h-full max-w-full object-contain"
-                  />
-                </div>
-              )}
-            </label>
-            
-            {/* 숨겨진 파일 업로드 입력 필드 */}
-            <FileUpload 
-              id="file-upload"
-              onFileSelect={handleFileSelected} 
-              accept="image/*"
-              maxSize={15 * 1024 * 1024} // 15MB
-              className="hidden"
-            />
-          </div>
-          
-          {/* 변환 버튼 섹션 */}
-          <div id="transform-section" className="flex justify-center">
-            <Button
-              onClick={handleTransformImage}
-              disabled={isTransforming || !selectedFile || !selectedStyle}
-              className="w-full bg-[#ff2d55] hover:bg-[#ff2d55]/90 text-white rounded-lg font-medium py-3 px-4 transition-all disabled:bg-[#ff2d55]/50 disabled:cursor-not-allowed"
+          {/* 숨겨진 파일 업로드 입력 필드 */}
+          <FileUpload 
+            id="file-upload"
+            onFileSelect={handleFileSelected} 
+            accept="image/*"
+            maxSize={15 * 1024 * 1024} // 15MB
+            className="hidden"
+          />
+        </div>
+        
+        {/* 종횡비 선택 */}
+        <div className="mb-5">
+          <label className="block text-gray-300 text-sm mb-2">종횡비</label>
+          <div className="grid grid-cols-3 gap-2">
+            <div 
+              className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
+                selectedAspectRatio === "1:1" ? "bg-[#ff2d55] border-[#ff2d55]" : "bg-[#272730] border-gray-700 hover:border-gray-500"
+              }`}
+              onClick={() => setSelectedAspectRatio("1:1")}
             >
-              {isTransforming ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  변환 중...
-                </>
-              ) : (
-                '이미지 변환하기'
-              )}
-            </Button>
+              <div className="aspect-square flex items-center justify-center">
+                <span className={`text-xs font-medium ${selectedAspectRatio === "1:1" ? "text-white" : "text-gray-300"}`}>1:1</span>
+              </div>
+            </div>
+            <div 
+              className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
+                selectedAspectRatio === "2:3" ? "bg-[#ff2d55] border-[#ff2d55]" : "bg-[#272730] border-gray-700 hover:border-gray-500"
+              }`}
+              onClick={() => setSelectedAspectRatio("2:3")}
+            >
+              <div className="aspect-[2/3] flex items-center justify-center">
+                <span className={`text-xs font-medium ${selectedAspectRatio === "2:3" ? "text-white" : "text-gray-300"}`}>2:3</span>
+              </div>
+            </div>
+            <div 
+              className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
+                selectedAspectRatio === "3:2" ? "bg-[#ff2d55] border-[#ff2d55]" : "bg-[#272730] border-gray-700 hover:border-gray-500"
+              }`}
+              onClick={() => setSelectedAspectRatio("3:2")}
+            >
+              <div className="aspect-[3/2] flex items-center justify-center">
+                <span className={`text-xs font-medium ${selectedAspectRatio === "3:2" ? "text-white" : "text-gray-300"}`}>3:2</span>
+              </div>
+            </div>
           </div>
+
         </div>
 
-        {/* A/B Test Comparison */}
-        {showAbTest && activeAbTest && Object.keys(abTestImages).length > 1 && transformedImage && (
-          <div className="bg-[#1c1c24] rounded-xl p-5 mb-6">
-            <div className="flex justify-between items-center mb-5">
-              <h3 className="font-heading font-semibold text-white text-lg">A/B 테스트</h3>
+        {/* 만들기 버튼 */}
+        <Button
+          type="button"
+          className={`w-full flex items-center justify-center py-3 px-4 rounded-lg transition-all ${
+            previewUrl
+              ? 'bg-[#ff2d55] hover:bg-[#ff2d55]/90 text-white cursor-pointer' 
+              : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+          }`}
+          onClick={handleTransformImage}
+          disabled={isTransforming || !previewUrl}
+        >
+{isTransforming ? (
+            <div className="flex items-center">
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>생성 중...</span>
             </div>
-            <ABTestComparer 
-              originalImage={transformedImage.transformedUrl} 
-              variantImages={abTestImages}
-              variants={activeAbTest.variants}
-              onSelectVariant={(variantId: string) => {
-                console.log("Selected variant:", variantId);
-              }}
-            />
-          </div>
-        )}
+          ) : (
+            <div className="flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                <path d="M12 2v20M2 12h20"/>
+              </svg>
+              <span>만들기</span>
+            </div>
+          )}
+        </Button>
+      </div>
 
-        {/* 변환된 이미지 */}
-        {transformedImage && (
-          <div className="bg-[#1c1c24] rounded-xl p-5 mb-6">
-            <div className="flex justify-between items-center mb-5">
-              <h3 className="font-heading font-semibold text-white text-lg">변환된 이미지</h3>
+      {/* Generated Art Section */}
+      {transformedImage && (
+        <div className="mt-8">
+          <div className="flex items-center mb-3">
+            <h3 className="font-heading font-semibold text-lg">당신의 마법 같은 추억</h3>
+            <div className="ml-2 bg-primary-light rounded-full px-2 py-0.5">
+              <span className="text-xs font-medium text-primary-dark">새로운</span>
             </div>
-            <div className="flex flex-col space-y-4">
-              <div className="flex md:flex-row flex-col gap-4">
-                {/* 원본 이미지 */}
-                <div className="w-full md:w-1/2 bg-[#272730] rounded-xl overflow-hidden border border-gray-700">
-                  <div className="p-3 border-b border-gray-700">
-                    <h4 className="text-gray-300 font-medium">원본 이미지</h4>
-                  </div>
-                  <div className="flex justify-center items-center p-4 bg-black">
-                    <img 
-                      src={transformedImage.originalUrl} 
-                      alt="원본 이미지" 
-                      className="max-h-[300px] max-w-full object-contain rounded" 
-                    />
+          </div>
+
+          <div className="bg-white rounded-xl p-5 shadow-soft border border-neutral-light">
+            <div className="mb-5">
+              <div className="rounded-lg overflow-hidden shadow-sm">
+                <img 
+                  src={transformedImage.transformedUrl} 
+                  alt="Transformed Art" 
+                  className="w-full object-cover"
+                />
+              </div>
+              <div className="text-center mt-3">
+                <h4 className="font-medium text-neutral-darkest">{transformedImage.title}</h4>
+                <p className="text-sm text-neutral-dark mt-1">
+                  <span className="inline-block bg-neutral-lightest rounded-full px-2 py-0.5 text-xs mr-2">
+                    {transformedImage.style}
+                  </span>
+                  생성 날짜: {transformedImage.createdAt}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-center">
+              <Button
+                className="bg-primary hover:bg-primary-dark text-white font-medium py-2.5 px-4 rounded-lg transition-colors w-full max-w-xs"
+                onClick={() => handleDownload(transformedImage.id)}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                <span>사진으로 저장하기</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* A/B Test Comparison Section */}
+      {showAbTest && activeAbTest && activeAbTest.variants && activeAbTest.variants.length >= 2 && (
+        <ABTestComparer
+          testId={activeAbTest.testId}
+          variants={activeAbTest.variants}
+          originalImage={transformedImage?.originalUrl || ''}
+          transformedImages={abTestImages}
+          onVoteComplete={() => setShowAbTest(false)}
+        />
+      )}
+
+      {/* Previous Art */}
+      <div className="mt-8">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-heading font-semibold text-lg">내 추억 컬렉션</h3>
+          {imageList && imageList.length > 0 && (
+            <span className="text-xs bg-neutral-lightest rounded-full px-3 py-1 text-neutral-dark">
+              {imageList.length}개의 추억
+            </span>
+          )}
+        </div>
+
+        {isLoadingImages ? (
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-neutral-lightest h-52 rounded-xl animate-pulse"></div>
+            <div className="bg-neutral-lightest h-52 rounded-xl animate-pulse"></div>
+          </div>
+        ) : imageList && imageList.length > 0 ? (
+          <div className="grid grid-cols-2 gap-4">
+            {imageList.map((image: TransformedImage) => (
+              <div 
+                key={image.id}
+                className="bg-white rounded-xl overflow-hidden shadow-soft border border-neutral-light hover:shadow-md transition-shadow"
+              >
+                <div className="relative">
+                  <img 
+                    src={image.transformedUrl} 
+                    alt={image.title} 
+                    className="w-full h-36 object-cover"
+                  />
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-2">
+                    <p className="text-white text-xs font-medium">{image.style} 스타일</p>
                   </div>
                 </div>
-                
-                {/* 변환된 이미지 */}
-                <div className="w-full md:w-1/2 bg-[#272730] rounded-xl overflow-hidden border border-gray-700">
-                  <div className="p-3 border-b border-gray-700">
-                    <h4 className="text-gray-300 font-medium">
-                      {filteredStyles.find(style => style.value === transformedImage.style)?.label || "변환된 이미지"}
-                    </h4>
-                  </div>
-                  <div className="flex justify-center items-center p-4 bg-black">
-                    <img 
-                      src={transformedImage.transformedUrl} 
-                      alt="변환된 이미지" 
-                      className="max-h-[300px] max-w-full object-contain rounded" 
-                    />
-                  </div>
-                  {/* 버튼 그룹 */}
-                  <div className="flex items-center p-3 border-t border-gray-700 bg-[#1c1c24]">
+                <div className="p-3">
+                  <p className="font-medium text-sm truncate">{image.title}</p>
+                  <p className="text-xs text-neutral-dark mb-2">{image.createdAt}</p>
+                  <div className="flex space-x-2">
                     <Button
                       size="sm"
                       className="flex-1 text-xs bg-neutral-lightest hover:bg-neutral-light text-neutral-darkest"
-                      onClick={() => handleViewImage(transformedImage)}
+                      onClick={() => handleViewImage(image)}
                     >
                       <Eye className="mr-1 h-3 w-3" /> 보기
                     </Button>
                     <Button
                       size="sm"
                       className="flex-1 text-xs bg-primary-light hover:bg-primary/20 text-primary-dark"
-                      onClick={() => handleDownload(transformedImage.id)}
+                      onClick={() => handleDownload(image.id)}
                     >
                       <Download className="mr-1 h-3 w-3" /> 저장
                     </Button>
                   </div>
                 </div>
               </div>
-            </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 bg-neutral-lightest rounded-xl border border-dashed border-neutral-light">
+            <PaintbrushVertical className="h-8 w-8 mx-auto mb-2 text-neutral" />
+            <p className="text-neutral-dark font-medium">아직 추억이 없습니다</p>
+            <p className="text-sm mt-1 mb-4 text-neutral-dark">첫 번째 사진을 변환하여 추억 컬렉션을 시작하세요</p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-white hover:bg-neutral-lightest"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            >
+              사진 업로드하기
+            </Button>
           </div>
         )}
-
-        {/* 내 변환 이미지 목록 */}
-        <div className="bg-[#1c1c24] rounded-xl p-5 mb-6">
-          <div className="flex justify-between items-center mb-5">
-            <h3 className="font-heading font-semibold text-white text-lg">내 추억 컬렉션</h3>
-          </div>
-          
-          {Array.isArray(imageList) && imageList.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {imageList.map((image: TransformedImage) => (
-                <div key={image.id} className="bg-[#272730] rounded-lg overflow-hidden border border-gray-700">
-                  <div className="aspect-square bg-black flex items-center justify-center overflow-hidden">
-                    <img 
-                      src={image.transformedUrl} 
-                      alt={image.title} 
-                      className="object-cover w-full h-full hover:scale-105 transition-transform"
-                      onClick={() => handleViewImage(image)}
-                    />
-                  </div>
-                  <div className="p-2">
-                    <div className="text-xs text-gray-400 mt-1 truncate">
-                      {new Date(image.createdAt).toLocaleDateString()}
-                    </div>
-                    <div className="flex mt-2 gap-1">
-                      <Button
-                        size="sm"
-                        className="flex-1 text-xs bg-neutral-lightest hover:bg-neutral-light text-neutral-darkest"
-                        onClick={() => handleViewImage(image)}
-                      >
-                        <Eye className="mr-1 h-3 w-3" /> 보기
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="flex-1 text-xs bg-primary-light hover:bg-primary/20 text-primary-dark"
-                        onClick={() => handleDownload(image.id)}
-                      >
-                        <Download className="mr-1 h-3 w-3" /> 저장
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 bg-neutral-lightest rounded-xl border border-dashed border-neutral-light">
-              <PaintbrushVertical className="h-8 w-8 mx-auto mb-2 text-neutral" />
-              <p className="text-neutral-dark font-medium">아직 추억이 없습니다</p>
-              <p className="text-sm mt-1 mb-4 text-neutral-dark">첫 번째 사진을 변환하여 추억 컬렉션을 시작하세요</p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="bg-white hover:bg-neutral-lightest"
-                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              >
-                사진 업로드하기
-              </Button>
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );
