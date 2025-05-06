@@ -507,8 +507,11 @@ export const recordAbTestResult = async (resultData: {
 
 // Service Categories API endpoints
 export const getServiceCategories = async () => {
+  console.log('Fetching service categories from /api/service-categories');
   const response = await apiRequest('GET', '/api/service-categories');
-  return response.json();
+  const data = await response.json();
+  console.log('Received service categories:', data);
+  return data;
 };
 
 export const createServiceCategory = async (categoryData: {
