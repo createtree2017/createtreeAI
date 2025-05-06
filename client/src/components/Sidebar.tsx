@@ -42,7 +42,7 @@ export default function Sidebar({ collapsed = false }) {
         {
           path: '/image',
           icon: ImagePlus,
-          label: '추억 예술',
+          label: '만삭사진만들기',
           ariaLabel: '이미지 변환 페이지',
           new: true
         },
