@@ -63,6 +63,7 @@ export default function Image() {
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<string>("1:1");
   const [styleDialogOpen, setStyleDialogOpen] = useState<boolean>(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState<string>("gpt-image-1"); // 기본 모델은 GPT-Image 1
   
   // A/B Testing states
   const [activeAbTest, setActiveAbTest] = useState<any>(null);
@@ -286,7 +287,10 @@ export default function Image() {
     formData.append("image", selectedFile);
     formData.append("style", selectedStyle);
     formData.append("aspectRatio", selectedAspectRatio);
+    formData.append("modelType", selectedModel); // 선택한 AI 모델 추가
 
+    console.log(`변환 요청: 스타일=${selectedStyle}, 종횡비=${selectedAspectRatio}, 모델=${selectedModel}`);
+    
     // 일반 사용자 페이지에서는 관리자 플래그 없이 호출 (이미지 임시 표시용)
     transformImageMutation(formData);
   };
@@ -659,7 +663,33 @@ export default function Image() {
               </div>
             </div>
           </div>
-
+        </div>
+        
+        {/* AI 모델 선택 */}
+        <div className="mb-5">
+          <label className="block text-gray-300 text-sm mb-2">AI 모델 선택</label>
+          <div className="grid grid-cols-2 gap-2">
+            <div 
+              className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
+                selectedModel === "gpt-image-1" ? "bg-[#ff2d55] border-[#ff2d55]" : "bg-[#272730] border-gray-700 hover:border-gray-500"
+              }`}
+              onClick={() => setSelectedModel("gpt-image-1")}
+            >
+              <div className="p-3 flex items-center justify-center">
+                <span className={`text-xs font-medium ${selectedModel === "gpt-image-1" ? "text-white" : "text-gray-300"}`}>GPT-Image 1</span>
+              </div>
+            </div>
+            <div 
+              className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
+                selectedModel === "dall-e-3" ? "bg-[#ff2d55] border-[#ff2d55]" : "bg-[#272730] border-gray-700 hover:border-gray-500"
+              }`}
+              onClick={() => setSelectedModel("dall-e-3")}
+            >
+              <div className="p-3 flex items-center justify-center">
+                <span className={`text-xs font-medium ${selectedModel === "dall-e-3" ? "text-white" : "text-gray-300"}`}>DALL-E 3</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* 만들기 버튼 */}

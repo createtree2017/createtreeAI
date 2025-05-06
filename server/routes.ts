@@ -462,13 +462,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Process image using AI service (transforming to specified art style)
       const filePath = req.file.path;
-      // Pass the variant's prompt template, category's system prompt, and aspect ratio
+      
+      // 모델 타입 (dall-e-3 또는 gpt-image-1) 추출
+      const modelType = req.body.modelType || 'gpt-image-1'; // 기본값은 gpt-image-1
+      console.log(`이미지 변환 모델 타입: ${modelType}`);
+      
+      // Pass the variant's prompt template, category's system prompt, aspect ratio and model type
       const transformedImageUrl = await storage.transformImage(
         filePath, 
         style, 
         promptTemplate, 
         categorySystemPrompt,
-        selectedAspectRatio
+        selectedAspectRatio,
+        modelType
       );
       
       // Check if this is a request from admin panel or if it's a variant test
