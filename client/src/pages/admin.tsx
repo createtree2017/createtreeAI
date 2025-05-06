@@ -2772,14 +2772,25 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
         });
       }
     },
-    onSuccess: () => {
+    onSuccess: async (data) => {
       toast({
         title: initialData ? "Concept updated" : "Concept created",
         description: initialData ? 
           "The concept has been updated successfully" : 
           "The concept has been created successfully",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/concepts"] });
+      
+      // 캐시 무효화 및 강제 리로드
+      await queryClient.invalidateQueries({ queryKey: ["/api/admin/concepts"] });
+      
+      if (initialData) {
+        // 특정 개념 데이터 강제 리로드
+        await queryClient.refetchQueries({ 
+          queryKey: ["/api/admin/concepts"],
+          exact: true 
+        });
+      }
+      
       onSuccess();
     },
     onError: (error) => {
