@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/components/ui/file-upload";
 import { transformImage, getImageList, downloadMedia, shareMedia, getActiveAbTest } from "@/lib/api";
 import { queryClient } from "@/lib/queryClient";
-import { PaintbrushVertical, Download, Share2, Eye, ChevronRight, X } from "lucide-react";
+import { PaintbrushVertical, Download, Share2, Eye, ChevronRight, X, CheckCircle2 } from "lucide-react";
 import ABTestComparer from "@/components/ABTestComparer";
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription } from "@/components/ui/dialog";
 
@@ -28,6 +28,30 @@ interface TransformedImage {
   aspectRatio?: string;
 }
 
+interface ImageCategory {
+  id: number;
+  categoryId: string;
+  title: string;
+  description?: string;
+  order?: number;
+  isActive?: boolean;
+}
+
+interface ImageConcept {
+  id: number;
+  conceptId: string;
+  title: string;
+  description?: string;
+  categoryId: string;
+  thumbnailUrl: string;
+  order?: number;
+  isActive?: boolean;
+  promptTemplate?: string;
+  isFeatured?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export default function Image() {
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
@@ -37,6 +61,7 @@ export default function Image() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<string>("1:1");
   const [styleDialogOpen, setStyleDialogOpen] = useState<boolean>(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   
   // A/B Testing states
   const [activeAbTest, setActiveAbTest] = useState<any>(null);
@@ -46,6 +71,43 @@ export default function Image() {
   // Extract image ID from URL if any
   const query = new URLSearchParams(location.split("?")[1] || "");
   const imageId = query.get("id");
+  
+  // Fetch categories
+  const { data: conceptCategories = [] } = useQuery<ImageCategory[]>({
+    queryKey: ["/api/concept-categories"],
+    queryFn: async () => {
+      const response = await fetch("/api/concept-categories");
+      if (!response.ok) {
+        throw new Error("Failed to fetch categories");
+      }
+      return response.json();
+    }
+  });
+  
+  // Fetch concepts (styles)
+  const { data: conceptData = [] } = useQuery<ImageConcept[]>({
+    queryKey: ["/api/concepts"],
+    queryFn: async () => {
+      const response = await fetch("/api/concepts");
+      if (!response.ok) {
+        throw new Error("Failed to fetch concepts");
+      }
+      return response.json();
+    }
+  });
+  
+  // Set first category as default if none selected
+  useEffect(() => {
+    if (conceptCategories.length > 0 && !selectedCategory) {
+      setSelectedCategory(conceptCategories[0].categoryId);
+    }
+  }, [conceptCategories, selectedCategory]);
+  
+  // Filter concepts by selected category
+  const filteredConcepts = useMemo(() => {
+    if (!selectedCategory) return [];
+    return conceptData.filter(concept => concept.categoryId === selectedCategory);
+  }, [conceptData, selectedCategory]);
 
   // Fetch image list with more aggressive refresh option
   const { data: imageList, isLoading: isLoadingImages, refetch } = useQuery({
@@ -96,6 +158,19 @@ export default function Image() {
       console.error("Error fetching A/B test:", error);
     }
   };
+  
+  // Create styles from database concepts
+  const artStyles: ImageStyle[] = useMemo(() => {
+    if (!Array.isArray(conceptData)) return [];
+    
+    return conceptData.map(concept => ({
+      value: concept.conceptId,
+      label: concept.title || "",
+      thumbnailUrl: concept.thumbnailUrl || `https://placehold.co/300x200/F0F0F0/333?text=${encodeURIComponent(concept.title || "")}`,
+      categoryId: concept.categoryId,
+      description: concept.description
+    }));
+  }, [conceptData]);
 
   // Transform image mutation (일반 사용자 페이지에서는 isAdmin=false로 호출)
   const { mutate: transformImageMutation, isPending: isTransforming } = useMutation({
@@ -298,50 +373,19 @@ export default function Image() {
     setTransformedImage(image);
   };
 
-  // Fetch art styles/concepts from the database (using public endpoints)
-  const { data: conceptCategories = [] } = useQuery({
-    queryKey: ["/api/concept-categories"],
-  });
-
-  const { data: concepts = [] } = useQuery({
-    queryKey: ["/api/concepts"],
-  });
+  // 선택된 카테고리에 맞는 스타일(컨셉) 필터링
+  const filteredStyles = useMemo(() => {
+    if (!selectedCategory) return artStyles;
+    return artStyles.filter(style => style.categoryId === selectedCategory);
+  }, [artStyles, selectedCategory]);
   
-  // Use only database-defined styles, no hardcoded styles
-  const defaultArtStyles: ImageStyle[] = [];
-  
-  // Define expected concept shape
-  interface Concept {
-    id: number;
-    conceptId: string;
-    title: string;
-    description?: string;
-    promptTemplate: string;
-    thumbnailUrl?: string;
-    categoryId?: string;
-    isActive: boolean;
-    isFeatured: boolean;
-    order: number;
-    createdAt: string;
-    updatedAt: string;
-  }
-  
-  // Create styles from database concepts
-  const conceptStyles: ImageStyle[] = Array.isArray(concepts) 
-    ? concepts.map((concept: Concept) => ({
-        value: concept.conceptId,
-        label: concept.title,
-        thumbnailUrl: concept.thumbnailUrl || `https://placehold.co/300x200/F0F0F0/333?text=${encodeURIComponent(concept.title)}`,
-        categoryId: concept.categoryId,
-        description: concept.description
-      }))
-    : [];
-  
-  // Combine both arrays, with database concepts taking precedence (overwriting hardcoded if same ID)
-  const artStyles: ImageStyle[] = [
-    ...defaultArtStyles,
-    ...conceptStyles
-  ];
+  // 카테고리 정보 가져오기
+  const getCategoryTitle = (categoryId: string) => {
+    const category = Array.isArray(conceptCategories) 
+      ? conceptCategories.find((cat: any) => cat.categoryId === categoryId)
+      : null;
+    return category ? category.title : categoryId;
+  };
 
   return (
     <div className="p-5 animate-fadeIn">
@@ -401,15 +445,45 @@ export default function Image() {
           </div>
         </DialogContent>
       </Dialog>
+      
+      {/* 카테고리 선택 섹션 */}
+      <div className="bg-[#1c1c24] rounded-xl p-5 mb-6">
+        <div className="flex justify-between items-center mb-5">
+          <h3 className="font-heading font-semibold text-white text-lg">카테고리</h3>
+        </div>
+        
+        <div className="grid grid-cols-3 gap-2">
+          {Array.isArray(conceptCategories) && conceptCategories.map((category: any) => (
+            <div 
+              key={category.categoryId}
+              className={`cursor-pointer rounded-lg border overflow-hidden transition-colors
+                ${selectedCategory === category.categoryId 
+                  ? 'ring-2 ring-[#ff2d55] border-[#ff2d55]' 
+                  : 'bg-[#272730] border-gray-700 hover:border-gray-500'
+                }`}
+              onClick={() => setSelectedCategory(category.categoryId)}
+            >
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className={`font-medium ${selectedCategory === category.categoryId ? 'text-[#ff2d55]' : 'text-gray-300'}`}>
+                  {category.title}
+                </span>
+                {selectedCategory === category.categoryId && (
+                  <CheckCircle2 className="h-5 w-5 text-[#ff2d55]" />
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
-      {/* Preview Styles Section (NEW) */}
+      {/* 스타일 선택 섹션 */}
       <div className="bg-[#1c1c24] rounded-xl p-5 mb-6">
         <div className="flex justify-between items-center mb-5">
           <h3 className="font-heading font-semibold text-white text-lg">스타일</h3>
         </div>
 
-        <div className="grid grid-cols-6 gap-2">
-          {artStyles.map((style) => (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {filteredStyles.map((style) => (
             <div 
               key={style.value}
               className={`cursor-pointer rounded-lg overflow-hidden transition-all
@@ -423,13 +497,11 @@ export default function Image() {
                 <img 
                   src={style.thumbnailUrl} 
                   alt={style.label} 
-                  className="w-full h-16 object-cover"
+                  className="w-full h-32 object-cover"
                 />
-                <div className={`absolute inset-0 flex items-center justify-center ${
-                  selectedStyle === style.value ? 'bg-[#ff2d55]/20' : ''
-                }`}>
+                <div className={`absolute inset-0 ${selectedStyle === style.value ? 'bg-[#ff2d55]/20' : ''}`}>
                   {selectedStyle === style.value && (
-                    <div className="absolute bottom-1 right-1 bg-[#ff2d55] text-white rounded-full w-5 h-5 flex items-center justify-center">
+                    <div className="absolute bottom-2 right-2 bg-[#ff2d55] text-white rounded-full w-5 h-5 flex items-center justify-center">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
@@ -437,8 +509,8 @@ export default function Image() {
                   )}
                 </div>
               </div>
-              <div className="bg-[#272730] text-center py-1 px-1">
-                <span className={`text-xs font-medium ${selectedStyle === style.value ? 'text-[#ff2d55]' : 'text-gray-300'}`}>
+              <div className="bg-[#272730] text-center py-2 px-1">
+                <span className={`text-sm font-medium ${selectedStyle === style.value ? 'text-[#ff2d55]' : 'text-gray-300'}`}>
                   {style.label}
                 </span>
               </div>
