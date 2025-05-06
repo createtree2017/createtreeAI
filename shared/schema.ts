@@ -137,6 +137,11 @@ export const concepts = pgTable("concepts", {
   promptTemplate: text("prompt_template").notNull(),
   systemPrompt: text("system_prompt"),  // 이미지 분석 및 변환을 위한 시스템 프롬프트 추가
   thumbnailUrl: text("thumbnail_url"),
+  // 이미지 합성 관련 필드 추가
+  templateImageUrl: text("template_image_url"),  // 이미지 합성용 템플릿 이미지 URL
+  isCompositeTemplate: boolean("is_composite_template").default(false),  // 합성 템플릿 여부
+  compositePrompt: text("composite_prompt"),  // 합성에 사용할 프롬프트 (얼굴, 체형 등 특징 지정)
+  maskArea: jsonb("mask_area"),  // 합성 시 마스킹 영역 정보 (JSON 형식)
   tagSuggestions: jsonb("tag_suggestions"), // Array of strings
   variables: jsonb("variables"), // Array of variable objects
   categoryId: text("category_id").references(() => conceptCategories.categoryId),
