@@ -476,7 +476,13 @@ export const storage = {
     originalPath: string,
     transformedUrl: string,
     variantId?: string | null,
-    aspectRatio?: string | null
+    additionalInfo?: {
+      isComposite?: boolean;
+      templateType?: string;
+      compositePrompt?: string;
+      maskArea?: string | null;
+      aspectRatio?: string;
+    }
   ) {
     // Extract name without extension
     const nameWithoutExt = path.basename(
@@ -484,16 +490,29 @@ export const storage = {
       path.extname(originalFilename)
     );
     
-    // Create a title
-    const title = `${style.charAt(0).toUpperCase() + style.slice(1)} ${nameWithoutExt}`;
+    // Create a title (합성 이미지인 경우 접두사 추가)
+    let title = `${style.charAt(0).toUpperCase() + style.slice(1)} ${nameWithoutExt}`;
+    if (additionalInfo?.isComposite) {
+      const templateType = additionalInfo.templateType || 'blend';
+      title = `합성_${templateType}_${nameWithoutExt}`;
+    }
     
-    // Include the variant ID and aspectRatio if they exist
+    // 메타데이터에 추가 정보 저장
     const metadata: Record<string, any> = {};
     if (variantId) metadata.variantId = variantId;
-    if (aspectRatio) metadata.aspectRatio = aspectRatio;
+    
+    // 합성 이미지 관련 메타데이터 추가
+    if (additionalInfo) {
+      if (additionalInfo.isComposite) metadata.isComposite = true;
+      if (additionalInfo.templateType) metadata.templateType = additionalInfo.templateType;
+      if (additionalInfo.compositePrompt) metadata.compositePrompt = additionalInfo.compositePrompt;
+      if (additionalInfo.maskArea) metadata.maskArea = additionalInfo.maskArea;
+      if (additionalInfo.aspectRatio) metadata.aspectRatio = additionalInfo.aspectRatio;
+    }
     
     try {
-      console.log(`[Storage] 새 이미지 저장 시작: "${title}", 스타일: ${style}`);
+      const logType = additionalInfo?.isComposite ? "합성 이미지" : "변환 이미지";
+      console.log(`[Storage] 새 ${logType} 저장 시작: "${title}", 스타일: ${style}`);
       
       const [savedImage] = await db
         .insert(images)
@@ -506,7 +525,7 @@ export const storage = {
         })
         .returning();
       
-      console.log(`[Storage] 이미지 저장 완료: ID ${savedImage.id}, 타이틀: "${savedImage.title}"`);
+      console.log(`[Storage] ${logType} 저장 완료: ID ${savedImage.id}, 타이틀: "${savedImage.title}"`);
       return savedImage;
     } catch (error) {
       console.error(`[Storage] 이미지 저장 중 오류 발생:`, error);
