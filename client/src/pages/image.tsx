@@ -466,41 +466,93 @@ export default function Image() {
           <h3 className="font-heading font-semibold text-white text-lg">스타일</h3>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {filteredStyles.map((style) => (
-            <div 
-              key={style.value}
-              className={`cursor-pointer rounded-lg overflow-hidden transition-all
-                ${selectedStyle === style.value 
-                  ? 'ring-2 ring-[#ff2d55]' 
-                  : 'border border-gray-700 hover:border-gray-500'
-                }`}
-              onClick={() => handleStyleSelected(style.value)}
-            >
-              <div className="relative">
-                <img 
-                  src={style.thumbnailUrl} 
-                  alt={style.label} 
-                  className="w-full h-32 object-cover"
-                />
-                <div className={`absolute inset-0 ${selectedStyle === style.value ? 'bg-[#ff2d55]/20' : ''}`}>
-                  {selectedStyle === style.value && (
-                    <div className="absolute bottom-2 right-2 bg-[#ff2d55] text-white rounded-full w-5 h-5 flex items-center justify-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                  )}
+        {/* 스타일 선택 버튼 */}
+        <div 
+          className="cursor-pointer rounded-lg border border-gray-700 overflow-hidden flex items-center justify-between px-4 py-3 hover:border-gray-500 transition-all"
+          onClick={() => setStyleDialogOpen(true)}
+        >
+          <div className="flex items-center">
+            {selectedStyle && filteredStyles.find(style => style.value === selectedStyle) ? (
+              <>
+                <div className="w-10 h-10 rounded-lg overflow-hidden mr-3">
+                  <img 
+                    src={filteredStyles.find(style => style.value === selectedStyle)?.thumbnailUrl} 
+                    alt={filteredStyles.find(style => style.value === selectedStyle)?.label}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
-              </div>
-              <div className="bg-[#272730] text-center py-2 px-1">
-                <span className={`text-sm font-medium ${selectedStyle === style.value ? 'text-[#ff2d55]' : 'text-gray-300'}`}>
-                  {style.label}
+                <span className="text-white font-medium">
+                  {filteredStyles.find(style => style.value === selectedStyle)?.label}
                 </span>
-              </div>
-            </div>
-          ))}
+              </>
+            ) : (
+              <span className="text-gray-400">스타일을 선택해주세요</span>
+            )}
+          </div>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
         </div>
+
+        {/* 스타일 선택 다이얼로그 */}
+        <Dialog open={styleDialogOpen} onOpenChange={setStyleDialogOpen}>
+          <DialogContent className="sm:max-w-[650px] max-h-[80vh] overflow-y-auto bg-[#1c1c24] border border-gray-700">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-heading font-bold text-white text-center">스타일 선택</DialogTitle>
+              <DialogDescription className="text-center text-gray-400">
+                원하는 스타일을 선택하세요
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              {filteredStyles.map((style) => (
+                <div 
+                  key={style.value}
+                  className={`cursor-pointer rounded-lg overflow-hidden border transition-all
+                    ${selectedStyle === style.value 
+                      ? 'border-[#ff2d55] ring-2 ring-[#ff2d55]' 
+                      : 'border-gray-700 hover:border-gray-500'
+                    }`}
+                  onClick={() => {
+                    handleStyleSelected(style.value);
+                    setStyleDialogOpen(false);
+                  }}
+                >
+                  <div className="relative">
+                    <img 
+                      src={style.thumbnailUrl} 
+                      alt={style.label} 
+                      className="w-full h-40 object-cover"
+                    />
+                    <div className={`absolute inset-0 ${selectedStyle === style.value ? 'bg-[#ff2d55]/20' : ''}`}>
+                      {selectedStyle === style.value && (
+                        <div className="absolute top-2 right-2 bg-[#ff2d55] text-white rounded-full w-6 h-6 flex items-center justify-center shadow-md">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="bg-[#272730] text-center py-3 px-2">
+                    <span className={`text-sm font-medium ${selectedStyle === style.value ? 'text-[#ff2d55]' : 'text-white'}`}>
+                      {style.label}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <DialogFooter className="sm:justify-center">
+              <Button 
+                className="bg-[#ff2d55] hover:bg-[#ff2d55]/90 text-white"
+                onClick={() => setStyleDialogOpen(false)}
+              >
+                확인
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Image Upload Section */}
