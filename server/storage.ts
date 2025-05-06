@@ -7,8 +7,25 @@ import fetch from "node-fetch";
 // 임시 이미지 저장을 위한 경로
 const TEMP_IMAGE_DIR = path.join(process.cwd(), 'uploads', 'temp');
 
+// 파일 경로를 웹 접근 가능한 URL로 변환하는 함수
+function convertPathToUrl(filePath: string): string {
+  // 기본 디렉토리 경로 제거
+  const basePath = process.cwd();
+  let relativePath = filePath.replace(basePath, '');
+  
+  // 경로 구분자를 웹에서 사용하는 슬래시(/)로 변경
+  relativePath = relativePath.replace(/\\/g, '/');
+  
+  // 맨 앞에 슬래시가 없으면 추가
+  if (!relativePath.startsWith('/')) {
+    relativePath = '/' + relativePath;
+  }
+  
+  return relativePath;
+}
+
 // 임시 이미지를 파일로 저장하고 URL 경로를 반환하는 함수
-async function saveTemporaryImage(imageUrl: string, title: string): Promise<string> {
+async function saveTemporaryImage(imageUrl: string, title: string): Promise<{ localPath: string, webUrl: string }> {
   try {
     // 임시 디렉토리가 없으면 생성
     if (!fs.existsSync(TEMP_IMAGE_DIR)) {
@@ -25,7 +42,10 @@ async function saveTemporaryImage(imageUrl: string, title: string): Promise<stri
       const base64Data = imageUrl.split(',')[1];
       fs.writeFileSync(filepath, Buffer.from(base64Data, 'base64'));
       console.log(`임시 이미지가 로컬에 저장되었습니다: ${filepath}`);
-      return filepath;
+      
+      // 웹 접근 가능한 URL로 변환
+      const webUrl = convertPathToUrl(filepath);
+      return { localPath: filepath, webUrl };
     } 
     // 일반 URL인 경우
     else {
@@ -47,14 +67,20 @@ async function saveTemporaryImage(imageUrl: string, title: string): Promise<stri
         const arrayBuffer = await response.arrayBuffer();
         fs.writeFileSync(filepath, Buffer.from(arrayBuffer));
         console.log(`임시 이미지가 로컬에 저장되었습니다: ${filepath} (크기: ${Buffer.from(arrayBuffer).length} 바이트)`);
-        return filepath;
+        
+        // 웹 접근 가능한 URL로 변환
+        const webUrl = convertPathToUrl(filepath);
+        return { localPath: filepath, webUrl };
       } catch (fetchError) {
         console.error(`이미지 다운로드 중 오류 발생 (${url}):`, fetchError);
         
         // 다운로드 실패 시 빈 파일이라도 생성 (나중에 처리)
         fs.writeFileSync(filepath, Buffer.from(''));
         console.warn(`빈 임시 파일 생성됨: ${filepath} - 이후 다운로드 재시도 필요`);
-        return filepath;
+        
+        // 웹 접근 가능한 URL로 변환
+        const webUrl = convertPathToUrl(filepath);
+        return { localPath: filepath, webUrl };
       }
     }
   } catch (error) {
@@ -66,8 +92,8 @@ async function saveTemporaryImage(imageUrl: string, title: string): Promise<stri
 export const storage = {
   // 임시 이미지 관련 함수들
   async saveTemporaryImage(imageUrl: string, title: string) {
-    const localPath = await saveTemporaryImage(imageUrl, title);
-    return { localPath, filename: path.basename(localPath) };
+    const { localPath, webUrl } = await saveTemporaryImage(imageUrl, title);
+    return { localPath, webUrl, filename: path.basename(localPath) };
   },
   
   // 이미지 템플릿 관련 함수들
@@ -88,14 +114,14 @@ export const storage = {
       console.log(`[Storage] 이미지 템플릿 생성 시작: "${templateData.title}"`);
       
       // 로컬에 템플릿 이미지 저장
-      const { localPath } = await this.saveTemporaryImage(
+      const { localPath, webUrl } = await this.saveTemporaryImage(
         templateData.templateImageUrl,
         `template_${templateData.title.replace(/\s+/g, '_')}`
       );
       
       // 썸네일이 제공되지 않은 경우 템플릿 이미지를 썸네일로 사용
       if (!templateData.thumbnailUrl) {
-        templateData.thumbnailUrl = localPath;
+        templateData.thumbnailUrl = webUrl;
       }
       
       const [savedTemplate] = await db
@@ -103,7 +129,7 @@ export const storage = {
         .values({
           title: templateData.title,
           description: templateData.description,
-          templateImageUrl: localPath,
+          templateImageUrl: webUrl,
           templateType: templateData.templateType,
           promptTemplate: templateData.promptTemplate,
           maskArea: templateData.maskArea ? templateData.maskArea : null,
