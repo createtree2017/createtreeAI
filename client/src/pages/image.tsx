@@ -146,6 +146,7 @@ export default function Image() {
             formData.append("image", selectedFile as File);
             formData.append("style", selectedStyle as string);
             formData.append("variant", variant.variantId);
+            formData.append("aspectRatio", selectedAspectRatio);
             
             // A/B 테스트 변형 이미지는 테스트용이므로 데이터베이스에 저장
             const variantResult = await transformImage(formData, true);
