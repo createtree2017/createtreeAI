@@ -8,14 +8,18 @@ import {
   User, 
   Award, 
   ImagePlus, 
-  Sparkles,
-  Settings
+  Settings,
+  LogIn,
+  PaintBucket,
+  Music2,
+  Users,
+  Heart
 } from 'lucide-react';
 
 export default function Sidebar({ collapsed = false }) {
   const [location] = useLocation();
   
-  // 메뉴 그룹 정의
+  // 메뉴 그룹 정의 - 요청에 따라 재구성
   const groups = [
     {
       id: 'main',
@@ -36,38 +40,66 @@ export default function Sidebar({ collapsed = false }) {
       ]
     },
     {
-      id: 'tools',
-      title: 'AI 도구',
+      id: 'imageTools',
+      title: 'AI 이미지 만들기',
+      categoryId: 'image', // 관리자 공개/비공개 관리를 위한 카테고리 ID
       items: [
         {
           path: '/image',
           icon: ImagePlus,
           label: '만삭사진만들기',
-          ariaLabel: '이미지 변환 페이지',
+          ariaLabel: '만삭사진만들기 페이지',
           new: true
         },
         {
-          path: '/music',
-          icon: Music,
+          path: '/family-photo',
+          icon: Image,
           label: '가족사진',
-          ariaLabel: '음악 생성 페이지',
+          ariaLabel: '가족사진 생성 페이지',
           new: true
         },
+        {
+          path: '/sticker',
+          icon: PaintBucket,
+          label: '스티커만들기',
+          ariaLabel: '스티커 만들기 페이지',
+        },
+      ]
+    },
+    {
+      id: 'musicTools',
+      title: 'AI 노래 만들기',
+      categoryId: 'music', // 관리자 공개/비공개 관리를 위한 카테고리 ID
+      items: [
+        {
+          path: '/music',
+          icon: Music2,
+          label: '아기 주제가 만들기',
+          ariaLabel: '아기 주제가 만들기 페이지',
+          new: true
+        },
+      ]
+    },
+    {
+      id: 'chatTools',
+      title: 'AI 친구 만들기',
+      categoryId: 'chat', // 관리자 공개/비공개 관리를 위한 카테고리 ID
+      items: [
         {
           path: '/chat',
           icon: MessageCircle,
-          label: '스티커 만들기',
-          ariaLabel: 'AI 채팅 페이지',
+          label: '컨셉채팅 챗베프티',
+          ariaLabel: '컨셉채팅 챗베프티 페이지',
         },
       ]
     },
     {
       id: 'personal',
-      title: '개인',
+      title: '내 메뉴',
       items: [
         {
           path: '/gallery',
-          icon: Image,
+          icon: Heart,
           label: '갤러리',
           ariaLabel: '갤러리 페이지',
         },
@@ -162,19 +194,20 @@ export default function Sidebar({ collapsed = false }) {
         ))}
       </div>
       
-      {/* 하단 버전 정보 및 설정 */}
+      {/* 상태 - 로그인/로그아웃 */}
       <div className={`p-4 ${collapsed ? "flex justify-center" : "flex items-center justify-between"} border-t border-neutral-800`}>
         {!collapsed && (
-          <div className="text-xs text-neutral-500">
-            v1.0
+          <div className="text-xs text-neutral-400">
+            상태
           </div>
         )}
         <Link 
-          href="/settings" 
-          className="text-neutral-400 hover:text-white transition-colors" 
-          aria-label="설정"
+          href="/login" 
+          className="text-neutral-400 hover:text-primary-lavender transition-colors flex items-center gap-2" 
+          aria-label="로그인"
         >
-          <Settings size={collapsed ? 20 : 18} strokeWidth={1.5} />
+          {!collapsed && <span className="text-sm">로그인</span>}
+          <LogIn size={collapsed ? 20 : 18} strokeWidth={1.5} />
         </Link>
       </div>
     </aside>
