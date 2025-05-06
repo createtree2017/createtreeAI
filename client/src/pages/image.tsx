@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/components/ui/file-upload";
 import { transformImage, downloadMedia, shareMedia, getActiveAbTest } from "@/lib/api";
 import { queryClient } from "@/lib/queryClient";
-import { PaintbrushVertical, Download, Share2, Eye, ChevronRight, X, CheckCircle2 } from "lucide-react";
+import { PaintbrushVertical, Download, Share2, Eye, ChevronRight, X, CheckCircle2, Layers, Image as ImageIcon } from "lucide-react";
 import ABTestComparer from "@/components/ABTestComparer";
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
@@ -380,6 +380,17 @@ export default function Image() {
       <div className="text-center mb-6">
         <h2 className="font-heading font-bold text-2xl mb-2">AI 이미지 생성</h2>
         <p className="text-neutral-dark">임신 및 가족의 사진을 아름다운 추억으로 변환해 보세요</p>
+        <div className="flex justify-center mt-4">
+          <Button
+            variant="outline"
+            className="flex items-center gap-2 text-sm"
+            onClick={() => setLocation('/composite-image')}
+          >
+            <Layers size={16} />
+            이미지 합성 사용하기
+            <ChevronRight size={14} />
+          </Button>
+        </div>
       </div>
       
       {/* 스타일 선택 다이얼로그 */}
