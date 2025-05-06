@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/components/ui/file-upload";
-import { transformImage, getImageList, downloadMedia, shareMedia, getActiveAbTest } from "@/lib/api";
+import { transformImage, downloadMedia, shareMedia, getActiveAbTest } from "@/lib/api";
 import { queryClient } from "@/lib/queryClient";
 import { PaintbrushVertical, Download, Share2, Eye, ChevronRight, X, CheckCircle2 } from "lucide-react";
 import ABTestComparer from "@/components/ABTestComparer";
@@ -28,7 +28,7 @@ interface TransformedImage {
   aspectRatio?: string;
 }
 
-interface ImageCategory {
+interface Category {
   id: number;
   categoryId: string;
   title: string;
@@ -37,7 +37,7 @@ interface ImageCategory {
   isActive?: boolean;
 }
 
-interface ImageConcept {
+interface Concept {
   id: number;
   conceptId: string;
   title: string;
@@ -73,41 +73,40 @@ export default function Image() {
   const imageId = query.get("id");
   
   // Fetch categories
-  const { data: conceptCategories = [] } = useQuery<ImageCategory[]>({
-    queryKey: ["/api/concept-categories"],
-    queryFn: async () => {
-      const response = await fetch("/api/concept-categories");
-      if (!response.ok) {
-        throw new Error("Failed to fetch categories");
-      }
-      return response.json();
-    }
+  const { data: categories = [] } = useQuery<Category[]>({
+    queryKey: ["/api/concept-categories"]
   });
   
   // Fetch concepts (styles)
-  const { data: conceptData = [] } = useQuery<ImageConcept[]>({
-    queryKey: ["/api/concepts"],
-    queryFn: async () => {
-      const response = await fetch("/api/concepts");
-      if (!response.ok) {
-        throw new Error("Failed to fetch concepts");
-      }
-      return response.json();
-    }
+  const { data: concepts = [] } = useQuery<Concept[]>({
+    queryKey: ["/api/concepts"]
   });
   
   // Set first category as default if none selected
   useEffect(() => {
-    if (conceptCategories.length > 0 && !selectedCategory) {
-      setSelectedCategory(conceptCategories[0].categoryId);
+    if (categories.length > 0 && !selectedCategory) {
+      setSelectedCategory(categories[0].categoryId);
     }
-  }, [conceptCategories, selectedCategory]);
+  }, [categories, selectedCategory]);
   
-  // Filter concepts by selected category
-  const filteredConcepts = useMemo(() => {
-    if (!selectedCategory) return [];
-    return conceptData.filter(concept => concept.categoryId === selectedCategory);
-  }, [conceptData, selectedCategory]);
+  // Create styles from concepts
+  const artStyles = useMemo(() => {
+    if (!Array.isArray(concepts)) return [];
+    
+    return concepts.map(concept => ({
+      value: concept.conceptId,
+      label: concept.title || "",
+      thumbnailUrl: concept.thumbnailUrl || `https://placehold.co/300x200/F0F0F0/333?text=${encodeURIComponent(concept.title || "")}`,
+      categoryId: concept.categoryId,
+      description: concept.description
+    }));
+  }, [concepts]);
+  
+  // Filter styles by selected category
+  const filteredStyles = useMemo(() => {
+    if (!selectedCategory) return artStyles;
+    return artStyles.filter(style => style.categoryId === selectedCategory);
+  }, [artStyles, selectedCategory]);
 
   // Fetch image list with more aggressive refresh option
   const { data: imageList, isLoading: isLoadingImages, refetch } = useQuery({
@@ -159,18 +158,7 @@ export default function Image() {
     }
   };
   
-  // Create styles from database concepts
-  const artStyles: ImageStyle[] = useMemo(() => {
-    if (!Array.isArray(conceptData)) return [];
-    
-    return conceptData.map(concept => ({
-      value: concept.conceptId,
-      label: concept.title || "",
-      thumbnailUrl: concept.thumbnailUrl || `https://placehold.co/300x200/F0F0F0/333?text=${encodeURIComponent(concept.title || "")}`,
-      categoryId: concept.categoryId,
-      description: concept.description
-    }));
-  }, [conceptData]);
+
 
   // Transform image mutation (일반 사용자 페이지에서는 isAdmin=false로 호출)
   const { mutate: transformImageMutation, isPending: isTransforming } = useMutation({
@@ -373,16 +361,12 @@ export default function Image() {
     setTransformedImage(image);
   };
 
-  // 선택된 카테고리에 맞는 스타일(컨셉) 필터링
-  const filteredStyles = useMemo(() => {
-    if (!selectedCategory) return artStyles;
-    return artStyles.filter(style => style.categoryId === selectedCategory);
-  }, [artStyles, selectedCategory]);
+
   
   // 카테고리 정보 가져오기
   const getCategoryTitle = (categoryId: string) => {
-    const category = Array.isArray(conceptCategories) 
-      ? conceptCategories.find((cat: any) => cat.categoryId === categoryId)
+    const category = Array.isArray(categories) 
+      ? categories.find(cat => cat.categoryId === categoryId)
       : null;
     return category ? category.title : categoryId;
   };
@@ -453,7 +437,7 @@ export default function Image() {
         </div>
         
         <div className="grid grid-cols-3 gap-2">
-          {Array.isArray(conceptCategories) && conceptCategories.map((category: any) => (
+          {Array.isArray(categories) && categories.map((category) => (
             <div 
               key={category.categoryId}
               className={`cursor-pointer rounded-lg border overflow-hidden transition-colors
