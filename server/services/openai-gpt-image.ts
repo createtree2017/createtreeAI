@@ -13,10 +13,10 @@ import fetch from 'node-fetch';
 // OpenAI API 설정 - 프로젝트 ID 관련 설정 제거 (오류 원인)
 const API_KEY = process.env.OPENAI_API_KEY;
 
-// API 키 유효성 검증 함수 - 형식 확장 처리
+// API 키 유효성 검증 함수
 function isValidApiKey(apiKey: string | undefined): boolean {
-  // API 키가 존재하고, sk- 로 시작하는 모든 형식 허용 (sk-pro- 포함)
-  return !!apiKey && (apiKey.startsWith('sk-'));
+  // API 키가 존재하는지 확인
+  return !!apiKey && apiKey.startsWith('sk-');
 }
 
 // 에러 메시지 및 상수

@@ -18,10 +18,10 @@ const API_KEY = process.env.OPENAI_API_KEY;
 const SERVICE_UNAVAILABLE = "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
 const SAFETY_FILTER_MESSAGE = "https://placehold.co/1024x1024/A7C1E2/FFF?text=안전+시스템에+의해+이미지+변환이+거부되었습니다.+다른+스타일이나+이미지를+시도해보세요";
 
-// API 키 유효성 검증 - 형식 확장 처리
+// API 키 유효성 검증
 function isValidApiKey(apiKey: string | undefined): boolean {
-  // API 키가 존재하고, sk- 로 시작하는 모든 형식 허용 (sk-pro- 포함)
-  return !!apiKey && (apiKey.startsWith('sk-'));
+  // API 키가 존재하는지 확인
+  return !!apiKey && apiKey.startsWith('sk-');
 }
 
 // OpenAI API 엔드포인트
