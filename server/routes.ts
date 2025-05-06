@@ -476,6 +476,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isAdmin = req.query.admin === 'true' || req.headers['x-admin-request'] === 'true';
       const isVariantTest = !!variantId;
       
+      // 디버깅: 변환된 이미지 URL 로그
+      console.log(`변환된 이미지 URL: ${transformedImageUrl.substring(0, 100)}${transformedImageUrl.length > 100 ? '...' : ''}`);
+      if (transformedImageUrl.startsWith('data:image')) {
+        console.log('이미지는 base64 형식입니다');
+      } else if (transformedImageUrl.startsWith('http')) {
+        console.log('이미지는 HTTP URL 형식입니다');
+      } else {
+        console.log('이미지는 다른 형식입니다:', transformedImageUrl.substring(0, 20));
+      }
+      
       let savedImage;
       let dbSavedImage;
       
@@ -503,6 +513,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const tempImageResult = await storage.saveTemporaryImage(transformedImageUrl, title);
           
           // 임시 응답 객체 생성 (로컬 파일 경로를 사용)
+          // 임시 파일 경로 로그
+          console.log(`임시 이미지 filename: ${tempImageResult.filename}`);
+          console.log(`임시 이미지 localPath: ${tempImageResult.localPath}`);
+          
           savedImage = {
             id: -1, // -1은 저장되지 않은 임시 ID
             title,
