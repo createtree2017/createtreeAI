@@ -20,6 +20,9 @@ export const transformImage = async (data: FormData, isAdmin: boolean = false) =
   // isAdmin 파라미터를 사용하여 관리자 요청인지 표시
   const url = isAdmin ? '/api/image/transform?admin=true' : '/api/image/transform';
   
+  // 디버깅: FormData 내용 로깅
+  console.log("변환 요청: 스타일=" + data.get('style') + ", 종횡비=" + data.get('aspectRatio') + ", 모델=" + data.get('modelType'));
+  
   const response = await fetch(url, {
     method: 'POST',
     body: data,

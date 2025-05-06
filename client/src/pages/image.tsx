@@ -667,26 +667,46 @@ export default function Image() {
         
         {/* AI 모델 선택 */}
         <div className="mb-5">
-          <label className="block text-gray-300 text-sm mb-2">AI 모델 선택</label>
+          <label className="block text-gray-300 text-sm mb-2 font-medium">AI 모델 선택</label>
           <div className="grid grid-cols-2 gap-2">
             <div 
-              className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
-                selectedModel === "gpt-image-1" ? "bg-[#ff2d55] border-[#ff2d55]" : "bg-[#272730] border-gray-700 hover:border-gray-500"
+              className={`cursor-pointer rounded-lg border-2 overflow-hidden transition-all duration-200 ${
+                selectedModel === "gpt-image-1" 
+                  ? "bg-[#0d1f3a] border-[#3498db] shadow-lg shadow-[#3498db]/30" 
+                  : "bg-[#272730] border-gray-700 hover:border-gray-400"
               }`}
               onClick={() => setSelectedModel("gpt-image-1")}
             >
-              <div className="p-3 flex items-center justify-center">
-                <span className={`text-xs font-medium ${selectedModel === "gpt-image-1" ? "text-white" : "text-gray-300"}`}>GPT-Image 1</span>
+              <div className="p-4 flex flex-col items-center justify-center">
+                <span className={`text-sm font-bold mb-1 ${selectedModel === "gpt-image-1" ? "text-[#3498db]" : "text-gray-300"}`}>
+                  GPT-Image 1
+                </span>
+                <span className="text-[10px] text-center text-gray-400">인물 정확한 재현</span>
+                {selectedModel === "gpt-image-1" && (
+                  <div className="mt-1 bg-[#3498db]/20 rounded-full px-2 py-0.5">
+                    <span className="text-[9px] text-[#3498db]">선택됨</span>
+                  </div>
+                )}
               </div>
             </div>
             <div 
-              className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
-                selectedModel === "dall-e-3" ? "bg-[#ff2d55] border-[#ff2d55]" : "bg-[#272730] border-gray-700 hover:border-gray-500"
+              className={`cursor-pointer rounded-lg border-2 overflow-hidden transition-all duration-200 ${
+                selectedModel === "dall-e-3" 
+                  ? "bg-[#1a0a2e] border-[#ff2d55] shadow-lg shadow-[#ff2d55]/30" 
+                  : "bg-[#272730] border-gray-700 hover:border-gray-400"
               }`}
               onClick={() => setSelectedModel("dall-e-3")}
             >
-              <div className="p-3 flex items-center justify-center">
-                <span className={`text-xs font-medium ${selectedModel === "dall-e-3" ? "text-white" : "text-gray-300"}`}>DALL-E 3</span>
+              <div className="p-4 flex flex-col items-center justify-center">
+                <span className={`text-sm font-bold mb-1 ${selectedModel === "dall-e-3" ? "text-[#ff2d55]" : "text-gray-300"}`}>
+                  DALL-E 3
+                </span>
+                <span className="text-[10px] text-center text-gray-400">스타일 변환 중점</span>
+                {selectedModel === "dall-e-3" && (
+                  <div className="mt-1 bg-[#ff2d55]/20 rounded-full px-2 py-0.5">
+                    <span className="text-[9px] text-[#ff2d55]">선택됨</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
