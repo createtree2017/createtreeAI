@@ -35,33 +35,27 @@ function Layout({ children }: { children: React.ReactNode }) {
     }
   }, []);
   
-  // 전역 상태로 사이드바 상태 관리를 위한 리스너
-  useEffect(() => {
-    // 함수 정의
-    const handleSidebarToggle = () => {
-      setSidebarOpen(prev => !prev);
-    };
-    
-    // 이벤트 리스너 등록
-    window.addEventListener('app:toggle-sidebar', handleSidebarToggle);
-    
-    // clean up
-    return () => {
-      window.removeEventListener('app:toggle-sidebar', handleSidebarToggle);
-    };
-  }, []);
+  // Zustand 상태 연결
+  const { isOpen, toggleSidebar } = useSidebarStore();
   
-  // Close sidebar when clicking outside on mobile
+  // 로컬 상태와 Zustand 상태 동기화
+  useEffect(() => {
+    setSidebarOpen(isOpen);
+  }, [isOpen]);
+  
+  // Close sidebar when clicking outside on mobile (using Zustand store)
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
       if (
         isMobile && 
-        sidebarOpen && 
+        isOpen && 
         !target.closest('.sidebar') && 
         !target.closest('.sidebar-toggle')
       ) {
+        // 로컬 상태 및 Zustand 상태 모두 업데이트
         setSidebarOpen(false);
+        useSidebarStore.getState().closeSidebar();
       }
     };
     
@@ -69,7 +63,7 @@ function Layout({ children }: { children: React.ReactNode }) {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isMobile, sidebarOpen]);
+  }, [isMobile, isOpen]);
   
   // Close sidebar when location changes on mobile
   useEffect(() => {
@@ -149,7 +143,7 @@ function Layout({ children }: { children: React.ReactNode }) {
             <button 
               className="sidebar-toggle w-9 h-9 flex items-center justify-center text-neutral-300 hover:text-white 
                        rounded-md hover:bg-neutral-800 transition-colors"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
+              onClick={toggleSidebar}
               aria-label="Toggle sidebar"
             >
               <Menu size={22} />
