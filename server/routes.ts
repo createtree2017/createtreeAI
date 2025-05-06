@@ -20,6 +20,8 @@ declare module 'express-session' {
       createdAt: string;
       isTemporary: boolean;
       localFilePath?: string; // 로컬 파일 시스템 경로 추가
+      aspectRatio?: string; // 이미지 종횡비 추가
+      dbImageId?: number; // 실제 DB에 저장된 ID도 추가
     };
   }
 }
@@ -510,7 +512,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             localFilePath: tempImageResult.localPath, // 전체 파일 경로 (내부 사용)
             createdAt: new Date().toISOString(),
             isTemporary: true, // 클라이언트에서 임시 여부 식별을 위한 플래그
-            dbImageId: dbSavedImage.id // 실제 DB에 저장된 ID (필요시 사용)
+            dbImageId: dbSavedImage.id, // 실제 DB에 저장된 ID (필요시 사용)
+            aspectRatio: selectedAspectRatio // 사용된 비율 정보 추가
           };
           
           // 세션에 임시 이미지 정보 저장 (다운로드 처리를 위해)
@@ -531,7 +534,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           originalUrl: filePath,
           transformedUrl: transformedImageUrl,
           createdAt: new Date().toISOString(),
-          isTemporary: true
+          isTemporary: true,
+          aspectRatio: selectedAspectRatio // 선택된 비율 정보 추가
         };
       }
       
