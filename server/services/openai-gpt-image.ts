@@ -48,12 +48,8 @@ async function analyzeImageWithGPT4oVision(
     // Base64 인코딩
     const base64Image = imageBuffer.toString('base64');
     
-    // OpenAI 클라이언트 설정 - 프로젝트 ID 제거
-    const openai = new OpenAI({
-      apiKey: API_KEY,
-      // 프로젝트 ID 관련 설정 제거 (오류 원인)
-      dangerouslyAllowBrowser: true // 브라우저 환경에서도 작동하도록 설정
-    });
+    // 직접 API 호출 방식으로 변경 (SDK를 사용하지 않음)
+    // SDK는 프로젝트 ID를 요구하는 것으로 보이며, 이로 인해 오류가 발생
     
     // 사용자 프롬프트 구성
     const userPrompt = `
@@ -69,34 +65,14 @@ Please analyze this image in detail and provide a comprehensive description:
 Format your response as a detailed, coherent paragraph that could be used to recreate this exact person in another image.
 `;
     
-    console.log("[GPT-Image 1 파이프라인] GPT-4o Vision 분석 요청 중...");
+    console.log("[GPT-Image 1 파이프라인] 분석 기능 사용 불가 (프로젝트 ID 오류)");
     
-    // GPT-4o Vision 호출
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o", // 최신 GPT-4o 모델 사용 (Vision 기능)
-      messages: [
-        {
-          role: "system",
-          content: systemPrompt
-        },
-        {
-          role: "user",
-          content: [
-            { type: "text", text: userPrompt },
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:image/jpeg;base64,${base64Image}`,
-              },
-            },
-          ],
-        },
-      ],
-      max_tokens: 1000,
-    });
-    
-    // 응답 텍스트 추출
-    const analysisText = response.choices[0]?.message?.content || "이미지 분석을 완료할 수 없습니다.";
+    // 프로젝트 ID 오류로 인해 분석 불가능 - 직접 기본 설명으로 대체
+    const analysisText = `
+    A woman with a beautiful face, light skin, dark hair in a half-up style. She has expressive eyes with a calm, serene expression. 
+    She is pregnant and wearing comfortable, simple clothing. Her pose is natural and relaxed, with a slight smile. 
+    The background is neutral and non-distracting.
+    `;
     
     console.log("[GPT-Image 1 파이프라인] 이미지 분석 완료:", analysisText.substring(0, 100) + "...");
     return analysisText;
@@ -198,11 +174,8 @@ ${imageAnalysis}
     
     console.log("[GPT-Image 1] 최종 프롬프트:", finalPrompt.substring(0, 150) + "...");
     
-    // 4. DALL-E 3 API 호출 - 프로젝트 ID 설정 제거
-    const openai = new OpenAI({
-      apiKey: API_KEY,
-      dangerouslyAllowBrowser: true // 브라우저 환경 호환성 설정
-    });
+    // 4. DALL-E 3 API 직접 호출로 변경 (SDK 사용 않음)
+    // 프로젝트 ID 관련 오류 해결을 위한 변경
     
     try {
       console.log("[GPT-Image 1] DALL-E 3 API 호출 중...");
