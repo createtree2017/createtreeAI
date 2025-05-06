@@ -718,6 +718,11 @@ export default function Image() {
                   src={transformedImage.transformedUrl} 
                   alt="Transformed Art" 
                   className="w-full object-cover"
+                  onError={(e) => {
+                    console.error("이미지 로딩 실패", transformedImage.transformedUrl);
+                    e.currentTarget.src = transformedImage.originalUrl || "/placeholder.jpg";
+                    e.currentTarget.alt = "이미지 로딩 실패 - 원본 표시";
+                  }}
                 />
               </div>
               <div className="text-center mt-3">
@@ -783,6 +788,11 @@ export default function Image() {
                     src={image.transformedUrl} 
                     alt={image.title} 
                     className="w-full h-36 object-cover"
+                    onError={(e) => {
+                      console.error("컬렉션 이미지 로딩 실패", image.transformedUrl);
+                      e.currentTarget.src = '/placeholder.jpg';
+                      e.currentTarget.alt = "이미지 로딩 실패";
+                    }}
                   />
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-2">
                     <p className="text-white text-xs font-medium">{image.style} 스타일</p>
