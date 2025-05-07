@@ -117,19 +117,17 @@ export const storage = {
       
       // Read the file
       console.log(`[Storage] Reading file from path: ${filePath}`);
-      const imageBuffer = fs.readFileSync(filePath);
-      console.log(`[Storage] Successfully read image file, size: ${imageBuffer.length} bytes`);
       
       // 템플릿 변수를 처리하는 함수
       const processTemplate = (template: string) => {
         // 기본 변수 값 설정 (실제 구현에서는 이미지 분석 또는 사용자 입력을 통해 이 값들을 얻을 수 있음)
         const variables: Record<string, string> = {
-          object: "pet dog",  // 기본값 설정
+          object: "pregnant woman",  // 기본값을 임산부로 변경
           style: style,
           mood: "happy",
           color: "vibrant",
-          theme: "cute",
-          setting: "home"
+          theme: "maternity",
+          setting: "portrait"
         };
         
         // 템플릿에서 {{variable}} 패턴을 찾아 실제 값으로 대체
@@ -149,45 +147,60 @@ export const storage = {
         prompt = "Transform the uploaded image using the following instruction: " + systemPrompt;
         console.log(`시스템 프롬프트만 있어 변환 지침으로 사용: "${prompt.substring(0, 100)}..."`);
       } else {
-        // 프롬프트와 시스템 프롬프트 모두 없는 경우에는 중단
-        console.log(`프롬프트 템플릿과 시스템 프롬프트 모두 비어 있음. 이미지 변환 처리를 중단합니다.`);
-        return "https://placehold.co/1024x1024/A7C1E2/FFF?text=비어있는+프롬프트로+이미지를+생성할+수+없습니다";
+        // 기본 프롬프트
+        prompt = `A beautiful pregnant woman portrait in ${style} style, maintaining facial features, high quality`;
+        console.log(`기본 프롬프트 사용: "${prompt}"`);
       }
       
       try {
-        // OpenAI GPT-Image-1 호출 (GPT-4o Vision 이미지 분석 포함)
-        console.log(`[Storage] Calling OpenAI GPT-Image-1 image transformation service...`);
-        if (systemPrompt) {
-          console.log(`[Storage] Using system prompt for GPT-4o image analysis: ${systemPrompt.substring(0, 50)}...`);
-        }
-        const { transformImage } = await import('./services/openai-dalle3'); // 파일명은 호환성 유지
-        const transformedImageUrl = await transformImage(
-          imageBuffer, 
-          style, 
-          prompt,
-          systemPrompt // 시스템 프롬프트 전달 (GPT-4o Vision의 이미지 분석 지침)
-        );
+        // Replicate PhotoMaker 모델 사용
+        console.log(`[Storage] Using Replicate PhotoMaker for image transformation...`);
         
-        if (!transformedImageUrl.includes("placehold.co")) {
-          console.log(`[Storage] OpenAI GPT-Image-1 transformation succeeded [이미지 데이터 로그 생략]`);
-          return transformedImageUrl;
-        } else if (transformedImageUrl.includes("safety_system")) {
-          // 안전 시스템 필터에 걸린 경우
-          console.log(`[Storage] Image transformation rejected by safety system`);
-          return "https://placehold.co/1024x1024/A7C1E2/FFF?text=안전+시스템에+의해+이미지+변환이+거부되었습니다.+다른+스타일이나+이미지를+시도해보세요";
+        // Replicate 모듈을 임포트하고 PhotoMaker 호출
+        const { transformImageWithPhotomaker } = await import('./replicate');
+        const transformedImagePath = await transformImageWithPhotomaker(filePath, style);
+        
+        // 변환된 이미지 경로 반환
+        if (transformedImagePath && fs.existsSync(transformedImagePath)) {
+          console.log(`[Storage] PhotoMaker transformation succeeded [이미지 데이터 로그 생략]`);
+          // 웹에서 접근할 수 있는 URL 경로로 변환
+          // "/uploads/temp/파일이름.jpg" 형태로 변환
+          const relativePath = transformedImagePath.replace(process.cwd(), '');
+          return relativePath;
         } else {
-          // 기타 오류 시 서비스 종료 메시지 반환
-          console.log(`[Storage] OpenAI GPT-Image-1 service unavailable`);
-          return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
+          console.log(`[Storage] PhotoMaker transformation failed - no valid image path returned`);
+          // 변환 실패 또는 파일이 존재하지 않는 경우 에러 메시지 반환
+          return "https://placehold.co/1024x1024/A7C1E2/FFF?text=이미지+변환+서비스가+응답하지+않습니다.+다시+시도해+주세요";
         }
       } catch (error) {
-        console.error(`[Storage] OpenAI GPT-Image-1 error:`, error);
-        return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
+        console.error(`[Storage] PhotoMaker error:`, error);
+        
+        // 실패 시 OpenAI 백업으로 시도 (선택 사항)
+        try {
+          console.log(`[Storage] Attempting fallback to OpenAI image service...`);
+          const imageBuffer = fs.readFileSync(filePath);
+          const { transformImage } = await import('./services/openai-dalle3'); 
+          const transformedImageUrl = await transformImage(
+            imageBuffer, 
+            style, 
+            prompt,
+            systemPrompt 
+          );
+          
+          if (!transformedImageUrl.includes("placehold.co")) {
+            console.log(`[Storage] OpenAI fallback succeeded [이미지 데이터 로그 생략]`);
+            return transformedImageUrl;
+          }
+        } catch (fallbackError) {
+          console.error(`[Storage] Fallback also failed:`, fallbackError);
+        }
+        
+        return "https://placehold.co/1024x1024/A7C1E2/FFF?text=이미지+변환+서비스가+응답하지+않습니다.+다시+시도해+주세요";
       }
     } catch (error) {
       console.error(`[Storage] Error in transformImage:`, error);
       // Return service unavailable message in case of error
-      return "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
+      return "https://placehold.co/1024x1024/A7C1E2/FFF?text=이미지+변환+서비스가+응답하지+않습니다.+다시+시도해+주세요";
     }
   },
   
