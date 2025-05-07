@@ -132,6 +132,8 @@ export const concepts = pgTable("concepts", {
   promptTemplate: text("prompt_template").notNull(),
   systemPrompt: text("system_prompt"),  // 이미지 분석 및 변환을 위한 시스템 프롬프트 추가
   thumbnailUrl: text("thumbnail_url"),
+  referenceImageUrl: text("reference_image_url"),  // 얼굴 합성용 레퍼런스 이미지
+  usePhotoMaker: boolean("use_photo_maker").default(false), // PhotoMaker 모델 사용 여부
   tagSuggestions: jsonb("tag_suggestions"), // Array of strings
   variables: jsonb("variables"), // Array of variable objects
   categoryId: text("category_id").references(() => conceptCategories.categoryId),

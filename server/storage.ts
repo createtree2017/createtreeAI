@@ -1,5 +1,5 @@
 import { db } from "@db";
-import { music, images, chatMessages, favorites, savedChats, eq, desc, and } from "@shared/schema";
+import { music, images, chatMessages, favorites, savedChats, concepts, conceptCategories, eq, desc, and } from "@shared/schema";
 import fs from "fs";
 import path from "path";
 import fetch from "node-fetch";
@@ -103,16 +103,22 @@ export const storage = {
   async transformImage(filePath: string, style: string, customPromptTemplate?: string | null, systemPrompt?: string | null, aspectRatio?: string | null) {
     try {
       console.log(`[Storage] Starting image transformation with style: "${style}"`);
+      
+      // 스타일 ID로 Concept 데이터 조회
+      const concept = await db.query.concepts.findFirst({
+        where: eq(concepts.conceptId, style)
+      });
+      
       if (customPromptTemplate) {
         console.log(`[Storage] Using custom prompt template: "${customPromptTemplate.substring(0, 100)}..."`);
       } else {
-        console.log(`[Storage] No custom prompt template provided, using default`);
+        console.log(`[Storage] Using ${concept ? 'concept' : 'default'} template`);
       }
       
       if (aspectRatio) {
         console.log(`[Storage] Using custom aspect ratio: ${aspectRatio}`);
       } else {
-        console.log(`[Storage] No custom aspect ratio provided, using default 1:1`);
+        console.log(`[Storage] Using default aspect ratio: 1:1`);
       }
       
       // Read the file
@@ -137,64 +143,105 @@ export const storage = {
       };
       
       let prompt = "";
-      // 개선된 prompt 처리 로직
+      // 프롬프트 준비
       if (customPromptTemplate && customPromptTemplate.trim() !== "") {
         // 템플릿 변수 처리 (빈 문자열이 아닌 경우에만)
         prompt = processTemplate(customPromptTemplate);
-        console.log(`처리된 프롬프트: "${prompt}"`);
+        console.log(`처리된 커스텀 프롬프트: "${prompt}"`);
       } else if (systemPrompt && systemPrompt.trim() !== "") {
         // 시스템 프롬프트만 있는 경우
         prompt = "Transform the uploaded image using the following instruction: " + systemPrompt;
-        console.log(`시스템 프롬프트만 있어 변환 지침으로 사용: "${prompt.substring(0, 100)}..."`);
+        console.log(`시스템 프롬프트 사용: "${prompt.substring(0, 100)}..."`);
+      } else if (concept && concept.promptTemplate) {
+        // 컨셉의 프롬프트 템플릿 사용
+        prompt = processTemplate(concept.promptTemplate);
+        console.log(`컨셉 프롬프트 사용: "${prompt.substring(0, 100)}..."`);
       } else {
         // 기본 프롬프트
         prompt = `A beautiful pregnant woman portrait in ${style} style, maintaining facial features, high quality`;
         console.log(`기본 프롬프트 사용: "${prompt}"`);
       }
       
+      // PhotoMaker 모드 확인 (개념이 존재하고 usePhotoMaker가 true인 경우)
+      const usePhotoMaker = concept?.usePhotoMaker === true;
+      const hasReferenceImage = concept?.referenceImageUrl && concept.referenceImageUrl.trim() !== '';
+      
       try {
-        // Replicate PhotoMaker 모델 사용
-        console.log(`[Storage] Using Replicate PhotoMaker for image transformation...`);
+        // PhotoMaker 얼굴 합성 모드 (레퍼런스 이미지가 있는 경우)
+        if (usePhotoMaker && hasReferenceImage) {
+          console.log(`[Storage] 레퍼런스 이미지로 PhotoMaker 얼굴 합성 모드 시작...`);
+          console.log(`[Storage] 레퍼런스 이미지: ${concept.referenceImageUrl}`);
+          
+          // 레퍼런스 이미지 경로 확인
+          let refImagePath = concept.referenceImageUrl || '';
+          if (refImagePath.startsWith('/')) {
+            refImagePath = path.join(process.cwd(), refImagePath);
+          }
+          
+          // 파일 존재 확인
+          if (fs.existsSync(refImagePath)) {
+            try {
+              // photo-maker 서비스의 얼굴 합성 함수 호출
+              const { mergeUserFaceWithReference } = await import('./services/photo-maker');
+              const transformedImagePath = await mergeUserFaceWithReference(
+                filePath, 
+                refImagePath, 
+                style
+              );
+              
+              if (transformedImagePath && fs.existsSync(transformedImagePath)) {
+                console.log(`[Storage] PhotoMaker 얼굴 합성 성공 [이미지 데이터 로그 생략]`);
+                const relativePath = transformedImagePath.replace(process.cwd(), '');
+                return relativePath;
+              }
+            } catch (photoMakerError) {
+              console.error(`[Storage] PhotoMaker 얼굴 합성 오류:`, photoMakerError);
+              // 폴백: 일반 이미지 변환으로 진행
+            }
+          } else {
+            console.error(`[Storage] 레퍼런스 이미지 파일이 존재하지 않습니다: ${refImagePath}`);
+          }
+        }
         
-        // Replicate 모듈을 임포트하고 PhotoMaker 호출
-        const { transformImageWithPhotomaker } = await import('./replicate');
-        const transformedImagePath = await transformImageWithPhotomaker(filePath, style);
+        // PhotoMaker 일반 변환 모드 (레퍼런스 이미지가 없거나 얼굴 합성에 실패한 경우)
+        if (usePhotoMaker) {
+          console.log(`[Storage] PhotoMaker 일반 이미지 변환 모드 시작...`);
+          
+          try {
+            const { generateStylizedImage } = await import('./services/photo-maker');
+            const transformedImagePath = await generateStylizedImage(filePath, style, prompt);
+            
+            if (transformedImagePath && fs.existsSync(transformedImagePath)) {
+              console.log(`[Storage] PhotoMaker 이미지 변환 성공 [이미지 데이터 로그 생략]`);
+              const relativePath = transformedImagePath.replace(process.cwd(), '');
+              return relativePath;
+            }
+          } catch (photoMakerError) {
+            console.error(`[Storage] PhotoMaker 일반 변환 오류:`, photoMakerError);
+            // 폴백: 기존 방식으로 진행
+          }
+        }
         
-        // 변환된 이미지 경로 반환
-        if (transformedImagePath && fs.existsSync(transformedImagePath)) {
-          console.log(`[Storage] PhotoMaker transformation succeeded [이미지 데이터 로그 생략]`);
-          // 웹에서 접근할 수 있는 URL 경로로 변환
-          // "/uploads/temp/파일이름.jpg" 형태로 변환
-          const relativePath = transformedImagePath.replace(process.cwd(), '');
-          return relativePath;
+        // 기존 OpenAI 이미지 생성 API 사용 (PhotoMaker가 실패하거나 사용하지 않는 경우)
+        console.log(`[Storage] OpenAI 이미지 생성 API 사용...`);
+        const imageBuffer = fs.readFileSync(filePath);
+        const { transformImage } = await import('./services/openai-dalle3'); 
+        const transformedImageUrl = await transformImage(
+          imageBuffer, 
+          style, 
+          prompt,
+          systemPrompt 
+        );
+        
+        if (!transformedImageUrl.includes("placehold.co")) {
+          console.log(`[Storage] OpenAI 이미지 생성 성공 [이미지 데이터 로그 생략]`);
+          return transformedImageUrl;
         } else {
-          console.log(`[Storage] PhotoMaker transformation failed - no valid image path returned`);
-          // 변환 실패 또는 파일이 존재하지 않는 경우 에러 메시지 반환
-          return "https://placehold.co/1024x1024/A7C1E2/FFF?text=이미지+변환+서비스가+응답하지+않습니다.+다시+시도해+주세요";
+          console.log(`[Storage] OpenAI 이미지 생성 실패: ${transformedImageUrl}`);
+          return transformedImageUrl;
         }
       } catch (error) {
-        console.error(`[Storage] PhotoMaker error:`, error);
-        
-        // 실패 시 OpenAI 백업으로 시도 (선택 사항)
-        try {
-          console.log(`[Storage] Attempting fallback to OpenAI image service...`);
-          const imageBuffer = fs.readFileSync(filePath);
-          const { transformImage } = await import('./services/openai-dalle3'); 
-          const transformedImageUrl = await transformImage(
-            imageBuffer, 
-            style, 
-            prompt,
-            systemPrompt 
-          );
-          
-          if (!transformedImageUrl.includes("placehold.co")) {
-            console.log(`[Storage] OpenAI fallback succeeded [이미지 데이터 로그 생략]`);
-            return transformedImageUrl;
-          }
-        } catch (fallbackError) {
-          console.error(`[Storage] Fallback also failed:`, fallbackError);
-        }
-        
+        console.error(`[Storage] 이미지 변환 과정에서 오류 발생:`, error);
         return "https://placehold.co/1024x1024/A7C1E2/FFF?text=이미지+변환+서비스가+응답하지+않습니다.+다시+시도해+주세요";
       }
     } catch (error) {

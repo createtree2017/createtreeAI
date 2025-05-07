@@ -2083,6 +2083,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Reference image upload endpoint for PhotoMaker
+  app.post("/api/admin/upload/reference", upload.single("reference"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+      
+      // Generate a public URL for the uploaded file
+      const fileUrl = `/uploads/${req.file.filename}`;
+      
+      return res.json({
+        success: true,
+        url: fileUrl,
+        filename: req.file.filename
+      });
+    } catch (error) {
+      console.error("Error uploading reference image:", error);
+      return res.status(500).json({ error: "Failed to upload reference image" });
+    }
+  });
+  
   // A/B Testing routes
   // Get all A/B tests
   app.get("/api/admin/abtests", async (req, res) => {
