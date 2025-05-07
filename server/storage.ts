@@ -104,10 +104,24 @@ export const storage = {
     try {
       console.log(`[Storage] Starting image transformation with style: "${style}"`);
       
+      // 캐시를 사용하지 않고 매번 최신 데이터를 조회하도록 수정
+      console.log(`[Storage] 콘셉트 데이터 실시간 조회: ${style}`);
+      
       // 스타일 ID로 Concept 데이터 조회
       const concept = await db.query.concepts.findFirst({
         where: eq(concepts.conceptId, style)
       });
+      
+      // 디버깅을 위해 조회된 콘셉트 정보 확인
+      if (concept) {
+        console.log(`[Storage] 콘셉트 조회 결과: 
+          ID: ${concept.id} 
+          conceptId: ${concept.conceptId}
+          usePhotoMaker: ${concept.usePhotoMaker}
+          referenceImageUrl: ${concept.referenceImageUrl || '없음'}`);
+      } else {
+        console.log(`[Storage] 콘셉트 조회 결과 없음: ${style}`);
+      }
       
       if (customPromptTemplate) {
         console.log(`[Storage] Using custom prompt template: "${customPromptTemplate.substring(0, 100)}..."`);
