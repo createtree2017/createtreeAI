@@ -169,6 +169,11 @@ const conceptSchema = z.object({
   // PhotoMaker 모드 관련 필드 추가
   usePhotoMaker: z.boolean().default(false),
   referenceImageUrl: z.string().optional(),
+  photoMakerPrompt: z.string().optional(),
+  photoMakerNegativePrompt: z.string().optional(),
+  photoMakerStrength: z.number().min(0).max(1).default(0.8),
+  usePhotoMaker: z.boolean().default(false),
+  referenceImageUrl: z.string().optional(),
 });
 
 // Development Chat History Manager Component
