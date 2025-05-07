@@ -180,9 +180,23 @@ export const storage = {
       console.log(`[Storage] 콘셉트 전체 데이터:`, JSON.stringify(concept, null, 2));
       
       // PhotoMaker 모드 확인 (개념이 존재하고 usePhotoMaker가 true인 경우)
-      console.log(`[Storage] usePhotoMaker 값 확인: ${concept?.usePhotoMaker} (타입: ${typeof concept?.usePhotoMaker})`);
+      console.log(`[Storage] usePhotoMaker 값 확인: ${concept?.usePhotoMaker} (타입: ${typeof concept?.usePhotoMaker}, JSON: ${JSON.stringify(concept?.usePhotoMaker)})`);
       
-      const usePhotoMaker = concept?.usePhotoMaker === true;
+      // 자세한 디버깅을 위해 확인 과정 추가
+      const isTrue = concept?.usePhotoMaker === true;
+      const isStringTrue = concept?.usePhotoMaker === "true";
+      const isTrueString = String(concept?.usePhotoMaker) === "true";
+      
+      console.log(`[Storage] usePhotoMaker 비교 결과: === true (${isTrue}), === "true" (${isStringTrue}), String() === "true" (${isTrueString})`);
+      
+      // PostgreSQL은 boolean 값을 't'로 반환할 수 있음
+      const isPgTrue = concept?.usePhotoMaker === 't';
+      const isPgTrueString = String(concept?.usePhotoMaker) === 't';
+      
+      console.log(`[Storage] PostgreSQL 비교: === 't' (${isPgTrue}), String() === 't' (${isPgTrueString})`);
+      
+      // 최종 결정: 문자열 't', boolean true, 또는 문자열 "true" 중 하나라도 true면 사용
+      const usePhotoMaker = isTrue || isStringTrue || isTrueString || isPgTrue || isPgTrueString;
       const customPhotoMakerPrompt = concept?.photoMakerPrompt;
       const customPhotoMakerNegativePrompt = concept?.photoMakerNegativePrompt;
       const customPhotoMakerStrength = concept?.photoMakerStrength;

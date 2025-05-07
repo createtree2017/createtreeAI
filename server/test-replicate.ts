@@ -46,10 +46,28 @@ export async function testReplicateAPI() {
     };
   } catch (error) {
     console.error("[테스트] Replicate API 테스트 오류:", error);
+    
+    // 더 자세한 오류 정보 출력
+    if (error instanceof Error) {
+      console.error("[테스트] 오류 이름:", error.name);
+      console.error("[테스트] 오류 메시지:", error.message);
+      console.error("[테스트] 오류 스택:", error.stack);
+      
+      if ('response' in error) {
+        // @ts-ignore
+        const response = error.response;
+        console.error("[테스트] 응답 상태:", response?.status);
+        console.error("[테스트] 응답 데이터:", JSON.stringify(response?.data));
+      }
+    }
+    
     return {
       success: false,
-      error: error.message || "알 수 없는 오류",
-      errorObj: JSON.stringify(error)
+      error: error instanceof Error ? error.message : "알 수 없는 오류",
+      errorType: error instanceof Error ? error.name : typeof error,
+      errorDetails: error instanceof Error && 'response' in error ? 
+        // @ts-ignore
+        JSON.stringify(error.response?.data) : "상세 정보 없음"
     };
   }
 }
