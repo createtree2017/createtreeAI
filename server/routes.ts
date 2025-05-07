@@ -222,6 +222,12 @@ const conceptSchema = z.object({
   isActive: z.boolean().default(true),
   isFeatured: z.boolean().default(false),
   order: z.number().int().default(0),
+  // PhotoMaker 관련 필드 추가
+  usePhotoMaker: z.boolean().default(false),
+  referenceImageUrl: z.string().optional(),
+  photoMakerPrompt: z.string().optional(),
+  photoMakerNegativePrompt: z.string().optional(),
+  photoMakerStrength: z.number().min(0).max(1).default(0.8)
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -1982,6 +1988,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isActive: validatedData.isActive,
           isFeatured: validatedData.isFeatured,
           order: validatedData.order,
+          // PhotoMaker 관련 필드 추가
+          usePhotoMaker: validatedData.usePhotoMaker,
+          referenceImageUrl: validatedData.referenceImageUrl,
+          photoMakerPrompt: validatedData.photoMakerPrompt,
+          photoMakerNegativePrompt: validatedData.photoMakerNegativePrompt,
+          photoMakerStrength: validatedData.photoMakerStrength,
           updatedAt: new Date(),
         })
         .where(eq(concepts.conceptId, conceptId))
