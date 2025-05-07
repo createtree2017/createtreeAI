@@ -1,10 +1,10 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 
 // 테마 타입 정의: 다크모드, 라이트모드, 파스텔모드
-type Theme = 'dark' | 'light' | 'pastel';
+export type Theme = 'dark' | 'light' | 'pastel';
 
 // 테마 컨텍스트 타입 정의
-type ThemeContextType = {
+export type ThemeContextType = {
   theme: Theme;
   setTheme: (theme: Theme) => void;
 };
@@ -18,7 +18,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window !== 'undefined') {
       const savedTheme = localStorage.getItem('theme') as Theme;
-      return savedTheme || 'dark';
+      if (savedTheme && ['dark', 'light', 'pastel'].includes(savedTheme)) {
+        return savedTheme;
+      }
+      return 'dark'; // 기본값은 다크모드
     }
     return 'dark';
   });
@@ -36,16 +39,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // 로컬 스토리지에 테마 저장
     localStorage.setItem('theme', theme);
   }, [theme]);
-
-  // 시스템 테마 감지 (초기 로드 시에만)
-  useEffect(() => {
-    // 저장된 테마가 없는 경우에만 시스템 테마를 감지하되, 기본값은 항상 dark
-    const savedTheme = localStorage.getItem('theme');
-    if (!savedTheme) {
-      // 기본값을 다크모드로 설정
-      setTheme('dark');
-    }
-  }, []);
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme }}>

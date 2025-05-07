@@ -81,20 +81,25 @@ function Layout({ children }: { children: React.ReactNode }) {
   
   if (useDesktopLayout) {
     return (
-      <div className="flex h-screen bg-[#18181d] overflow-hidden">
+      <div className="flex h-screen bg-background overflow-hidden">
         <div className="sidebar relative">
           <Sidebar collapsed={sidebarCollapsed} />
           <button 
             onClick={toggleCollapsed}
-            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-20 bg-[#27272e] text-neutral-300 hover:text-white
-              rounded-full p-1 shadow-md border border-neutral-700"
+            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-20 bg-card text-foreground/70 hover:text-foreground
+              rounded-full p-1 shadow-md border border-border"
           >
             {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
           </button>
         </div>
 
         <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#121217]">
+          {/* 데스크톱 헤더 추가 - 테마 토글 포함 */}
+          <header className="bg-card h-14 border-b border-border px-6 flex items-center justify-end">
+            <ThemeToggle />
+          </header>
+          
+          <div className="flex-1 overflow-y-auto custom-scrollbar bg-background">
             <div className="max-w-7xl mx-auto w-full p-6 lg:p-8 pb-16">
               {children}
             </div>
@@ -105,7 +110,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   }
   
   return (
-    <div className={`flex flex-col ${isInIframe ? "h-full" : "min-h-screen"} bg-[#121217]`}>
+    <div className={`flex flex-col ${isInIframe ? "h-full" : "min-h-screen"} bg-background`}>
       {/* Mobile sidebar overlay */}
       {useMobileLayout && sidebarOpen && (
         <div className="fixed inset-0 bg-black/70 z-40" onClick={() => setSidebarOpen(false)} />
@@ -116,7 +121,7 @@ function Layout({ children }: { children: React.ReactNode }) {
         <div className={`sidebar fixed top-0 bottom-0 left-0 z-50 transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <Sidebar collapsed={false} />
           <button 
-            className="absolute top-4 right-4 text-white p-1.5 bg-neutral-800 rounded-full"
+            className="absolute top-4 right-4 text-foreground p-1.5 bg-muted rounded-full"
             onClick={() => setSidebarOpen(false)}
             aria-label="Close sidebar"
           >
