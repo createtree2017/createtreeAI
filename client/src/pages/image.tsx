@@ -630,49 +630,88 @@ export default function Image() {
         {/* 종횡비 선택 */}
         <div className="mb-5">
           <label className="block text-gray-300 text-sm mb-2">종횡비</label>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-4 gap-4">
             <div 
               className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
-                selectedAspectRatio === "1:1" ? "bg-[#ff2d55] border-[#ff2d55]" : "bg-[#272730] border-gray-700 hover:border-gray-500"
+                selectedAspectRatio === "1:1" ? "bg-[#ff2d55]/10 border-[#ff2d55]" : "bg-[#272730] border-gray-700 hover:border-gray-500"
               }`}
               onClick={() => setSelectedAspectRatio("1:1")}
             >
-              <div className="aspect-square flex items-center justify-center">
-                <span className={`text-xs font-medium ${selectedAspectRatio === "1:1" ? "text-white" : "text-gray-300"}`}>1:1</span>
+              <div className="aspect-square flex flex-col items-center justify-center p-2">
+                <div className="w-10 h-10 bg-gray-500/20 rounded mb-2 relative">
+                  <div className="absolute inset-0 border-2 border-white/40 rounded"></div>
+                </div>
+                <span className={`text-xs font-medium ${selectedAspectRatio === "1:1" ? "text-[#ff2d55]" : "text-gray-300"}`}>1:1</span>
+                {selectedAspectRatio === "1:1" && (
+                  <div className="absolute top-2 right-2 bg-[#ff2d55] text-white rounded-full w-5 h-5 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                )}
               </div>
             </div>
             <div 
               className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
-                selectedAspectRatio === "9:16" ? "bg-[#ff2d55] border-[#ff2d55]" : "bg-[#272730] border-gray-700 hover:border-gray-500"
+                selectedAspectRatio === "9:16" ? "bg-[#ff2d55]/10 border-[#ff2d55]" : "bg-[#272730] border-gray-700 hover:border-gray-500"
               }`}
               onClick={() => setSelectedAspectRatio("9:16")}
             >
-              <div className="aspect-[9/16] flex items-center justify-center">
-                <span className={`text-xs font-medium ${selectedAspectRatio === "9:16" ? "text-white" : "text-gray-300"}`}>9:16</span>
+              <div className="aspect-[9/16] flex flex-col items-center justify-center p-2">
+                <div className="w-8 h-14 bg-gray-500/20 rounded mb-2 relative">
+                  <div className="absolute inset-0 border-2 border-white/40 rounded"></div>
+                </div>
+                <span className={`text-xs font-medium ${selectedAspectRatio === "9:16" ? "text-[#ff2d55]" : "text-gray-300"}`}>9:16</span>
+                {selectedAspectRatio === "9:16" && (
+                  <div className="absolute top-2 right-2 bg-[#ff2d55] text-white rounded-full w-5 h-5 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                )}
               </div>
             </div>
             <div 
               className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
-                selectedAspectRatio === "2:3" ? "bg-[#ff2d55] border-[#ff2d55]" : "bg-[#272730] border-gray-700 hover:border-gray-500"
+                selectedAspectRatio === "2:3" ? "bg-[#ff2d55]/10 border-[#ff2d55]" : "bg-[#272730] border-gray-700 hover:border-gray-500"
               }`}
               onClick={() => setSelectedAspectRatio("2:3")}
             >
-              <div className="aspect-[2/3] flex items-center justify-center">
-                <span className={`text-xs font-medium ${selectedAspectRatio === "2:3" ? "text-white" : "text-gray-300"}`}>2:3</span>
+              <div className="aspect-[2/3] flex flex-col items-center justify-center p-2">
+                <div className="w-8 h-12 bg-gray-500/20 rounded mb-2 relative">
+                  <div className="absolute inset-0 border-2 border-white/40 rounded"></div>
+                </div>
+                <span className={`text-xs font-medium ${selectedAspectRatio === "2:3" ? "text-[#ff2d55]" : "text-gray-300"}`}>2:3</span>
+                {selectedAspectRatio === "2:3" && (
+                  <div className="absolute top-2 right-2 bg-[#ff2d55] text-white rounded-full w-5 h-5 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                )}
               </div>
             </div>
             <div 
               className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
-                selectedAspectRatio === "3:2" ? "bg-[#ff2d55] border-[#ff2d55]" : "bg-[#272730] border-gray-700 hover:border-gray-500"
+                selectedAspectRatio === "3:2" ? "bg-[#ff2d55]/10 border-[#ff2d55]" : "bg-[#272730] border-gray-700 hover:border-gray-500"
               }`}
               onClick={() => setSelectedAspectRatio("3:2")}
             >
-              <div className="aspect-[3/2] flex items-center justify-center">
-                <span className={`text-xs font-medium ${selectedAspectRatio === "3:2" ? "text-white" : "text-gray-300"}`}>3:2</span>
+              <div className="aspect-[3/2] flex flex-col items-center justify-center p-2">
+                <div className="w-12 h-8 bg-gray-500/20 rounded mb-2 relative">
+                  <div className="absolute inset-0 border-2 border-white/40 rounded"></div>
+                </div>
+                <span className={`text-xs font-medium ${selectedAspectRatio === "3:2" ? "text-[#ff2d55]" : "text-gray-300"}`}>3:2</span>
+                {selectedAspectRatio === "3:2" && (
+                  <div className="absolute top-2 right-2 bg-[#ff2d55] text-white rounded-full w-5 h-5 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                )}
               </div>
             </div>
           </div>
-
         </div>
 
         {/* 만들기 버튼 */}
