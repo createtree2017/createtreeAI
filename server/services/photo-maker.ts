@@ -26,7 +26,10 @@ const PHOTOMAKER_VERSION = "ddfc2b08d209f9fa8c1eca692712918bd449f695dabb4a958da3
 export async function mergeUserFaceWithReference(
   faceImagePath: string,
   referenceImagePath: string,
-  style: string
+  style: string,
+  customPrompt?: string,
+  customNegativePrompt?: string,
+  customStrength?: string
 ): Promise<string> {
   try {
     console.log(`[PhotoMaker] 얼굴 합성 시작`);
@@ -65,16 +68,31 @@ export async function mergeUserFaceWithReference(
     const faceImageBase64 = await readFileAsync(faceImagePath, { encoding: 'base64' });
     const refImageBase64 = await readFileAsync(referenceImagePath, { encoding: 'base64' });
 
+    // 커스텀 프롬프트 또는 기본값 사용
+    const prompt = customPrompt || 
+      `A beautiful high-quality portrait in ${style} style, preserving facial features, detailed, artistic`;
+    
+    // 커스텀 네거티브 프롬프트 또는 기본값 사용
+    const negativePrompt = customNegativePrompt || 
+      "ugly, blurry, bad anatomy, bad hands, text, error, missing fingers, extra digit, cropped, low quality";
+    
+    // 커스텀 강도 또는 기본값 사용 (문자열 -> 숫자 변환)
+    const strengthRatio = customStrength ? parseInt(customStrength) * 20 : 20; // 0.8 -> 16, 기본값은 20
+    
+    console.log(`[PhotoMaker] 사용 프롬프트: ${prompt}`);
+    console.log(`[PhotoMaker] 네거티브 프롬프트: ${negativePrompt}`);
+    console.log(`[PhotoMaker] 강도 설정: ${customStrength || '1.0'} (변환값: ${strengthRatio})`);
+    
     // Replicate API 호출을 위한 입력 데이터 구성
     const input = {
-      prompt: `A beautiful high-quality portrait in ${style} style, preserving facial features, detailed, artistic`,
+      prompt: prompt,
       input_image: `data:image/jpeg;base64,${faceImageBase64}`,  // 사용자 얼굴 이미지
       reference_image: `data:image/jpeg;base64,${refImageBase64}`,  // 레퍼런스 이미지
       style_name: "Photographic (Default)",
-      style_strength_ratio: 20,
+      style_strength_ratio: strengthRatio,
       num_steps: 30,
       guidance_scale: 5,
-      negative_prompt: "ugly, blurry, bad anatomy, bad hands, text, error, missing fingers, extra digit, cropped, low quality"
+      negative_prompt: negativePrompt
     };
 
     console.log(`[PhotoMaker] API 호출 준비 완료 - style: ${style}, input 데이터 준비 완료`);
@@ -126,7 +144,9 @@ export async function mergeUserFaceWithReference(
 export async function generateStylizedImage(
   imageFilePath: string,
   style: string,
-  customPrompt?: string
+  customPrompt?: string,
+  customNegativePrompt?: string,
+  customStrength?: string
 ): Promise<string> {
   try {
     console.log(`[PhotoMaker] 이미지 스타일 변환 시작: ${style}`);
@@ -157,15 +177,26 @@ export async function generateStylizedImage(
     const prompt = customPrompt || 
       `A beautiful pregnant woman photo in ${style} style, preserving facial features, high quality, professional portrait`;
     
+    // 커스텀 네거티브 프롬프트 또는 기본값 사용
+    const negativePrompt = customNegativePrompt || 
+      "ugly, blurry, bad anatomy, bad hands, text, error, missing fingers, extra digit, cropped, low quality";
+    
+    // 커스텀 강도 또는 기본값 사용 (문자열 -> 숫자 변환)
+    const strengthRatio = customStrength ? parseInt(customStrength) * 20 : 20; // 0.8 -> 16, 기본값은 20
+    
+    console.log(`[PhotoMaker] 사용 프롬프트: ${prompt}`);
+    console.log(`[PhotoMaker] 네거티브 프롬프트: ${negativePrompt}`);
+    console.log(`[PhotoMaker] 강도 설정: ${customStrength || '1.0'} (변환값: ${strengthRatio})`);
+    
     // 모델 실행을 위한 파라미터 설정
     const input = {
       prompt: prompt,
       input_image: fs.createReadStream(imageFilePath),
       style_name: "Photographic (Default)",
-      style_strength_ratio: 20,
+      style_strength_ratio: strengthRatio,
       num_steps: 30,
       guidance_scale: 5,
-      negative_prompt: "ugly, blurry, bad anatomy, bad hands, text, error, missing fingers, extra digit, cropped"
+      negative_prompt: negativePrompt
     };
     
     console.log(`[PhotoMaker] API 호출 시작: ${prompt.substring(0, 50)}...`);

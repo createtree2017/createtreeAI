@@ -164,10 +164,29 @@ export const storage = {
       
       // PhotoMaker 모드 확인 (개념이 존재하고 usePhotoMaker가 true인 경우)
       const usePhotoMaker = concept?.usePhotoMaker === true;
+      const customPhotoMakerPrompt = concept?.photoMakerPrompt;
+      const customPhotoMakerNegativePrompt = concept?.photoMakerNegativePrompt;
+      const customPhotoMakerStrength = concept?.photoMakerStrength;
       const hasReferenceImage = concept?.referenceImageUrl && concept.referenceImageUrl.trim() !== '';
       
       try {
-        // PhotoMaker 얼굴 합성 모드 (레퍼런스 이미지가 있는 경우)
+        // PhotoMaker 사용 가능 여부 로깅
+        if (usePhotoMaker) {
+          console.log(`[Storage] PhotoMaker 모드 활성화됨 (우선 사용)`);
+          if (customPhotoMakerPrompt) {
+            console.log(`[Storage] PhotoMaker 커스텀 프롬프트 사용: ${customPhotoMakerPrompt.substring(0, 50)}...`);
+          }
+          if (customPhotoMakerNegativePrompt) {
+            console.log(`[Storage] PhotoMaker 네거티브 프롬프트 사용: ${customPhotoMakerNegativePrompt.substring(0, 50)}...`);
+          }
+          if (customPhotoMakerStrength) {
+            console.log(`[Storage] PhotoMaker 강도 설정: ${customPhotoMakerStrength}`);
+          }
+        } else {
+          console.log(`[Storage] PhotoMaker 모드 비활성화됨 (OpenAI GPT-Image-1 사용)`);
+        }
+        
+        // 1. PhotoMaker 얼굴 합성 모드 (레퍼런스 이미지가 있는 경우)
         if (usePhotoMaker && hasReferenceImage) {
           console.log(`[Storage] 레퍼런스 이미지로 PhotoMaker 얼굴 합성 모드 시작...`);
           console.log(`[Storage] 레퍼런스 이미지: ${concept.referenceImageUrl}`);
@@ -186,7 +205,10 @@ export const storage = {
               const transformedImagePath = await mergeUserFaceWithReference(
                 filePath, 
                 refImagePath, 
-                style
+                style,
+                customPhotoMakerPrompt ? String(customPhotoMakerPrompt) : undefined,
+                customPhotoMakerNegativePrompt ? String(customPhotoMakerNegativePrompt) : undefined,
+                customPhotoMakerStrength ? String(customPhotoMakerStrength) : undefined
               );
               
               if (transformedImagePath && fs.existsSync(transformedImagePath)) {
@@ -196,20 +218,29 @@ export const storage = {
               }
             } catch (photoMakerError) {
               console.error(`[Storage] PhotoMaker 얼굴 합성 오류:`, photoMakerError);
-              // 폴백: 일반 이미지 변환으로 진행
+              // PhotoMaker 일반 모드로 폴백
             }
           } else {
             console.error(`[Storage] 레퍼런스 이미지 파일이 존재하지 않습니다: ${refImagePath}`);
           }
         }
         
-        // PhotoMaker 일반 변환 모드 (레퍼런스 이미지가 없거나 얼굴 합성에 실패한 경우)
+        // 2. PhotoMaker 일반 변환 모드 (usePhotoMaker가 true이고 레퍼런스 이미지가 없거나 얼굴 합성에 실패한 경우)
         if (usePhotoMaker) {
           console.log(`[Storage] PhotoMaker 일반 이미지 변환 모드 시작...`);
           
           try {
             const { generateStylizedImage } = await import('./services/photo-maker');
-            const transformedImagePath = await generateStylizedImage(filePath, style, prompt);
+            const effectivePrompt = customPhotoMakerPrompt || prompt;
+            console.log(`[Storage] PhotoMaker 사용 프롬프트: ${effectivePrompt.substring(0, 50)}...`);
+            
+            const transformedImagePath = await generateStylizedImage(
+              filePath, 
+              style, 
+              effectivePrompt,
+              customPhotoMakerNegativePrompt ? String(customPhotoMakerNegativePrompt) : undefined,
+              customPhotoMakerStrength ? String(customPhotoMakerStrength) : undefined
+            );
             
             if (transformedImagePath && fs.existsSync(transformedImagePath)) {
               console.log(`[Storage] PhotoMaker 이미지 변환 성공 [이미지 데이터 로그 생략]`);
@@ -218,11 +249,12 @@ export const storage = {
             }
           } catch (photoMakerError) {
             console.error(`[Storage] PhotoMaker 일반 변환 오류:`, photoMakerError);
-            // 폴백: 기존 방식으로 진행
+            console.log(`[Storage] OpenAI GPT-Image-1로 폴백...`);
+            // OpenAI 폴백
           }
         }
         
-        // 기존 OpenAI 이미지 생성 API 사용 (PhotoMaker가 실패하거나 사용하지 않는 경우)
+        // 3. OpenAI 이미지 생성 API 사용 (PhotoMaker가 비활성화되었거나 실패한 경우)
         console.log(`[Storage] OpenAI 이미지 생성 API 사용...`);
         const imageBuffer = fs.readFileSync(filePath);
         const { transformImage } = await import('./services/openai-dalle3'); 
