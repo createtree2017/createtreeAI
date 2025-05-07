@@ -22,6 +22,9 @@ const PHOTOMAKER_VERSION = "ddfc2b08d209f9fa8c1eca692712918bd449f695dabb4a958da3
  * @param faceImagePath 사용자 얼굴 이미지 경로
  * @param referenceImagePath 레퍼런스 이미지 경로 (합성 대상)
  * @param style 적용할 스타일 (프롬프트에 사용)
+ * @param customPrompt 커스텀 프롬프트 (선택사항)
+ * @param customNegativePrompt 네거티브 프롬프트 (선택사항)
+ * @param customStrength 적용 강도 (선택사항, 기본값 1.0)
  */
 export async function mergeUserFaceWithReference(
   faceImagePath: string,
@@ -140,6 +143,11 @@ export async function mergeUserFaceWithReference(
 /**
  * 기존 프롬프트 기반 이미지 생성 함수
  * 단일 이미지만 입력으로 받아 스타일 변환
+ * @param imageFilePath 입력 이미지 경로
+ * @param style 적용할 스타일 (프롬프트에 사용)
+ * @param customPrompt 커스텀 프롬프트 (선택사항)
+ * @param customNegativePrompt 네거티브 프롬프트 (선택사항)
+ * @param customStrength 적용 강도 (선택사항, 기본값 1.0)
  */
 export async function generateStylizedImage(
   imageFilePath: string,

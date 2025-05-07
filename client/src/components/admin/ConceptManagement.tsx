@@ -561,6 +561,16 @@ export default function ConceptManagement() {
                         레퍼런스 이미지
                       </span>
                     )}
+                    {concept.photoMakerPrompt && concept.usePhotoMaker && (
+                      <span className="text-xs bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 px-2 py-1 rounded flex items-center">
+                        커스텀 프롬프트
+                      </span>
+                    )}
+                    {concept.photoMakerStrength && concept.photoMakerStrength !== "1.0" && concept.usePhotoMaker && (
+                      <span className="text-xs bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300 px-2 py-1 rounded flex items-center">
+                        강도: {concept.photoMakerStrength}
+                      </span>
+                    )}
                   </div>
                 </div>
               </CardContent>
