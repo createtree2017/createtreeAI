@@ -286,11 +286,11 @@ export const storage = {
             // 서비스 임포트 전
             console.log(`[디버깅] photo-maker.ts 파일 임포트 시도 시작`);
             
-            const photoMakerModule = await import('./services/photo-maker');
-            console.log(`[디버깅] photo-maker.ts 파일 임포트 성공:`, Object.keys(photoMakerModule));
+            // 이미 임포트된 photo-maker-fixed 모듈 사용
+            console.log(`[디버깅] photo-maker-fixed.ts 모듈을 이미 임포트함`);
             
-            const { generateStylizedImage } = photoMakerModule;
-            console.log(`[디버깅] generateStylizedImage 함수 접근 성공`);
+            // 이미 임포트된 generateStylizedImage 함수 사용
+            console.log(`[디버깅] 임포트된 generateStylizedImage 함수 사용`);
             
             const effectivePrompt = customPhotoMakerPrompt || prompt;
             console.log(`[Storage] PhotoMaker 사용 프롬프트: ${effectivePrompt.substring(0, 50)}...`);
