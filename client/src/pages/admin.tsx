@@ -2831,6 +2831,19 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
     // 문제 해결을 위한 디버깅 정보 추가
     console.log("Concept form values before submission:", values);
     console.log("SystemPrompt value:", values.systemPrompt);
+    
+    // 참조 이미지 URL이 있는지 확인하고 로그 출력
+    console.log("PhotoMaker 설정:", {
+      usePhotoMaker: values.usePhotoMaker,
+      referenceImageUrl: values.referenceImageUrl
+    });
+    
+    // 참조 이미지 URL이 폼에 없는 경우 확인 및, 상태값에서 추가
+    if (values.usePhotoMaker && !values.referenceImageUrl && referenceImageUrl) {
+      console.log("참조 이미지 URL을 상태에서 복구:", referenceImageUrl);
+      values.referenceImageUrl = referenceImageUrl;
+    }
+    
     submitMutation.mutate(values);
   }
   
