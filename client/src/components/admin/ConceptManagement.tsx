@@ -302,10 +302,15 @@ export default function ConceptManagement() {
               </div>
 
               <Tabs defaultValue="basic" className="w-full">
-                <TabsList className="w-full">
-                  <TabsTrigger value="basic" className="flex-1">기본 정보</TabsTrigger>
-                  <TabsTrigger value="photomaker" className="flex-1">PhotoMaker 모드</TabsTrigger>
-                  <TabsTrigger value="advanced" className="flex-1">고급 설정</TabsTrigger>
+                <TabsList className="w-full mb-2 bg-muted-foreground/5">
+                  <TabsTrigger value="basic" className="flex-1 font-semibold">기본 정보</TabsTrigger>
+                  <TabsTrigger value="photomaker" className="flex-1 font-semibold text-blue-600 dark:text-blue-400">
+                    <span className="flex items-center justify-center">
+                      <Image className="h-4 w-4 mr-1" />
+                      PhotoMaker 모드
+                    </span>
+                  </TabsTrigger>
+                  <TabsTrigger value="advanced" className="flex-1 font-semibold">고급 설정</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="basic" className="space-y-4">
@@ -435,10 +440,18 @@ export default function ConceptManagement() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {concepts.map((concept: Concept) => (
             <Card key={concept.conceptId} className="overflow-hidden">
-              <CardHeader className="p-4 pb-2">
+              <CardHeader className={`p-4 pb-2 ${concept.usePhotoMaker ? 'border-l-4 border-blue-500' : ''}`}>
                 <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle className="text-lg">{concept.title}</CardTitle>
+                    <CardTitle className="text-lg flex items-center">
+                      {concept.title}
+                      {concept.usePhotoMaker && (
+                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+                          <Image className="h-3 w-3 mr-1" />
+                          PhotoMaker
+                        </span>
+                      )}
+                    </CardTitle>
                     <CardDescription>{concept.conceptId}</CardDescription>
                   </div>
                   <div className="flex space-x-1">
@@ -477,15 +490,10 @@ export default function ConceptManagement() {
                         {categories.find((c: ConceptCategory) => c.categoryId === concept.categoryId)?.name || concept.categoryId}
                       </span>
                     )}
-                    {concept.usePhotoMaker && (
-                      <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
-                        PhotoMaker
-                      </span>
-                    )}
                     {concept.referenceImageUrl && (
                       <span className="text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded flex items-center">
                         <Image className="h-3 w-3 mr-1" />
-                        레퍼런스
+                        레퍼런스 이미지
                       </span>
                     )}
                   </div>
