@@ -27,7 +27,10 @@ export default function ConceptManagement() {
     thumbnailUrl: "",
     categoryId: "",
     usePhotoMaker: false,
-    referenceImageUrl: ""
+    referenceImageUrl: "",
+    photoMakerPrompt: "",
+    photoMakerNegativePrompt: "",
+    photoMakerStrength: "1.0"
   });
   
   const [editingConcept, setEditingConcept] = useState<Concept | null>(null);
@@ -166,7 +169,10 @@ export default function ConceptManagement() {
       thumbnailUrl: concept.thumbnailUrl || "",
       categoryId: concept.categoryId || "",
       usePhotoMaker: concept.usePhotoMaker || false,
-      referenceImageUrl: concept.referenceImageUrl || ""
+      referenceImageUrl: concept.referenceImageUrl || "",
+      photoMakerPrompt: concept.photoMakerPrompt || "",
+      photoMakerNegativePrompt: concept.photoMakerNegativePrompt || "",
+      photoMakerStrength: concept.photoMakerStrength || "1.0"
     });
     setConceptDialogOpen(true);
   };
@@ -201,7 +207,10 @@ export default function ConceptManagement() {
       thumbnailUrl: "",
       categoryId: "",
       usePhotoMaker: false,
-      referenceImageUrl: ""
+      referenceImageUrl: "",
+      photoMakerPrompt: "",
+      photoMakerNegativePrompt: "",
+      photoMakerStrength: "1.0"
     });
     setEditingConcept(null);
     setThumbnailFile(null);
@@ -389,6 +398,62 @@ export default function ConceptManagement() {
                           />
                         </div>
                       )}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2 mt-4 border-t pt-4">
+                    <h4 className="font-semibold">PhotoMaker 고급 설정</h4>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="photoMakerPrompt">커스텀 프롬프트 (선택사항)</Label>
+                      <Textarea
+                        id="photoMakerPrompt"
+                        placeholder="A beautiful high-quality portrait, preserving facial features, detailed, artistic"
+                        value={newConcept.photoMakerPrompt}
+                        onChange={(e) => setNewConcept({ ...newConcept, photoMakerPrompt: e.target.value })}
+                        rows={3}
+                        disabled={!newConcept.usePhotoMaker}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        PhotoMaker 모델에 전달할 커스텀 프롬프트입니다. 비워두면 기본값이 사용됩니다.
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="photoMakerNegativePrompt">네거티브 프롬프트 (선택사항)</Label>
+                      <Textarea
+                        id="photoMakerNegativePrompt"
+                        placeholder="ugly, blurry, bad anatomy, bad hands, text, error, missing fingers, extra digit, cropped"
+                        value={newConcept.photoMakerNegativePrompt}
+                        onChange={(e) => setNewConcept({ ...newConcept, photoMakerNegativePrompt: e.target.value })}
+                        rows={2}
+                        disabled={!newConcept.usePhotoMaker}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        이미지에 포함하지 않을 요소를 지정합니다. 비워두면 기본값이 사용됩니다.
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="photoMakerStrength">적용 강도</Label>
+                      <div className="flex items-center gap-4">
+                        <Input
+                          id="photoMakerStrength"
+                          type="range"
+                          min="0.1"
+                          max="1.0"
+                          step="0.1"
+                          value={newConcept.photoMakerStrength}
+                          onChange={(e) => setNewConcept({ ...newConcept, photoMakerStrength: e.target.value })}
+                          className="flex-1"
+                          disabled={!newConcept.usePhotoMaker}
+                        />
+                        <span className="w-16 text-center">{newConcept.photoMakerStrength}</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        스타일 적용 강도를 설정합니다. 값이
+                        높을수록 더 많은 스타일이 적용됩니다. (기본값: 1.0)
+                      </p>
                     </div>
                   </div>
                 </TabsContent>
