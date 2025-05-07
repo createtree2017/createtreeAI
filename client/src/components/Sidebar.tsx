@@ -283,20 +283,20 @@ export default function Sidebar({ collapsed = false }) {
         ))}
       </div>
       
-      {/* 음악 만들기 바로가기 */}
+      {/* 상태 - 로그인/로그아웃 */}
       <div className={`p-4 ${collapsed ? "flex justify-center" : "flex items-center justify-between"} border-t border-neutral-800`}>
         {!collapsed && (
           <div className="text-xs text-neutral-400">
-            추천 서비스
+            상태
           </div>
         )}
         <Link 
-          href="/music" 
+          href="/login" 
           className="text-neutral-400 hover:text-primary-lavender transition-colors flex items-center gap-2" 
-          aria-label="노래 만들기"
+          aria-label="로그인"
         >
-          {!collapsed && <span className="text-sm">노래 만들기</span>}
-          <Music2 size={collapsed ? 20 : 18} strokeWidth={1.5} />
+          {!collapsed && <span className="text-sm">로그인</span>}
+          <LogIn size={collapsed ? 20 : 18} strokeWidth={1.5} />
         </Link>
       </div>
     </aside>

@@ -375,26 +375,14 @@ export default function Image() {
     return category ? category.title : categoryId;
   };
 
-  // 페이지 이동 함수 추가
+  // Location hook 추가
   const [, navigate] = useLocation();
-  const goToMusicPage = () => {
-    navigate('/music');
-  };
 
   return (
     <div className="p-5 animate-fadeIn">
       <div className="text-center mb-6">
         <h2 className="font-heading font-bold text-2xl mb-2">AI 이미지 생성</h2>
         <p className="text-neutral-dark">임신 및 가족의 사진을 아름다운 추억으로 변환해 보세요</p>
-        <div className="mt-3">
-          <Button
-            onClick={goToMusicPage}
-            className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-md flex items-center gap-2"
-          >
-            <Music size={18} />
-            노래 만들기로 이동
-          </Button>
-        </div>
       </div>
       
       {/* 스타일 선택 다이얼로그 */}
