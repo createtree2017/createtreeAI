@@ -102,6 +102,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CheckCircle, Edit, PlusCircle, Trash2, X, Upload, Globe, ExternalLink, Download, PaintbrushVertical, Image as ImageIcon, Share2, Eye, RefreshCw, Plus, Loader2 } from "lucide-react";
@@ -172,8 +173,6 @@ const conceptSchema = z.object({
   photoMakerPrompt: z.string().optional(),
   photoMakerNegativePrompt: z.string().optional(),
   photoMakerStrength: z.number().min(0).max(1).default(0.8),
-  usePhotoMaker: z.boolean().default(false),
-  referenceImageUrl: z.string().optional(),
 });
 
 // Development Chat History Manager Component
@@ -2864,10 +2863,21 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
     });
   };
   
+  // 탭 관리를 위한 상태
+  const [activeTab, setActiveTab] = useState("main");
+  
+  
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+          <TabsList>
+            <TabsTrigger value="main">기본 설정</TabsTrigger>
+            <TabsTrigger value="photomaker">PhotoMaker 설정</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="main">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
             name="conceptId"
@@ -3283,6 +3293,175 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
             </div>
           )}
         </div>
+        
+          </TabsContent>
+          
+          <TabsContent value="photomaker">
+            <div className="space-y-6">
+              <div className="bg-blue-50 text-blue-800 p-4 rounded-md mb-4">
+                <h3 className="font-medium text-lg flex items-center">
+                  <Info className="h-5 w-5 mr-2" />
+                  PhotoMaker 모드 정보
+                </h3>
+                <p className="mt-2 text-sm">
+                  PhotoMaker 모드는 업로드된 사용자 사진에서 얼굴을 인식하여 참조 이미지에 합성하는 기능입니다. 
+                  이 모드를 활성화하면 일반 이미지 생성 대신 사용자의 얼굴이 참조 이미지 스타일로 합성됩니다.
+                </p>
+              </div>
+              
+              <FormField
+                control={form.control}
+                name="usePhotoMaker"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>PhotoMaker 모드 활성화</FormLabel>
+                      <p className="text-sm text-gray-500">
+                        사용자 사진의 얼굴을 인식하여 참조 이미지에 합성합니다.
+                      </p>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="referenceImageUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>참조 이미지</FormLabel>
+                    <div className="space-y-3">
+                      {field.value && (
+                        <div className="border rounded-md overflow-hidden w-60 h-60 relative">
+                          <img 
+                            src={field.value}
+                            alt="참조 이미지"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              console.error('Failed to load reference image:', field.value);
+                              e.currentTarget.src = 'https://placehold.co/400x400/F5F5F5/AAAAAA?text=No+Reference+Image';
+                            }}
+                          />
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-2 right-2 rounded-full w-6 h-6"
+                            onClick={() => {
+                              field.onChange("");
+                              setReferenceImageUrl(null);
+                            }}
+                            type="button"
+                          >
+                            <X size={12} />
+                          </Button>
+                        </div>
+                      )}
+                      
+                      <div className="flex flex-col space-y-2">
+                        <FormControl>
+                          <Input 
+                            placeholder="https://example.com/reference-image.jpg" 
+                            {...field} 
+                            value={field.value || ""}
+                          />
+                        </FormControl>
+                        <div className="text-sm text-muted-foreground">
+                          또는 참조 이미지 업로드:
+                        </div>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleReferenceImageUpload}
+                          disabled={uploadingReferenceImage}
+                        />
+                        {uploadingReferenceImage && (
+                          <div className="text-sm text-muted-foreground flex items-center">
+                            <span className="animate-spin mr-2">⏳</span>
+                            이미지 업로드 중...
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <FormDescription>
+                      이 이미지는 사용자 사진의 얼굴과 합성될 참조 이미지입니다. 높은 품질의 이미지를 사용하세요.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="photoMakerPrompt"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>PhotoMaker 프롬프트</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="합성 품질을 향상시키기 위한 추가 프롬프트를 입력하세요" 
+                        className="min-h-24" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      이 프롬프트는 PhotoMaker 모델에게 이미지 합성 시 추가적인 지시를 제공합니다.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="photoMakerNegativePrompt"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>PhotoMaker 네거티브 프롬프트</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="이미지에서 제외하고 싶은 요소를 설명하세요" 
+                        className="min-h-24" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      네거티브 프롬프트는 이미지에서 제외하고 싶은 요소를 지정합니다.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="photoMakerStrength"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>합성 강도: {field.value || 0.8}</FormLabel>
+                    <FormControl>
+                      <Slider
+                        defaultValue={[field.value || 0.8]}
+                        max={1}
+                        step={0.05}
+                        onValueChange={(values: number[]) => field.onChange(values[0])}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      합성 강도가 낮을수록 원본 참조 이미지에 가깝고, 높을수록 업로드된 얼굴 특징이 강조됩니다.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </TabsContent>
+        </Tabs>
         
         <div className="flex gap-2 justify-end">
           <Button type="submit" disabled={submitMutation.isPending}>
