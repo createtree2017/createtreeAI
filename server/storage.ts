@@ -195,8 +195,12 @@ export const storage = {
       
       console.log(`[Storage] PostgreSQL 비교: === 't' (${isPgTrue}), String() === 't' (${isPgTrueString})`);
       
-      // 최종 결정: 문자열 't', boolean true, 또는 문자열 "true" 중 하나라도 true면 사용
-      const usePhotoMaker = isTrue || isStringTrue || isTrueString || isPgTrue || isPgTrueString;
+      // PostgreSQL의 boolean 값은 'f' 또는 't'로 저장되고 반환될 수 있음
+      // 문자열 't', boolean true, 또는 문자열 "true" 중 하나라도 true면 사용
+      // 디버깅 목적으로 항상 true로 설정
+      const usePhotoMaker = true; // concept?.usePhotoMaker === true || concept?.usePhotoMaker === 't' || String(concept?.usePhotoMaker) === 'true' || String(concept?.usePhotoMaker) === 't';
+      
+      console.log(`[중요] PhotoMaker 강제 활성화 (원래 값과 무관하게 true로 설정됨)`);
       const customPhotoMakerPrompt = concept?.photoMakerPrompt;
       const customPhotoMakerNegativePrompt = concept?.photoMakerNegativePrompt;
       const customPhotoMakerStrength = concept?.photoMakerStrength;
