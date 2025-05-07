@@ -83,18 +83,17 @@ export default function Sidebar({ collapsed = false }) {
           new: true
         },
         {
-          path: '/music',
-          icon: Music2,
-          label: '노래 만들기',
-          ariaLabel: '노래 만들기 페이지',
+          path: '/family-photo',
+          icon: Image,
+          label: '가족사진',
+          ariaLabel: '가족사진 생성 페이지',
           new: true
         },
         {
-          path: '/chat',
-          icon: MessageCircle,
-          label: '쳇!베프티!',
-          ariaLabel: '쳇 베프티 페이지',
-          new: true
+          path: '/sticker',
+          icon: PaintBucket,
+          label: '스티커만들기',
+          ariaLabel: '스티커 만들기 페이지',
         },
       ]
     },
