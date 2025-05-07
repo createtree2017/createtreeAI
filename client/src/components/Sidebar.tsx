@@ -90,10 +90,11 @@ export default function Sidebar({ collapsed = false }) {
           new: true
         },
         {
-          path: '/sticker',
-          icon: PaintBucket,
-          label: '스티커만들기',
-          ariaLabel: '스티커 만들기 페이지',
+          path: '/chat',
+          icon: MessageCircle,
+          label: '쳇!베프티!',
+          ariaLabel: '쳇 베프티 페이지',
+          new: true
         },
       ]
     },
