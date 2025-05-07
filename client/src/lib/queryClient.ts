@@ -12,16 +12,22 @@ export async function apiRequest(
   options?: {
     method?: string;
     body?: string;
+    data?: any;
     headers?: Record<string, string>;
   },
 ): Promise<Response> {
+  // data가 있으면 JSON으로 직렬화하여 body에 넣음
+  const body = options?.data 
+    ? JSON.stringify(options.data)
+    : options?.body;
+
   const res = await fetch(url, {
     method: options?.method || "GET",
     headers: {
-      ...(options?.body ? { "Content-Type": "application/json" } : {}),
+      ...(body ? { "Content-Type": "application/json" } : {}),
       ...(options?.headers || {})
     },
-    body: options?.body,
+    body: body,
     credentials: "include",
   });
 

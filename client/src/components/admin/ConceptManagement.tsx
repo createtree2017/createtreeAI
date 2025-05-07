@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,13 +42,13 @@ export default function ConceptManagement() {
   const queryClient = useQueryClient();
 
   // 컨셉 카테고리 조회
-  const { data: categories, isLoading: isCategoriesLoading } = useQuery({
+  const { data: categories = [], isLoading: isCategoriesLoading } = useQuery<ConceptCategory[]>({
     queryKey: ['/api/concept-categories'],
     enabled: true
   });
 
   // 컨셉 목록 조회
-  const { data: concepts, isLoading: isConceptsLoading } = useQuery({
+  const { data: concepts = [], isLoading: isConceptsLoading } = useQuery<Concept[]>({
     queryKey: ['/api/concepts'],
     enabled: true
   });
@@ -320,7 +320,7 @@ export default function ConceptManagement() {
                       required
                     />
                     <p className="text-sm text-muted-foreground">
-                      {{object}}, {{style}}, {{mood}} 등의 변수를 사용할 수 있습니다.
+                      {"{object}"}, {"{style}"}, {"{mood}"} 등의 변수를 사용할 수 있습니다.
                     </p>
                   </div>
 
@@ -474,7 +474,7 @@ export default function ConceptManagement() {
                   <div className="flex flex-wrap gap-2">
                     {concept.categoryId && (
                       <span className="text-xs bg-secondary px-2 py-1 rounded">
-                        {categories?.find(c => c.categoryId === concept.categoryId)?.name || concept.categoryId}
+                        {categories.find((c: ConceptCategory) => c.categoryId === concept.categoryId)?.name || concept.categoryId}
                       </span>
                     )}
                     {concept.usePhotoMaker && (
