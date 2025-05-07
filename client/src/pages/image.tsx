@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/components/ui/file-upload";
 import { transformImage, downloadMedia, shareMedia, getActiveAbTest } from "@/lib/api";
 import { queryClient } from "@/lib/queryClient";
-import { PaintbrushVertical, Download, Share2, Eye, ChevronRight, X, CheckCircle2 } from "lucide-react";
+import { PaintbrushVertical, Download, Share2, Eye, ChevronRight, X, CheckCircle2, Music } from "lucide-react";
 import ABTestComparer from "@/components/ABTestComparer";
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
