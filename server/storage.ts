@@ -279,11 +279,23 @@ export const storage = {
         // 2. PhotoMaker 일반 변환 모드 (usePhotoMaker가 true이고 레퍼런스 이미지가 없거나 얼굴 합성에 실패한 경우)
         if (usePhotoMaker) {
           console.log(`[Storage] PhotoMaker 일반 이미지 변환 모드 시작...`);
+          console.log(`[Storage] 이미지 경로: ${filePath}, 존재여부: ${fs.existsSync(filePath)}`);
           
           try {
-            const { generateStylizedImage } = await import('./services/photo-maker');
+            // 서비스 임포트 전
+            console.log(`[디버깅] photo-maker.ts 파일 임포트 시도 시작`);
+            
+            const photoMakerModule = await import('./services/photo-maker');
+            console.log(`[디버깅] photo-maker.ts 파일 임포트 성공:`, Object.keys(photoMakerModule));
+            
+            const { generateStylizedImage } = photoMakerModule;
+            console.log(`[디버깅] generateStylizedImage 함수 접근 성공`);
+            
             const effectivePrompt = customPhotoMakerPrompt || prompt;
             console.log(`[Storage] PhotoMaker 사용 프롬프트: ${effectivePrompt.substring(0, 50)}...`);
+            
+            // 함수 호출 전
+            console.log(`[디버깅] generateStylizedImage 함수 호출 시작`);
             
             const transformedImagePath = await generateStylizedImage(
               filePath, 
@@ -293,13 +305,24 @@ export const storage = {
               customPhotoMakerStrength ? String(customPhotoMakerStrength) : undefined
             );
             
+            console.log(`[디버깅] generateStylizedImage 함수 호출 완료, 결과:`, transformedImagePath);
+            
             if (transformedImagePath && fs.existsSync(transformedImagePath)) {
               console.log(`[Storage] PhotoMaker 이미지 변환 성공 [이미지 데이터 로그 생략]`);
               const relativePath = transformedImagePath.replace(process.cwd(), '');
               return relativePath;
+            } else {
+              console.error(`[Storage] 생성된 이미지 경로가 유효하지 않음: ${transformedImagePath}`);
             }
           } catch (photoMakerError) {
             console.error(`[Storage] PhotoMaker 일반 변환 오류:`, photoMakerError);
+            console.error(`[Storage] 오류 세부 정보:`, photoMakerError.message);
+            if (photoMakerError.stack) {
+              console.error(`[Storage] 오류 스택:`, photoMakerError.stack);
+            }
+            if (photoMakerError.cause) {
+              console.error(`[Storage] 오류 원인:`, photoMakerError.cause);
+            }
             console.log(`[Storage] OpenAI GPT-Image-1로 폴백...`);
             // OpenAI 폴백
           }
