@@ -2,8 +2,6 @@
  * Simplified OpenAI Service 
  * DALL-E 3 이미지 생성을 위한 간소화된 서비스
  */
-import OpenAI from "openai";
-
 // OpenAI API 키
 const API_KEY = process.env.OPENAI_API_KEY;
 
@@ -12,10 +10,9 @@ function isValidApiKey(apiKey: string | undefined): boolean {
   return !!apiKey && (apiKey.startsWith('sk-') || apiKey.startsWith('sk-proj-'));
 }
 
-// 기본 OpenAI 클라이언트 생성
-const openai = new OpenAI({
-  apiKey: API_KEY,
-});
+// 임시 조치: OpenAI 클라이언트 없이 작동하도록 수정
+// OpenAI 모듈 임포트 오류가 해결될 때까지 대체 로직 사용
+console.log("OpenAI 클라이언트 생성을 건너뜁니다 - 임시 모드로 작동");
 
 // 서비스 불가능 상태 메시지
 const SERVICE_UNAVAILABLE = "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
@@ -31,36 +28,11 @@ export async function generateImage(promptText: string): Promise<string> {
       return SERVICE_UNAVAILABLE;
     }
 
-    console.log("DALL-E 3로 이미지 생성 시도");
+    console.log("DALL-E 3로 이미지 생성 시도 (임시 비활성화됨)");
     
-    try {
-      // OpenAI SDK를 사용한 이미지 생성
-      const response = await openai.images.generate({
-        model: "dall-e-3",
-        prompt: promptText,
-        n: 1,
-        size: "1024x1024",
-        quality: "standard"
-      });
-
-      // 응답 검증
-      if (!response.data || response.data.length === 0) {
-        console.error("이미지 데이터가 없습니다");
-        return SERVICE_UNAVAILABLE;
-      }
-      
-      const imageUrl = response.data[0]?.url;
-      if (!imageUrl) {
-        console.error("이미지 URL이 없습니다");
-        return SERVICE_UNAVAILABLE;
-      }
-      
-      console.log("DALL-E 3 이미지 생성 성공");
-      return imageUrl;
-    } catch (error) {
-      console.error("DALL-E 3 이미지 생성 실패:", error);
-      return SERVICE_UNAVAILABLE;
-    }
+    // 임시 함수: OpenAI 모듈 문제가 해결될 때까지 서비스 불가능 상태 반환
+    console.error("OpenAI 모듈 로딩 오류로 인해 이미지 생성 기능이 비활성화되었습니다");
+    return SERVICE_UNAVAILABLE;
   } catch (error) {
     console.error("이미지 생성 중 오류 발생:", error);
     return SERVICE_UNAVAILABLE;
