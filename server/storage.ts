@@ -176,14 +176,25 @@ export const storage = {
         console.log(`기본 프롬프트 사용: "${prompt}"`);
       }
       
+      // 콘셉트의 전체 데이터를 로그로 출력하여 디버깅
+      console.log(`[Storage] 콘셉트 전체 데이터:`, JSON.stringify(concept, null, 2));
+      
       // PhotoMaker 모드 확인 (개념이 존재하고 usePhotoMaker가 true인 경우)
+      console.log(`[Storage] usePhotoMaker 값 확인: ${concept?.usePhotoMaker} (타입: ${typeof concept?.usePhotoMaker})`);
+      
       const usePhotoMaker = concept?.usePhotoMaker === true;
       const customPhotoMakerPrompt = concept?.photoMakerPrompt;
       const customPhotoMakerNegativePrompt = concept?.photoMakerNegativePrompt;
       const customPhotoMakerStrength = concept?.photoMakerStrength;
       const hasReferenceImage = concept?.referenceImageUrl && concept.referenceImageUrl.trim() !== '';
       
+      console.log(`[Storage] 변환된 usePhotoMaker 최종값: ${usePhotoMaker} (참조 이미지 있음: ${hasReferenceImage})`);
+      
       try {
+        // 리플리케이트 API 토큰 확인 (길이만 출력)
+        const replicateToken = process.env.REPLICATE_API_TOKEN;
+        console.log(`[Storage] REPLICATE_API_TOKEN ${replicateToken ? `존재함 (길이: ${replicateToken.length})` : '없음'}`);
+        
         // PhotoMaker 사용 가능 여부 로깅
         if (usePhotoMaker) {
           console.log(`[Storage] PhotoMaker 모드 활성화됨 (우선 사용)`);
