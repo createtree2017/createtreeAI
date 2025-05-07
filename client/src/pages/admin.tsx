@@ -2760,9 +2760,9 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
     
     try {
       const formData = new FormData();
-      formData.append("reference", file);
+      formData.append("thumbnail", file);  // "reference"에서 "thumbnail"로 변경
       
-      // 동일한 API 엔드포인트를 사용하지만 다른 필드 이름으로 업로드
+      // 서버가 기대하는 필드명으로 업로드
       const response = await fetch("/api/admin/upload/thumbnail", {
         method: "POST",
         body: formData,
