@@ -2735,6 +2735,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Replicate API 테스트 엔드포인트 추가
+  app.get("/api/test-replicate", async (req, res) => {
+    try {
+      const { testReplicateAPI } = await import("./test-replicate");
+      console.log("Replicate API 테스트 요청 수신됨");
+      const result = await testReplicateAPI();
+      return res.json(result);
+    } catch (error) {
+      console.error("Replicate API 테스트 엔드포인트 오류:", error);
+      return res.status(500).json({ error: error.message || "알 수 없는 오류" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
