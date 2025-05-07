@@ -201,6 +201,14 @@ export const storage = {
       const usePhotoMaker = true; // concept?.usePhotoMaker === true || concept?.usePhotoMaker === 't' || String(concept?.usePhotoMaker) === 'true' || String(concept?.usePhotoMaker) === 't';
       
       console.log(`[중요] PhotoMaker 강제 활성화 (원래 값과 무관하게 true로 설정됨)`);
+      
+      // REPLICATE_API_TOKEN 환경 변수 확인
+      const replicateToken = process.env.REPLICATE_API_TOKEN;
+      if (!replicateToken) {
+        console.error('[심각] REPLICATE_API_TOKEN 환경 변수가 설정되지 않았습니다!');
+      } else {
+        console.log(`[확인] REPLICATE_API_TOKEN 환경 변수가 설정되어 있습니다. (길이: ${replicateToken.length})`);
+      }
       const customPhotoMakerPrompt = concept?.photoMakerPrompt;
       const customPhotoMakerNegativePrompt = concept?.photoMakerNegativePrompt;
       const customPhotoMakerStrength = concept?.photoMakerStrength;

@@ -197,9 +197,14 @@ export async function generateStylizedImage(
     console.log(`[PhotoMaker] 강도 설정: ${customStrength || '1.0'} (변환값: ${strengthRatio})`);
     
     // 모델 실행을 위한 파라미터 설정
+    // 스트림 대신 base64로 이미지 변환하여 전달
+    const imageBase64 = await readFileAsync(imageFilePath, { encoding: 'base64' });
+    
+    console.log(`[PhotoMaker] 이미지를 base64로 변환 완료 (길이: ${imageBase64.length})`);
+    
     const input = {
       prompt: prompt,
-      input_image: fs.createReadStream(imageFilePath),
+      input_image: `data:image/jpeg;base64,${imageBase64}`,
       style_name: "Photographic (Default)",
       style_strength_ratio: strengthRatio,
       num_steps: 30,
