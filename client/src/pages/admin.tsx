@@ -2457,6 +2457,7 @@ function ConceptManager() {
                 <TableHead>Title</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Variables</TableHead>
+                <TableHead>Model</TableHead>
                 <TableHead>Active</TableHead>
                 <TableHead>Featured</TableHead>
                 <TableHead>Actions</TableHead>
@@ -2509,6 +2510,17 @@ function ConceptManager() {
                         <Badge variant="outline">{concept.variables.length} vars</Badge>
                       ) : (
                         <Badge variant="outline">0 vars</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {concept.usePhotoMaker ? (
+                        <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200 border-purple-200">
+                          PhotoMaker
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 border-blue-200">
+                          DALL-E
+                        </Badge>
                       )}
                     </TableCell>
                     <TableCell>
