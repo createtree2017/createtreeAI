@@ -83,10 +83,10 @@ export default function Sidebar({ collapsed = false }) {
           new: true
         },
         {
-          path: '/family-photo',
-          icon: Image,
-          label: '가족사진',
-          ariaLabel: '가족사진 생성 페이지',
+          path: '/music',
+          icon: Music2,
+          label: '노래 만들기',
+          ariaLabel: '노래 만들기 페이지',
           new: true
         },
         {
