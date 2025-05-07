@@ -3356,8 +3356,6 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
                 </p>
               </div>
               
-
-              
               <FormField
                 control={form.control}
                 name="referenceImageUrl"
