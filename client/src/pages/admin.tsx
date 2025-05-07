@@ -3323,6 +3323,28 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
           
           <TabsContent value="photomaker">
             <div className="space-y-6">
+              <FormField
+                control={form.control}
+                name="usePhotoMaker"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        id="usePhotoMaker"
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel htmlFor="usePhotoMaker">PhotoMaker 모드 활성화</FormLabel>
+                      <p className="text-sm text-gray-500">
+                        이 옵션을 선택하면 이미지 생성에 DALL-E 대신 PhotoMaker 모델이 사용됩니다
+                      </p>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              
               <div className="bg-blue-50 text-blue-800 p-4 rounded-md mb-4">
                 <h3 className="font-medium text-lg flex items-center">
                   <Info className="h-5 w-5 mr-2" />
@@ -3334,26 +3356,7 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
                 </p>
               </div>
               
-              <FormField
-                control={form.control}
-                name="usePhotoMaker"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>PhotoMaker 모드 활성화</FormLabel>
-                      <p className="text-sm text-gray-500">
-                        사용자 사진의 얼굴을 인식하여 참조 이미지에 합성합니다.
-                      </p>
-                    </div>
-                  </FormItem>
-                )}
-              />
+
               
               <FormField
                 control={form.control}
