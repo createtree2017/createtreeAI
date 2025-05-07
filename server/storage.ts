@@ -3,6 +3,7 @@ import { music, images, chatMessages, favorites, savedChats, concepts, conceptCa
 import fs from "fs";
 import path from "path";
 import fetch from "node-fetch";
+import { mergeUserFaceWithReference, generateStylizedImage } from "./services/photo-maker-fixed";
 
 // 임시 이미지 저장을 위한 경로
 const TEMP_IMAGE_DIR = path.join(process.cwd(), 'uploads', 'temp');
@@ -251,8 +252,8 @@ export const storage = {
           // 파일 존재 확인
           if (fs.existsSync(refImagePath)) {
             try {
-              // photo-maker 서비스의 얼굴 합성 함수 호출
-              const { mergeUserFaceWithReference } = await import('./services/photo-maker');
+              // photo-maker-fixed 서비스의 얼굴 합성 함수 호출
+              // 이미 임포트된 함수 사용
               const transformedImagePath = await mergeUserFaceWithReference(
                 filePath, 
                 refImagePath, 
