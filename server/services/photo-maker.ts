@@ -72,8 +72,13 @@ export async function mergeUserFaceWithReference(
     const refImageBase64 = await readFileAsync(referenceImagePath, { encoding: 'base64' });
 
     // 커스텀 프롬프트 또는 기본값 사용
-    const prompt = customPrompt || 
+    let prompt = customPrompt || 
       `A beautiful high-quality portrait in ${style} style, preserving facial features, detailed, artistic`;
+    
+    // PhotoMaker 모델은 'img' 트리거 단어가 필요
+    if (!prompt.includes('img')) {
+      prompt = `img ${prompt}`;
+    }
     
     // 커스텀 네거티브 프롬프트 또는 기본값 사용
     const negativePrompt = customNegativePrompt || 
@@ -182,8 +187,14 @@ export async function generateStylizedImage(
     }
 
     // 기본 프롬프트 또는 커스텀 프롬프트 사용
-    const prompt = customPrompt || 
+    // PhotoMaker 모델은 'img' 트리거 단어가 필요
+    let prompt = customPrompt || 
       `A beautiful pregnant woman photo in ${style} style, preserving facial features, high quality, professional portrait`;
+    
+    // 항상 프롬프트 시작에 'img' 트리거 단어 추가
+    if (!prompt.includes('img')) {
+      prompt = `img ${prompt}`;
+    }
     
     // 커스텀 네거티브 프롬프트 또는 기본값 사용
     const negativePrompt = customNegativePrompt || 
@@ -220,16 +231,39 @@ export async function generateStylizedImage(
       { input }
     );
     
-    console.log(`[PhotoMaker] 응답 수신: ${typeof output}`);
+    console.log(`[PhotoMaker] 응답 수신: ${typeof output}, 값: ${JSON.stringify(output)}`);
     
-    if (!output || !Array.isArray(output) || output.length === 0) {
-      throw new Error(`유효하지 않은 Replicate API 응답: ${JSON.stringify(output)}`);
+    // Replicate API는 API 버전과 응답 형식에 따라 다양한 형태로 응답할 수 있음
+    let imageUrl;
+    
+    if (Array.isArray(output) && output.length > 0) {
+      // 배열 형태로 응답한 경우 (일반적인 형태)
+      imageUrl = output[0];
+      console.log(`[PhotoMaker] 배열 응답에서 첫 번째 URL 추출: ${imageUrl}`);
+    } else if (typeof output === 'object' && output !== null) {
+      // 객체 형태로 응답한 경우
+      if (output.output && Array.isArray(output.output) && output.output.length > 0) {
+        imageUrl = output.output[0];
+        console.log(`[PhotoMaker] 객체 응답의 output 배열에서 URL 추출: ${imageUrl}`);
+      } else if (output.url) {
+        imageUrl = output.url;
+        console.log(`[PhotoMaker] 객체 응답의 url 필드에서 URL 추출: ${imageUrl}`);
+      } else {
+        // 다른 필드 찾아보기
+        const possibleFields = ['image', 'result', 'images', 'generated_image'];
+        for (const field of possibleFields) {
+          if (output[field]) {
+            imageUrl = Array.isArray(output[field]) ? output[field][0] : output[field];
+            console.log(`[PhotoMaker] 객체 응답의 ${field} 필드에서 URL 추출: ${imageUrl}`);
+            break;
+          }
+        }
+      }
     }
-
-    // 결과 이미지 URL
-    const imageUrl = output[0];
+    
     if (!imageUrl || typeof imageUrl !== 'string') {
-      throw new Error(`유효하지 않은 이미지 URL: ${imageUrl}`);
+      console.error(`[PhotoMaker] 이미지 URL을 추출할 수 없음: ${JSON.stringify(output)}`);
+      throw new Error(`유효한 이미지 URL을 찾을 수 없습니다: ${JSON.stringify(output).substring(0, 100)}...`);
     }
 
     console.log(`[PhotoMaker] 생성된 이미지 URL: ${imageUrl.substring(0, 50)}...`);
