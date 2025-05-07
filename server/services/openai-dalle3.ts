@@ -7,7 +7,6 @@ import fetch from 'node-fetch';
 import fs from 'fs';
 import FormData from 'form-data';
 import path from 'path';
-import { Buffer } from 'buffer';
 
 // OpenAI API 키 - 환경 변수에서 가져옴
 const API_KEY = process.env.OPENAI_API_KEY;

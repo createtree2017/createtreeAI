@@ -20,7 +20,6 @@ import { getLanguage, loadTranslations, setLanguage, t } from "@/lib/i18n";
 import BannerManagement from "@/components/admin/BannerManagement";
 import StyleCardManagement from "@/components/admin/StyleCardManagement";
 import CategoryManagement from "@/components/admin/CategoryManagement";
-import ImageTemplateManagement from "@/components/admin/ImageTemplateManagement";
 import { 
   getLanguages, 
   uploadTranslations,
@@ -103,7 +102,6 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CheckCircle, Edit, PlusCircle, Trash2, X, Upload, Globe, ExternalLink, Download, PaintbrushVertical, Image as ImageIcon, Share2, Eye, RefreshCw, Plus, Loader2 } from "lucide-react";
@@ -155,11 +153,6 @@ const conceptSchema = z.object({
   promptTemplate: z.string().min(1, "Prompt template is required"),
   systemPrompt: z.string().optional(),  // 이미지 분석 및 변환을 위한 시스템 프롬프트 추가
   thumbnailUrl: z.string().optional(),
-  // 이미지 합성 관련 필드 추가
-  templateImageUrl: z.string().optional(),  // 이미지 합성용 템플릿 이미지 URL
-  isCompositeTemplate: z.boolean().default(false),  // 합성 템플릿 여부
-  compositePrompt: z.string().optional(),  // 합성에 사용할 프롬프트 (얼굴, 체형 등 특징 지정)
-  maskArea: z.any().optional(),  // 합성 시 마스킹 영역 정보 (JSON 형식)
   tagSuggestions: z.array(z.string()).optional().default([]),
   variables: z.array(z.object({
     name: z.string().min(1, "Variable name is required"),
@@ -651,7 +644,6 @@ export default function AdminPage() {
                 <TabsTrigger value="image-concepts">이미지 컨셉</TabsTrigger>
                 <TabsTrigger value="image-categories">이미지 카테고리</TabsTrigger>
                 <TabsTrigger value="image-gallery">이미지 갤러리</TabsTrigger>
-                <TabsTrigger value="image-templates">이미지 템플릿</TabsTrigger>
               </TabsList>
               
               <TabsContent value="image-concepts">
@@ -669,12 +661,6 @@ export default function AdminPage() {
               <TabsContent value="image-gallery">
                 <div className="mt-6">
                   <ImageGallery />
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="image-templates">
-                <div className="mt-6">
-                  <ImageTemplateManagement />
                 </div>
               </TabsContent>
             </Tabs>
@@ -2628,10 +2614,6 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
       promptTemplate: "",
       systemPrompt: "",
       thumbnailUrl: "",
-      templateImageUrl: "",
-      isCompositeTemplate: false,
-      compositePrompt: "",
-      maskArea: null,
       tagSuggestions: [],
       variables: [],
       categoryId: "",
@@ -2772,25 +2754,14 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
         });
       }
     },
-    onSuccess: async (data) => {
+    onSuccess: () => {
       toast({
         title: initialData ? "Concept updated" : "Concept created",
         description: initialData ? 
           "The concept has been updated successfully" : 
           "The concept has been created successfully",
       });
-      
-      // 캐시 무효화 및 강제 리로드
-      await queryClient.invalidateQueries({ queryKey: ["/api/admin/concepts"] });
-      
-      if (initialData) {
-        // 특정 개념 데이터 강제 리로드
-        await queryClient.refetchQueries({ 
-          queryKey: ["/api/admin/concepts"],
-          exact: true 
-        });
-      }
-      
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/concepts"] });
       onSuccess();
     },
     onError: (error) => {
@@ -2967,127 +2938,6 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
                     />
                   </div>
                 </div>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          {/* Image Composition Fields */}
-          <div className="col-span-1 md:col-span-2 mt-4 mb-2">
-            <Separator />
-            <h3 className="text-lg font-medium mt-4 mb-2">이미지 합성 설정</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              사용자 이미지에 템플릿을 합성할 때 필요한 설정입니다. 템플릿 이미지를 업로드하고 합성 방식을 설정하세요.
-            </p>
-          </div>
-          
-          <FormField
-            control={form.control}
-            name="isCompositeTemplate"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                <FormControl>
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel>이미지 합성 사용</FormLabel>
-                  <FormDescription>
-                    이 옵션을 켜면 사용자 이미지와 템플릿 이미지를 합성하여 결과물을 생성합니다.
-                  </FormDescription>
-                </div>
-              </FormItem>
-            )}
-          />
-          
-          <FormField
-            control={form.control}
-            name="templateImageUrl"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>템플릿 이미지</FormLabel>
-                <div className="space-y-3">
-                  {field.value && (
-                    <div className="border rounded-md overflow-hidden w-32 h-32 relative">
-                      <img 
-                        src={field.value.startsWith('http') ? field.value : field.value}
-                        alt="Template image"
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          console.error('Failed to load image:', field.value);
-                          e.currentTarget.src = 'https://placehold.co/200x200/F5F5F5/AAAAAA?text=Template+Image+Error';
-                        }}
-                      />
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-1 right-1 rounded-full w-6 h-6"
-                        onClick={() => field.onChange("")}
-                        type="button"
-                      >
-                        <X size={12} />
-                      </Button>
-                    </div>
-                  )}
-                  
-                  <div className="flex flex-col space-y-2">
-                    <FormControl>
-                      <Input 
-                        placeholder="https://example.com/template.jpg" 
-                        {...field} 
-                        value={field.value || ""}
-                      />
-                    </FormControl>
-                    <div className="text-sm text-muted-foreground">
-                      템플릿 이미지 업로드:
-                    </div>
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          try {
-                            const result = await uploadThumbnail(file);
-                            if (result.url) {
-                              field.onChange(result.url);
-                            }
-                          } catch (error) {
-                            toast({
-                              title: "업로드 실패",
-                              description: error instanceof Error ? error.message : "이미지 업로드 실패",
-                              variant: "destructive"
-                            });
-                          }
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          <FormField
-            control={form.control}
-            name="compositePrompt"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>합성 프롬프트</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="합성할 특징을 설명하세요 (예: 얼굴만 템플릿에서 가져오기, 배경만 합성하기 등)"
-                    className="min-h-20"
-                    {...field}
-                    value={field.value || ""}
-                  />
-                </FormControl>
-                <FormDescription>
-                  사용자 이미지와 템플릿 이미지를 어떻게 합성할지 설명하는 프롬프트입니다.
-                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}

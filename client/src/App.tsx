@@ -11,7 +11,6 @@ import Chat from "@/pages/chat";
 import Gallery from "@/pages/gallery";
 import Admin from "@/pages/admin";
 import Milestones from "@/pages/milestones";
-import CompositeImage from "@/pages/CompositeImage";
 import BottomNavigation from "@/components/BottomNavigation";
 import Sidebar from "@/components/Sidebar";
 import { useMobile } from "./hooks/use-mobile";
@@ -202,11 +201,6 @@ function Router() {
       <Route path="/milestones" component={() => (
         <Layout>
           <Milestones />
-        </Layout>
-      )} />
-      <Route path="/composite-image" component={() => (
-        <Layout>
-          <CompositeImage />
         </Layout>
       )} />
       <Route component={NotFound} />

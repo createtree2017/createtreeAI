@@ -1,5 +1,5 @@
 import { db } from "@db";
-import { music, images, chatMessages, favorites, savedChats, imageTemplates, eq, desc, and, asc } from "@shared/schema";
+import { music, images, chatMessages, favorites, savedChats, eq, desc, and } from "@shared/schema";
 import fs from "fs";
 import path from "path";
 import fetch from "node-fetch";
@@ -7,25 +7,8 @@ import fetch from "node-fetch";
 // 임시 이미지 저장을 위한 경로
 const TEMP_IMAGE_DIR = path.join(process.cwd(), 'uploads', 'temp');
 
-// 파일 경로를 웹 접근 가능한 URL로 변환하는 함수
-function convertPathToUrl(filePath: string): string {
-  // 기본 디렉토리 경로 제거
-  const basePath = process.cwd();
-  let relativePath = filePath.replace(basePath, '');
-  
-  // 경로 구분자를 웹에서 사용하는 슬래시(/)로 변경
-  relativePath = relativePath.replace(/\\/g, '/');
-  
-  // 맨 앞에 슬래시가 없으면 추가
-  if (!relativePath.startsWith('/')) {
-    relativePath = '/' + relativePath;
-  }
-  
-  return relativePath;
-}
-
 // 임시 이미지를 파일로 저장하고 URL 경로를 반환하는 함수
-async function saveTemporaryImage(imageUrl: string, title: string): Promise<{ localPath: string, webUrl: string }> {
+async function saveTemporaryImage(imageUrl: string, title: string): Promise<string> {
   try {
     // 임시 디렉토리가 없으면 생성
     if (!fs.existsSync(TEMP_IMAGE_DIR)) {
@@ -42,10 +25,7 @@ async function saveTemporaryImage(imageUrl: string, title: string): Promise<{ lo
       const base64Data = imageUrl.split(',')[1];
       fs.writeFileSync(filepath, Buffer.from(base64Data, 'base64'));
       console.log(`임시 이미지가 로컬에 저장되었습니다: ${filepath}`);
-      
-      // 웹 접근 가능한 URL로 변환
-      const webUrl = convertPathToUrl(filepath);
-      return { localPath: filepath, webUrl };
+      return filepath;
     } 
     // 일반 URL인 경우
     else {
@@ -67,20 +47,14 @@ async function saveTemporaryImage(imageUrl: string, title: string): Promise<{ lo
         const arrayBuffer = await response.arrayBuffer();
         fs.writeFileSync(filepath, Buffer.from(arrayBuffer));
         console.log(`임시 이미지가 로컬에 저장되었습니다: ${filepath} (크기: ${Buffer.from(arrayBuffer).length} 바이트)`);
-        
-        // 웹 접근 가능한 URL로 변환
-        const webUrl = convertPathToUrl(filepath);
-        return { localPath: filepath, webUrl };
+        return filepath;
       } catch (fetchError) {
         console.error(`이미지 다운로드 중 오류 발생 (${url}):`, fetchError);
         
         // 다운로드 실패 시 빈 파일이라도 생성 (나중에 처리)
         fs.writeFileSync(filepath, Buffer.from(''));
         console.warn(`빈 임시 파일 생성됨: ${filepath} - 이후 다운로드 재시도 필요`);
-        
-        // 웹 접근 가능한 URL로 변환
-        const webUrl = convertPathToUrl(filepath);
-        return { localPath: filepath, webUrl };
+        return filepath;
       }
     }
   } catch (error) {
@@ -92,261 +66,8 @@ async function saveTemporaryImage(imageUrl: string, title: string): Promise<{ lo
 export const storage = {
   // 임시 이미지 관련 함수들
   async saveTemporaryImage(imageUrl: string, title: string) {
-    const { localPath, webUrl } = await saveTemporaryImage(imageUrl, title);
-    return { localPath, webUrl, filename: path.basename(localPath) };
-  },
-  
-  // 이미지 템플릿 관련 함수들
-  async createImageTemplate(templateData: {
-    title: string;
-    description: string | null;
-    templateImageUrl: string;
-    templateType: string;
-    promptTemplate: string;
-    maskArea?: any;
-    thumbnailUrl?: string;
-    categoryId?: string;
-    isActive?: boolean;
-    isFeatured?: boolean;
-    sortOrder?: number;
-  }) {
-    try {
-      console.log(`[Storage] 이미지 템플릿 생성 시작: "${templateData.title}"`);
-      
-      // 로컬에 템플릿 이미지 저장
-      const { localPath, webUrl } = await this.saveTemporaryImage(
-        templateData.templateImageUrl,
-        `template_${templateData.title.replace(/\s+/g, '_')}`
-      );
-      
-      // 썸네일이 제공되지 않은 경우 템플릿 이미지를 썸네일로 사용
-      if (!templateData.thumbnailUrl) {
-        templateData.thumbnailUrl = webUrl;
-      }
-      
-      const [savedTemplate] = await db
-        .insert(imageTemplates)
-        .values({
-          title: templateData.title,
-          description: templateData.description,
-          templateImageUrl: webUrl,
-          templateType: templateData.templateType,
-          promptTemplate: templateData.promptTemplate,
-          maskArea: templateData.maskArea ? templateData.maskArea : null,
-          thumbnailUrl: templateData.thumbnailUrl,
-          // categoryId가 null이거나 빈 문자열이면 명시적으로 null로 설정
-          categoryId: templateData.categoryId && templateData.categoryId !== "" ? templateData.categoryId : null,
-          isActive: templateData.isActive !== undefined ? templateData.isActive : true,
-          isFeatured: templateData.isFeatured !== undefined ? templateData.isFeatured : false,
-          sortOrder: templateData.sortOrder !== undefined ? templateData.sortOrder : 0,
-        })
-        .returning();
-      
-      console.log(`[Storage] 이미지 템플릿 생성 완료: ID ${savedTemplate.id}, 타이틀: "${savedTemplate.title}"`);
-      return savedTemplate;
-    } catch (error) {
-      console.error(`[Storage] 이미지 템플릿 생성 중 오류 발생:`, error);
-      throw error;
-    }
-  },
-  
-  async getImageTemplateList() {
-    try {
-      const templates = await db.query.imageTemplates.findMany({
-        orderBy: [asc(imageTemplates.sortOrder), desc(imageTemplates.createdAt)],
-      });
-      
-      if (templates.length > 0) {
-        console.log(`이미지 템플릿 ${templates.length}개 조회됨`);
-      } else {
-        console.log('저장된 이미지 템플릿이 없습니다.');
-      }
-      
-      return templates;
-    } catch (error) {
-      console.error("이미지 템플릿 조회 중 오류:", error);
-      return [];
-    }
-  },
-  
-  async getImageTemplateById(id: number) {
-    try {
-      const template = await db.query.imageTemplates.findFirst({
-        where: eq(imageTemplates.id, id),
-      });
-      
-      if (!template) {
-        console.log(`ID ${id}의 이미지 템플릿이 존재하지 않습니다.`);
-        return null;
-      }
-      
-      return template;
-    } catch (error) {
-      console.error(`ID ${id}의 이미지 템플릿 조회 중 오류:`, error);
-      return null;
-    }
-  },
-  
-  async updateImageTemplate(id: number, updateData: Partial<typeof imageTemplates.$inferInsert>) {
-    try {
-      console.log(`[Storage] 이미지 템플릿 업데이트 시작: ID ${id}`);
-      
-      // 기존 템플릿 확인
-      const existingTemplate = await this.getImageTemplateById(id);
-      if (!existingTemplate) {
-        throw new Error(`ID ${id}의 이미지 템플릿이 존재하지 않습니다.`);
-      }
-      
-      // templateImageUrl이 변경된 경우 새 이미지 저장
-      if (updateData.templateImageUrl && updateData.templateImageUrl !== existingTemplate.templateImageUrl) {
-        const { localPath, webUrl } = await this.saveTemporaryImage(
-          updateData.templateImageUrl,
-          `template_${(updateData.title || existingTemplate.title).replace(/\s+/g, '_')}`
-        );
-        updateData.templateImageUrl = webUrl;
-      }
-      
-      // categoryId가 null이거나 빈 문자열이면 명시적으로 null로 설정
-      if (updateData.categoryId === "" || (typeof updateData.categoryId === 'string' && updateData.categoryId.trim() === "")) {
-        updateData.categoryId = null;
-      }
-      
-      const [updatedTemplate] = await db
-        .update(imageTemplates)
-        .set(updateData)
-        .where(eq(imageTemplates.id, id))
-        .returning();
-      
-      console.log(`[Storage] 이미지 템플릿 업데이트 완료: ID ${updatedTemplate.id}`);
-      return updatedTemplate;
-    } catch (error) {
-      console.error(`[Storage] 이미지 템플릿 업데이트 중 오류 발생:`, error);
-      throw error;
-    }
-  },
-  
-  async deleteImageTemplate(id: number) {
-    try {
-      console.log(`[Storage] 이미지 템플릿 삭제 시작: ID ${id}`);
-      
-      // 삭제 전 템플릿 정보 가져오기
-      const template = await this.getImageTemplateById(id);
-      if (!template) {
-        throw new Error(`ID ${id}의 이미지 템플릿이 존재하지 않습니다.`);
-      }
-      
-      // 템플릿 삭제
-      await db
-        .delete(imageTemplates)
-        .where(eq(imageTemplates.id, id));
-      
-      console.log(`[Storage] 이미지 템플릿 삭제 완료: ID ${id}`);
-      return { success: true, id };
-    } catch (error) {
-      console.error(`[Storage] 이미지 템플릿 삭제 중 오류 발생:`, error);
-      throw error;
-    }
-  },
-  
-  async compositeImageWithTemplate(userImagePath: string, templateId: number) {
-    try {
-      console.log(`[Storage] 이미지 합성 시작: 템플릿 ID ${templateId}`);
-      
-      // 템플릿 정보 가져오기
-      const template = await this.getImageTemplateById(templateId);
-      if (!template) {
-        throw new Error(`ID ${templateId}의 이미지 템플릿이 존재하지 않습니다.`);
-      }
-      
-      // 사용자 이미지 읽기
-      const userImageBuffer = fs.readFileSync(userImagePath);
-      
-      // 템플릿 이미지 읽기
-      // templateImageUrl이 웹 URL 형식이면 파일 시스템 경로로 변환
-      const templatePath = template.templateImageUrl.startsWith('/') 
-        ? path.join(process.cwd(), template.templateImageUrl.substring(1)) 
-        : template.templateImageUrl;
-      const templateImageBuffer = fs.readFileSync(templatePath);
-      
-      console.log(`[Storage] 템플릿 및 사용자 이미지 로드 완료, OpenAI API 호출 준비`);
-      
-      // 템플릿 프롬프트 처리
-      let prompt = template.promptTemplate;
-      
-      // OpenAI API를 통한 이미지 합성
-      const { compositeImages } = await import('./services/openai-composite');
-      const compositedImageUrl = await compositeImages(
-        userImageBuffer,
-        templateImageBuffer,
-        template.templateType,
-        prompt,
-        template.maskArea
-      );
-      
-      if (!compositedImageUrl.includes("placehold.co")) {
-        console.log(`[Storage] 이미지 합성 성공`);
-        return compositedImageUrl;
-      } else {
-        console.log(`[Storage] 이미지 합성 실패`);
-        return "https://placehold.co/1024x1024/A7C1E2/FFF?text=이미지+합성+실패.+다시+시도해+주세요.";
-      }
-    } catch (error) {
-      console.error(`[Storage] 이미지 합성 중 오류 발생:`, error);
-      return "https://placehold.co/1024x1024/A7C1E2/FFF?text=이미지+합성+서비스+오류.+다시+시도해+주세요.";
-    }
-  },
-  
-  async saveCompositedImage(
-    originalFilename: string,
-    templateId: number,
-    originalPath: string,
-    compositedUrl: string,
-    facePositions?: any
-  ) {
-    try {
-      // 템플릿 정보 가져오기
-      const template = await this.getImageTemplateById(templateId);
-      if (!template) {
-        throw new Error(`ID ${templateId}의 이미지 템플릿이 존재하지 않습니다.`);
-      }
-      
-      // 파일명에서 확장자 제거
-      const nameWithoutExt = path.basename(
-        originalFilename,
-        path.extname(originalFilename)
-      );
-      
-      // 제목 생성
-      const title = `${template.title} ${nameWithoutExt}`;
-      
-      // 메타데이터 생성
-      const metadata: Record<string, any> = {
-        templateTitle: template.title,
-        templateType: template.templateType
-      };
-      
-      console.log(`[Storage] 합성 이미지 저장 시작: "${title}", 템플릿: ${template.title}`);
-      
-      const [savedImage] = await db
-        .insert(images)
-        .values({
-          title,
-          style: template.title, // 스타일에 템플릿 제목 사용
-          originalUrl: originalPath,
-          transformedUrl: compositedUrl,
-          isComposite: true,
-          templateId: templateId,
-          facePositions: facePositions,
-          metadata: JSON.stringify(metadata),
-        })
-        .returning();
-      
-      console.log(`[Storage] 합성 이미지 저장 완료: ID ${savedImage.id}, 타이틀: "${savedImage.title}"`);
-      return savedImage;
-    } catch (error) {
-      console.error(`[Storage] 합성 이미지 저장 중 오류 발생:`, error);
-      throw error;
-    }
+    const localPath = await saveTemporaryImage(imageUrl, title);
+    return { localPath, filename: path.basename(localPath) };
   },
   
   // Music related functions
@@ -476,13 +197,7 @@ export const storage = {
     originalPath: string,
     transformedUrl: string,
     variantId?: string | null,
-    additionalInfo?: {
-      isComposite?: boolean;
-      templateType?: string;
-      compositePrompt?: string;
-      maskArea?: string | null;
-      aspectRatio?: string;
-    }
+    aspectRatio?: string | null
   ) {
     // Extract name without extension
     const nameWithoutExt = path.basename(
@@ -490,29 +205,16 @@ export const storage = {
       path.extname(originalFilename)
     );
     
-    // Create a title (합성 이미지인 경우 접두사 추가)
-    let title = `${style.charAt(0).toUpperCase() + style.slice(1)} ${nameWithoutExt}`;
-    if (additionalInfo?.isComposite) {
-      const templateType = additionalInfo.templateType || 'blend';
-      title = `합성_${templateType}_${nameWithoutExt}`;
-    }
+    // Create a title
+    const title = `${style.charAt(0).toUpperCase() + style.slice(1)} ${nameWithoutExt}`;
     
-    // 메타데이터에 추가 정보 저장
+    // Include the variant ID and aspectRatio if they exist
     const metadata: Record<string, any> = {};
     if (variantId) metadata.variantId = variantId;
-    
-    // 합성 이미지 관련 메타데이터 추가
-    if (additionalInfo) {
-      if (additionalInfo.isComposite) metadata.isComposite = true;
-      if (additionalInfo.templateType) metadata.templateType = additionalInfo.templateType;
-      if (additionalInfo.compositePrompt) metadata.compositePrompt = additionalInfo.compositePrompt;
-      if (additionalInfo.maskArea) metadata.maskArea = additionalInfo.maskArea;
-      if (additionalInfo.aspectRatio) metadata.aspectRatio = additionalInfo.aspectRatio;
-    }
+    if (aspectRatio) metadata.aspectRatio = aspectRatio;
     
     try {
-      const logType = additionalInfo?.isComposite ? "합성 이미지" : "변환 이미지";
-      console.log(`[Storage] 새 ${logType} 저장 시작: "${title}", 스타일: ${style}`);
+      console.log(`[Storage] 새 이미지 저장 시작: "${title}", 스타일: ${style}`);
       
       const [savedImage] = await db
         .insert(images)
@@ -525,7 +227,7 @@ export const storage = {
         })
         .returning();
       
-      console.log(`[Storage] ${logType} 저장 완료: ID ${savedImage.id}, 타이틀: "${savedImage.title}"`);
+      console.log(`[Storage] 이미지 저장 완료: ID ${savedImage.id}, 타이틀: "${savedImage.title}"`);
       return savedImage;
     } catch (error) {
       console.error(`[Storage] 이미지 저장 중 오류 발생:`, error);

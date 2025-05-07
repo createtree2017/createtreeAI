@@ -8,37 +8,25 @@ async function throwIfResNotOk(res: Response) {
 }
 
 export async function apiRequest(
-  options: {
-    url: string;
+  url: string,
+  options?: {
     method?: string;
-    data?: any;
+    body?: string;
     headers?: Record<string, string>;
   },
-): Promise<any> {
-  const res = await fetch(options.url, {
-    method: options.method || "GET",
+): Promise<Response> {
+  const res = await fetch(url, {
+    method: options?.method || "GET",
     headers: {
-      ...(options.data ? { "Content-Type": "application/json" } : {}),
-      ...(options.headers || {})
+      ...(options?.body ? { "Content-Type": "application/json" } : {}),
+      ...(options?.headers || {})
     },
-    body: options.data ? JSON.stringify(options.data) : undefined,
+    body: options?.body,
     credentials: "include",
   });
 
   await throwIfResNotOk(res);
-  
-  // 빈 응답인 경우 (예: 204 No Content) null 반환
-  if (res.status === 204 || res.headers.get("content-length") === "0") {
-    return null;
-  }
-  
-  // JSON 응답이 아닌 경우 응답 그대로 반환
-  const contentType = res.headers.get("content-type");
-  if (!contentType || !contentType.includes("application/json")) {
-    return res;
-  }
-  
-  return res.json();
+  return res;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";

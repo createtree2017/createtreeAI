@@ -22,8 +22,6 @@ declare module 'express-session' {
       localFilePath?: string; // 로컬 파일 시스템 경로 추가
       aspectRatio?: string; // 이미지 종횡비 추가
       dbImageId?: number; // 실제 DB에 저장된 ID도 추가
-      isComposite?: boolean; // 이미지 합성 여부
-      templateType?: string; // 템플릿 타입 (blend, frame, background 등)
     };
   }
 }
@@ -85,7 +83,7 @@ const storage2 = multer.diskStorage({
 
 const upload = multer({
   storage: storage2,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit (increased from 10MB)
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   fileFilter: (req, file, cb) => {
     const allowedTypes = ["image/jpeg", "image/png", "image/heic"];
     if (!allowedTypes.includes(file.mimetype)) {
@@ -205,11 +203,6 @@ const conceptSchema = z.object({
   promptTemplate: z.string().min(1, "Prompt template is required"),
   systemPrompt: z.string().optional(), // GPT-4o 이미지 분석 지침 필드 추가
   thumbnailUrl: z.string().optional(),
-  // 이미지 합성 관련 필드 추가
-  templateImageUrl: z.string().optional(),
-  isCompositeTemplate: z.boolean().optional().default(false),
-  compositePrompt: z.string().optional(),
-  maskArea: z.any().optional(), // JSON 데이터를 위한 any 타입
   tagSuggestions: z.array(z.string()).optional(),
   variables: z.array(
     z.object({
@@ -392,11 +385,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const variantId = req.body.variant;
       let promptTemplate = null;
       let categorySystemPrompt = null;  // 변수 미리 정의 (scope 문제 해결)
-
-      // 이미지 합성 엔드포인트인지 확인
-      if (req.body.isCompositeImage === "true") {
-        return res.status(400).json({ error: "이미지 합성은 /api/composite-image 엔드포인트를 사용해주세요" });
-      }
       
       if (variantId) {
         // Get the active test for this concept/style
@@ -575,159 +563,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Image generation endpoint (using OpenAI DALL-E)
-  // 이미지 합성 API 엔드포인트
-  app.post("/api/composite-image", upload.fields([
-    { name: "userImage", maxCount: 1 },
-    { name: "templateImage", maxCount: 1 }
-  ]), async (req, res) => {
-    try {
-      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-      
-      // 필수 파일 및 파라미터 확인
-      if (!files.userImage || !files.userImage[0]) {
-        return res.status(400).json({ error: "사용자 이미지가 누락되었습니다" });
-      }
-      
-      let templateImageBuffer: Buffer;
-      let templateId: string | null = null;
-      
-      // 템플릿 ID 또는 직접 이미지 업로드 확인
-      if (req.body.templateId) {
-        templateId = req.body.templateId;
-        // 데이터베이스에서 템플릿 이미지 정보 조회
-        const concept = await db.query.concepts.findFirst({
-          where: eq(concepts.conceptId, templateId)
-        });
-        
-        if (!concept || !concept.templateImageUrl) {
-          return res.status(404).json({ error: "템플릿 이미지를 찾을 수 없습니다" });
-        }
-        
-        // 템플릿 이미지 URL에서 파일 경로 추출
-        const templatePath = concept.templateImageUrl.startsWith('/uploads/')
-          ? path.join(process.cwd(), concept.templateImageUrl)
-          : concept.templateImageUrl;
-        
-        try {
-          // 로컬 파일인 경우 읽기 시도
-          if (fs.existsSync(templatePath)) {
-            templateImageBuffer = fs.readFileSync(templatePath);
-          } else {
-            // URL인 경우 다운로드 시도
-            const response = await fetch(concept.templateImageUrl);
-            if (!response.ok) throw new Error("템플릿 이미지 다운로드 실패");
-            templateImageBuffer = Buffer.from(await response.arrayBuffer());
-          }
-        } catch (err) {
-          console.error("템플릿 이미지 로드 오류:", err);
-          return res.status(500).json({ error: "템플릿 이미지를 로드할 수 없습니다" });
-        }
-      } 
-      else if (files.templateImage && files.templateImage[0]) {
-        // 템플릿 이미지가 직접 업로드된 경우
-        templateImageBuffer = fs.readFileSync(files.templateImage[0].path);
-      } 
-      else {
-        return res.status(400).json({ error: "템플릿 이미지 또는 템플릿 ID가 필요합니다" });
-      }
-      
-      // 사용자 이미지 준비
-      const userImageBuffer = fs.readFileSync(files.userImage[0].path);
-      
-      // 템플릿 타입 (배경, 프레임, 오버레이 등) 및 합성 프롬프트 설정
-      const templateType = req.body.templateType || "blend";
-      const prompt = req.body.prompt || "";
-      
-      // 마스크 영역 정보 가져오기 (있는 경우)
-      const maskArea = req.body.maskArea || null;
-      
-      // OpenAI 합성 서비스 호출
-      const { compositeImages } = await import('./services/openai-composite');
-      const compositeImageUrl = await compositeImages(
-        userImageBuffer,
-        templateImageBuffer,
-        templateType,
-        prompt,
-        maskArea
-      );
-      
-      // 결과 저장 및 응답
-      let savedImage;
-      try {
-        // 이미지 저장 처리
-        const fileName = path.basename(files.userImage[0].originalname, path.extname(files.userImage[0].originalname));
-        const title = `합성이미지_${templateType}_${fileName}`;
-        
-        // 데이터베이스에 저장
-        const dbSavedImage = await storage.saveImageTransformation(
-          files.userImage[0].originalname,
-          templateId || "custom_composite",
-          files.userImage[0].path,
-          compositeImageUrl,
-          null,
-          { 
-            isComposite: true,
-            templateType,
-            compositePrompt: prompt,
-            maskArea: maskArea ? JSON.stringify(maskArea) : null
-          }
-        );
-        
-        // 관리자 요청 확인
-        const isAdmin = req.query.admin === 'true' || req.headers['x-admin-request'] === 'true';
-        
-        if (isAdmin) {
-          // 관리자는 DB 저장 이미지 직접 반환
-          savedImage = dbSavedImage;
-          console.log(`관리자 요청: 합성 이미지 DB 저장 완료 (ID: ${dbSavedImage.id})`);
-        } else {
-          // 일반 사용자 요청은 임시 객체로 응답
-          const tempImageResult = await storage.saveTemporaryImage(compositeImageUrl, title);
-          
-          savedImage = {
-            id: -1,
-            title,
-            style: templateId || "custom_composite",
-            originalUrl: files.userImage[0].path,
-            transformedUrl: `/uploads/temp/${tempImageResult.filename}`,
-            localFilePath: tempImageResult.localPath,
-            createdAt: new Date().toISOString(),
-            isTemporary: true,
-            dbImageId: dbSavedImage.id,
-            isComposite: true,
-            templateType
-          };
-          
-          if (req.session) {
-            req.session.tempImage = savedImage;
-          }
-        }
-      } catch (err) {
-        console.error("합성 이미지 저장 중 오류:", err);
-        // 오류 발생해도 최소한의 응답 보내기
-        savedImage = {
-          id: -1,
-          title: `합성이미지_${templateType}`,
-          style: templateId || "custom_composite",
-          originalUrl: files.userImage[0].path,
-          transformedUrl: compositeImageUrl,
-          createdAt: new Date().toISOString(),
-          isTemporary: true,
-          isComposite: true,
-          templateType
-        };
-      }
-      
-      return res.status(201).json(savedImage);
-    } catch (error) {
-      console.error("이미지 합성 중 오류:", error);
-      return res.status(500).json({ 
-        error: "이미지 합성 실패", 
-        message: error instanceof Error ? error.message : String(error) 
-      });
-    }
-  });
-
   app.post("/api/generate-image", async (req, res) => {
     try {
       const validatedData = imageGenerationSchema.parse(req.body);
@@ -2090,7 +1925,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(409).json({ error: "A concept with this ID already exists" });
       }
       
-      // Insert new concept (이미지 합성 필드 추가)
+      // Insert new concept
       const [newConcept] = await db.insert(concepts).values({
         conceptId: validatedData.conceptId,
         title: validatedData.title,
@@ -2098,11 +1933,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         promptTemplate: validatedData.promptTemplate,
         systemPrompt: validatedData.systemPrompt,  // 시스템 프롬프트 필드 추가
         thumbnailUrl: validatedData.thumbnailUrl,
-        // 이미지 합성 관련 필드 추가
-        templateImageUrl: validatedData.templateImageUrl,
-        isCompositeTemplate: validatedData.isCompositeTemplate,
-        compositePrompt: validatedData.compositePrompt,
-        maskArea: validatedData.maskArea,
         tagSuggestions: validatedData.tagSuggestions,
         variables: validatedData.variables,
         categoryId: validatedData.categoryId,
@@ -2138,7 +1968,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Concept not found" });
       }
       
-      // Update concept (이미지 합성 필드 추가)
+      // Update concept
       const [updatedConcept] = await db.update(concepts)
         .set({
           title: validatedData.title,
@@ -2146,11 +1976,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           promptTemplate: validatedData.promptTemplate,
           systemPrompt: validatedData.systemPrompt,  // 시스템 프롬프트 필드 추가
           thumbnailUrl: validatedData.thumbnailUrl,
-          // 이미지 합성 관련 필드 추가
-          templateImageUrl: validatedData.templateImageUrl,
-          isCompositeTemplate: validatedData.isCompositeTemplate,
-          compositePrompt: validatedData.compositePrompt,
-          maskArea: validatedData.maskArea,
           tagSuggestions: validatedData.tagSuggestions,
           variables: validatedData.variables,
           categoryId: validatedData.categoryId,
@@ -2867,145 +2692,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting service category:", error);
       res.status(500).json({ error: "Failed to delete service category" });
-    }
-  });
-
-  // 이미지 템플릿 관리 엔드포인트
-  app.get("/api/image-templates", async (req, res) => {
-    try {
-      const templates = await storage.getImageTemplateList();
-      return res.json(templates);
-    } catch (error) {
-      console.error("Error fetching image templates:", error);
-      return res.status(500).json({ error: "이미지 템플릿 조회 중 오류가 발생했습니다." });
-    }
-  });
-  
-  app.get("/api/image-templates/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const template = await storage.getImageTemplateById(parseInt(id));
-      
-      if (!template) {
-        return res.status(404).json({ error: "이미지 템플릿을 찾을 수 없습니다." });
-      }
-      
-      return res.json(template);
-    } catch (error) {
-      console.error("Error fetching image template:", error);
-      return res.status(500).json({ error: "이미지 템플릿 조회 중 오류가 발생했습니다." });
-    }
-  });
-  
-  app.post("/api/image-templates", async (req, res) => {
-    try {
-      const {
-        title,
-        description,
-        templateImageUrl,
-        templateType,
-        promptTemplate,
-        maskArea,
-        thumbnailUrl,
-        categoryId,
-        isActive,
-        isFeatured,
-        sortOrder
-      } = req.body;
-      
-      const template = await storage.createImageTemplate({
-        title,
-        description,
-        templateImageUrl,
-        templateType,
-        promptTemplate,
-        maskArea,
-        thumbnailUrl,
-        categoryId,
-        isActive,
-        isFeatured,
-        sortOrder
-      });
-      
-      return res.status(201).json(template);
-    } catch (error) {
-      console.error("Error creating image template:", error);
-      return res.status(500).json({ error: "이미지 템플릿 생성 중 오류가 발생했습니다." });
-    }
-  });
-  
-  app.put("/api/image-templates/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const template = await storage.updateImageTemplate(parseInt(id), req.body);
-      
-      if (!template) {
-        return res.status(404).json({ error: "이미지 템플릿을 찾을 수 없습니다." });
-      }
-      
-      return res.json(template);
-    } catch (error) {
-      console.error("Error updating image template:", error);
-      return res.status(500).json({ error: "이미지 템플릿 업데이트 중 오류가 발생했습니다." });
-    }
-  });
-  
-  app.delete("/api/image-templates/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const result = await storage.deleteImageTemplate(parseInt(id));
-      
-      if (!result.success) {
-        return res.status(404).json({ error: "이미지 템플릿을 찾을 수 없습니다." });
-      }
-      
-      return res.json({ message: "이미지 템플릿이 성공적으로 삭제되었습니다." });
-    } catch (error) {
-      console.error("Error deleting image template:", error);
-      return res.status(500).json({ error: "이미지 템플릿 삭제 중 오류가 발생했습니다." });
-    }
-  });
-  
-  // 이미지 합성 엔드포인트
-  app.post("/api/composite-image", upload.single("image"), async (req, res) => {
-    try {
-      const { templateId } = req.body;
-      
-      if (!req.file) {
-        return res.status(400).json({ error: "이미지 파일이 필요합니다." });
-      }
-      
-      if (!templateId) {
-        return res.status(400).json({ error: "템플릿 ID가 필요합니다." });
-      }
-      
-      const filePath = req.file.path;
-      
-      // 이미지 합성 처리
-      const compositedImageUrl = await storage.compositeImageWithTemplate(
-        filePath,
-        parseInt(templateId)
-      );
-      
-      if (compositedImageUrl.includes("placehold.co")) {
-        return res.status(400).json({ 
-          error: "이미지 합성 실패", 
-          errorImageUrl: compositedImageUrl 
-        });
-      }
-      
-      // 합성된 이미지 저장
-      const savedImage = await storage.saveCompositedImage(
-        req.file.originalname,
-        parseInt(templateId),
-        filePath,
-        compositedImageUrl
-      );
-      
-      return res.status(201).json(savedImage);
-    } catch (error) {
-      console.error("Error compositing image:", error);
-      return res.status(500).json({ error: "이미지 합성 중 오류가 발생했습니다." });
     }
   });
 
