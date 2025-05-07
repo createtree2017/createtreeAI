@@ -166,6 +166,9 @@ const conceptSchema = z.object({
   isActive: z.boolean().default(true),
   isFeatured: z.boolean().default(false),
   order: z.number().int().default(0),
+  // PhotoMaker 모드 관련 필드 추가
+  usePhotoMaker: z.boolean().default(false),
+  referenceImageUrl: z.string().optional(),
 });
 
 // Development Chat History Manager Component
@@ -2603,6 +2606,8 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
   const [previewValues, setPreviewValues] = useState<{[key: string]: string}>({});
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(initialData?.thumbnailUrl || null);
+  const [uploadingReferenceImage, setUploadingReferenceImage] = useState(false);
+  const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(initialData?.referenceImageUrl || null);
   
   // Set up form
   const form = useForm({
@@ -2620,6 +2625,9 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
       isActive: true,
       isFeatured: false,
       order: 0,
+      // PhotoMaker 관련 필드 추가
+      usePhotoMaker: false,
+      referenceImageUrl: "",
     },
   });
   
@@ -2736,6 +2744,47 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
       });
     } finally {
       setUploadingThumbnail(false);
+    }
+  };
+  
+  // Handle reference image upload for PhotoMaker
+  const handleReferenceImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setUploadingReferenceImage(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append("reference", file);
+      
+      // 동일한 API 엔드포인트를 사용하지만 다른 필드 이름으로 업로드
+      const response = await fetch("/api/admin/upload/thumbnail", {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to upload reference image");
+      }
+      
+      const data = await response.json();
+      setReferenceImageUrl(data.url);
+      form.setValue("referenceImageUrl", data.url);
+      
+      toast({
+        title: "Reference image uploaded",
+        description: "The reference image has been uploaded successfully",
+      });
+    } catch (error) {
+      console.error("Error uploading reference image:", error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload reference image. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingReferenceImage(false);
     }
   };
   
