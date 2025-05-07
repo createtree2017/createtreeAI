@@ -1963,7 +1963,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/admin/concepts/:id", async (req, res) => {
     try {
       const conceptId = req.params.id;
+      
+      // 요청 데이터 로깅 (디버깅용)
+      console.log("컨셉 업데이트 요청 데이터:", JSON.stringify(req.body, null, 2));
+      
       const validatedData = conceptSchema.parse(req.body);
+      
+      // 유효성 검사 통과한 데이터 로깅 (디버깅용)
+      console.log("검증된 컨셉 데이터:", JSON.stringify(validatedData, null, 2));
       
       // Check if concept exists
       const existingConcept = await db.query.concepts.findFirst({
