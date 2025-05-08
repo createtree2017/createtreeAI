@@ -166,11 +166,11 @@ const ProfileSetup = ({
               아직 모름
             </Button>
             <Button
-              variant={babyGender === "prefer_not_to_say" ? "default" : "outline"}
-              onClick={() => setBabyGender("prefer_not_to_say")}
+              variant={babyGender === "twins" ? "default" : "outline"}
+              onClick={() => setBabyGender("twins")}
               type="button"
             >
-              답변 원치 않음
+              쌍둥이
             </Button>
           </div>
         </div>
