@@ -382,77 +382,125 @@ export const deleteCategory = async (id: string) => {
 
 // Get all concept categories
 export const getConceptCategories = async () => {
-  const response = await apiRequest('/api/admin/concept-categories');
+  const response = await fetch('/api/admin/concept-categories', {
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to get concept categories: ${response.statusText}`);
+  }
   return response.json();
 };
 
 // Get a specific concept category
 export const getConceptCategory = async (id: string) => {
-  const response = await apiRequest(`/api/admin/concept-categories/${id}`);
+  const response = await fetch(`/api/admin/concept-categories/${id}`, {
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to get concept category: ${response.statusText}`);
+  }
   return response.json();
 };
 
 // Create a new concept category
 export const createConceptCategory = async (categoryData: any) => {
-  const response = await apiRequest('/api/admin/concept-categories', {
+  const response = await fetch('/api/admin/concept-categories', {
     method: 'POST',
-    data: categoryData
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(categoryData),
+    credentials: 'include'
   });
+  if (!response.ok) {
+    throw new Error(`Failed to create concept category: ${response.statusText}`);
+  }
   return response.json();
 };
 
 // Update an existing concept category
 export const updateConceptCategory = async (id: string, categoryData: any) => {
-  const response = await apiRequest(`/api/admin/concept-categories/${id}`, {
+  const response = await fetch(`/api/admin/concept-categories/${id}`, {
     method: 'PUT',
-    data: categoryData
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(categoryData),
+    credentials: 'include'
   });
+  if (!response.ok) {
+    throw new Error(`Failed to update concept category: ${response.statusText}`);
+  }
   return response.json();
 };
 
 // Delete a concept category
 export const deleteConceptCategory = async (id: string) => {
-  const response = await apiRequest(`/api/admin/concept-categories/${id}`, {
-    method: 'DELETE'
+  const response = await fetch(`/api/admin/concept-categories/${id}`, {
+    method: 'DELETE',
+    credentials: 'include'
   });
+  if (!response.ok) {
+    throw new Error(`Failed to delete concept category: ${response.statusText}`);
+  }
   return response.json();
 };
 
 // Get all concepts
 export const getConcepts = async () => {
-  const response = await apiRequest('/api/admin/concepts');
+  const response = await fetch('/api/admin/concepts', {
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to get concepts: ${response.statusText}`);
+  }
   return response.json();
 };
 
 // Get a specific concept
 export const getConcept = async (id: string) => {
-  const response = await apiRequest(`/api/admin/concepts/${id}`);
+  const response = await fetch(`/api/admin/concepts/${id}`, {
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to get concept: ${response.statusText}`);
+  }
   return response.json();
 };
 
 // Create a new concept
 export const createConcept = async (conceptData: any) => {
-  const response = await apiRequest('/api/admin/concepts', {
+  const response = await fetch('/api/admin/concepts', {
     method: 'POST',
-    data: conceptData
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(conceptData),
+    credentials: 'include'
   });
+  if (!response.ok) {
+    throw new Error(`Failed to create concept: ${response.statusText}`);
+  }
   return response.json();
 };
 
 // Update an existing concept
 export const updateConcept = async (id: string, conceptData: any) => {
-  const response = await apiRequest(`/api/admin/concepts/${id}`, {
+  const response = await fetch(`/api/admin/concepts/${id}`, {
     method: 'PUT',
-    data: conceptData
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(conceptData),
+    credentials: 'include'
   });
+  if (!response.ok) {
+    throw new Error(`Failed to update concept: ${response.statusText}`);
+  }
   return response.json();
 };
 
 // Delete a concept
 export const deleteConcept = async (id: string) => {
-  const response = await apiRequest(`/api/admin/concepts/${id}`, {
-    method: 'DELETE'
+  const response = await fetch(`/api/admin/concepts/${id}`, {
+    method: 'DELETE',
+    credentials: 'include'
   });
+  if (!response.ok) {
+    throw new Error(`Failed to delete concept: ${response.statusText}`);
+  }
   return response.json();
 };
 
@@ -460,16 +508,26 @@ export const deleteConcept = async (id: string) => {
 
 // Get list of available languages
 export const getLanguages = async () => {
-  const response = await apiRequest('/api/languages');
+  const response = await fetch('/api/languages', {
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to get languages: ${response.statusText}`);
+  }
   return response.json();
 };
 
 // Upload translations for a specific language
 export const uploadTranslations = async (lang: string, translations: Record<string, string>) => {
-  const response = await apiRequest(`/api/languages/${lang}`, {
+  const response = await fetch(`/api/languages/${lang}`, {
     method: 'POST',
-    data: translations
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(translations),
+    credentials: 'include'
   });
+  if (!response.ok) {
+    throw new Error(`Failed to upload translations: ${response.statusText}`);
+  }
   return response.json();
 };
 
@@ -503,19 +561,31 @@ export const uploadThumbnail = async (file: File) => {
 
 // Get all A/B tests
 export const getAbTests = async () => {
-  const response = await apiRequest('/api/admin/abtests');
+  const response = await fetch('/api/admin/abtests', {
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to get A/B tests: ${response.statusText}`);
+  }
   return response.json();
 };
 
 // Get a specific A/B test with its variants
 export const getAbTest = async (testId: string) => {
-  const response = await apiRequest(`/api/admin/abtests/${testId}`);
+  const response = await fetch(`/api/admin/abtests/${testId}`, {
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to get A/B test: ${response.statusText}`);
+  }
   return response.json();
 };
 
 // Get active A/B test for a concept
 export const getActiveAbTest = async (conceptId: string) => {
-  const response = await apiRequest(`/api/abtests/active/${conceptId}`);
+  const response = await fetch(`/api/abtests/active/${conceptId}`, {
+    credentials: 'include'
+  });
   
   if (!response.ok) {
     if (response.status === 404) {
@@ -541,10 +611,15 @@ export const createAbTest = async (testData: {
     variables?: Array<any>;
   }>;
 }) => {
-  const response = await apiRequest('/api/admin/abtests', {
+  const response = await fetch('/api/admin/abtests', {
     method: 'POST',
-    data: testData
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(testData),
+    credentials: 'include'
   });
+  if (!response.ok) {
+    throw new Error(`Failed to create A/B test: ${response.statusText}`);
+  }
   return response.json();
 };
 
@@ -555,17 +630,27 @@ export const recordAbTestResult = async (resultData: {
   userId?: number;
   context?: Record<string, any>;
 }) => {
-  const response = await apiRequest('/api/abtests/result', {
+  const response = await fetch('/api/abtests/result', {
     method: 'POST',
-    data: resultData
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(resultData),
+    credentials: 'include'
   });
+  if (!response.ok) {
+    throw new Error(`Failed to record A/B test result: ${response.statusText}`);
+  }
   return response.json();
 };
 
 // Service Categories API endpoints
 export const getServiceCategories = async () => {
   console.log('Fetching service categories from /api/service-categories');
-  const response = await apiRequest('/api/service-categories');
+  const response = await fetch('/api/service-categories', {
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to get service categories: ${response.statusText}`);
+  }
   const data = await response.json();
   console.log('Received service categories:', data);
   return data;
@@ -578,10 +663,15 @@ export const createServiceCategory = async (categoryData: {
   icon: string;
   order?: number;
 }) => {
-  const response = await apiRequest('/api/admin/service-categories', {
+  const response = await fetch('/api/admin/service-categories', {
     method: 'POST',
-    data: categoryData
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(categoryData),
+    credentials: 'include'
   });
+  if (!response.ok) {
+    throw new Error(`Failed to create service category: ${response.statusText}`);
+  }
   return response.json();
 };
 
@@ -592,16 +682,25 @@ export const updateServiceCategory = async (id: number, categoryData: {
   icon: string;
   order?: number;
 }) => {
-  const response = await apiRequest(`/api/admin/service-categories/${id}`, {
+  const response = await fetch(`/api/admin/service-categories/${id}`, {
     method: 'PUT',
-    data: categoryData
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(categoryData),
+    credentials: 'include'
   });
+  if (!response.ok) {
+    throw new Error(`Failed to update service category: ${response.statusText}`);
+  }
   return response.json();
 };
 
 export const deleteServiceCategory = async (id: number) => {
-  const response = await apiRequest(`/api/admin/service-categories/${id}`, {
-    method: 'DELETE'
+  const response = await fetch(`/api/admin/service-categories/${id}`, {
+    method: 'DELETE',
+    credentials: 'include'
   });
+  if (!response.ok) {
+    throw new Error(`Failed to delete service category: ${response.statusText}`);
+  }
   return response.json();
 };
