@@ -58,6 +58,10 @@ export default function Image() {
   const { toast } = useToast();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
+  
+  // 이미지 갤러리 팝업용 상태 추가
+  const [viewImageDialog, setViewImageDialog] = useState(false);
+  const [selectedGalleryImage, setSelectedGalleryImage] = useState<TransformedImage | null>(null);
   const [transformedImage, setTransformedImage] = useState<TransformedImage | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<string>("1:1");
@@ -371,7 +375,8 @@ export default function Image() {
   };
 
   const handleViewImage = (image: TransformedImage) => {
-    setTransformedImage(image);
+    setSelectedGalleryImage(image);
+    setViewImageDialog(true);
   };
 
 
@@ -913,6 +918,65 @@ export default function Image() {
           )}
         </div>
       </div>
+      
+      {/* 이미지 상세 보기 다이얼로그 */}
+      <Dialog open={viewImageDialog} onOpenChange={setViewImageDialog}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>{selectedGalleryImage?.title}</DialogTitle>
+            <DialogDescription>
+              {selectedGalleryImage?.createdAt && 
+                new Date(selectedGalleryImage.createdAt).toLocaleDateString('ko-KR', {
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })
+              } 생성됨
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="relative aspect-video bg-gray-100 rounded-md overflow-hidden">
+            <img 
+              src={selectedGalleryImage?.transformedUrl} 
+              alt={selectedGalleryImage?.title}
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                console.error("상세 이미지 로드 실패:", selectedGalleryImage);
+                e.currentTarget.src = "https://placehold.co/400x400/F0F0F0/AAA?text=이미지+로드+실패";
+              }}
+            />
+          </div>
+          
+          <DialogFooter>
+            <div className="flex items-center gap-2 w-full justify-end">
+              <Button 
+                variant="secondary"
+                className="bg-neutral-lightest hover:bg-neutral-light text-neutral-darkest"
+                onClick={() => {
+                  if (selectedGalleryImage) {
+                    handleDownload(selectedGalleryImage.id);
+                  }
+                }}
+              >
+                <Download className="mr-2 h-4 w-4" /> 다운로드
+              </Button>
+              
+              <Button
+                className="bg-primary-light hover:bg-primary/20 text-primary-dark"
+                onClick={() => {
+                  if (selectedGalleryImage) {
+                    handleShare(selectedGalleryImage.id);
+                  }
+                }}
+              >
+                <Share2 className="mr-2 h-4 w-4" /> 공유하기
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
