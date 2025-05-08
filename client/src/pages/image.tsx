@@ -539,7 +539,7 @@ export default function Image() {
 
         {/* 스타일 선택 버튼 */}
         <div 
-          className="cursor-pointer rounded-lg border border-border overflow-hidden flex items-center justify-between px-4 py-3 hover:bg-muted transition-all"
+          className="cursor-pointer rounded-lg border border-[#ff2d55] overflow-hidden flex items-center justify-between px-4 py-3 hover:bg-muted transition-all"
           onClick={() => setStyleDialogOpen(true)}
         >
           <div className="flex items-center">
@@ -565,7 +565,7 @@ export default function Image() {
 
         {/* 스타일 선택 다이얼로그 */}
         <Dialog open={styleDialogOpen} onOpenChange={setStyleDialogOpen}>
-          <DialogContent className="sm:max-w-[650px] max-h-[85vh] overflow-y-auto bg-card border-border shadow-xl">
+          <DialogContent className="sm:max-w-[650px] max-h-[85vh] overflow-y-auto bg-card border-[#ff2d55] shadow-xl">
             <DialogHeader>
               <DialogTitle className="text-xl font-heading font-bold text-center text-card-foreground">스타일 선택</DialogTitle>
               <DialogDescription className="text-center text-muted-foreground">
@@ -635,14 +635,14 @@ export default function Image() {
           <label htmlFor="file-upload" className="block cursor-pointer">
             {!previewUrl ? (
               // 이미지 업로드 전 상태
-              <div className="border border-border h-48 rounded-lg flex flex-col items-center justify-center text-muted-foreground bg-muted">
+              <div className="border border-[#ff2d55] h-48 rounded-lg flex flex-col items-center justify-center text-muted-foreground bg-muted">
                 <ImageIcon className="mb-2 h-6 w-6" />
                 <span className="text-sm">이미지를 업로드하려면 클릭하세요</span>
                 <span className="text-xs text-muted-foreground mt-2">최대 15MB, 4096 × 4096픽셀의 JPEG, PNG 또는 WEBP 형식을 허용합니다.</span>
               </div>
             ) : (
               // 이미지 업로드 후 미리보기
-              <div className="flex justify-center items-center h-48 border border-border rounded-lg overflow-hidden bg-muted/50">
+              <div className="flex justify-center items-center h-48 border border-[#ff2d55] rounded-lg overflow-hidden bg-muted/50">
                 <img 
                   src={previewUrl} 
                   alt="선택한 이미지 미리보기" 
@@ -671,7 +671,7 @@ export default function Image() {
                 className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
                   selectedAspectRatio === "1:1" 
                     ? "bg-primary/10 border-primary" 
-                    : "bg-muted border-border hover:border-muted-foreground/30"
+                    : "bg-muted border-[#ff2d55] hover:border-muted-foreground/30"
                 }`}
                 onClick={() => setSelectedAspectRatio("1:1")}
               >
@@ -687,7 +687,7 @@ export default function Image() {
                 className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
                   selectedAspectRatio === "2:3" 
                     ? "bg-primary/10 border-primary" 
-                    : "bg-muted border-border hover:border-muted-foreground/30"
+                    : "bg-muted border-[#ff2d55] hover:border-muted-foreground/30"
                 }`}
                 onClick={() => setSelectedAspectRatio("2:3")}
               >
@@ -703,7 +703,7 @@ export default function Image() {
                 className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
                   selectedAspectRatio === "9:16" 
                     ? "bg-primary/10 border-primary" 
-                    : "bg-muted border-border hover:border-muted-foreground/30"
+                    : "bg-muted border-[#ff2d55] hover:border-muted-foreground/30"
                 }`}
                 onClick={() => setSelectedAspectRatio("9:16")}
               >
@@ -928,7 +928,7 @@ export default function Image() {
 
               {/* 에러 발생 또는 로딩 중인 경우 */}
               {isLoadingImages && !transformedImage && (
-                <div className="col-span-2 text-center py-8 bg-neutral-lightest rounded-xl border border-dashed border-neutral-light">
+                <div className="col-span-2 text-center py-8 bg-neutral-lightest rounded-xl border border-dashed border-[#ff2d55]">
                   <RefreshCw className="h-8 w-8 mx-auto mb-2 text-neutral animate-spin" />
                   <p className="text-neutral-dark font-medium">이미지 데이터 로딩 중...</p>
                   <p className="text-sm mt-1 mb-4 text-neutral-dark">잠시만 기다려주세요</p>
