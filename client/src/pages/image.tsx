@@ -9,6 +9,7 @@ import { queryClient } from "@/lib/queryClient";
 import { PaintbrushVertical, Download, Share2, Eye, ChevronRight, X, CheckCircle2, RefreshCw } from "lucide-react";
 import ABTestComparer from "@/components/ABTestComparer";
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { useTheme } from "@/hooks/use-theme";
 
 interface ImageStyle {
   value: string;
@@ -880,14 +881,14 @@ export default function Image() {
                         <div className="flex space-x-2">
                           <Button
                             size="sm"
-                            className="flex-1 text-xs bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium shadow-sm"
+                            className="flex-1 text-xs bg-muted hover:bg-muted/80 text-foreground font-medium shadow-sm"
                             onClick={() => handleViewImage(image)}
                           >
                             <Eye className="mr-1 h-3 w-3" /> 보기
                           </Button>
                           <Button
                             size="sm"
-                            className="flex-1 text-xs bg-[#ff2d55] hover:bg-[#ff2d55]/90 text-white font-medium shadow-sm"
+                            className="flex-1 text-xs bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-sm"
                             onClick={() => handleDownload(image.id)}
                           >
                             <Download className="mr-1 h-3 w-3" /> 저장
@@ -953,7 +954,7 @@ export default function Image() {
           <DialogFooter>
             <div className="flex items-center gap-2 w-full justify-end">
               <Button 
-                className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium shadow-sm"
+                className="bg-muted hover:bg-muted/80 text-foreground font-medium shadow-sm"
                 onClick={() => {
                   if (selectedGalleryImage) {
                     handleDownload(selectedGalleryImage.id);
@@ -964,7 +965,7 @@ export default function Image() {
               </Button>
               
               <Button
-                className="bg-[#ff2d55] hover:bg-[#ff2d55]/90 text-white font-medium shadow-sm"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-sm"
                 onClick={() => {
                   if (selectedGalleryImage) {
                     handleShare(selectedGalleryImage.id);
