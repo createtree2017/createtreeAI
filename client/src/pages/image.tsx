@@ -395,11 +395,11 @@ export default function Image() {
       {/* 전체 페이지 로딩 오버레이 (이미지 생성 중에만 표시) */}
       {isTransforming && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-xl p-6 shadow-lg max-w-md">
+          <div className="bg-card rounded-xl p-6 shadow-lg max-w-md">
             <div className="flex flex-col items-center">
               <RefreshCw className="h-10 w-10 text-primary animate-spin mb-4" />
-              <h3 className="text-lg font-bold mb-2">이미지 생성 중...</h3>
-              <p className="text-neutral-dark text-center">
+              <h3 className="text-lg font-bold mb-2 text-card-foreground">이미지 생성 중...</h3>
+              <p className="text-muted-foreground text-center">
                 AI가 이미지를 생성하고 있습니다. 잠시만 기다려주세요.
                 이 과정은 약 15-30초 정도 소요됩니다.
               </p>
@@ -409,8 +409,8 @@ export default function Image() {
       )}
       
       <div className="text-center mb-6">
-        <h2 className="font-heading font-bold text-2xl mb-2">AI 이미지 생성</h2>
-        <p className="text-neutral-dark">임신 및 가족의 사진을 아름다운 추억으로 변환해 보세요</p>
+        <h2 className="font-heading font-bold text-2xl mb-2 text-foreground">AI 이미지 생성</h2>
+        <p className="text-muted-foreground">일상 및 가족의 사진을 아름다운 추억으로 변환해 보세요</p>
       </div>
       
       {/* 스타일 선택 다이얼로그 */}
@@ -466,9 +466,9 @@ export default function Image() {
       </Dialog>
       
       {/* 카테고리 선택 섹션 */}
-      <div className="bg-white rounded-xl p-5 mb-6 shadow-md border border-neutral-light">
+      <div className="bg-card rounded-xl p-5 mb-6 shadow-md border border-border">
         <div className="flex justify-between items-center mb-5">
-          <h3 className="font-heading font-semibold text-lg">카테고리</h3>
+          <h3 className="font-heading font-semibold text-lg text-card-foreground">카테고리</h3>
         </div>
         
         <div className="grid grid-cols-3 gap-2">
@@ -479,17 +479,17 @@ export default function Image() {
                 key={category.categoryId}
                 className={`cursor-pointer rounded-lg border overflow-hidden transition-colors
                   ${selectedCategory === category.categoryId 
-                    ? 'ring-2 ring-[#ff2d55] border-[#ff2d55]' 
-                    : 'bg-neutral-lightest border-neutral-light hover:border-neutral'
+                    ? 'ring-2 ring-primary border-primary' 
+                    : 'bg-muted border-muted-foreground/20 hover:border-muted-foreground/30'
                   }`}
                 onClick={() => setSelectedCategory(category.categoryId)}
               >
                 <div className="flex items-center justify-between px-4 py-3">
-                  <span className={`font-medium ${selectedCategory === category.categoryId ? 'text-[#ff2d55]' : 'text-neutral-dark'}`}>
+                  <span className={`font-medium ${selectedCategory === category.categoryId ? 'text-primary' : 'text-card-foreground'}`}>
                     {category.name}
                   </span>
                   {selectedCategory === category.categoryId && (
-                    <CheckCircle2 className="h-5 w-5 text-[#ff2d55]" />
+                    <CheckCircle2 className="h-5 w-5 text-primary" />
                   )}
                 </div>
               </div>
@@ -497,7 +497,7 @@ export default function Image() {
           ) : (
             // 카테고리가 없거나 로딩 중일 때 기본 카테고리 3개 표시
             <>
-              <div className="cursor-pointer rounded-lg border overflow-hidden transition-colors bg-neutral-lightest border-neutral-light hover:border-neutral">
+              <div className="cursor-pointer rounded-lg border overflow-hidden transition-colors bg-muted border-muted-foreground/20 hover:border-muted-foreground/30">
                 <div className="flex items-center justify-between px-4 py-3">
                   <span className="font-medium text-muted-foreground">임신사진</span>
                 </div>
@@ -508,7 +508,7 @@ export default function Image() {
                   <CheckCircle2 className="h-5 w-5 text-primary" />
                 </div>
               </div>
-              <div className="cursor-pointer rounded-lg border overflow-hidden transition-colors bg-muted/80 border-border hover:border-border/80">
+              <div className="cursor-pointer rounded-lg border overflow-hidden transition-colors bg-muted border-muted-foreground/20 hover:border-muted-foreground/30">
                 <div className="flex items-center justify-between px-4 py-3">
                   <span className="font-medium text-muted-foreground">가족사진</span>
                 </div>
@@ -519,14 +519,14 @@ export default function Image() {
       </div>
 
       {/* 스타일 선택 섹션 */}
-      <div className="bg-white rounded-xl p-5 mb-6 shadow-md border border-neutral-light">
+      <div className="bg-card rounded-xl p-5 mb-6 shadow-md border border-border">
         <div className="flex justify-between items-center mb-5">
-          <h3 className="font-heading font-semibold text-lg">스타일</h3>
+          <h3 className="font-heading font-semibold text-lg text-card-foreground">스타일</h3>
         </div>
 
         {/* 스타일 선택 버튼 */}
         <div 
-          className="cursor-pointer rounded-lg border border-neutral-light overflow-hidden flex items-center justify-between px-4 py-3 hover:bg-neutral-lightest transition-all"
+          className="cursor-pointer rounded-lg border border-border overflow-hidden flex items-center justify-between px-4 py-3 hover:bg-muted transition-all"
           onClick={() => setStyleDialogOpen(true)}
         >
           <div className="flex items-center">
@@ -539,25 +539,23 @@ export default function Image() {
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <span className="font-medium text-neutral-dark">
+                <span className="font-medium text-card-foreground">
                   {filteredStyles.find(style => style.value === selectedStyle)?.label}
                 </span>
               </>
             ) : (
-              <span className="text-neutral-dark">스타일을 선택해주세요</span>
+              <span className="text-muted-foreground">스타일을 선택해주세요</span>
             )}
           </div>
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-neutral" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
+          <ChevronRight className="h-5 w-5 text-muted-foreground" />
         </div>
 
         {/* 스타일 선택 다이얼로그 */}
         <Dialog open={styleDialogOpen} onOpenChange={setStyleDialogOpen}>
-          <DialogContent className="sm:max-w-[650px] max-h-[85vh] overflow-y-auto bg-white border-neutral-light shadow-xl">
+          <DialogContent className="sm:max-w-[650px] max-h-[85vh] overflow-y-auto bg-card border-border shadow-xl">
             <DialogHeader>
-              <DialogTitle className="text-xl font-heading font-bold text-center">스타일 선택</DialogTitle>
-              <DialogDescription className="text-center text-neutral-dark">
+              <DialogTitle className="text-xl font-heading font-bold text-center text-card-foreground">스타일 선택</DialogTitle>
+              <DialogDescription className="text-center text-muted-foreground">
                 원하는 스타일을 선택하세요
               </DialogDescription>
             </DialogHeader>
@@ -568,8 +566,8 @@ export default function Image() {
                   key={style.value}
                   className={`cursor-pointer rounded-lg overflow-hidden border transition-all
                     ${selectedStyle === style.value 
-                      ? 'border-[#ff2d55] ring-2 ring-[#ff2d55]' 
-                      : 'border-neutral-light hover:border-neutral'
+                      ? 'border-primary ring-2 ring-primary' 
+                      : 'border-border hover:border-muted-foreground/50'
                     }`}
                   onClick={() => {
                     handleStyleSelected(style.value);
@@ -584,18 +582,16 @@ export default function Image() {
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    <div className={`absolute inset-0 ${selectedStyle === style.value ? 'bg-[#ff2d55]/20' : ''}`}>
+                    <div className={`absolute inset-0 ${selectedStyle === style.value ? 'bg-primary/20' : ''}`}>
                       {selectedStyle === style.value && (
-                        <div className="absolute top-2 right-2 bg-[#ff2d55] text-white rounded-full w-6 h-6 flex items-center justify-center shadow-md">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
+                        <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center shadow-md">
+                          <CheckIcon className="h-4 w-4" />
                         </div>
                       )}
                     </div>
                   </div>
-                  <div className="bg-neutral-lightest text-center py-3 px-2">
-                    <span className={`text-sm font-medium ${selectedStyle === style.value ? 'text-[#ff2d55]' : 'text-neutral-dark'}`}>
+                  <div className="bg-muted text-center py-3 px-2">
+                    <span className={`text-sm font-medium ${selectedStyle === style.value ? 'text-primary' : 'text-card-foreground'}`}>
                       {style.label}
                     </span>
                   </div>
@@ -605,7 +601,7 @@ export default function Image() {
             
             <DialogFooter className="sm:justify-center mt-6">
               <Button 
-                className="bg-[#ff2d55] hover:bg-[#ff2d55]/90 text-white"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
                 onClick={() => setStyleDialogOpen(false)}
               >
                 확인
@@ -616,9 +612,9 @@ export default function Image() {
       </div>
 
       {/* Image Upload Section */}
-      <div className="bg-white rounded-xl p-5 mb-6 shadow-md border border-neutral-light">
+      <div className="bg-card rounded-xl p-5 mb-6 shadow-md border border-border">
         <div className="text-left mb-3">
-          <h3 className="font-heading font-semibold text-lg">이미지 업로드</h3>
+          <h3 className="font-heading font-semibold text-lg text-card-foreground">이미지 업로드</h3>
         </div>
         
         {/* 이미지 업로드 영역 */}
@@ -626,18 +622,14 @@ export default function Image() {
           <label htmlFor="file-upload" className="block cursor-pointer">
             {!previewUrl ? (
               // 이미지 업로드 전 상태
-              <div className="border border-neutral-light h-48 rounded-lg flex flex-col items-center justify-center text-neutral bg-neutral-lightest">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-2">
-                  <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-                  <circle cx="9" cy="9" r="2" />
-                  <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-                </svg>
+              <div className="border border-border h-48 rounded-lg flex flex-col items-center justify-center text-muted-foreground bg-muted">
+                <ImageIcon className="mb-2 h-6 w-6" />
                 <span className="text-sm">이미지를 업로드하려면 클릭하세요</span>
-                <span className="text-xs text-neutral mt-2">최대 15MB, 4096 × 4096픽셀의 JPEG, PNG 또는 WEBP 형식을 허용합니다.</span>
+                <span className="text-xs text-muted-foreground mt-2">최대 15MB, 4096 × 4096픽셀의 JPEG, PNG 또는 WEBP 형식을 허용합니다.</span>
               </div>
             ) : (
               // 이미지 업로드 후 미리보기
-              <div className="flex justify-center items-center h-48 border border-neutral-light rounded-lg overflow-hidden bg-white">
+              <div className="flex justify-center items-center h-48 border border-border rounded-lg overflow-hidden bg-muted/50">
                 <img 
                   src={previewUrl} 
                   alt="선택한 이미지 미리보기" 
@@ -660,53 +652,53 @@ export default function Image() {
         {/* 종횡비 선택 - 만삭사진 카테고리가 아닐 때만 표시 */}
         {selectedCategory !== "mansak_img" && (
           <div className="mb-5">
-            <label className="block text-neutral-dark text-sm mb-2">종횡비</label>
+            <label className="block text-muted-foreground text-sm mb-2">종횡비</label>
             <div className="grid grid-cols-3 gap-2">
               <div 
                 className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
                   selectedAspectRatio === "1:1" 
-                    ? "bg-[#ff2d55]/10 border-[#ff2d55]" 
-                    : "bg-neutral-lightest border-neutral-light hover:border-neutral"
+                    ? "bg-primary/10 border-primary" 
+                    : "bg-muted border-border hover:border-muted-foreground/30"
                 }`}
                 onClick={() => setSelectedAspectRatio("1:1")}
               >
                 <div className="aspect-square flex items-center justify-center">
                   <span className={`text-xs font-medium ${
                     selectedAspectRatio === "1:1" 
-                      ? "text-[#ff2d55]" 
-                      : "text-neutral-dark"
+                      ? "text-primary" 
+                      : "text-muted-foreground"
                   }`}>1:1</span>
                 </div>
               </div>
               <div 
                 className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
                   selectedAspectRatio === "2:3" 
-                    ? "bg-[#ff2d55]/10 border-[#ff2d55]" 
-                    : "bg-neutral-lightest border-neutral-light hover:border-neutral"
+                    ? "bg-primary/10 border-primary" 
+                    : "bg-muted border-border hover:border-muted-foreground/30"
                 }`}
                 onClick={() => setSelectedAspectRatio("2:3")}
               >
                 <div className="aspect-[2/3] flex items-center justify-center">
                   <span className={`text-xs font-medium ${
                     selectedAspectRatio === "2:3" 
-                      ? "text-[#ff2d55]" 
-                      : "text-neutral-dark"
+                      ? "text-primary" 
+                      : "text-muted-foreground"
                   }`}>2:3</span>
                 </div>
               </div>
               <div 
                 className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
                   selectedAspectRatio === "9:16" 
-                    ? "bg-[#ff2d55]/10 border-[#ff2d55]" 
-                    : "bg-neutral-lightest border-neutral-light hover:border-neutral"
+                    ? "bg-primary/10 border-primary" 
+                    : "bg-muted border-border hover:border-muted-foreground/30"
                 }`}
                 onClick={() => setSelectedAspectRatio("9:16")}
               >
                 <div className="aspect-[9/16] flex items-center justify-center">
                   <span className={`text-xs font-medium ${
                     selectedAspectRatio === "9:16" 
-                      ? "text-[#ff2d55]" 
-                      : "text-neutral-dark"
+                      ? "text-primary" 
+                      : "text-muted-foreground"
                   }`}>9:16</span>
                 </div>
               </div>
@@ -719,25 +711,20 @@ export default function Image() {
           type="button"
           className={`w-full flex items-center justify-center py-3 px-4 rounded-lg transition-all ${
             previewUrl
-              ? 'bg-[#ff2d55] hover:bg-[#ff2d55]/90 text-white cursor-pointer' 
-              : 'bg-neutral-light text-neutral cursor-not-allowed'
+              ? 'bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer' 
+              : 'bg-muted text-muted-foreground cursor-not-allowed'
           }`}
           onClick={handleTransformImage}
           disabled={isTransforming || !previewUrl}
         >
-{isTransforming ? (
+          {isTransforming ? (
             <div className="flex items-center">
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
               <span>생성 중...</span>
             </div>
           ) : (
             <div className="flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
-                <path d="M12 2v20M2 12h20"/>
-              </svg>
+              <PlusIcon className="mr-2 h-4 w-4" />
               <span>만들기</span>
             </div>
           )}
