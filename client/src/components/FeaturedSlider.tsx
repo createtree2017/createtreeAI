@@ -93,15 +93,15 @@ export default function FeaturedSlider({ items, title }: FeaturedSliderProps) {
                 <h3 className="text-white text-lg md:text-xl font-bold">{item.title}</h3>
                 <p className="text-white/90 text-xs md:text-sm line-clamp-1 mt-1 md:mt-2 max-w-3xl">{item.description}</p>
                 <div className="mt-1 inline-flex items-center bg-[#FF4D6D] hover:bg-[#FF3A5F] transition-colors px-3 py-1 rounded-full text-white text-xs font-medium">
-                  Try for free
+                  무료로 이용하기
                   <ChevronRight size={12} className="ml-1" />
                 </div>
               </div>
               
-              {/* NEW 배지 */}
+              {/* 신규 배지 */}
               {item.isNew && (
                 <div className="absolute top-3 right-3 px-3 py-1 bg-[#FF4D6D] text-white text-xs font-bold rounded-md">
-                  NEW
+                  신규
                 </div>
               )}
             </Link>
