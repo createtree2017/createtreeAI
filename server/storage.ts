@@ -114,9 +114,7 @@ export const storage = {
       
       // 디버깅을 위해 조회된 콘셉트 정보 확인
       if (concept) {
-        console.log(`[Storage] 콘셉트 조회 결과: 
-          ID: ${concept.id} 
-          conceptId: ${concept.conceptId}`);
+        console.log(`[Storage] 콘셉트 조회 결과: ID: ${concept.id}, conceptId: ${concept.conceptId}`);
       } else {
         console.log(`[Storage] 콘셉트 조회 결과 없음: ${style}`);
       }
@@ -175,7 +173,8 @@ export const storage = {
       }
       
       try {
-        console.log(`[Storage] OpenAI 이미지 생성 API 사용...`);
+        // OpenAI 이미지 생성 API 사용
+        console.log(`[Storage] OpenAI GPT-Image-1 모델 사용하여 이미지 생성...`);
         const imageBuffer = fs.readFileSync(filePath);
         const { transformImage } = await import('./services/openai-dalle3'); 
         const transformedImageUrl = await transformImage(
