@@ -2507,15 +2507,9 @@ function ConceptManager() {
                       )}
                     </TableCell>
                     <TableCell>
-                      {concept.usePhotoMaker ? (
-                        <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200 border-purple-200">
-                          PhotoMaker
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 border-blue-200">
-                          DALL-E
-                        </Badge>
-                      )}
+                      <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 border-blue-200">
+                        DALL-E
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <Switch 
@@ -2754,7 +2748,7 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
     }
   };
   
-  // Handle reference image upload for PhotoMaker
+  // Handle reference image upload for concept thumbnails
   const handleReferenceImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
