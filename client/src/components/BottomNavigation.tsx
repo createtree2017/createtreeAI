@@ -68,10 +68,10 @@ export default function BottomNavigation() {
               </div>
               <span className="text-xs font-medium mt-1">{item.label}</span>
               
-              {/* NEW 배지 */}
+              {/* 신규 배지 */}
               {item.new && (
                 <div className="absolute -top-1 right-0 px-1 py-0.5 text-[8px] rounded-sm bg-primary-lavender/20 text-primary-lavender font-bold">
-                  NEW
+                  신규
                 </div>
               )}
               

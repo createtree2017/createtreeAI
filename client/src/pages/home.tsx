@@ -255,7 +255,7 @@ export default function Home() {
                         className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                       />
                       <div className="absolute top-3 right-3 px-3 py-1 bg-[#FF4D6D] text-white text-xs font-bold rounded-md">
-                        NEW
+                        신규
                       </div>
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-16">
                         <h3 className="text-white font-bold text-xl">지브리 AI 생성기</h3>
@@ -290,7 +290,7 @@ export default function Home() {
                         className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                       />
                       <div className="absolute top-3 right-3 px-3 py-1 bg-[#FF4D6D] text-white text-xs font-bold rounded-md">
-                        NEW
+                        신규
                       </div>
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-16">
                         <h3 className="text-white font-bold text-xl">심슨 AI 생성기</h3>
@@ -309,7 +309,7 @@ export default function Home() {
                         className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                       />
                       <div className="absolute top-3 right-3 px-3 py-1 bg-[#FF4D6D] text-white text-xs font-bold rounded-md">
-                        NEW
+                        신규
                       </div>
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-16">
                         <h3 className="text-white font-bold text-xl">픽사 AI 생성기</h3>
