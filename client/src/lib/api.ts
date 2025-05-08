@@ -6,12 +6,15 @@ export const generateMusic = async (params: {
   style: string;
   duration: number;
 }) => {
-  const response = await apiRequest('POST', '/api/music/generate', params);
+  const response = await apiRequest('/api/music/generate', {
+    method: 'POST',
+    data: params
+  });
   return response.json();
 };
 
 export const getMusicList = async () => {
-  const response = await apiRequest('GET', '/api/music');
+  const response = await apiRequest('/api/music');
   return response.json();
 };
 
@@ -39,7 +42,7 @@ export const transformImage = async (data: FormData, isAdmin: boolean = false) =
 };
 
 export const getImageList = async (page: number = 1, limit: number = 10) => {
-  const response = await apiRequest('GET', `/api/image?page=${page}&limit=${limit}`);
+  const response = await apiRequest(`/api/image?page=${page}&limit=${limit}`);
   return response.json();
 };
 
@@ -57,12 +60,15 @@ export const sendChatMessage = async (
     ? { message, personaSystemPrompt } 
     : { message };
   
-  const response = await apiRequest('POST', url, payload);
+  const response = await apiRequest(url, {
+    method: 'POST', 
+    data: payload
+  });
   return response.json();
 };
 
 export const getChatHistory = async () => {
-  const response = await apiRequest('GET', '/api/chat/history');
+  const response = await apiRequest('/api/chat/history');
   return response.json();
 };
 

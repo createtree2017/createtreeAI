@@ -6,7 +6,20 @@ import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/components/ui/file-upload";
 import { transformImage, downloadMedia, shareMedia, getActiveAbTest } from "@/lib/api";
 import { queryClient } from "@/lib/queryClient";
-import { PaintbrushVertical, Download, Share2, Eye, ChevronRight, X, CheckCircle2, RefreshCw } from "lucide-react";
+import { 
+  PaintbrushVertical, 
+  Download, 
+  Share2, 
+  Eye, 
+  ChevronRight, 
+  X, 
+  CheckCircle2, 
+  RefreshCw,
+  Check, 
+  ImageIcon, 
+  Loader2,
+  Plus 
+} from "lucide-react";
 import ABTestComparer from "@/components/ABTestComparer";
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useTheme } from "@/hooks/use-theme";
@@ -585,7 +598,7 @@ export default function Image() {
                     <div className={`absolute inset-0 ${selectedStyle === style.value ? 'bg-primary/20' : ''}`}>
                       {selectedStyle === style.value && (
                         <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center shadow-md">
-                          <CheckIcon className="h-4 w-4" />
+                          <Check className="h-4 w-4" />
                         </div>
                       )}
                     </div>
@@ -724,7 +737,7 @@ export default function Image() {
             </div>
           ) : (
             <div className="flex items-center">
-              <PlusIcon className="mr-2 h-4 w-4" />
+              <Plus className="mr-2 h-4 w-4" />
               <span>만들기</span>
             </div>
           )}
