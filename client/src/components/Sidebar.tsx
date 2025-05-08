@@ -267,7 +267,7 @@ export default function Sidebar({ collapsed = false }) {
                     
                     {!collapsed && item.new && (
                       <div className="flex-shrink-0 px-1.5 py-0.5 text-[10px] rounded bg-primary-lavender/20 text-primary-lavender font-semibold">
-                        NEW
+                        신규
                       </div>
                     )}
                     

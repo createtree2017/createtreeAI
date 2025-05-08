@@ -232,7 +232,7 @@ export default function Home() {
                       />
                       {card.isNew && (
                         <div className="absolute top-3 right-3 px-3 py-1 bg-[#FF4D6D] text-white text-xs font-bold rounded-md">
-                          NEW
+                          신규
                         </div>
                       )}
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-16">
