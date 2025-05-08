@@ -118,7 +118,7 @@ const ProfileSetup = ({
       <div className="space-y-2">
         <h2 className="text-2xl font-bold">임신 프로필 설정</h2>
         <p className="text-muted-foreground">
-          이 정보는 더 개인화된 마일스톤 추적 경험을 제공합니다
+          임신기간 동안 맞춤형 문화경험을 안내합니다
         </p>
       </div>
       
