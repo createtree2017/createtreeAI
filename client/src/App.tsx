@@ -111,60 +111,60 @@ function Layout({ children }: { children: React.ReactNode }) {
   
   return (
     <div className={`flex flex-col ${isInIframe ? "h-full" : "min-h-screen"} bg-background`}>
-      {/* Mobile sidebar overlay */}
+      {/* 모바일 사이드바 오버레이 */}
       {useMobileLayout && sidebarOpen && (
         <div className="fixed inset-0 bg-black/70 z-40" onClick={() => setSidebarOpen(false)} />
       )}
       
-      {/* Mobile sidebar */}
+      {/* 모바일 사이드바 */}
       {useMobileLayout && (
         <div className={`sidebar fixed top-0 bottom-0 left-0 z-50 transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <Sidebar collapsed={false} />
           <button 
             className="absolute top-4 right-4 text-foreground p-1.5 bg-muted rounded-full"
             onClick={() => setSidebarOpen(false)}
-            aria-label="Close sidebar"
+            aria-label="사이드바 닫기"
           >
             <X size={18} />
           </button>
         </div>
       )}
       
-      {/* Mobile header */}
+      {/* 모바일 헤더 */}
       {useMobileLayout && (
         <header className="sticky top-0 z-30 w-full bg-card safe-area-top border-b border-border">
           <div className="px-4 h-14 flex items-center justify-between">
-            {/* Menu button */}
+            {/* 메뉴 버튼 */}
             <button 
               className="sidebar-toggle w-9 h-9 flex items-center justify-center text-foreground/80 hover:text-foreground 
                        rounded-md hover:bg-muted transition-colors"
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              aria-label="Toggle sidebar"
+              aria-label="사이드바 토글"
             >
               <Menu size={22} />
             </button>
             
-            {/* Logo */}
+            {/* 로고 */}
             <div className="flex items-center">
               <h1 className="text-lg font-semibold tracking-tight font-heading">
-                <span className="text-foreground">Mom's</span> <span className="text-primary">Service</span>
+                <span className="text-foreground">맘스</span> <span className="text-primary">서비스</span>
               </h1>
             </div>
             
-            {/* Theme toggle */}
+            {/* 테마 토글 */}
             <ThemeToggle />
           </div>
         </header>
       )}
       
-      {/* Main content */}
+      {/* 메인 콘텐츠 */}
       <main className={`flex-1 overflow-y-auto custom-scrollbar ${useMobileLayout ? "pb-16" : "pb-4"}`}>
         <div className={`${isInIframe ? "p-0" : "p-4"} mx-auto ${isMobile ? "max-w-xl" : ""}`}>
           {children}
         </div>
       </main>
       
-      {/* Bottom navigation for mobile */}
+      {/* 모바일용 하단 네비게이션 */}
       {useMobileLayout && <BottomNavigation />}
     </div>
   );
@@ -214,9 +214,9 @@ function Router() {
 }
 
 function App() {
-  // Add viewport meta tag for mobile optimization
+  // 모바일 최적화를 위한 뷰포트 메타 태그 추가
   useEffect(() => {
-    // Ensure the viewport is properly set for mobile devices
+    // 모바일 기기를 위한 뷰포트 설정
     const metaViewport = document.createElement('meta');
     metaViewport.name = 'viewport';
     metaViewport.content = 'width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1';
