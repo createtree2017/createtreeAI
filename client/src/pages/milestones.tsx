@@ -61,22 +61,22 @@ interface AchievementStats {
 // Category translations & colors
 const categoryInfo: Record<string, { name: string; icon: React.ElementType; color: string; description: string }> = {
   baby_development: {
-    name: "Baby Development",
+    name: "아기 발달",
     icon: Heart,
     color: "bg-pink-100 text-pink-800 hover:bg-pink-200",
-    description: "Track your baby's growth and developmental milestones"
+    description: "아기의 성장과 발달 마일스톤 추적하기"
   },
   maternal_health: {
-    name: "Maternal Health",
+    name: "산모 건강",
     icon: Heart,
     color: "bg-purple-100 text-purple-800 hover:bg-purple-200",
-    description: "Monitor your health and well-being during pregnancy"
+    description: "임신 기간 동안 건강과 웰빙 관리하기"
   },
   preparations: {
-    name: "Preparations",
+    name: "출산 준비",
     icon: Calendar,
     color: "bg-blue-100 text-blue-800 hover:bg-blue-200",
-    description: "Get ready for baby's arrival"
+    description: "아기 맞이할 준비하기"
   }
 };
 
