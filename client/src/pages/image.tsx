@@ -657,7 +657,7 @@ export default function Image() {
         </div>
         
         {/* 종횡비 선택 - 만삭사진 카테고리가 아닐 때만 표시 */}
-        {!selectedStyle?.startsWith('만삭') && (
+        {selectedCategory !== "mansak_img" && (
           <div className="mb-5">
             <label className="block text-gray-300 text-sm mb-2">종횡비</label>
             <div className="grid grid-cols-3 gap-2">
