@@ -222,7 +222,7 @@ const MilestoneCard = ({
       <CardContent className="pt-4">
         <p className="mb-2">{milestone.description}</p>
         <p className="text-sm text-muted-foreground">
-          Weeks {milestone.weekStart}-{milestone.weekEnd}
+          {milestone.weekStart}-{milestone.weekEnd}주
         </p>
       </CardContent>
       <CardFooter>
