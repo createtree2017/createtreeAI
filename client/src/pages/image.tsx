@@ -112,52 +112,33 @@ export default function Image() {
     return artStyles.filter(style => style.categoryId === selectedCategory);
   }, [artStyles, selectedCategory]);
 
-  // 수정된 이미지 목록 조회 로직
-  const { data: imageList, isLoading: isLoadingImages, refetch } = useQuery({
-    queryKey: ["/api/image"], 
-    queryFn: async () => {
-      console.log("이미지 목록 조회 시작...");
-      
-      try {
-        const response = await fetch("/api/image", {
-          // 캐시 방지 헤더
-          headers: {
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-            "Pragma": "no-cache",
-            "Expires": "0"
-          }
-        });
-        
-        if (!response.ok) {
-          console.error(`이미지 목록 조회 실패: ${response.status} ${response.statusText}`);
-          throw new Error(`이미지 목록을 불러오는 데 실패했습니다 (${response.status})`);
-        }
-        
-        const data = await response.json();
-        console.log(`이미지 ${data.length}개 로드 완료`);
-        return data;
-      } catch (error) {
-        console.error("이미지 목록 조회 중 오류:", error);
-        throw error;
-      }
-    },
-    staleTime: 30000, // 30초 동안은 캐시된 데이터 사용
-    refetchOnMount: true, // 컴포넌트 마운트 시 새로 불러오기
-    refetchOnWindowFocus: false, // 창 포커스 시 새로고침 비활성화
-    refetchInterval: false, // 자동 갱신 비활성화
-    refetchOnReconnect: true, // 네트워크 재연결 시 새로고침
-    retry: 1, // 실패 시 1번만 재시도
-  });
-
-  // Fetch individual image if ID is provided
+  // 이미지 ID가 URL에 있는 경우 해당 이미지 조회 
   useEffect(() => {
-    if (imageId && imageList) {
-      const foundImage = imageList.find((item: TransformedImage) => item.id === Number(imageId));
-      if (foundImage) {
-        setTransformedImage(foundImage);
-      }
+    if (imageId) {
+      // 특정 이미지 ID로 단일 이미지 조회 (컬렉션 전체를 가져오지 않고)
+      fetch(`/api/image/${imageId}`)
+        .then(res => {
+          if (res.ok) return res.json();
+          throw new Error("이미지를 찾을 수 없습니다");
+        })
+        .then(data => {
+          if (data) setTransformedImage(data);
+        })
+        .catch(err => {
+          console.error("이미지 조회 실패:", err);
+          toast({
+            title: "이미지 조회 실패",
+            description: "요청하신 이미지를 불러올 수 없습니다",
+            variant: "destructive"
+          });
+        });
     }
-  }, [imageId, imageList]);
+  }, [imageId, toast]);
+  
+  // 필요한 초기화를 위한 더미 함수 (오류 방지용)
+  const refetch = () => {
+    console.log("이미지 컬렉션 기능이 비활성화되어 있어 refetch가 수행되지 않습니다.");
+  };
 
   // Fetch active A/B test for the current concept
   const fetchActiveAbTest = async (conceptId: string) => {
@@ -183,27 +164,8 @@ export default function Image() {
       
       console.log("이미지 변환 성공, 새 이미지:", data);
       
-      // 이미지 목록 강제 리프레시 - 캐시 초기화 후 다시 가져오기
+      // 이미지 삭제 후 캐시 초기화
       await queryClient.invalidateQueries({ queryKey: ["/api/image"] });
-      
-      // 강제로 데이터를 다시 가져오기 위해 timeout 추가
-      setTimeout(() => {
-        // 직접 fetch 호출로 서버에서 새로운 데이터 요청
-        fetch("/api/image", {
-          cache: "no-store",
-          headers: {
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-            "Pragma": "no-cache",
-            "Expires": "0"
-          }
-        }).then(res => res.json())
-          .then(newData => {
-            console.log("새로운 이미지 데이터 수신:", newData.length, "개 항목");
-            // 강제로 refetch 실행
-            refetch();
-          })
-          .catch(err => console.error("이미지 데이터 갱신 중 오류:", err));
-      }, 300);
       
       // Check if there's an active A/B test for this style and show it if available
       if (selectedStyle) {
@@ -759,107 +721,7 @@ export default function Image() {
         />
       )}
 
-      {/* Previous Art */}
-      <div className="mt-8">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="font-heading font-semibold text-lg">내 추억 컬렉션</h3>
-          {imageList && imageList.length > 0 && (
-            <span className="text-xs bg-neutral-lightest rounded-full px-3 py-1 text-neutral-dark">
-              {imageList.length}개의 추억
-            </span>
-          )}
-        </div>
-
-        {isLoadingImages ? (
-          // 로딩 상태 (짧게 유지)
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-neutral-lightest h-52 rounded-xl animate-pulse"></div>
-            <div className="bg-neutral-lightest h-52 rounded-xl animate-pulse"></div>
-          </div>
-        ) : !imageList ? (
-          // 데이터가 없는 경우 (에러 또는 초기 상태)
-          <div className="text-center py-8 bg-neutral-lightest rounded-xl border border-dashed border-neutral-light">
-            <RefreshCw className="h-8 w-8 mx-auto mb-2 text-neutral animate-spin" />
-            <p className="text-neutral-dark font-medium">이미지 데이터 로딩 중...</p>
-            <p className="text-sm mt-1 mb-4 text-neutral-dark">잠시만 기다려주세요</p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-white hover:bg-neutral-lightest"
-              onClick={() => refetch()}
-            >
-              새로고침
-            </Button>
-          </div>
-        ) : imageList.length > 0 ? (
-          // 실제 이미지 목록 (데이터 있는 경우)
-          <div className="grid grid-cols-2 gap-4">
-            {imageList.map((image: TransformedImage) => (
-              <div 
-                key={image.id}
-                className="bg-white rounded-xl overflow-hidden shadow-soft border border-neutral-light hover:shadow-md transition-shadow"
-              >
-                <div className="relative">
-                  <div className="aspect-square w-full overflow-hidden">
-                    <img 
-                      src={image.transformedUrl} 
-                      alt={image.title} 
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                      onError={(e) => {
-                        console.error(`이미지 로드 실패: ${image.transformedUrl}`);
-                        e.currentTarget.src = "https://placehold.co/400x400/F0F0F0/AAA?text=이미지+로드+실패";
-                      }}
-                    />
-                  </div>
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-2">
-                    <p className="text-white text-xs font-medium">{image.style} 스타일</p>
-                  </div>
-                </div>
-                <div className="p-3">
-                  <p className="font-medium text-sm truncate">{image.title}</p>
-                  <p className="text-xs text-neutral-dark mb-2">
-                    {typeof image.createdAt === 'string' 
-                      ? new Date(image.createdAt).toLocaleDateString('ko-KR')
-                      : '날짜 없음'}
-                  </p>
-                  <div className="flex space-x-2">
-                    <Button
-                      size="sm"
-                      className="flex-1 text-xs bg-neutral-lightest hover:bg-neutral-light text-neutral-darkest"
-                      onClick={() => handleViewImage(image)}
-                    >
-                      <Eye className="mr-1 h-3 w-3" /> 보기
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="flex-1 text-xs bg-primary-light hover:bg-primary/20 text-primary-dark"
-                      onClick={() => handleDownload(image.id)}
-                    >
-                      <Download className="mr-1 h-3 w-3" /> 저장
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          // 데이터는 있지만 이미지가 없는 경우
-          <div className="text-center py-8 bg-neutral-lightest rounded-xl border border-dashed border-neutral-light">
-            <PaintbrushVertical className="h-8 w-8 mx-auto mb-2 text-neutral" />
-            <p className="text-neutral-dark font-medium">아직 추억이 없습니다</p>
-            <p className="text-sm mt-1 mb-4 text-neutral-dark">첫 번째 사진을 변환하여 추억 컬렉션을 시작하세요</p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-white hover:bg-neutral-lightest"
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            >
-              사진 업로드하기
-            </Button>
-          </div>
-        )}
-      </div>
+      {/* "내 추억 컬렉션" 섹션은 사용자 요청에 따라 제거됨 */}
     </div>
   );
 }
