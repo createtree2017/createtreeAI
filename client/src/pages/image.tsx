@@ -63,6 +63,8 @@ export default function Image() {
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<string>("1:1");
   const [styleDialogOpen, setStyleDialogOpen] = useState<boolean>(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [viewImageDialogOpen, setViewImageDialogOpen] = useState<boolean>(false);
+  const [selectedViewImage, setSelectedViewImage] = useState<TransformedImage | null>(null);
   
   // A/B Testing states
   const [activeAbTest, setActiveAbTest] = useState<any>(null);
@@ -362,7 +364,8 @@ export default function Image() {
   };
 
   const handleViewImage = (image: TransformedImage) => {
-    setTransformedImage(image);
+    setSelectedViewImage(image);
+    setViewImageDialogOpen(true);
   };
 
 
@@ -773,9 +776,15 @@ export default function Image() {
               >
                 <div className="relative">
                   <img 
-                    src={image.transformedUrl} 
+                    src={image.transformedUrl && image.transformedUrl.startsWith('/') 
+                        ? image.transformedUrl 
+                        : `/${image.transformedUrl.replace(/^\/+/, '')}`} 
                     alt={image.title} 
                     className="w-full h-36 object-cover"
+                    onError={(e) => {
+                      // 이미지 로딩 실패 시 대체 이미지 표시
+                      e.currentTarget.src = "https://placehold.co/300x200/F0F0F0/333?text=이미지+로딩+실패";
+                    }}
                   />
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-2">
                     <p className="text-white text-xs font-medium">{image.style} 스타일</p>
@@ -820,6 +829,48 @@ export default function Image() {
           </div>
         )}
       </div>
+      
+      {/* 이미지 상세 보기 다이얼로그 */}
+      <Dialog open={viewImageDialogOpen} onOpenChange={setViewImageDialogOpen}>
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] p-1 overflow-hidden bg-black">
+          <div className="relative">
+            <button 
+              onClick={() => setViewImageDialogOpen(false)}
+              className="absolute top-2 right-2 bg-black/50 rounded-full p-1 text-white z-10"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            
+            {selectedViewImage && (
+              <div className="overflow-auto max-h-[80vh]">
+                <img 
+                  src={selectedViewImage.transformedUrl && selectedViewImage.transformedUrl.startsWith('/') 
+                      ? selectedViewImage.transformedUrl 
+                      : `/${selectedViewImage.transformedUrl.replace(/^\/+/, '')}`} 
+                  alt={selectedViewImage.title}
+                  className="w-full object-contain"
+                  onError={(e) => {
+                    e.currentTarget.src = "https://placehold.co/800x600/F0F0F0/333?text=이미지+로딩+실패";
+                  }}
+                />
+                <div className="bg-black text-white p-4">
+                  <h3 className="text-lg font-semibold">{selectedViewImage.title}</h3>
+                  <p className="text-sm text-gray-400">{selectedViewImage.style} 스타일 • {selectedViewImage.createdAt}</p>
+                  
+                  <div className="flex space-x-3 mt-4">
+                    <Button
+                      onClick={() => handleDownload(selectedViewImage.id)}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700"
+                    >
+                      <Download className="mr-2 h-4 w-4" /> 다운로드
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
