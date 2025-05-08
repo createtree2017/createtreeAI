@@ -546,11 +546,13 @@ export default function Image() {
                   }}
                 >
                   <div className="relative">
-                    <img 
-                      src={style.thumbnailUrl} 
-                      alt={style.label} 
-                      className="w-full h-52 object-cover"
-                    />
+                    <div className="aspect-square w-full overflow-hidden"> {/* 이미지 컨테이너를 정사각형으로 설정 */}
+                      <img 
+                        src={style.thumbnailUrl} 
+                        alt={style.label} 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
                     <div className={`absolute inset-0 ${selectedStyle === style.value ? 'bg-[#ff2d55]/20' : ''}`}>
                       {selectedStyle === style.value && (
                         <div className="absolute top-2 right-2 bg-[#ff2d55] text-white rounded-full w-6 h-6 flex items-center justify-center shadow-md">
