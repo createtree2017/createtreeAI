@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/components/ui/file-upload";
 import { transformImage, downloadMedia, shareMedia, getActiveAbTest } from "@/lib/api";
 import { queryClient } from "@/lib/queryClient";
-import { PaintbrushVertical, Download, Share2, Eye, ChevronRight, X, CheckCircle2 } from "lucide-react";
+import { PaintbrushVertical, Download, Share2, Eye, ChevronRight, X, CheckCircle2, RefreshCw } from "lucide-react";
 import ABTestComparer from "@/components/ABTestComparer";
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
@@ -112,30 +112,41 @@ export default function Image() {
     return artStyles.filter(style => style.categoryId === selectedCategory);
   }, [artStyles, selectedCategory]);
 
-  // Fetch image list with more aggressive refresh option
+  // 수정된 이미지 목록 조회 로직
   const { data: imageList, isLoading: isLoadingImages, refetch } = useQuery({
     queryKey: ["/api/image"], 
-    // 직접 fetch 함수로 대체하여 캐시 제어 헤더 추가
     queryFn: async () => {
-      const response = await fetch("/api/image", {
-        headers: {
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          "Pragma": "no-cache",
-          "Expires": "0"
+      console.log("이미지 목록 조회 시작...");
+      
+      try {
+        const response = await fetch("/api/image", {
+          // 캐시 방지 헤더
+          headers: {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+          }
+        });
+        
+        if (!response.ok) {
+          console.error(`이미지 목록 조회 실패: ${response.status} ${response.statusText}`);
+          throw new Error(`이미지 목록을 불러오는 데 실패했습니다 (${response.status})`);
         }
-      });
-      
-      if (!response.ok) {
-        throw new Error("이미지 목록을 불러오는 데 실패했습니다");
+        
+        const data = await response.json();
+        console.log(`이미지 ${data.length}개 로드 완료`);
+        return data;
+      } catch (error) {
+        console.error("이미지 목록 조회 중 오류:", error);
+        throw error;
       }
-      
-      return response.json();
     },
-    refetchOnMount: "always", // 컴포넌트 마운트 시 항상 새로 불러오기
-    refetchInterval: 1000, // 1초마다 자동 갱신
-    staleTime: 0, // 항상 최신 데이터를 가져오도록 staleTime 0으로 설정
-    refetchOnWindowFocus: true, // 창이 포커스될 때마다 최신 데이터 가져오기
+    staleTime: 30000, // 30초 동안은 캐시된 데이터 사용
+    refetchOnMount: true, // 컴포넌트 마운트 시 새로 불러오기
+    refetchOnWindowFocus: false, // 창 포커스 시 새로고침 비활성화
+    refetchInterval: false, // 자동 갱신 비활성화
     refetchOnReconnect: true, // 네트워크 재연결 시 새로고침
+    retry: 1, // 실패 시 1번만 재시도
   });
 
   // Fetch individual image if ID is provided
@@ -760,11 +771,28 @@ export default function Image() {
         </div>
 
         {isLoadingImages ? (
+          // 로딩 상태 (짧게 유지)
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-neutral-lightest h-52 rounded-xl animate-pulse"></div>
             <div className="bg-neutral-lightest h-52 rounded-xl animate-pulse"></div>
           </div>
-        ) : imageList && imageList.length > 0 ? (
+        ) : !imageList ? (
+          // 데이터가 없는 경우 (에러 또는 초기 상태)
+          <div className="text-center py-8 bg-neutral-lightest rounded-xl border border-dashed border-neutral-light">
+            <RefreshCw className="h-8 w-8 mx-auto mb-2 text-neutral animate-spin" />
+            <p className="text-neutral-dark font-medium">이미지 데이터 로딩 중...</p>
+            <p className="text-sm mt-1 mb-4 text-neutral-dark">잠시만 기다려주세요</p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-white hover:bg-neutral-lightest"
+              onClick={() => refetch()}
+            >
+              새로고침
+            </Button>
+          </div>
+        ) : imageList.length > 0 ? (
+          // 실제 이미지 목록 (데이터 있는 경우)
           <div className="grid grid-cols-2 gap-4">
             {imageList.map((image: TransformedImage) => (
               <div 
@@ -777,6 +805,11 @@ export default function Image() {
                       src={image.transformedUrl} 
                       alt={image.title} 
                       className="w-full h-full object-cover"
+                      loading="lazy"
+                      onError={(e) => {
+                        console.error(`이미지 로드 실패: ${image.transformedUrl}`);
+                        e.currentTarget.src = "https://placehold.co/400x400/F0F0F0/AAA?text=이미지+로드+실패";
+                      }}
                     />
                   </div>
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-2">
@@ -785,7 +818,11 @@ export default function Image() {
                 </div>
                 <div className="p-3">
                   <p className="font-medium text-sm truncate">{image.title}</p>
-                  <p className="text-xs text-neutral-dark mb-2">{image.createdAt}</p>
+                  <p className="text-xs text-neutral-dark mb-2">
+                    {typeof image.createdAt === 'string' 
+                      ? new Date(image.createdAt).toLocaleDateString('ko-KR')
+                      : '날짜 없음'}
+                  </p>
                   <div className="flex space-x-2">
                     <Button
                       size="sm"
@@ -807,6 +844,7 @@ export default function Image() {
             ))}
           </div>
         ) : (
+          // 데이터는 있지만 이미지가 없는 경우
           <div className="text-center py-8 bg-neutral-lightest rounded-xl border border-dashed border-neutral-light">
             <PaintbrushVertical className="h-8 w-8 mx-auto mb-2 text-neutral" />
             <p className="text-neutral-dark font-medium">아직 추억이 없습니다</p>
