@@ -801,7 +801,7 @@ export default function Image() {
       {/* 최근 추억 10개만 표시 */}
       <div className="mt-8">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="font-heading font-semibold text-foreground text-lg">최근 추억 (10개)</h3>
+          <h3 className="font-heading font-semibold text-lg">최근 추억 (10개)</h3>
         </div>
 
         {/* 이미지 목록 조회 및 표시 */}
@@ -809,8 +809,8 @@ export default function Image() {
           {isTransforming ? (
             // 변환 중일 때 로딩 상태 표시
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-muted h-52 rounded-xl animate-pulse"></div>
-              <div className="bg-muted h-52 rounded-xl animate-pulse"></div>
+              <div className="bg-neutral-lightest h-52 rounded-xl animate-pulse"></div>
+              <div className="bg-neutral-lightest h-52 rounded-xl animate-pulse"></div>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-4">
@@ -818,7 +818,7 @@ export default function Image() {
               {transformedImage && (
                 <div 
                   key="latest"
-                  className="bg-card rounded-xl overflow-hidden shadow-md border border-border hover:shadow-lg transition-shadow"
+                  className="bg-white rounded-xl overflow-hidden shadow-soft border border-neutral-light hover:shadow-md transition-shadow"
                 >
                   <div className="relative">
                     <div className="aspect-square w-full overflow-hidden">
@@ -836,13 +836,13 @@ export default function Image() {
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-2">
                       <p className="text-white text-xs font-medium">{transformedImage.style} 스타일</p>
                     </div>
-                    <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-xs rounded-full px-2 py-0.5">
+                    <div className="absolute top-2 right-2 bg-[#ff2d55] text-white text-xs rounded-full px-2 py-0.5">
                       최신
                     </div>
                   </div>
                   <div className="p-3">
-                    <p className="font-medium text-sm truncate text-card-foreground">{transformedImage.title}</p>
-                    <p className="text-xs text-muted-foreground mb-2">
+                    <p className="font-medium text-sm truncate">{transformedImage.title}</p>
+                    <p className="text-xs text-neutral-dark mb-2">
                       {typeof transformedImage.createdAt === 'string' 
                         ? new Date(transformedImage.createdAt).toLocaleDateString('ko-KR')
                         : '방금 전'}
@@ -850,7 +850,7 @@ export default function Image() {
                     <div className="flex space-x-2">
                       <Button
                         size="sm"
-                        className="flex-1 text-xs bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-sm"
+                        className="flex-1 text-xs bg-[#ff2d55] hover:bg-[#ff2d55]/90 text-white font-medium shadow-sm"
                         onClick={() => handleDownload(transformedImage.id)}
                       >
                         <Download className="mr-1 h-3 w-3" /> 저장
@@ -870,7 +870,7 @@ export default function Image() {
                   .map((image: TransformedImage) => (
                     <div 
                       key={image.id}
-                      className="bg-card rounded-xl overflow-hidden shadow-md border border-border hover:shadow-lg transition-shadow"
+                      className="bg-white rounded-xl overflow-hidden shadow-soft border border-neutral-light hover:shadow-md transition-shadow"
                     >
                       <div className="relative">
                         <div className="aspect-square w-full overflow-hidden">
@@ -890,8 +890,8 @@ export default function Image() {
                         </div>
                       </div>
                       <div className="p-3">
-                        <p className="font-medium text-sm truncate text-card-foreground">{image.title}</p>
-                        <p className="text-xs text-muted-foreground mb-2">
+                        <p className="font-medium text-sm truncate">{image.title}</p>
+                        <p className="text-xs text-neutral-dark mb-2">
                           {typeof image.createdAt === 'string' 
                             ? new Date(image.createdAt).toLocaleDateString('ko-KR')
                             : '날짜 없음'}
@@ -899,14 +899,14 @@ export default function Image() {
                         <div className="flex space-x-2">
                           <Button
                             size="sm"
-                            className="flex-1 text-xs bg-muted hover:bg-muted/80 text-muted-foreground font-medium shadow-sm"
+                            className="flex-1 text-xs bg-neutral-light hover:bg-neutral-light/80 text-neutral-dark font-medium shadow-sm"
                             onClick={() => handleViewImage(image)}
                           >
                             <Eye className="mr-1 h-3 w-3" /> 보기
                           </Button>
                           <Button
                             size="sm"
-                            className="flex-1 text-xs bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-sm"
+                            className="flex-1 text-xs bg-[#ff2d55] hover:bg-[#ff2d55]/90 text-white font-medium shadow-sm"
                             onClick={() => handleDownload(image.id)}
                           >
                             <Download className="mr-1 h-3 w-3" /> 저장
@@ -919,19 +919,19 @@ export default function Image() {
 
               {/* 데이터는 로드됐지만 이미지가 없는 경우 */}
               {recentImages && recentImages.length === 0 && !transformedImage && (
-                <div className="col-span-2 text-center py-8 bg-muted rounded-xl border border-dashed border-border">
-                  <PaintbrushVertical className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-card-foreground font-medium">아직 추억이 없습니다</p>
-                  <p className="text-sm mt-1 mb-4 text-muted-foreground">첫 번째 사진을 변환하여 추억 컬렉션을 시작하세요</p>
+                <div className="col-span-2 text-center py-8 bg-neutral-lightest rounded-xl border border-dashed border-neutral-light">
+                  <PaintbrushVertical className="h-8 w-8 mx-auto mb-2 text-neutral" />
+                  <p className="text-neutral-dark font-medium">아직 추억이 없습니다</p>
+                  <p className="text-sm mt-1 mb-4 text-neutral-dark">첫 번째 사진을 변환하여 추억 컬렉션을 시작하세요</p>
                 </div>
               )}
 
               {/* 에러 발생 또는 로딩 중인 경우 */}
               {isLoadingImages && !transformedImage && (
-                <div className="col-span-2 text-center py-8 bg-muted rounded-xl border border-dashed border-border">
-                  <RefreshCw className="h-8 w-8 mx-auto mb-2 text-muted-foreground animate-spin" />
-                  <p className="text-card-foreground font-medium">이미지 데이터 로딩 중...</p>
-                  <p className="text-sm mt-1 mb-4 text-muted-foreground">잠시만 기다려주세요</p>
+                <div className="col-span-2 text-center py-8 bg-neutral-lightest rounded-xl border border-dashed border-neutral-light">
+                  <RefreshCw className="h-8 w-8 mx-auto mb-2 text-neutral animate-spin" />
+                  <p className="text-neutral-dark font-medium">이미지 데이터 로딩 중...</p>
+                  <p className="text-sm mt-1 mb-4 text-neutral-dark">잠시만 기다려주세요</p>
                 </div>
               )}
             </div>
@@ -941,10 +941,10 @@ export default function Image() {
       
       {/* 이미지 상세 보기 다이얼로그 */}
       <Dialog open={viewImageDialog} onOpenChange={setViewImageDialog}>
-        <DialogContent className="max-w-4xl bg-card border-border">
+        <DialogContent className="max-w-4xl bg-white border border-neutral-light">
           <DialogHeader>
-            <DialogTitle className="text-card-foreground">{selectedGalleryImage?.title}</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
+            <DialogTitle>{selectedGalleryImage?.title}</DialogTitle>
+            <DialogDescription className="text-neutral-dark">
               {selectedGalleryImage?.createdAt && 
                 new Date(selectedGalleryImage.createdAt).toLocaleDateString('ko-KR', {
                   year: 'numeric',
@@ -957,7 +957,7 @@ export default function Image() {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="relative aspect-video bg-muted rounded-md overflow-hidden">
+          <div className="relative aspect-video bg-neutral-lightest rounded-md overflow-hidden">
             <img 
               src={selectedGalleryImage?.transformedUrl} 
               alt={selectedGalleryImage?.title}
@@ -972,7 +972,7 @@ export default function Image() {
           <DialogFooter>
             <div className="flex items-center gap-2 w-full justify-end">
               <Button 
-                className="bg-muted hover:bg-muted/80 text-muted-foreground font-medium shadow-sm"
+                className="bg-neutral-light hover:bg-neutral-light/80 text-neutral-dark font-medium shadow-sm"
                 onClick={() => {
                   if (selectedGalleryImage) {
                     handleDownload(selectedGalleryImage.id);
@@ -983,7 +983,7 @@ export default function Image() {
               </Button>
               
               <Button
-                className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-sm"
+                className="bg-[#ff2d55] hover:bg-[#ff2d55]/90 text-white font-medium shadow-sm"
                 onClick={() => {
                   if (selectedGalleryImage) {
                     handleShare(selectedGalleryImage.id);
