@@ -132,11 +132,7 @@ export const concepts = pgTable("concepts", {
   promptTemplate: text("prompt_template").notNull(),
   systemPrompt: text("system_prompt"),  // 이미지 분석 및 변환을 위한 시스템 프롬프트 추가
   thumbnailUrl: text("thumbnail_url"),
-  referenceImageUrl: text("reference_image_url"),  // 얼굴 합성용 레퍼런스 이미지
-  usePhotoMaker: boolean("use_photo_maker").default(false), // PhotoMaker 모델 사용 여부
-  photoMakerPrompt: text("photo_maker_prompt"),  // PhotoMaker 모델용 프롬프트
-  photoMakerNegativePrompt: text("photo_maker_negative_prompt"),  // PhotoMaker 모델용 네거티브 프롬프트
-  photoMakerStrength: text("photo_maker_strength").default("0.8"),  // PhotoMaker 합성 강도
+  // OpenAI 이미지 변환 관련 필드만 유지
   tagSuggestions: jsonb("tag_suggestions"), // Array of strings
   variables: jsonb("variables"), // Array of variable objects
   categoryId: text("category_id").references(() => conceptCategories.categoryId),
