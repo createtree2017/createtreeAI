@@ -38,8 +38,8 @@ export const transformImage = async (data: FormData, isAdmin: boolean = false) =
   return response.json();
 };
 
-export const getImageList = async () => {
-  const response = await apiRequest('GET', '/api/image');
+export const getImageList = async (page: number = 1, limit: number = 10) => {
+  const response = await apiRequest('GET', `/api/image?page=${page}&limit=${limit}`);
   return response.json();
 };
 
