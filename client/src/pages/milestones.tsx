@@ -194,6 +194,81 @@ const ProfileSetup = ({
   );
 };
 
+// 마일스톤 한글 제목 및 설명 번역
+const milestoneTranslations: Record<string, { title: string; description: string; encouragementMessage: string }> = {
+  "first-trimester-complete": {
+    title: "첫 삼분기 완료",
+    description: "축하합니다! 임신 첫 삼분기를 완료했습니다. 아기의 필수 구조가 형성되었고, 유산 위험이 크게 감소합니다.",
+    encouragementMessage: "종종 어려운 첫 삼분기를 통과했습니다! 이제 아기는 복숭아 크기이며 빠르게 발달하고 있습니다. 아기의 모든 시스템을 위한 기초가 마련되었습니다."
+  },
+  "hear-babys-heartbeat": {
+    title: "아기 심장 소리 듣기",
+    description: "초음파 검사에서 처음으로 아기의 심장 소리를 듣는 것은 임신 중 가장 마법 같은 순간 중 하나입니다.",
+    encouragementMessage: "처음으로 그 아름다운 소리를 듣는 것만큼 특별한 것은 없습니다! 아기의 심장은 현재 분당 약 120-160회 뛰고 있습니다."
+  },
+  "feel-baby-movement": {
+    title: "아기의 첫 움직임 느끼기",
+    description: "아기의 미묘한 움직임을 느끼기 시작할 것입니다. 종종 '나비'나 기포, 떨림으로 표현됩니다.",
+    encouragementMessage: "그 작은 떨림은 아기가 안녕하다고 인사하는 거예요! '퀴크닝'이라고 하는 이 첫 움직임은 앞으로 몇 주 동안 점점 더 강해지고 눈에 띄게 될 것입니다."
+  },
+  "second-trimester-complete": {
+    title: "두 번째 삼분기 완료",
+    description: "임신의 중간 단계를 완료했습니다. 이 시기는 종종 가장 편안한 삼분기로 여겨집니다. 아기는 빠르게 성장하고 특징을 발달시키고 있습니다.",
+    encouragementMessage: "잘 했어요! 이제 아기는 약 2파운드 무게이며 빠르게 발달하고 있습니다. 임신 여정의 마지막 구간에 접어들고 있습니다!"
+  },
+  "nursery-ready": {
+    title: "아기방 준비 완료",
+    description: "아기의 도착에 필요한 모든 필수품으로 아기 방을 준비했습니다.",
+    encouragementMessage: "아기의 특별한 공간이 준비되었습니다! 미리 아기방을 준비해두면 마음의 평화를 얻고 아기의 도착에 더 준비된 느낌을 줍니다."
+  },
+  "hospital-bag-packed": {
+    title: "병원 가방 준비 완료",
+    description: "진통, 출산 및 신생아와의 첫 날을 위한 모든 필수품이 담긴 병원 가방을 준비했습니다.",
+    encouragementMessage: "병원 가방을 준비해두면 출산이 다가올 때 마음의 평화를 얻을 수 있습니다. 이 설렘 가득한 다음 단계를 위해 준비되었습니다!"
+  },
+  "birth-plan-complete": {
+    title: "출산 계획 작성 완료",
+    description: "진통과 분만에 대한 선호도를 생각해보고 의료진과 공유할 유연한 출산 계획을 만들었습니다.",
+    encouragementMessage: "출산 계획은 의료진에게 당신의 바람을 전달하는 데 도움이 됩니다. 출산은 예측할 수 없으므로 유연성이 중요하다는 점을 기억하세요."
+  },
+  "full-term-reached": {
+    title: "만삭 도달",
+    description: "임신 만삭에 도달한 것을 축하합니다! 아기는 이제 완전히 발달하고 출산 준비가 된 것으로 간주됩니다.",
+    encouragementMessage: "놀라운 성취입니다! 이제 아기는 만삭으로 간주되며 자궁 밖에서 잘 지낼 준비가 되었습니다. 이제 곧 작은 보물을 만날 날이 올 것입니다!"
+  },
+  "self-care-routine": {
+    title: "자기 관리 루틴 확립",
+    description: "임신 여정 동안 정기적인 자기 관리 루틴을 만들고 유지했습니다.",
+    encouragementMessage: "자신을 돌보는 것은 아기를 위해서도 할 수 있는 가장 좋은 일 중 하나입니다! 자기 관리에 대한 당신의 헌신은 신체적, 정서적 웰빙을 지원합니다."
+  },
+  "healthy-eating-habits": {
+    title: "건강한 영양 섭취 챔피언",
+    description: "임신 기간 동안 건강한 식습관과 적절한 영양 섭취를 꾸준히 유지했습니다.",
+    encouragementMessage: "영양에 대한 당신의 헌신은 아기의 건강한 발달을 돕고 있습니다. 균형 잡힌 식단은 당신과 아기 모두에게 중요한 영양소를 제공합니다."
+  }
+};
+
+// 마일스톤 기본 영어 제목과 한글 제목 매핑
+function getTranslatedMilestone(milestone: Milestone) {
+  const translation = milestoneTranslations[milestone.milestoneId];
+  
+  if (translation) {
+    return {
+      ...milestone,
+      displayTitle: translation.title,
+      displayDescription: translation.description,
+      displayEncouragementMessage: translation.encouragementMessage
+    };
+  }
+  
+  return {
+    ...milestone,
+    displayTitle: milestone.title,
+    displayDescription: milestone.description,
+    displayEncouragementMessage: milestone.encouragementMessage
+  };
+}
+
 // Available milestone card component
 const MilestoneCard = ({ 
   milestone, 
@@ -204,6 +279,7 @@ const MilestoneCard = ({
 }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [notes, setNotes] = useState("");
+  const translatedMilestone = getTranslatedMilestone(milestone);
 
   const handleComplete = () => {
     onComplete(milestone.milestoneId, notes);
@@ -214,13 +290,13 @@ const MilestoneCard = ({
     <Card className="overflow-hidden">
       <CardHeader className={`${categoryInfo[milestone.category]?.color || "bg-gray-100"}`}>
         <div className="flex justify-between items-center">
-          <CardTitle>{milestone.title}</CardTitle>
+          <CardTitle>{translatedMilestone.displayTitle}</CardTitle>
           <span className="text-3xl">{milestone.badgeEmoji}</span>
         </div>
         <CardDescription>{categoryInfo[milestone.category]?.name || milestone.category}</CardDescription>
       </CardHeader>
       <CardContent className="pt-4">
-        <p className="mb-2">{milestone.description}</p>
+        <p className="mb-2">{translatedMilestone.displayDescription}</p>
         <p className="text-sm text-muted-foreground">
           {milestone.weekStart}-{milestone.weekEnd}주
         </p>
@@ -232,9 +308,9 @@ const MilestoneCard = ({
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>마일스톤 완료: {milestone.title}</DialogTitle>
+              <DialogTitle>마일스톤 완료: {translatedMilestone.displayTitle}</DialogTitle>
               <DialogDescription>
-                {milestone.encouragementMessage}
+                {translatedMilestone.displayEncouragementMessage}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -263,12 +339,13 @@ const MilestoneCard = ({
 const CompletedMilestoneCard = ({ userMilestone }: { userMilestone: UserMilestone }) => {
   const { milestone } = userMilestone;
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const translatedMilestone = getTranslatedMilestone(milestone);
 
   return (
     <Card>
       <CardHeader className={`${categoryInfo[milestone.category]?.color || "bg-gray-100"}`}>
         <div className="flex justify-between items-center">
-          <CardTitle>{milestone.title}</CardTitle>
+          <CardTitle>{translatedMilestone.displayTitle}</CardTitle>
           <span className="text-3xl">{milestone.badgeEmoji}</span>
         </div>
         <CardDescription>
@@ -276,7 +353,7 @@ const CompletedMilestoneCard = ({ userMilestone }: { userMilestone: UserMileston
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-4">
-        <p>{milestone.encouragementMessage}</p>
+        <p>{translatedMilestone.displayEncouragementMessage}</p>
         
         {userMilestone.notes && (
           <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
@@ -287,7 +364,7 @@ const CompletedMilestoneCard = ({ userMilestone }: { userMilestone: UserMileston
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>{milestone.title}</DialogTitle>
+                <DialogTitle>{translatedMilestone.displayTitle}</DialogTitle>
                 <DialogDescription>
                   {format(new Date(userMilestone.completedAt), "PPP")}에 완료됨
                 </DialogDescription>
@@ -305,7 +382,7 @@ const CompletedMilestoneCard = ({ userMilestone }: { userMilestone: UserMileston
                     <Label>내 사진</Label>
                     <img 
                       src={userMilestone.photoUrl} 
-                      alt={milestone.title} 
+                      alt={translatedMilestone.displayTitle} 
                       className="rounded-md max-h-60 w-auto"
                     />
                   </div>
