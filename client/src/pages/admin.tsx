@@ -105,7 +105,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CheckCircle, Edit, PlusCircle, Trash2, X, Upload, Globe, ExternalLink, Download, PaintbrushVertical, Image as ImageIcon, Share2, Eye, RefreshCw, Plus, Loader2, Info } from "lucide-react";
+import { CheckCircle, Edit, PlusCircle, Trash2, X, Upload, Globe, ExternalLink, Download, PaintbrushVertical, Image as ImageIcon, Share2, Eye, RefreshCw, Plus, Loader2, Info, ChevronLeft, ChevronRight } from "lucide-react";
 
 // Define form validation schemas using Zod
 const personaFormSchema = z.object({
@@ -263,22 +263,27 @@ interface ImageItem {
 }
 
 function ImageGallery() {
+  // 페이지네이션 상태
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalImages, setTotalImages] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const imagesPerPage = 10;
+  
   // 새로운 캐시 키 생성용 카운터
   const [refreshCounter, setRefreshCounter] = useState(0);
   
-  const { data: images, isLoading, error, refetch } = useQuery({
-    queryKey: ["/api/image", refreshCounter], 
-    refetchInterval: 1000, // 1초마다 자동 갱신 (더 빠른 갱신으로 변경)
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["/api/image", currentPage, refreshCounter], 
+    refetchInterval: 10000, // 10초마다 자동 갱신
     staleTime: 0, // 항상 최신 데이터 가져오기
     refetchOnWindowFocus: true, // 창이 포커스를 얻을 때마다 갱신
     refetchOnMount: "always", // 컴포넌트 마운트 시 항상 새로 불러오기
     retryOnMount: true, // 마운트 시 재시도
-    // 캐시된 데이터 사용하지 않고 항상 새로운 요청 (더 강력한 캐시 무효화)
     refetchOnReconnect: true, // 네트워크 재연결 시 새로고침
     
-    // 요청 옵션 직접 설정 (캐시 방지 헤더 추가)
+    // API 요청 함수
     queryFn: async () => {
-      const response = await fetch("/api/image", {
+      const response = await fetch(`/api/image?page=${currentPage}&limit=${imagesPerPage}`, {
         headers: {
           "Cache-Control": "no-cache, no-store, must-revalidate",
           "Pragma": "no-cache",
@@ -290,10 +295,20 @@ function ImageGallery() {
         throw new Error("이미지 목록을 불러오는 데 실패했습니다");
       }
       
-      return response.json();
+      const result = await response.json();
+      // API 응답에서 총 이미지 수와 총 페이지 수 업데이트
+      if (result.totalCount !== undefined) {
+        setTotalImages(result.totalCount);
+        setTotalPages(Math.ceil(result.totalCount / imagesPerPage));
+      }
+      
+      return result;
     }
   });
-
+  
+  // 이미지 데이터 추출
+  const images = data?.images || [];
+  
   const queryClient = useQueryClient();
 
   const [viewImageDialog, setViewImageDialog] = useState(false);
@@ -437,7 +452,7 @@ function ImageGallery() {
         <h2 className="text-2xl font-bold">이미지 갤러리</h2>
         <div className="flex items-center gap-3">
           <Button 
-            variant="outline" 
+            variant="outline"
             size="sm" 
             onClick={() => {
               // 쿼리 캐시를 완전히 무효화
@@ -449,11 +464,6 @@ function ImageGallery() {
               // 강제로 새로운 쿼리 키로 다시 로드
               refetch();
               
-              // 서버에 요청 헤더에 Cache-Control: no-cache 추가 (브라우저 캐시 방지)
-              fetch('/api/image', { 
-                headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
-              });
-              
               toast({
                 title: "새로고침 중",
                 description: "최신 이미지 데이터를 불러오는 중입니다",
@@ -464,7 +474,7 @@ function ImageGallery() {
             새로고침
           </Button>
           <div className="text-sm text-gray-500">
-            총 {images.length}개의 이미지
+            총 {totalImages}개의 이미지 중 {images.length}개 표시 중
           </div>
         </div>
       </div>
@@ -511,6 +521,68 @@ function ImageGallery() {
           </Card>
         ))}
       </div>
+      
+      {/* 페이지네이션 컨트롤 */}
+      {totalPages > 1 && (
+        <div className="flex justify-center mt-8">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              이전
+            </Button>
+            
+            <div className="flex items-center gap-1">
+              {[...Array(totalPages)].map((_, i) => {
+                const pageNumber = i + 1;
+                // 현재 페이지와 양쪽 1개 페이지만 표시 (총 최대 3개)
+                // 페이지가 많으면 처음, 마지막, 현재 페이지 주변만 표시
+                const isVisible = 
+                  pageNumber === 1 || // 첫 페이지
+                  pageNumber === totalPages || // 마지막 페이지
+                  Math.abs(pageNumber - currentPage) <= 1; // 현재 페이지 주변
+                
+                // 생략 표시 (생략 부호는 양쪽에 한 번씩만)
+                const showEllipsisBefore = i === 1 && currentPage > 3;
+                const showEllipsisAfter = i === totalPages - 2 && currentPage < totalPages - 2;
+                
+                return (
+                  <React.Fragment key={i}>
+                    {showEllipsisBefore && <span className="px-2">...</span>}
+                    
+                    {isVisible && (
+                      <Button
+                        variant={currentPage === pageNumber ? "default" : "outline"}
+                        size="sm"
+                        className="w-8 h-8 p-0"
+                        onClick={() => setCurrentPage(pageNumber)}
+                      >
+                        {pageNumber}
+                      </Button>
+                    )}
+                    
+                    {showEllipsisAfter && <span className="px-2">...</span>}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+            >
+              다음
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {selectedImage && (
         <Dialog open={viewImageDialog} onOpenChange={setViewImageDialog}>
