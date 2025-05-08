@@ -784,11 +784,12 @@ export default function MilestonesPage() {
                         );
                       }
                       
+                      const translatedMilestone = getTranslatedMilestone(milestone);
                       return (
                         <Card key={milestone.milestoneId} className="overflow-hidden">
                           <CardHeader className={`${categoryInfo[milestone.category]?.color || "bg-gray-100"}`}>
                             <div className="flex justify-between items-center">
-                              <CardTitle>{milestone.title}</CardTitle>
+                              <CardTitle>{translatedMilestone.displayTitle}</CardTitle>
                               <span className="text-3xl">{milestone.badgeEmoji}</span>
                             </div>
                             <CardDescription>
@@ -796,7 +797,7 @@ export default function MilestonesPage() {
                             </CardDescription>
                           </CardHeader>
                           <CardContent className="pt-4">
-                            <p>{milestone.description}</p>
+                            <p>{translatedMilestone.displayDescription}</p>
                             
                             {profile && milestone.weekStart > profile.currentWeek && (
                               <Badge variant="outline" className="mt-2">
