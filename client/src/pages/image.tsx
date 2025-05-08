@@ -831,7 +831,7 @@ export default function Image() {
                     <div className="flex space-x-2">
                       <Button
                         size="sm"
-                        className="flex-1 text-xs bg-primary-light hover:bg-primary/20 text-primary-dark"
+                        className="flex-1 text-xs bg-[#ff2d55] hover:bg-[#ff2d55]/90 text-white font-medium shadow-sm"
                         onClick={() => handleDownload(transformedImage.id)}
                       >
                         <Download className="mr-1 h-3 w-3" /> 저장
@@ -880,14 +880,14 @@ export default function Image() {
                         <div className="flex space-x-2">
                           <Button
                             size="sm"
-                            className="flex-1 text-xs bg-neutral-lightest hover:bg-neutral-light text-neutral-darkest"
+                            className="flex-1 text-xs bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium shadow-sm"
                             onClick={() => handleViewImage(image)}
                           >
                             <Eye className="mr-1 h-3 w-3" /> 보기
                           </Button>
                           <Button
                             size="sm"
-                            className="flex-1 text-xs bg-primary-light hover:bg-primary/20 text-primary-dark"
+                            className="flex-1 text-xs bg-[#ff2d55] hover:bg-[#ff2d55]/90 text-white font-medium shadow-sm"
                             onClick={() => handleDownload(image.id)}
                           >
                             <Download className="mr-1 h-3 w-3" /> 저장
@@ -953,8 +953,7 @@ export default function Image() {
           <DialogFooter>
             <div className="flex items-center gap-2 w-full justify-end">
               <Button 
-                variant="secondary"
-                className="bg-neutral-lightest hover:bg-neutral-light text-neutral-darkest"
+                className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium shadow-sm"
                 onClick={() => {
                   if (selectedGalleryImage) {
                     handleDownload(selectedGalleryImage.id);
@@ -965,7 +964,7 @@ export default function Image() {
               </Button>
               
               <Button
-                className="bg-primary-light hover:bg-primary/20 text-primary-dark"
+                className="bg-[#ff2d55] hover:bg-[#ff2d55]/90 text-white font-medium shadow-sm"
                 onClick={() => {
                   if (selectedGalleryImage) {
                     handleShare(selectedGalleryImage.id);
