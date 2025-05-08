@@ -772,11 +772,13 @@ export default function Image() {
                 className="bg-white rounded-xl overflow-hidden shadow-soft border border-neutral-light hover:shadow-md transition-shadow"
               >
                 <div className="relative">
-                  <img 
-                    src={image.transformedUrl} 
-                    alt={image.title} 
-                    className="w-full h-36 object-cover"
-                  />
+                  <div className="aspect-square w-full overflow-hidden">
+                    <img 
+                      src={image.transformedUrl} 
+                      alt={image.title} 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-2">
                     <p className="text-white text-xs font-medium">{image.style} 스타일</p>
                   </div>
