@@ -85,7 +85,7 @@ export async function mergeUserFaceWithReference(
       "ugly, blurry, bad anatomy, bad hands, text, error, missing fingers, extra digit, cropped, low quality";
     
     // 커스텀 강도 또는 기본값 사용 (문자열 -> 숫자 변환)
-    const strengthRatio = customStrength ? parseInt(customStrength) * 20 : 20; // 0.8 -> 16, 기본값은 20
+    const strengthRatio = customStrength ? Math.max(15, parseFloat(customStrength) * 20) : 20; // 최소값 15 이상 보장
     
     console.log(`[PhotoMaker] 사용 프롬프트: ${prompt}`);
     console.log(`[PhotoMaker] 네거티브 프롬프트: ${negativePrompt}`);
@@ -199,7 +199,7 @@ export async function generateStylizedImage(
       "ugly, blurry, bad anatomy, bad hands, text, error, missing fingers, extra digit, cropped, low quality";
     
     // 커스텀 강도 또는 기본값 사용 (문자열 -> 숫자 변환)
-    const strengthRatio = customStrength ? parseInt(customStrength) * 20 : 20; // 0.8 -> 16, 기본값은 20
+    const strengthRatio = customStrength ? Math.max(15, parseFloat(customStrength) * 20) : 20; // 최소값 15 이상 보장
     
     console.log(`[PhotoMaker] 사용 프롬프트: ${prompt}`);
     console.log(`[PhotoMaker] 네거티브 프롬프트: ${negativePrompt}`);
