@@ -83,22 +83,27 @@ export const saveChat = async (chatData: {
   userMemo?: string;
   mood?: string;
 }) => {
-  const response = await apiRequest('POST', '/api/chat/save', chatData);
+  const response = await apiRequest('/api/chat/save', {
+    method: 'POST',
+    data: chatData
+  });
   return response.json();
 };
 
 export const getSavedChats = async () => {
-  const response = await apiRequest('GET', '/api/chat/saved');
+  const response = await apiRequest('/api/chat/saved');
   return response.json();
 };
 
 export const getSavedChat = async (id: number) => {
-  const response = await apiRequest('GET', `/api/chat/saved/${id}`);
+  const response = await apiRequest(`/api/chat/saved/${id}`);
   return response.json();
 };
 
 export const deleteSavedChat = async (id: number) => {
-  const response = await apiRequest('DELETE', `/api/chat/saved/${id}`);
+  const response = await apiRequest(`/api/chat/saved/${id}`, {
+    method: 'DELETE'
+  });
   return response.json();
 };
 
@@ -108,14 +113,14 @@ export const getGalleryItems = async (filter?: string) => {
     ? `/api/gallery?filter=${filter}` 
     : '/api/gallery';
   
-  const response = await apiRequest('GET', url);
+  const response = await apiRequest(url);
   return response.json();
 };
 
 export const toggleFavorite = async (itemId: number, type: string) => {
-  const response = await apiRequest('POST', '/api/gallery/favorite', { 
-    itemId, 
-    type 
+  const response = await apiRequest('/api/gallery/favorite', {
+    method: 'POST',
+    data: { itemId, type }
   });
   return response.json();
 };
@@ -255,43 +260,56 @@ export const shareMedia = async (id: number, type: string) => {
 
 // Get all personas
 export const getPersonas = async () => {
-  const response = await apiRequest('GET', '/api/admin/personas');
+  const response = await apiRequest('/api/admin/personas');
   return response.json();
 };
 
 // Get a specific persona
 export const getPersona = async (id: string) => {
-  const response = await apiRequest('GET', `/api/admin/personas/${id}`);
+  const response = await apiRequest(`/api/admin/personas/${id}`);
   return response.json();
 };
 
 // Create a new persona
 export const createPersona = async (personaData: any) => {
-  const response = await apiRequest('POST', '/api/admin/personas', personaData);
+  const response = await apiRequest('/api/admin/personas', {
+    method: 'POST',
+    data: personaData
+  });
   return response.json();
 };
 
 // Update an existing persona
 export const updatePersona = async (id: string, personaData: any) => {
-  const response = await apiRequest('PUT', `/api/admin/personas/${id}`, personaData);
+  const response = await apiRequest(`/api/admin/personas/${id}`, {
+    method: 'PUT',
+    data: personaData
+  });
   return response.json();
 };
 
 // Delete a persona
 export const deletePersona = async (id: string) => {
-  const response = await apiRequest('DELETE', `/api/admin/personas/${id}`);
+  const response = await apiRequest(`/api/admin/personas/${id}`, {
+    method: 'DELETE'
+  });
   return response.json();
 };
 
 // Batch import personas
 export const batchImportPersonas = async (personaList: any[]) => {
-  const response = await apiRequest('POST', '/api/admin/personas/batch', personaList);
+  const response = await apiRequest('/api/admin/personas/batch', {
+    method: 'POST',
+    data: personaList
+  });
   return response.json();
 };
 
 // Track persona usage
 export const incrementPersonaUse = async (id: string) => {
-  const response = await apiRequest('POST', `/api/personas/${id}/use`);
+  const response = await apiRequest(`/api/personas/${id}/use`, {
+    method: 'POST'
+  });
   return response.json();
 };
 
@@ -316,7 +334,7 @@ export const getPersonaRecommendations = async (params?: {
     }
   }
   
-  const response = await apiRequest('GET', url);
+  const response = await apiRequest(url);
   return response.json();
 };
 
@@ -324,31 +342,39 @@ export const getPersonaRecommendations = async (params?: {
 
 // Get all categories
 export const getCategories = async () => {
-  const response = await apiRequest('GET', '/api/admin/categories');
+  const response = await apiRequest('/api/admin/categories');
   return response.json();
 };
 
 // Get a specific category
 export const getCategory = async (id: string) => {
-  const response = await apiRequest('GET', `/api/admin/categories/${id}`);
+  const response = await apiRequest(`/api/admin/categories/${id}`);
   return response.json();
 };
 
 // Create a new category
 export const createCategory = async (categoryData: any) => {
-  const response = await apiRequest('POST', '/api/admin/categories', categoryData);
+  const response = await apiRequest('/api/admin/categories', {
+    method: 'POST',
+    data: categoryData
+  });
   return response.json();
 };
 
 // Update an existing category
 export const updateCategory = async (id: string, categoryData: any) => {
-  const response = await apiRequest('PUT', `/api/admin/categories/${id}`, categoryData);
+  const response = await apiRequest(`/api/admin/categories/${id}`, {
+    method: 'PUT',
+    data: categoryData
+  });
   return response.json();
 };
 
 // Delete a category
 export const deleteCategory = async (id: string) => {
-  const response = await apiRequest('DELETE', `/api/admin/categories/${id}`);
+  const response = await apiRequest(`/api/admin/categories/${id}`, {
+    method: 'DELETE'
+  });
   return response.json();
 };
 
@@ -356,61 +382,77 @@ export const deleteCategory = async (id: string) => {
 
 // Get all concept categories
 export const getConceptCategories = async () => {
-  const response = await apiRequest('GET', '/api/admin/concept-categories');
+  const response = await apiRequest('/api/admin/concept-categories');
   return response.json();
 };
 
 // Get a specific concept category
 export const getConceptCategory = async (id: string) => {
-  const response = await apiRequest('GET', `/api/admin/concept-categories/${id}`);
+  const response = await apiRequest(`/api/admin/concept-categories/${id}`);
   return response.json();
 };
 
 // Create a new concept category
 export const createConceptCategory = async (categoryData: any) => {
-  const response = await apiRequest('POST', '/api/admin/concept-categories', categoryData);
+  const response = await apiRequest('/api/admin/concept-categories', {
+    method: 'POST',
+    data: categoryData
+  });
   return response.json();
 };
 
 // Update an existing concept category
 export const updateConceptCategory = async (id: string, categoryData: any) => {
-  const response = await apiRequest('PUT', `/api/admin/concept-categories/${id}`, categoryData);
+  const response = await apiRequest(`/api/admin/concept-categories/${id}`, {
+    method: 'PUT',
+    data: categoryData
+  });
   return response.json();
 };
 
 // Delete a concept category
 export const deleteConceptCategory = async (id: string) => {
-  const response = await apiRequest('DELETE', `/api/admin/concept-categories/${id}`);
+  const response = await apiRequest(`/api/admin/concept-categories/${id}`, {
+    method: 'DELETE'
+  });
   return response.json();
 };
 
 // Get all concepts
 export const getConcepts = async () => {
-  const response = await apiRequest('GET', '/api/admin/concepts');
+  const response = await apiRequest('/api/admin/concepts');
   return response.json();
 };
 
 // Get a specific concept
 export const getConcept = async (id: string) => {
-  const response = await apiRequest('GET', `/api/admin/concepts/${id}`);
+  const response = await apiRequest(`/api/admin/concepts/${id}`);
   return response.json();
 };
 
 // Create a new concept
 export const createConcept = async (conceptData: any) => {
-  const response = await apiRequest('POST', '/api/admin/concepts', conceptData);
+  const response = await apiRequest('/api/admin/concepts', {
+    method: 'POST',
+    data: conceptData
+  });
   return response.json();
 };
 
 // Update an existing concept
 export const updateConcept = async (id: string, conceptData: any) => {
-  const response = await apiRequest('PUT', `/api/admin/concepts/${id}`, conceptData);
+  const response = await apiRequest(`/api/admin/concepts/${id}`, {
+    method: 'PUT',
+    data: conceptData
+  });
   return response.json();
 };
 
 // Delete a concept
 export const deleteConcept = async (id: string) => {
-  const response = await apiRequest('DELETE', `/api/admin/concepts/${id}`);
+  const response = await apiRequest(`/api/admin/concepts/${id}`, {
+    method: 'DELETE'
+  });
   return response.json();
 };
 
@@ -418,13 +460,16 @@ export const deleteConcept = async (id: string) => {
 
 // Get list of available languages
 export const getLanguages = async () => {
-  const response = await apiRequest('GET', '/api/languages');
+  const response = await apiRequest('/api/languages');
   return response.json();
 };
 
 // Upload translations for a specific language
 export const uploadTranslations = async (lang: string, translations: Record<string, string>) => {
-  const response = await apiRequest('POST', `/api/languages/${lang}`, translations);
+  const response = await apiRequest(`/api/languages/${lang}`, {
+    method: 'POST',
+    data: translations
+  });
   return response.json();
 };
 
@@ -458,19 +503,19 @@ export const uploadThumbnail = async (file: File) => {
 
 // Get all A/B tests
 export const getAbTests = async () => {
-  const response = await apiRequest('GET', '/api/admin/abtests');
+  const response = await apiRequest('/api/admin/abtests');
   return response.json();
 };
 
 // Get a specific A/B test with its variants
 export const getAbTest = async (testId: string) => {
-  const response = await apiRequest('GET', `/api/admin/abtests/${testId}`);
+  const response = await apiRequest(`/api/admin/abtests/${testId}`);
   return response.json();
 };
 
 // Get active A/B test for a concept
 export const getActiveAbTest = async (conceptId: string) => {
-  const response = await apiRequest('GET', `/api/abtests/active/${conceptId}`);
+  const response = await apiRequest(`/api/abtests/active/${conceptId}`);
   
   if (!response.ok) {
     if (response.status === 404) {
@@ -496,7 +541,10 @@ export const createAbTest = async (testData: {
     variables?: Array<any>;
   }>;
 }) => {
-  const response = await apiRequest('POST', '/api/admin/abtests', testData);
+  const response = await apiRequest('/api/admin/abtests', {
+    method: 'POST',
+    data: testData
+  });
   return response.json();
 };
 
@@ -507,14 +555,17 @@ export const recordAbTestResult = async (resultData: {
   userId?: number;
   context?: Record<string, any>;
 }) => {
-  const response = await apiRequest('POST', '/api/abtests/result', resultData);
+  const response = await apiRequest('/api/abtests/result', {
+    method: 'POST',
+    data: resultData
+  });
   return response.json();
 };
 
 // Service Categories API endpoints
 export const getServiceCategories = async () => {
   console.log('Fetching service categories from /api/service-categories');
-  const response = await apiRequest('GET', '/api/service-categories');
+  const response = await apiRequest('/api/service-categories');
   const data = await response.json();
   console.log('Received service categories:', data);
   return data;
@@ -527,7 +578,10 @@ export const createServiceCategory = async (categoryData: {
   icon: string;
   order?: number;
 }) => {
-  const response = await apiRequest('POST', '/api/admin/service-categories', categoryData);
+  const response = await apiRequest('/api/admin/service-categories', {
+    method: 'POST',
+    data: categoryData
+  });
   return response.json();
 };
 
@@ -538,11 +592,16 @@ export const updateServiceCategory = async (id: number, categoryData: {
   icon: string;
   order?: number;
 }) => {
-  const response = await apiRequest('PUT', `/api/admin/service-categories/${id}`, categoryData);
+  const response = await apiRequest(`/api/admin/service-categories/${id}`, {
+    method: 'PUT',
+    data: categoryData
+  });
   return response.json();
 };
 
 export const deleteServiceCategory = async (id: number) => {
-  const response = await apiRequest('DELETE', `/api/admin/service-categories/${id}`);
+  const response = await apiRequest(`/api/admin/service-categories/${id}`, {
+    method: 'DELETE'
+  });
   return response.json();
 };
