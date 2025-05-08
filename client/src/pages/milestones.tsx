@@ -124,7 +124,7 @@ const ProfileSetup = ({
       
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="due-date">예정일 <span className="text-red-500">*</span></Label>
+          <Label htmlFor="due-date">출산 예정일 <span className="text-red-500">*</span></Label>
           <DatePicker date={dueDate} onSelect={setDueDate} />
           <p className="text-sm text-muted-foreground">
             이를 통해 가능한 마일스톤을 계산할 수 있습니다
