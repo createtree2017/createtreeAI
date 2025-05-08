@@ -479,7 +479,7 @@ export default function Image() {
       </Dialog>
       
       {/* 카테고리 선택 섹션 */}
-      <div className="bg-card rounded-xl p-5 mb-6 shadow-md border border-border">
+      <div className="bg-card rounded-xl p-5 mb-6 shadow-md border border-[#ff2d55]">
         <div className="flex justify-between items-center mb-5">
           <h3 className="font-heading font-semibold text-lg text-card-foreground">카테고리</h3>
         </div>
@@ -532,7 +532,7 @@ export default function Image() {
       </div>
 
       {/* 스타일 선택 섹션 */}
-      <div className="bg-card rounded-xl p-5 mb-6 shadow-md border border-border">
+      <div className="bg-card rounded-xl p-5 mb-6 shadow-md border border-[#ff2d55]">
         <div className="flex justify-between items-center mb-5">
           <h3 className="font-heading font-semibold text-lg text-card-foreground">스타일</h3>
         </div>
@@ -625,7 +625,7 @@ export default function Image() {
       </div>
 
       {/* Image Upload Section */}
-      <div className="bg-card rounded-xl p-5 mb-6 shadow-md border border-border">
+      <div className="bg-card rounded-xl p-5 mb-6 shadow-md border border-[#ff2d55]">
         <div className="text-left mb-3">
           <h3 className="font-heading font-semibold text-lg text-card-foreground">이미지 업로드</h3>
         </div>
@@ -754,7 +754,7 @@ export default function Image() {
             </div>
           </div>
 
-          <div className="bg-card rounded-xl p-5 shadow-md border border-border">
+          <div className="bg-card rounded-xl p-5 shadow-md border border-[#ff2d55]">
             <div className="mb-5">
               <div className="rounded-lg overflow-hidden shadow-sm">
                 <img 
@@ -818,7 +818,7 @@ export default function Image() {
               {transformedImage && (
                 <div 
                   key="latest"
-                  className="bg-white rounded-xl overflow-hidden shadow-soft border border-neutral-light hover:shadow-md transition-shadow"
+                  className="bg-white rounded-xl overflow-hidden shadow-soft border border-[#ff2d55] hover:shadow-md transition-shadow"
                 >
                   <div className="relative">
                     <div className="aspect-square w-full overflow-hidden">
@@ -870,7 +870,7 @@ export default function Image() {
                   .map((image: TransformedImage) => (
                     <div 
                       key={image.id}
-                      className="bg-white rounded-xl overflow-hidden shadow-soft border border-neutral-light hover:shadow-md transition-shadow"
+                      className="bg-white rounded-xl overflow-hidden shadow-soft border border-[#ff2d55] hover:shadow-md transition-shadow"
                     >
                       <div className="relative">
                         <div className="aspect-square w-full overflow-hidden">
@@ -919,7 +919,7 @@ export default function Image() {
 
               {/* 데이터는 로드됐지만 이미지가 없는 경우 */}
               {recentImages && recentImages.length === 0 && !transformedImage && (
-                <div className="col-span-2 text-center py-8 bg-neutral-lightest rounded-xl border border-dashed border-neutral-light">
+                <div className="col-span-2 text-center py-8 bg-neutral-lightest rounded-xl border border-dashed border-[#ff2d55]">
                   <PaintbrushVertical className="h-8 w-8 mx-auto mb-2 text-neutral" />
                   <p className="text-neutral-dark font-medium">아직 추억이 없습니다</p>
                   <p className="text-sm mt-1 mb-4 text-neutral-dark">첫 번째 사진을 변환하여 추억 컬렉션을 시작하세요</p>
@@ -941,7 +941,7 @@ export default function Image() {
       
       {/* 이미지 상세 보기 다이얼로그 */}
       <Dialog open={viewImageDialog} onOpenChange={setViewImageDialog}>
-        <DialogContent className="max-w-4xl bg-white border border-neutral-light">
+        <DialogContent className="max-w-4xl bg-white border border-[#ff2d55]">
           <DialogHeader>
             <DialogTitle>{selectedGalleryImage?.title}</DialogTitle>
             <DialogDescription className="text-neutral-dark">
