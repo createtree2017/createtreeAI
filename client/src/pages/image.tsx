@@ -549,7 +549,7 @@ export default function Image() {
                     <img 
                       src={style.thumbnailUrl} 
                       alt={style.label} 
-                      className="w-full h-52 object-contain"
+                      className="w-full h-52 object-cover"
                     />
                     <div className={`absolute inset-0 ${selectedStyle === style.value ? 'bg-[#ff2d55]/20' : ''}`}>
                       {selectedStyle === style.value && (
