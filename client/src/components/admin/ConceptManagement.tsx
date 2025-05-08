@@ -26,11 +26,7 @@ export default function ConceptManagement() {
     systemPrompt: "",
     thumbnailUrl: "",
     categoryId: "",
-    usePhotoMaker: false,
-    referenceImageUrl: "",
-    photoMakerPrompt: "",
-    photoMakerNegativePrompt: "",
-    photoMakerStrength: "1.0"
+    referenceImageUrl: ""
   });
   
   const [editingConcept, setEditingConcept] = useState<Concept | null>(null);
@@ -168,11 +164,7 @@ export default function ConceptManagement() {
       systemPrompt: concept.systemPrompt || "",
       thumbnailUrl: concept.thumbnailUrl || "",
       categoryId: concept.categoryId || "",
-      usePhotoMaker: concept.usePhotoMaker || false,
-      referenceImageUrl: concept.referenceImageUrl || "",
-      photoMakerPrompt: concept.photoMakerPrompt || "",
-      photoMakerNegativePrompt: concept.photoMakerNegativePrompt || "",
-      photoMakerStrength: concept.photoMakerStrength || "1.0"
+      referenceImageUrl: concept.referenceImageUrl || ""
     });
     setConceptDialogOpen(true);
   };
@@ -206,11 +198,7 @@ export default function ConceptManagement() {
       systemPrompt: "",
       thumbnailUrl: "",
       categoryId: "",
-      usePhotoMaker: false,
-      referenceImageUrl: "",
-      photoMakerPrompt: "",
-      photoMakerNegativePrompt: "",
-      photoMakerStrength: "1.0"
+      referenceImageUrl: ""
     });
     setEditingConcept(null);
     setThumbnailFile(null);
