@@ -3,7 +3,6 @@ import { music, images, chatMessages, favorites, savedChats, concepts, conceptCa
 import fs from "fs";
 import path from "path";
 import fetch from "node-fetch";
-import { mergeUserFaceWithReference, generateStylizedImage } from "./services/photo-maker-fixed";
 
 // 임시 이미지 저장을 위한 경로
 const TEMP_IMAGE_DIR = path.join(process.cwd(), 'uploads', 'temp');
@@ -117,9 +116,7 @@ export const storage = {
       if (concept) {
         console.log(`[Storage] 콘셉트 조회 결과: 
           ID: ${concept.id} 
-          conceptId: ${concept.conceptId}
-          usePhotoMaker: ${concept.usePhotoMaker}
-          referenceImageUrl: ${concept.referenceImageUrl || '없음'}`);
+          conceptId: ${concept.conceptId}`);
       } else {
         console.log(`[Storage] 콘셉트 조회 결과 없음: ${style}`);
       }
@@ -177,159 +174,7 @@ export const storage = {
         console.log(`기본 프롬프트 사용: "${prompt}"`);
       }
       
-      // 콘셉트의 전체 데이터를 로그로 출력하여 디버깅
-      console.log(`[Storage] 콘셉트 전체 데이터:`, JSON.stringify(concept, null, 2));
-      
-      // PhotoMaker 모드 확인 (개념이 존재하고 usePhotoMaker가 true인 경우)
-      console.log(`[Storage] usePhotoMaker 값 확인: ${concept?.usePhotoMaker} (타입: ${typeof concept?.usePhotoMaker}, JSON: ${JSON.stringify(concept?.usePhotoMaker)})`);
-      
-      // 자세한 디버깅을 위해 확인 과정 추가
-      const isTrue = concept?.usePhotoMaker === true;
-      const isStringTrue = concept?.usePhotoMaker === "true";
-      const isTrueString = String(concept?.usePhotoMaker) === "true";
-      
-      console.log(`[Storage] usePhotoMaker 비교 결과: === true (${isTrue}), === "true" (${isStringTrue}), String() === "true" (${isTrueString})`);
-      
-      // PostgreSQL은 boolean 값을 't'로 반환할 수 있음
-      const isPgTrue = concept?.usePhotoMaker === 't';
-      const isPgTrueString = String(concept?.usePhotoMaker) === 't';
-      
-      console.log(`[Storage] PostgreSQL 비교: === 't' (${isPgTrue}), String() === 't' (${isPgTrueString})`);
-      
-      // PostgreSQL의 boolean 값은 'f' 또는 't'로 저장되고 반환될 수 있음
-      // 문자열 't', boolean true, 또는 문자열 "true" 중 하나라도 true면 사용
-      // 디버깅 목적으로 항상 true로 설정
-      const usePhotoMaker = true; // concept?.usePhotoMaker === true || concept?.usePhotoMaker === 't' || String(concept?.usePhotoMaker) === 'true' || String(concept?.usePhotoMaker) === 't';
-      
-      console.log(`[중요] PhotoMaker 강제 활성화 (원래 값과 무관하게 true로 설정됨)`);
-      
-      // REPLICATE_API_TOKEN 환경 변수 확인
-      const replicateToken = process.env.REPLICATE_API_TOKEN;
-      if (!replicateToken) {
-        console.error('[심각] REPLICATE_API_TOKEN 환경 변수가 설정되지 않았습니다!');
-      } else {
-        console.log(`[확인] REPLICATE_API_TOKEN 환경 변수가 설정되어 있습니다. (길이: ${replicateToken.length})`);
-      }
-      const customPhotoMakerPrompt = concept?.photoMakerPrompt;
-      const customPhotoMakerNegativePrompt = concept?.photoMakerNegativePrompt;
-      const customPhotoMakerStrength = concept?.photoMakerStrength;
-      const hasReferenceImage = concept?.referenceImageUrl && concept.referenceImageUrl.trim() !== '';
-      
-      console.log(`[Storage] 변환된 usePhotoMaker 최종값: ${usePhotoMaker} (참조 이미지 있음: ${hasReferenceImage})`);
-      
       try {
-        // 리플리케이트 API 토큰 확인 (길이만 출력)
-        const replicateToken = process.env.REPLICATE_API_TOKEN;
-        console.log(`[Storage] REPLICATE_API_TOKEN ${replicateToken ? `존재함 (길이: ${replicateToken.length})` : '없음'}`);
-        
-        // PhotoMaker 사용 가능 여부 로깅
-        if (usePhotoMaker) {
-          console.log(`[Storage] PhotoMaker 모드 활성화됨 (우선 사용)`);
-          if (customPhotoMakerPrompt) {
-            console.log(`[Storage] PhotoMaker 커스텀 프롬프트 사용: ${customPhotoMakerPrompt.substring(0, 50)}...`);
-          }
-          if (customPhotoMakerNegativePrompt) {
-            console.log(`[Storage] PhotoMaker 네거티브 프롬프트 사용: ${customPhotoMakerNegativePrompt.substring(0, 50)}...`);
-          }
-          if (customPhotoMakerStrength) {
-            console.log(`[Storage] PhotoMaker 강도 설정: ${customPhotoMakerStrength}`);
-          }
-        } else {
-          console.log(`[Storage] PhotoMaker 모드 비활성화됨 (OpenAI GPT-Image-1 사용)`);
-        }
-        
-        // 1. PhotoMaker 얼굴 합성 모드 (레퍼런스 이미지가 있는 경우)
-        if (usePhotoMaker && hasReferenceImage) {
-          console.log(`[Storage] 레퍼런스 이미지로 PhotoMaker 얼굴 합성 모드 시작...`);
-          console.log(`[Storage] 레퍼런스 이미지: ${concept.referenceImageUrl}`);
-          
-          // 레퍼런스 이미지 경로 확인
-          let refImagePath = concept.referenceImageUrl || '';
-          if (refImagePath.startsWith('/')) {
-            refImagePath = path.join(process.cwd(), refImagePath);
-          }
-          
-          // 파일 존재 확인
-          if (fs.existsSync(refImagePath)) {
-            try {
-              // photo-maker-fixed 서비스의 얼굴 합성 함수 호출
-              // 이미 임포트된 함수 사용
-              const transformedImagePath = await mergeUserFaceWithReference(
-                filePath, 
-                refImagePath, 
-                style,
-                customPhotoMakerPrompt ? String(customPhotoMakerPrompt) : undefined,
-                customPhotoMakerNegativePrompt ? String(customPhotoMakerNegativePrompt) : undefined,
-                customPhotoMakerStrength ? String(customPhotoMakerStrength) : undefined
-              );
-              
-              if (transformedImagePath && fs.existsSync(transformedImagePath)) {
-                console.log(`[Storage] PhotoMaker 얼굴 합성 성공 [이미지 데이터 로그 생략]`);
-                const relativePath = transformedImagePath.replace(process.cwd(), '');
-                return relativePath;
-              }
-            } catch (photoMakerError) {
-              console.error(`[Storage] PhotoMaker 얼굴 합성 오류:`, photoMakerError);
-              // PhotoMaker 일반 모드로 폴백
-            }
-          } else {
-            console.error(`[Storage] 레퍼런스 이미지 파일이 존재하지 않습니다: ${refImagePath}`);
-          }
-        }
-        
-        // 2. PhotoMaker 일반 변환 모드 (usePhotoMaker가 true이고 레퍼런스 이미지가 없거나 얼굴 합성에 실패한 경우)
-        if (usePhotoMaker) {
-          console.log(`[Storage] PhotoMaker 일반 이미지 변환 모드 시작...`);
-          console.log(`[Storage] 이미지 경로: ${filePath}, 존재여부: ${fs.existsSync(filePath)}`);
-          
-          try {
-            // 서비스 임포트 전
-            console.log(`[디버깅] photo-maker.ts 파일 임포트 시도 시작`);
-            
-            // 이미 임포트된 photo-maker-fixed 모듈 사용
-            console.log(`[디버깅] photo-maker-fixed.ts 모듈을 이미 임포트함`);
-            
-            // 이미 임포트된 generateStylizedImage 함수 사용
-            console.log(`[디버깅] 임포트된 generateStylizedImage 함수 사용`);
-            
-            const effectivePrompt = customPhotoMakerPrompt || prompt;
-            console.log(`[Storage] PhotoMaker 사용 프롬프트: ${effectivePrompt.substring(0, 50)}...`);
-            
-            // 함수 호출 전
-            console.log(`[디버깅] generateStylizedImage 함수 호출 시작`);
-            
-            const transformedImagePath = await generateStylizedImage(
-              filePath, 
-              style, 
-              effectivePrompt,
-              customPhotoMakerNegativePrompt ? String(customPhotoMakerNegativePrompt) : undefined,
-              customPhotoMakerStrength ? String(customPhotoMakerStrength) : undefined
-            );
-            
-            console.log(`[디버깅] generateStylizedImage 함수 호출 완료, 결과:`, transformedImagePath);
-            
-            if (transformedImagePath && fs.existsSync(transformedImagePath)) {
-              console.log(`[Storage] PhotoMaker 이미지 변환 성공 [이미지 데이터 로그 생략]`);
-              const relativePath = transformedImagePath.replace(process.cwd(), '');
-              return relativePath;
-            } else {
-              console.error(`[Storage] 생성된 이미지 경로가 유효하지 않음: ${transformedImagePath}`);
-            }
-          } catch (photoMakerError) {
-            console.error(`[Storage] PhotoMaker 일반 변환 오류:`, photoMakerError);
-            console.error(`[Storage] 오류 세부 정보:`, photoMakerError.message);
-            if (photoMakerError.stack) {
-              console.error(`[Storage] 오류 스택:`, photoMakerError.stack);
-            }
-            if (photoMakerError.cause) {
-              console.error(`[Storage] 오류 원인:`, photoMakerError.cause);
-            }
-            console.log(`[Storage] OpenAI GPT-Image-1로 폴백...`);
-            // OpenAI 폴백
-          }
-        }
-        
-        // 3. OpenAI 이미지 생성 API 사용 (PhotoMaker가 비활성화되었거나 실패한 경우)
         console.log(`[Storage] OpenAI 이미지 생성 API 사용...`);
         const imageBuffer = fs.readFileSync(filePath);
         const { transformImage } = await import('./services/openai-dalle3'); 
