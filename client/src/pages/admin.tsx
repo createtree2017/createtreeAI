@@ -4182,13 +4182,20 @@ function ImageTester() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [transformedImage, setTransformedImage] = useState<any | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [imagesPerPage] = useState<number>(10);
   const queryClient = useQueryClient();
 
-  // Get list of previously transformed images
-  const { data: imageList = [], isLoading: isLoadingImages } = useQuery({
-    queryKey: ["/api/image"],
-    queryFn: getImageList,
+  // Get list of previously transformed images with pagination
+  const { data: paginatedImages, isLoading: isLoadingImages } = useQuery({
+    queryKey: ["/api/image", currentPage, imagesPerPage],
+    queryFn: () => getImageList(currentPage, imagesPerPage),
   });
+  
+  // Extract image list and pagination information
+  const imageList = paginatedImages?.images || [];
+  const totalImages = paginatedImages?.totalCount || 0;
+  const totalPages = paginatedImages?.totalPages || 1;
 
   // Fetch concepts for style selection
   const { data: concepts = [] } = useQuery({
@@ -4384,24 +4391,80 @@ function ImageTester() {
                   <p>이미지 로딩 중...</p>
                 </div>
               ) : imageList.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {imageList.map((image: any) => (
-                    <div 
-                      key={image.id} 
-                      className="relative border rounded-md overflow-hidden cursor-pointer group"
-                      onClick={() => handleViewImage(image)}
-                    >
-                      <img 
-                        src={image.transformedUrl} 
-                        alt={image.title || "변환된 이미지"} 
-                        className="w-full h-24 object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-                        <Eye className="w-6 h-6 text-white" />
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {imageList.map((image: any) => (
+                      <div 
+                        key={image.id} 
+                        className="relative border rounded-md overflow-hidden cursor-pointer group"
+                        onClick={() => handleViewImage(image)}
+                      >
+                        <img 
+                          src={image.transformedUrl} 
+                          alt={image.title || "변환된 이미지"} 
+                          className="w-full h-24 object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                          <Eye className="w-6 h-6 text-white" />
+                        </div>
                       </div>
+                    ))}
+                  </div>
+                  
+                  {/* 페이지네이션 컨트롤 */}
+                  <div className="flex items-center justify-between mt-6">
+                    <div className="text-sm text-gray-500">
+                      총 {totalImages}개 이미지 중 {(currentPage - 1) * imagesPerPage + 1}-{Math.min(currentPage * imagesPerPage, totalImages)}개 표시
                     </div>
-                  ))}
-                </div>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                      >
+                        이전
+                      </Button>
+                      <div className="flex items-center space-x-1">
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                          let pageNum;
+                          if (totalPages <= 5) {
+                            // 전체 페이지가 5개 이하면 모든 페이지 표시
+                            pageNum = i + 1;
+                          } else if (currentPage <= 3) {
+                            // 현재 페이지가 3 이하면 1~5 표시
+                            pageNum = i + 1;
+                          } else if (currentPage >= totalPages - 2) {
+                            // 현재 페이지가 마지막 2페이지면 마지막 5페이지 표시
+                            pageNum = totalPages - 4 + i;
+                          } else {
+                            // 그 외에는 현재 페이지 중심으로 표시
+                            pageNum = currentPage - 2 + i;
+                          }
+                          
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={currentPage === pageNum ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setCurrentPage(pageNum)}
+                            >
+                              {pageNum}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                      >
+                        다음
+                      </Button>
+                    </div>
+                  </div>
+                </>
               ) : (
                 <div className="text-center p-8 text-gray-500">
                   <ImageIcon className="mx-auto h-12 w-12 text-gray-400 mb-3" />

@@ -1,5 +1,6 @@
 import { db } from "@db";
 import { music, images, chatMessages, favorites, savedChats, concepts, conceptCategories, eq, desc, and } from "@shared/schema";
+import { count } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
 import fetch from "node-fetch";
@@ -246,6 +247,7 @@ export const storage = {
     }
   },
   
+  // 기존 getImageList 함수 (전체 이미지 목록 불러오기)
   async getImageList() {
     try {
       console.log(`[Storage] getImageList 호출됨: ${new Date().toISOString()}`);
@@ -275,6 +277,49 @@ export const storage = {
     } catch (error) {
       console.error("[Storage] 이미지 목록 조회 중 오류 발생:", error);
       return [];
+    }
+  },
+  
+  // 데이터베이스 수준에서 페이지네이션을 적용한 이미지 목록 조회
+  async getPaginatedImageList(page: number = 1, limit: number = 10) {
+    try {
+      console.log(`[Storage] getPaginatedImageList 호출됨: page=${page}, limit=${limit}, ${new Date().toISOString()}`);
+      
+      // 전체 이미지 카운트를 위한 쿼리
+      const countResult = await db.select({ count: count() }).from(images);
+      const total = countResult[0].count;
+      
+      console.log(`[Storage] 이미지 총 개수: ${total}`);
+      
+      // 페이지네이션 적용한 쿼리
+      const results = await db.query.images.findMany({
+        orderBy: [desc(images.createdAt)],
+        limit: limit,
+        offset: (page - 1) * limit
+      });
+      
+      console.log(`[Storage] 페이지네이션 이미지 조회 결과: ${results.length}개 (page=${page}, limit=${limit})`);
+      
+      return {
+        images: results || [],
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit)
+        }
+      };
+    } catch (error) {
+      console.error("[Storage] 페이지네이션 이미지 목록 조회 중 오류 발생:", error);
+      return {
+        images: [],
+        pagination: {
+          total: 0,
+          page,
+          limit,
+          totalPages: 0
+        }
+      };
     }
   },
   
