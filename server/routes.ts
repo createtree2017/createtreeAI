@@ -562,6 +562,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to fetch image list" });
     }
   });
+  
+  // 최근 이미지만 가져오는 API (사용자 메모리 컬렉션용)
+  app.get("/api/image/recent", async (req, res) => {
+    try {
+      // 캐싱 방지 헤더 추가
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Surrogate-Control', 'no-store');
+      
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      
+      // 모든 이미지 가져오기 (데이터베이스에 있는 모든 이미지)
+      const allImages = await storage.getImageList();
+      
+      // 1시간 이내 생성된 이미지만 필터링 (사용자에게 보여줄 이미지)
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000); // 1시간 전 타임스탬프
+      
+      const recentImages = allImages
+        .filter(img => {
+          // createdAt이 1시간 이내인 이미지만 포함
+          const createTime = new Date(img.createdAt);
+          return createTime > oneHourAgo;
+        })
+        .slice(0, limit); // 요청된 개수만큼만 반환
+      
+      console.log(`최근 이미지 API: 전체 ${allImages.length}개 중 1시간 이내 이미지 ${recentImages.length}개 반환`);
+      
+      return res.json(recentImages);
+    } catch (error) {
+      console.error("Error fetching recent images:", error);
+      return res.status(500).json({ error: "Failed to fetch recent images" });
+    }
+  });
 
   // Image generation endpoint (using OpenAI DALL-E)
   app.post("/api/generate-image", async (req, res) => {

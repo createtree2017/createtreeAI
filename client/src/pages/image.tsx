@@ -112,6 +112,39 @@ export default function Image() {
     return artStyles.filter(style => style.categoryId === selectedCategory);
   }, [artStyles, selectedCategory]);
 
+  // 최근 이미지 10개 목록 조회 기능
+  const { data: recentImages, isLoading: isLoadingImages } = useQuery({
+    queryKey: ["/api/image/recent"], 
+    queryFn: async () => {
+      console.log("최근 이미지 10개 조회 시작...");
+      
+      try {
+        const response = await fetch("/api/image/recent?limit=10", {
+          headers: {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`이미지 목록을 불러오는 데 실패했습니다 (${response.status})`);
+        }
+        
+        const data = await response.json();
+        console.log(`최근 이미지 ${data.length}개 로드 완료`);
+        return data;
+      } catch (error) {
+        console.error("최근 이미지 조회 중 오류:", error);
+        throw error;
+      }
+    },
+    staleTime: 30000, // 30초 동안은 캐시된 데이터 사용
+    refetchOnMount: true,
+    refetchOnWindowFocus: false, 
+    refetchInterval: false, // 자동 갱신 비활성화
+  });
+
   // 이미지 ID가 URL에 있는 경우 해당 이미지 조회 
   useEffect(() => {
     if (imageId) {
@@ -135,9 +168,10 @@ export default function Image() {
     }
   }, [imageId, toast]);
   
-  // 필요한 초기화를 위한 더미 함수 (오류 방지용)
+  // 필요한 초기화를 위한 함수
   const refetch = () => {
-    console.log("이미지 컬렉션 기능이 비활성화되어 있어 refetch가 수행되지 않습니다.");
+    console.log("최근 이미지 목록 새로고침 시도...");
+    queryClient.invalidateQueries({ queryKey: ["/api/image/recent"] });
   };
 
   // Fetch active A/B test for the current concept
@@ -721,7 +755,146 @@ export default function Image() {
         />
       )}
 
-      {/* "내 추억 컬렉션" 섹션은 사용자 요청에 따라 제거됨 */}
+      {/* 최근 추억 10개만 표시 */}
+      <div className="mt-8">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-heading font-semibold text-lg">최근 추억 (10개)</h3>
+        </div>
+
+        {/* 이미지 목록 조회 및 표시 */}
+        <div className="relative">
+          {isTransforming ? (
+            // 변환 중일 때 로딩 상태 표시
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-neutral-lightest h-52 rounded-xl animate-pulse"></div>
+              <div className="bg-neutral-lightest h-52 rounded-xl animate-pulse"></div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              {/* 현재 변환된 이미지가 있으면 가장 먼저 표시 */}
+              {transformedImage && (
+                <div 
+                  key="latest"
+                  className="bg-white rounded-xl overflow-hidden shadow-soft border border-neutral-light hover:shadow-md transition-shadow"
+                >
+                  <div className="relative">
+                    <div className="aspect-square w-full overflow-hidden">
+                      <img 
+                        src={transformedImage.transformedUrl} 
+                        alt={transformedImage.title} 
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        onError={(e) => {
+                          console.error(`이미지 로드 실패: ${transformedImage.transformedUrl}`);
+                          e.currentTarget.src = "https://placehold.co/400x400/F0F0F0/AAA?text=이미지+로드+실패";
+                        }}
+                      />
+                    </div>
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-2">
+                      <p className="text-white text-xs font-medium">{transformedImage.style} 스타일</p>
+                    </div>
+                    <div className="absolute top-2 right-2 bg-primary text-white text-xs rounded-full px-2 py-0.5">
+                      최신
+                    </div>
+                  </div>
+                  <div className="p-3">
+                    <p className="font-medium text-sm truncate">{transformedImage.title}</p>
+                    <p className="text-xs text-neutral-dark mb-2">
+                      {typeof transformedImage.createdAt === 'string' 
+                        ? new Date(transformedImage.createdAt).toLocaleDateString('ko-KR')
+                        : '방금 전'}
+                    </p>
+                    <div className="flex space-x-2">
+                      <Button
+                        size="sm"
+                        className="flex-1 text-xs bg-primary-light hover:bg-primary/20 text-primary-dark"
+                        onClick={() => handleDownload(transformedImage.id)}
+                      >
+                        <Download className="mr-1 h-3 w-3" /> 저장
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 서버에서 가져온 최근 이미지 목록 */}
+              {recentImages && recentImages.length > 0 && 
+                recentImages
+                  // 현재 표시된 이미지와 겹치지 않도록 필터링
+                  .filter((img: TransformedImage) => !transformedImage || img.id !== transformedImage.id)
+                  // 최대 9개만 표시 (현재 변환 이미지 1개 + 목록에서 9개 = 10개)
+                  .slice(0, transformedImage ? 9 : 10)
+                  .map((image: TransformedImage) => (
+                    <div 
+                      key={image.id}
+                      className="bg-white rounded-xl overflow-hidden shadow-soft border border-neutral-light hover:shadow-md transition-shadow"
+                    >
+                      <div className="relative">
+                        <div className="aspect-square w-full overflow-hidden">
+                          <img 
+                            src={image.transformedUrl} 
+                            alt={image.title} 
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                            onError={(e) => {
+                              console.error(`이미지 로드 실패: ${image.transformedUrl}`);
+                              e.currentTarget.src = "https://placehold.co/400x400/F0F0F0/AAA?text=이미지+로드+실패";
+                            }}
+                          />
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-2">
+                          <p className="text-white text-xs font-medium">{image.style} 스타일</p>
+                        </div>
+                      </div>
+                      <div className="p-3">
+                        <p className="font-medium text-sm truncate">{image.title}</p>
+                        <p className="text-xs text-neutral-dark mb-2">
+                          {typeof image.createdAt === 'string' 
+                            ? new Date(image.createdAt).toLocaleDateString('ko-KR')
+                            : '날짜 없음'}
+                        </p>
+                        <div className="flex space-x-2">
+                          <Button
+                            size="sm"
+                            className="flex-1 text-xs bg-neutral-lightest hover:bg-neutral-light text-neutral-darkest"
+                            onClick={() => handleViewImage(image)}
+                          >
+                            <Eye className="mr-1 h-3 w-3" /> 보기
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="flex-1 text-xs bg-primary-light hover:bg-primary/20 text-primary-dark"
+                            onClick={() => handleDownload(image.id)}
+                          >
+                            <Download className="mr-1 h-3 w-3" /> 저장
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+              }
+
+              {/* 데이터는 로드됐지만 이미지가 없는 경우 */}
+              {recentImages && recentImages.length === 0 && !transformedImage && (
+                <div className="col-span-2 text-center py-8 bg-neutral-lightest rounded-xl border border-dashed border-neutral-light">
+                  <PaintbrushVertical className="h-8 w-8 mx-auto mb-2 text-neutral" />
+                  <p className="text-neutral-dark font-medium">아직 추억이 없습니다</p>
+                  <p className="text-sm mt-1 mb-4 text-neutral-dark">첫 번째 사진을 변환하여 추억 컬렉션을 시작하세요</p>
+                </div>
+              )}
+
+              {/* 에러 발생 또는 로딩 중인 경우 */}
+              {isLoadingImages && !transformedImage && (
+                <div className="col-span-2 text-center py-8 bg-neutral-lightest rounded-xl border border-dashed border-neutral-light">
+                  <RefreshCw className="h-8 w-8 mx-auto mb-2 text-neutral animate-spin" />
+                  <p className="text-neutral-dark font-medium">이미지 데이터 로딩 중...</p>
+                  <p className="text-sm mt-1 mb-4 text-neutral-dark">잠시만 기다려주세요</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
