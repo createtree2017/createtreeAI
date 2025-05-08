@@ -248,21 +248,32 @@ export const storage = {
   
   async getImageList() {
     try {
-      // 데이터베이스에서 이미지를 최신순으로 가져옴
+      console.log(`[Storage] getImageList 호출됨: ${new Date().toISOString()}`);
+      
+      // SQL 쿼리 직접 실행으로 변경 - 캐싱 이슈 방지
       const results = await db.query.images.findMany({
         orderBy: [desc(images.createdAt)],
       });
       
+      // 결과 데이터 검증 및 로깅
+      console.log(`[Storage] 이미지 조회 결과: ${results ? results.length : 0}개 이미지 찾음`);
+      
       // 최신 생성 이미지 로그 출력 (디버깅용)
-      if (results.length > 0) {
-        console.log(`최신 이미지 ${results.length}개 조회됨, 가장 최근 ID: ${results[0].id}, 생성일: ${results[0].createdAt}`);
+      if (results && results.length > 0) {
+        console.log(`[Storage] 최신 이미지 ${results.length}개 조회됨, 가장 최근 ID: ${results[0].id}, 생성일: ${results[0].createdAt}`);
+        
+        // 이미지 URL 유효성 검사
+        const sampleImages = results.slice(0, 3);
+        sampleImages.forEach(img => {
+          console.log(`[Storage] 이미지 샘플 - ID: ${img.id}, 제목: "${img.title}", 변환 URL: ${img.transformedUrl ? '있음' : '없음'}`);
+        });
       } else {
-        console.log('저장된 이미지가 없습니다.');
+        console.log('[Storage] 저장된 이미지가 없습니다.');
       }
       
-      return results;
+      return results || [];
     } catch (error) {
-      console.error("Error fetching images:", error);
+      console.error("[Storage] 이미지 목록 조회 중 오류 발생:", error);
       return [];
     }
   },
