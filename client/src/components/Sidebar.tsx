@@ -226,7 +226,7 @@ export default function Sidebar({ collapsed = false }) {
             </div>
           ) : (
             <h1 className="text-xl font-semibold tracking-tight font-heading">
-              <span className="text-white">Mom's</span> <span className="text-primary-lavender">Service</span>
+              <span className="text-white">맘스</span> <span className="text-primary-lavender">서비스</span>
             </h1>
           )}
         </Link>
