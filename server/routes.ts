@@ -555,8 +555,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Expires', '0');
       res.setHeader('Surrogate-Control', 'no-store');
       
-      const imageList = await storage.getImageList();
-      return res.json(imageList);
+      // 페이지네이션 처리를 위한 파라미터 추출
+      const page = req.query.page ? parseInt(req.query.page as string) : 1;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      const offset = (page - 1) * limit;
+      
+      // 모든 이미지 가져오기
+      const allImages = await storage.getImageList();
+      
+      // 전체 이미지 수
+      const total = allImages.length;
+      
+      // 페이징된 이미지 목록
+      const paginatedImages = allImages.slice(offset, offset + limit);
+      
+      // 응답 데이터에 페이지네이션 정보 추가
+      return res.json({
+        images: paginatedImages,
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit)
+        }
+      });
     } catch (error) {
       console.error("Error fetching image list:", error);
       return res.status(500).json({ error: "Failed to fetch image list" });
