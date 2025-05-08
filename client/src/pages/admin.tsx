@@ -269,6 +269,12 @@ function ImageGallery() {
   const [totalPages, setTotalPages] = useState(1);
   const imagesPerPage = 10;
   
+  // 페이지 변경 시 쿼리 갱신
+  useEffect(() => {
+    // 페이지가 변경되면 쿼리가 자동으로 다시 실행됨 (queryKey에 currentPage가 포함되어 있음)
+    console.log(`페이지 변경: ${currentPage}`);
+  }, [currentPage]);
+  
   // 새로운 캐시 키 생성용 카운터
   const [refreshCounter, setRefreshCounter] = useState(0);
   
@@ -296,10 +302,10 @@ function ImageGallery() {
       }
       
       const result = await response.json();
-      // API 응답에서 총 이미지 수와 총 페이지 수 업데이트
-      if (result.totalCount !== undefined) {
-        setTotalImages(result.totalCount);
-        setTotalPages(Math.ceil(result.totalCount / imagesPerPage));
+      // API 응답에서 페이지네이션 정보 업데이트
+      if (result.pagination) {
+        setTotalImages(result.pagination.total);
+        setTotalPages(result.pagination.totalPages);
       }
       
       return result;
