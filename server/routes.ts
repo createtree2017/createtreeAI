@@ -554,14 +554,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/image", async (req, res) => {
     try {
-      // 캐싱 방지 헤더 추가
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-      res.setHeader('Surrogate-Control', 'no-store');
+      // 성능 개선을 위해 캐싱 헤더 설정 - 5분간 캐싱
+      res.setHeader('Cache-Control', 'public, max-age=300'); // 5분
       
+      // 클라이언트에서 강제 새로고침 요청한 경우에만 캐시 무효화
+      const noCache = req.query.nocache === 'true';
+      if (noCache) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.setHeader('Surrogate-Control', 'no-store');
+      }
+      
+      console.time('getImageList');
       const imageList = await storage.getImageList();
-      return res.json(imageList);
+      console.timeEnd('getImageList');
+      
+      // 응답 크기 최적화를 위해 필요한 필드만 반환
+      const optimizedImageList = imageList.map(img => ({
+        id: img.id,
+        title: img.title,
+        style: img.style,
+        originalUrl: img.originalUrl,
+        transformedUrl: img.transformedUrl,
+        createdAt: img.createdAt?.toISOString ? img.createdAt.toISOString() : img.createdAt,
+        aspectRatio: img.aspectRatio
+      }));
+      
+      return res.json(optimizedImageList);
     } catch (error) {
       console.error("Error fetching image list:", error);
       return res.status(500).json({ error: "Failed to fetch image list" });

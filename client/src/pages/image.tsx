@@ -114,29 +114,91 @@ export default function Image() {
     return artStyles.filter(style => style.categoryId === selectedCategory);
   }, [artStyles, selectedCategory]);
 
-  // Fetch image list with more aggressive refresh option
+  // Transform image mutation (일반 사용자 페이지에서는 isAdmin=false로 호출)
+  const { mutate: transformImageMutation, isPending: isTransforming } = useMutation({
+    mutationFn: (data: FormData) => transformImage(data, false),
+    onSuccess: async (data) => {
+      setTransformedImage(data);
+      
+      console.log("이미지 변환 성공, 새 이미지:", data);
+      
+      // 이미지 목록 강제 리프레시 - 캐시 초기화 후 다시 가져오기
+      await queryClient.invalidateQueries({ queryKey: ["/api/image"] });
+      
+      // 1초 후 한 번만 refetch (중복 요청 방지)
+      setTimeout(() => {
+        refetch();
+      }, 1000);
+      
+      // Check if there's an active A/B test for this style and show it if available
+      if (selectedStyle) {
+        fetchActiveAbTest(selectedStyle);
+        setShowAbTest(true);
+      }
+      
+      toast({
+        title: "Success!",
+        description: "Your image has been transformed",
+      });
+      
+      // If we have an active test, let's also transform the image with each variant
+      if (activeAbTest && activeAbTest.variants && activeAbTest.variants.length >= 2) {
+        activeAbTest.variants.forEach(async (variant: any) => {
+          try {
+            const formData = new FormData();
+            formData.append("image", selectedFile as File);
+            formData.append("style", selectedStyle as string);
+            formData.append("variant", variant.variantId);
+            formData.append("aspectRatio", selectedAspectRatio);
+            
+            // A/B 테스트 변형 이미지는 테스트용이므로 데이터베이스에 저장
+            const variantResult = await transformImage(formData, true);
+            setAbTestImages(prev => ({
+              ...prev,
+              [variant.variantId]: variantResult.transformedUrl
+            }));
+          } catch (error) {
+            console.error(`Error transforming with variant ${variant.variantId}:`, error);
+          }
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Error transforming image",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // 이미지 목록 가져오기 (성능 최적화)
   const { data: imageList, isLoading: isLoadingImages, refetch } = useQuery({
     queryKey: ["/api/image"], 
-    // 직접 fetch 함수로 대체하여 캐시 제어 헤더 추가
     queryFn: async () => {
-      const response = await fetch("/api/image", {
-        headers: {
+      // 변환이 진행 중이거나 처음 로드할 때만 캐시 무효화 사용
+      const noCache = isTransforming || !imageList;
+      
+      const response = await fetch(`/api/image${noCache ? '?nocache=true' : ''}`, {
+        headers: noCache ? {
           "Cache-Control": "no-cache, no-store, must-revalidate",
           "Pragma": "no-cache",
           "Expires": "0"
-        }
+        } : {}
       });
       
       if (!response.ok) {
         throw new Error("이미지 목록을 불러오는 데 실패했습니다");
       }
       
-      return response.json();
+      const data = await response.json();
+      console.log("이미지 목록 조회:", data.length, "개 항목");
+      return data;
     },
-    refetchOnMount: "always", // 컴포넌트 마운트 시 항상 새로 불러오기
-    refetchInterval: 1000, // 1초마다 자동 갱신
-    staleTime: 0, // 항상 최신 데이터를 가져오도록 staleTime 0으로 설정
-    refetchOnWindowFocus: true, // 창이 포커스될 때마다 최신 데이터 가져오기
+    refetchOnMount: true, // 컴포넌트 마운트 시 새로 불러오기
+    refetchInterval: isTransforming ? 2000 : 30000, // 변환 중에는 2초마다, 평상시엔 30초마다 갱신
+    staleTime: 10000, // 10초 동안은 캐시된 데이터 사용
+    refetchOnWindowFocus: true, // 창이 포커스될 때 최신 데이터 가져오기
     refetchOnReconnect: true, // 네트워크 재연결 시 새로고침
   });
 
@@ -177,24 +239,10 @@ export default function Image() {
       // 이미지 목록 강제 리프레시 - 캐시 초기화 후 다시 가져오기
       await queryClient.invalidateQueries({ queryKey: ["/api/image"] });
       
-      // 강제로 데이터를 다시 가져오기 위해 timeout 추가
+      // 1초 후 한 번만 refetch (중복 요청 방지)
       setTimeout(() => {
-        // 직접 fetch 호출로 서버에서 새로운 데이터 요청
-        fetch("/api/image", {
-          cache: "no-store",
-          headers: {
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-            "Pragma": "no-cache",
-            "Expires": "0"
-          }
-        }).then(res => res.json())
-          .then(newData => {
-            console.log("새로운 이미지 데이터 수신:", newData.length, "개 항목");
-            // 강제로 refetch 실행
-            refetch();
-          })
-          .catch(err => console.error("이미지 데이터 갱신 중 오류:", err));
-      }, 300);
+        refetch();
+      }, 1000);
       
       // Check if there's an active A/B test for this style and show it if available
       if (selectedStyle) {

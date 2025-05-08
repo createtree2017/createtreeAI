@@ -416,7 +416,33 @@ export const storage = {
         console.log('저장된 이미지가 없습니다.');
       }
       
-      return results;
+      // 이미지 경로 처리 및 파일 존재 여부 확인
+      const processedResults = results.map(image => {
+        let transformedUrl = image.transformedUrl || '';
+        
+        // URL이 로컬 파일 경로인 경우 처리
+        if (transformedUrl.startsWith('/')) {
+          // 이미 슬래시로 시작하면 그대로 유지
+          transformedUrl = transformedUrl;
+        } else if (transformedUrl.startsWith('./') || transformedUrl.startsWith('../')) {
+          // 상대 경로를 절대 경로로 변환
+          transformedUrl = `/${transformedUrl.replace(/^\.\/|^\.\.\//, '')}`;
+        } else if (transformedUrl) {
+          // 경로가 있지만 슬래시로 시작하지 않는 경우
+          transformedUrl = `/${transformedUrl}`;
+        }
+        
+        // 파일 존재 확인은 클라이언트에서 onError 핸들러로 처리하므로 제거
+        
+        return {
+          ...image,
+          transformedUrl,
+          // 이미지 제목에서 인코딩 문제가 있을 수 있으므로 방어적 처리
+          title: image.title ? decodeURIComponent(encodeURIComponent(image.title)) : `이미지 ${image.id}`
+        };
+      });
+      
+      return processedResults;
     } catch (error) {
       console.error("Error fetching images:", error);
       return [];
