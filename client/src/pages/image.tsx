@@ -119,12 +119,13 @@ export default function Image() {
       console.log("최근 이미지 10개 조회 시작...");
       
       try {
-        const response = await fetch("/api/image/recent?limit=10", {
+        const response = await fetch("/api/image/recent?limit=10&t=" + new Date().getTime(), {
           headers: {
             "Cache-Control": "no-cache, no-store, must-revalidate",
             "Pragma": "no-cache",
             "Expires": "0"
-          }
+          },
+          cache: "no-store" // 캐시 비활성화 추가
         });
         
         if (!response.ok) {
@@ -139,10 +140,11 @@ export default function Image() {
         throw error;
       }
     },
-    staleTime: 30000, // 30초 동안은 캐시된 데이터 사용
+    staleTime: 0, // 캐시 시간 0으로 설정하여 항상 최신 데이터 요청
     refetchOnMount: true,
-    refetchOnWindowFocus: false, 
-    refetchInterval: false, // 자동 갱신 비활성화
+    refetchOnWindowFocus: true, // 브라우저 포커스 시 갱신 활성화
+    refetchOnReconnect: true, // 재연결 시 갱신 활성화
+    refetchInterval: 60000, // 1분마다 자동 갱신
   });
 
   // 이미지 ID가 URL에 있는 경우 해당 이미지 조회 
@@ -384,6 +386,22 @@ export default function Image() {
 
   return (
     <div className="p-5 animate-fadeIn">
+      {/* 전체 페이지 로딩 오버레이 (이미지 생성 중에만 표시) */}
+      {isTransforming && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-xl p-6 shadow-lg max-w-md">
+            <div className="flex flex-col items-center">
+              <RefreshCw className="h-10 w-10 text-primary animate-spin mb-4" />
+              <h3 className="text-lg font-bold mb-2">이미지 생성 중...</h3>
+              <p className="text-neutral-dark text-center">
+                AI가 이미지를 생성하고 있습니다. 잠시만 기다려주세요.
+                이 과정은 약 15-30초 정도 소요됩니다.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="text-center mb-6">
         <h2 className="font-heading font-bold text-2xl mb-2">AI 이미지 생성</h2>
         <p className="text-neutral-dark">임신 및 가족의 사진을 아름다운 추억으로 변환해 보세요</p>
@@ -837,7 +855,7 @@ export default function Image() {
                             className="w-full h-full object-cover"
                             loading="lazy"
                             onError={(e) => {
-                              console.error(`이미지 로드 실패: ${image.transformedUrl}`);
+                              console.error(`이미지 로드 실패:`, image);
                               e.currentTarget.src = "https://placehold.co/400x400/F0F0F0/AAA?text=이미지+로드+실패";
                             }}
                           />
