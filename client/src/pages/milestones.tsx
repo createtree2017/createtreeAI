@@ -407,24 +407,24 @@ export default function MilestonesPage() {
         setProfile(data);
         setShowProfileSetup(false);
         toast({
-          title: "Profile Updated",
-          description: "Your pregnancy profile has been saved successfully.",
+          title: "프로필 업데이트됨",
+          description: "임신 프로필이 성공적으로 저장되었습니다.",
         });
         
         // Refresh milestones
         fetchAvailableMilestones();
       } else {
         toast({
-          title: "Error",
-          description: data.error || "Failed to save profile",
+          title: "오류",
+          description: data.error || "프로필 저장에 실패했습니다",
           variant: "destructive",
         });
       }
     } catch (error) {
       console.error('Error saving profile:', error);
       toast({
-        title: "Error",
-        description: "Failed to save profile",
+        title: "오류",
+        description: "프로필 저장에 실패했습니다",
         variant: "destructive",
       });
     }
@@ -489,8 +489,8 @@ export default function MilestonesPage() {
       
       if (response.ok) {
         toast({
-          title: "Milestone Completed!",
-          description: "Congratulations on reaching this milestone!",
+          title: "마일스톤 완료!",
+          description: "이 마일스톤에 도달한 것을 축하합니다!",
         });
         
         // Refresh milestones and stats
@@ -499,16 +499,16 @@ export default function MilestonesPage() {
         fetchStats();
       } else {
         toast({
-          title: "Error",
-          description: data.error || "Failed to complete milestone",
+          title: "오류",
+          description: data.error || "마일스톤 완료에 실패했습니다",
           variant: "destructive",
         });
       }
     } catch (error) {
       console.error('Error completing milestone:', error);
       toast({
-        title: "Error",
-        description: "Failed to complete milestone",
+        title: "오류",
+        description: "마일스톤 완료에 실패했습니다",
         variant: "destructive",
       });
     }
@@ -687,7 +687,7 @@ export default function MilestonesPage() {
                     </h3>
                   </div>
                   <p className="text-muted-foreground">
-                    {categoryInfo[category]?.description || "Track your pregnancy milestones"}
+                    {categoryInfo[category]?.description || "임신 마일스톤 추적하기"}
                   </p>
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {milestones.map((milestone) => {
@@ -715,7 +715,7 @@ export default function MilestonesPage() {
                               <span className="text-3xl">{milestone.badgeEmoji}</span>
                             </div>
                             <CardDescription>
-                              Weeks {milestone.weekStart}-{milestone.weekEnd}
+                              {milestone.weekStart}-{milestone.weekEnd}주
                             </CardDescription>
                           </CardHeader>
                           <CardContent className="pt-4">
@@ -723,9 +723,9 @@ export default function MilestonesPage() {
                             
                             {profile && milestone.weekStart > profile.currentWeek && (
                               <Badge variant="outline" className="mt-2">
-                                Unlocks {milestone.weekStart > profile.currentWeek ? 
-                                  `at Week ${milestone.weekStart}` : 
-                                  "Now"}
+                                {milestone.weekStart > profile.currentWeek ? 
+                                  `${milestone.weekStart}주차에 잠금 해제` : 
+                                  "지금 가능"}
                               </Badge>
                             )}
                           </CardContent>
