@@ -301,6 +301,12 @@ export default function ConceptManagement() {
               <Tabs defaultValue="basic" className="w-full">
                 <TabsList className="w-full mb-2 bg-muted-foreground/5">
                   <TabsTrigger value="basic" className="flex-1 font-semibold">기본 정보</TabsTrigger>
+                  <TabsTrigger value="photomaker" className="flex-1 font-semibold text-blue-600 dark:text-blue-400">
+                    <span className="flex items-center justify-center">
+                      <Image className="h-4 w-4 mr-1" />
+                      PhotoMaker 모드
+                    </span>
+                  </TabsTrigger>
                   <TabsTrigger value="advanced" className="flex-1 font-semibold">고급 설정</TabsTrigger>
                 </TabsList>
                 
@@ -341,11 +347,26 @@ export default function ConceptManagement() {
                       )}
                     </div>
                   </div>
+                </TabsContent>
+                
+                <TabsContent value="photomaker" className="space-y-4">
+                  <div className="flex items-center space-x-2 mt-4">
+                    <Switch
+                      id="usePhotoMaker"
+                      checked={newConcept.usePhotoMaker}
+                      onCheckedChange={(checked) => setNewConcept({ ...newConcept, usePhotoMaker: checked })}
+                    />
+                    <Label htmlFor="usePhotoMaker">PhotoMaker 모드 사용</Label>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    PhotoMaker 모드는 사용자의 얼굴 이미지를 레퍼런스 이미지에 합성할 수 있는 기능입니다.
+                    활성화하면 OpenAI 대신 Replicate의 PhotoMaker 모델을 사용합니다.
+                  </p>
                   
                   <div className="space-y-2">
                     <Label htmlFor="referenceImage">레퍼런스 이미지</Label>
                     <p className="text-sm text-muted-foreground">
-                      스타일 참고용 이미지를 업로드합니다.
+                      사용자의 얼굴이 합성될 샘플 이미지를 업로드합니다. 얼굴이 명확히 보이는 이미지를 사용하세요.
                     </p>
                     <div className="flex items-center gap-4">
                       <Input
@@ -354,6 +375,7 @@ export default function ConceptManagement() {
                         accept="image/*"
                         onChange={handleReferenceImageChange}
                         className="flex-1"
+                        disabled={!newConcept.usePhotoMaker}
                       />
                       {(newConcept.referenceImageUrl || referenceFile) && (
                         <div className="w-24 h-24 rounded overflow-hidden border">
@@ -364,6 +386,62 @@ export default function ConceptManagement() {
                           />
                         </div>
                       )}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2 mt-4 border-t pt-4">
+                    <h4 className="font-semibold">PhotoMaker 고급 설정</h4>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="photoMakerPrompt">커스텀 프롬프트 (선택사항)</Label>
+                      <Textarea
+                        id="photoMakerPrompt"
+                        placeholder="A beautiful high-quality portrait, preserving facial features, detailed, artistic"
+                        value={newConcept.photoMakerPrompt}
+                        onChange={(e) => setNewConcept({ ...newConcept, photoMakerPrompt: e.target.value })}
+                        rows={3}
+                        disabled={!newConcept.usePhotoMaker}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        PhotoMaker 모델에 전달할 커스텀 프롬프트입니다. 비워두면 기본값이 사용됩니다.
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="photoMakerNegativePrompt">네거티브 프롬프트 (선택사항)</Label>
+                      <Textarea
+                        id="photoMakerNegativePrompt"
+                        placeholder="ugly, blurry, bad anatomy, bad hands, text, error, missing fingers, extra digit, cropped"
+                        value={newConcept.photoMakerNegativePrompt}
+                        onChange={(e) => setNewConcept({ ...newConcept, photoMakerNegativePrompt: e.target.value })}
+                        rows={2}
+                        disabled={!newConcept.usePhotoMaker}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        이미지에 포함하지 않을 요소를 지정합니다. 비워두면 기본값이 사용됩니다.
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="photoMakerStrength">적용 강도</Label>
+                      <div className="flex items-center gap-4">
+                        <Input
+                          id="photoMakerStrength"
+                          type="range"
+                          min="0.1"
+                          max="1.0"
+                          step="0.1"
+                          value={newConcept.photoMakerStrength}
+                          onChange={(e) => setNewConcept({ ...newConcept, photoMakerStrength: e.target.value })}
+                          className="flex-1"
+                          disabled={!newConcept.usePhotoMaker}
+                        />
+                        <span className="w-16 text-center">{newConcept.photoMakerStrength}</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        스타일 적용 강도를 설정합니다. 값이
+                        높을수록 더 많은 스타일이 적용됩니다. (기본값: 1.0)
+                      </p>
                     </div>
                   </div>
                 </TabsContent>
@@ -415,11 +493,17 @@ export default function ConceptManagement() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {concepts.map((concept: Concept) => (
             <Card key={concept.conceptId} className="overflow-hidden">
-              <CardHeader className="p-4 pb-2">
+              <CardHeader className={`p-4 pb-2 ${concept.usePhotoMaker ? 'border-l-4 border-blue-500' : ''}`}>
                 <div className="flex justify-between items-start">
                   <div>
                     <CardTitle className="text-lg flex items-center">
                       {concept.title}
+                      {concept.usePhotoMaker && (
+                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+                          <Image className="h-3 w-3 mr-1" />
+                          PhotoMaker
+                        </span>
+                      )}
                     </CardTitle>
                     <CardDescription>{concept.conceptId}</CardDescription>
                   </div>
@@ -465,7 +549,16 @@ export default function ConceptManagement() {
                         레퍼런스 이미지
                       </span>
                     )}
-
+                    {concept.photoMakerPrompt && concept.usePhotoMaker && (
+                      <span className="text-xs bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 px-2 py-1 rounded flex items-center">
+                        커스텀 프롬프트
+                      </span>
+                    )}
+                    {concept.photoMakerStrength && concept.photoMakerStrength !== "1.0" && concept.usePhotoMaker && (
+                      <span className="text-xs bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300 px-2 py-1 rounded flex items-center">
+                        강도: {concept.photoMakerStrength}
+                      </span>
+                    )}
                   </div>
                 </div>
               </CardContent>
