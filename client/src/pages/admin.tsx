@@ -2898,7 +2898,6 @@ function ConceptForm({ initialData, categories, onSuccess }: ConceptFormProps) {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
           <TabsList>
             <TabsTrigger value="main">기본 설정</TabsTrigger>
-            <TabsTrigger value="photomaker">PhotoMaker 설정</TabsTrigger>
           </TabsList>
           
           <TabsContent value="main">
