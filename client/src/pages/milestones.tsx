@@ -159,18 +159,18 @@ const ProfileSetup = ({
               여자아이
             </Button>
             <Button
-              variant={babyGender === "unknown" ? "default" : "outline"}
-              onClick={() => setBabyGender("unknown")}
-              type="button"
-            >
-              아직 모름
-            </Button>
-            <Button
               variant={babyGender === "twins" ? "default" : "outline"}
               onClick={() => setBabyGender("twins")}
               type="button"
             >
               쌍둥이
+            </Button>
+            <Button
+              variant={babyGender === "unknown" ? "default" : "outline"}
+              onClick={() => setBabyGender("unknown")}
+              type="button"
+            >
+              아직 모름
             </Button>
           </div>
         </div>
