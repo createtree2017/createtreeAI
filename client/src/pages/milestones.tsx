@@ -116,61 +116,61 @@ const ProfileSetup = ({
   return (
     <div className="space-y-6 p-4">
       <div className="space-y-2">
-        <h2 className="text-2xl font-bold">Set Up Your Pregnancy Profile</h2>
+        <h2 className="text-2xl font-bold">임신 프로필 설정</h2>
         <p className="text-muted-foreground">
-          This information helps us personalize your milestone tracking experience
+          이 정보는 더 개인화된 마일스톤 추적 경험을 제공합니다
         </p>
       </div>
       
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="due-date">Due Date <span className="text-red-500">*</span></Label>
+          <Label htmlFor="due-date">예정일 <span className="text-red-500">*</span></Label>
           <DatePicker date={dueDate} onSelect={setDueDate} />
           <p className="text-sm text-muted-foreground">
-            This helps us calculate which milestones are available to you
+            이를 통해 가능한 마일스톤을 계산할 수 있습니다
           </p>
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="baby-nickname">Baby's Nickname (Optional)</Label>
+          <Label htmlFor="baby-nickname">아기 애칭 (선택사항)</Label>
           <Input
             id="baby-nickname"
-            placeholder="Little One, Bean, etc."
+            placeholder="콩이, 복이 등"
             value={babyNickname}
             onChange={(e) => setBabyNickname(e.target.value)}
           />
         </div>
         
         <div className="space-y-2">
-          <Label>Baby's Gender (Optional)</Label>
+          <Label>아기 성별 (선택사항)</Label>
           <div className="flex space-x-2">
             <Button
               variant={babyGender === "boy" ? "default" : "outline"}
               onClick={() => setBabyGender("boy")}
               type="button"
             >
-              Boy
+              남자아이
             </Button>
             <Button
               variant={babyGender === "girl" ? "default" : "outline"}
               onClick={() => setBabyGender("girl")}
               type="button"
             >
-              Girl
+              여자아이
             </Button>
             <Button
               variant={babyGender === "unknown" ? "default" : "outline"}
               onClick={() => setBabyGender("unknown")}
               type="button"
             >
-              Don't Know Yet
+              아직 모름
             </Button>
             <Button
               variant={babyGender === "prefer_not_to_say" ? "default" : "outline"}
               onClick={() => setBabyGender("prefer_not_to_say")}
               type="button"
             >
-              Prefer Not to Say
+              답변 원치 않음
             </Button>
           </div>
         </div>
@@ -183,12 +183,12 @@ const ProfileSetup = ({
             onChange={(e) => setIsFirstPregnancy(e.target.checked)}
             className="h-4 w-4 rounded border-gray-300"
           />
-          <Label htmlFor="first-pregnancy">This is my first pregnancy</Label>
+          <Label htmlFor="first-pregnancy">첫 임신입니다</Label>
         </div>
       </div>
       
       <Button onClick={handleSave} disabled={!dueDate}>
-        Save Profile
+        프로필 저장
       </Button>
     </div>
   );
@@ -228,29 +228,29 @@ const MilestoneCard = ({
       <CardFooter>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="w-full">Mark as Completed</Button>
+            <Button className="w-full">완료 표시하기</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Complete Milestone: {milestone.title}</DialogTitle>
+              <DialogTitle>마일스톤 완료: {milestone.title}</DialogTitle>
               <DialogDescription>
                 {milestone.encouragementMessage}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="notes">Add a personal note (optional)</Label>
+                <Label htmlFor="notes">개인 메모 추가 (선택사항)</Label>
                 <Textarea
                   id="notes"
-                  placeholder="How did you feel when you reached this milestone?"
+                  placeholder="이 마일스톤을 달성했을 때 어떤 느낌이었나요?"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                 />
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleComplete}>Complete Milestone</Button>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>취소</Button>
+              <Button onClick={handleComplete}>마일스톤 완료</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -272,7 +272,7 @@ const CompletedMilestoneCard = ({ userMilestone }: { userMilestone: UserMileston
           <span className="text-3xl">{milestone.badgeEmoji}</span>
         </div>
         <CardDescription>
-          Completed on {format(new Date(userMilestone.completedAt), "PPP")}
+          {format(new Date(userMilestone.completedAt), "PPP")}에 완료됨
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-4">
@@ -282,19 +282,19 @@ const CompletedMilestoneCard = ({ userMilestone }: { userMilestone: UserMileston
           <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
             <DialogTrigger asChild>
               <Button variant="link" className="pl-0 mt-2">
-                View Your Notes
+                내 메모 보기
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>{milestone.title}</DialogTitle>
                 <DialogDescription>
-                  Completed on {format(new Date(userMilestone.completedAt), "PPP")}
+                  {format(new Date(userMilestone.completedAt), "PPP")}에 완료됨
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label>Your Notes</Label>
+                  <Label>내 메모</Label>
                   <div className="p-4 bg-muted rounded-md">
                     {userMilestone.notes}
                   </div>
@@ -302,7 +302,7 @@ const CompletedMilestoneCard = ({ userMilestone }: { userMilestone: UserMileston
                 
                 {userMilestone.photoUrl && (
                   <div className="space-y-2">
-                    <Label>Your Photo</Label>
+                    <Label>내 사진</Label>
                     <img 
                       src={userMilestone.photoUrl} 
                       alt={milestone.title} 
@@ -325,12 +325,12 @@ const ProgressOverview = ({ stats }: { stats: AchievementStats }) => {
     <div className="space-y-6">
       <div className="space-y-2">
         <div className="flex justify-between items-end">
-          <h3 className="text-xl font-semibold">Overall Progress</h3>
-          <span className="text-muted-foreground">{Math.round(stats.completionRate)}% Complete</span>
+          <h3 className="text-xl font-semibold">전체 진행 상황</h3>
+          <span className="text-muted-foreground">{Math.round(stats.completionRate)}% 완료</span>
         </div>
         <Progress value={stats.completionRate} className="h-2" />
         <p className="text-sm text-muted-foreground">
-          {stats.totalCompleted} of {stats.totalAvailable} milestones completed
+          {stats.totalAvailable}개 중 {stats.totalCompleted}개의 마일스톤 완료
         </p>
       </div>
       
@@ -346,7 +346,7 @@ const ProgressOverview = ({ stats }: { stats: AchievementStats }) => {
             <CardContent>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span>{data.completed} of {data.total}</span>
+                  <span>{data.total}개 중 {data.completed}개</span>
                   <span>{Math.round(data.percent)}%</span>
                 </div>
                 <Progress value={data.percent} className="h-1.5" />
@@ -542,7 +542,7 @@ export default function MilestonesPage() {
       <div className="container mx-auto p-4 flex justify-center items-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4">Loading milestone data...</p>
+          <p className="mt-4">마일스톤 데이터 로딩 중...</p>
         </div>
       </div>
     );
@@ -561,9 +561,9 @@ export default function MilestonesPage() {
     <div className="container mx-auto p-4 py-8 space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Pregnancy Milestones</h1>
+          <h1 className="text-3xl font-bold">임신 마일스톤</h1>
           <p className="text-muted-foreground">
-            Track your progress and earn badges through your pregnancy journey
+            임신 여정을 추적하고 배지를 획득하세요
           </p>
         </div>
         
@@ -572,10 +572,10 @@ export default function MilestonesPage() {
             <Clock className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <p className="font-medium">Week {profile.currentWeek} of 40</p>
+            <p className="font-medium">임신 {profile.currentWeek}주 / 40주</p>
             {profile.dueDate && (
               <p className="text-sm text-muted-foreground">
-                {calculateWeeksRemaining(profile.dueDate)} weeks until due date
+                출산 예정일까지 {calculateWeeksRemaining(profile.dueDate)}주 남음
               </p>
             )}
           </div>
@@ -583,7 +583,7 @@ export default function MilestonesPage() {
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm" className="ml-auto">
-                Update
+                업데이트
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -598,13 +598,13 @@ export default function MilestonesPage() {
       <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="available">
-            Available Milestones
+            가능한 마일스톤
           </TabsTrigger>
           <TabsTrigger value="completed">
-            Completed Milestones
+            완료된 마일스톤
           </TabsTrigger>
           <TabsTrigger value="all">
-            All Milestones
+            모든 마일스톤
           </TabsTrigger>
         </TabsList>
         
@@ -614,10 +614,10 @@ export default function MilestonesPage() {
               <div className="mx-auto h-12 w-12 text-muted-foreground flex items-center justify-center rounded-full bg-muted">
                 <Trophy className="h-6 w-6" />
               </div>
-              <h3 className="mt-4 text-lg font-semibold">No Available Milestones</h3>
+              <h3 className="mt-4 text-lg font-semibold">가능한 마일스톤 없음</h3>
               <p className="mt-1 text-muted-foreground">
-                You've completed all milestones for your current pregnancy week.
-                Check back as your pregnancy progresses!
+                현재 임신 주차에 대한 모든 마일스톤을 완료했습니다.
+                임신이 진행됨에 따라 다시 확인해 보세요!
               </p>
             </div>
           ) : (
@@ -639,16 +639,16 @@ export default function MilestonesPage() {
               <div className="mx-auto h-12 w-12 text-muted-foreground flex items-center justify-center rounded-full bg-muted">
                 <Medal className="h-6 w-6" />
               </div>
-              <h3 className="mt-4 text-lg font-semibold">No Milestones Completed Yet</h3>
+              <h3 className="mt-4 text-lg font-semibold">아직 완료된 마일스톤이 없습니다</h3>
               <p className="mt-1 text-muted-foreground">
-                Start completing available milestones to see them here!
+                가능한 마일스톤을 완료하여 여기에서 확인하세요!
               </p>
               <Button 
                 className="mt-4" 
                 variant="outline"
                 onClick={() => setActiveTab("available")}
               >
-                View Available Milestones
+                가능한 마일스톤 보기
               </Button>
             </div>
           ) : (
@@ -669,9 +669,9 @@ export default function MilestonesPage() {
               <div className="mx-auto h-12 w-12 text-muted-foreground flex items-center justify-center rounded-full bg-muted">
                 <Milestone className="h-6 w-6" />
               </div>
-              <h3 className="mt-4 text-lg font-semibold">No Milestones Available</h3>
+              <h3 className="mt-4 text-lg font-semibold">사용 가능한 마일스톤 없음</h3>
               <p className="mt-1 text-muted-foreground">
-                Check back later for pregnancy milestones.
+                나중에 다시 확인하여 임신 마일스톤을 확인하세요.
               </p>
             </div>
           ) : (
