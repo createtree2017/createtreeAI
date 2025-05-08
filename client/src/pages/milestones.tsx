@@ -563,7 +563,7 @@ export default function MilestonesPage() {
         <div>
           <h1 className="text-3xl font-bold">임신 마일스톤</h1>
           <p className="text-muted-foreground">
-            임신기간 동안 맞춤형 문화경험를 안내합니다
+            임신기간 동안 맞춤형 문화경험을 안내합니다
           </p>
         </div>
         
