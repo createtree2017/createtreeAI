@@ -37,6 +37,7 @@ import {
 import { exportChatHistoryAsHtml, exportChatHistoryAsText } from "./services/export-logs";
 import { exportDevChatAsHtml, exportDevChatAsText } from "./services/dev-chat-export";
 import { AutoChatSaver } from "./services/auto-chat-saver";
+import superAdminRoutes from './routes/superAdmin';
 import { 
   music, 
   images, 
