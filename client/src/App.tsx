@@ -17,11 +17,13 @@ import RegisterPage from "@/pages/register";
 import TestPage from "@/pages/test";
 import BottomNavigation from "@/components/BottomNavigation";
 import Sidebar from "@/components/Sidebar";
+import { SuperAdminLayout } from "@/components/SuperAdminLayout";
 import { useMobile } from "./hooks/use-mobile";
 import { Menu, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AuthProvider, ProtectedRoute } from "@/lib/AuthProvider";
+import { HospitalProvider } from "@/lib/HospitalContext";
 
 // Main layout component
 function Layout({ children }: { children: React.ReactNode }) {
@@ -262,6 +264,46 @@ function Router() {
         </ProtectedRoute>
       </Route>
       
+      {/* 슈퍼관리자 대시보드 */}
+      <Route path="/super/dashboard">
+        <ProtectedRoute allowedRoles={["superadmin"]}>
+          <SuperAdminLayout>
+            <h1 className="text-2xl font-bold mb-6">슈퍼관리자 대시보드</h1>
+            <p className="text-muted-foreground">대시보드 콘텐츠가 여기에 표시됩니다.</p>
+          </SuperAdminLayout>
+        </ProtectedRoute>
+      </Route>
+      
+      {/* 슈퍼관리자 병원 관리 */}
+      <Route path="/super/hospitals">
+        <ProtectedRoute allowedRoles={["superadmin"]}>
+          <SuperAdminLayout>
+            <h1 className="text-2xl font-bold mb-6">병원 관리</h1>
+            <p className="text-muted-foreground">병원 관리 페이지가 여기에 표시됩니다.</p>
+          </SuperAdminLayout>
+        </ProtectedRoute>
+      </Route>
+      
+      {/* 슈퍼관리자 회원 관리 */}
+      <Route path="/super/users">
+        <ProtectedRoute allowedRoles={["superadmin"]}>
+          <SuperAdminLayout>
+            <h1 className="text-2xl font-bold mb-6">회원 관리</h1>
+            <p className="text-muted-foreground">회원 관리 페이지가 여기에 표시됩니다.</p>
+          </SuperAdminLayout>
+        </ProtectedRoute>
+      </Route>
+      
+      {/* 슈퍼관리자 기타 경로 */}
+      <Route path="/super/:path*">
+        <ProtectedRoute allowedRoles={["superadmin"]}>
+          <SuperAdminLayout>
+            <h1 className="text-xl font-semibold">준비 중</h1>
+            <p className="mt-2 text-muted-foreground">해당 기능은 현재 개발 중입니다.</p>
+          </SuperAdminLayout>
+        </ProtectedRoute>
+      </Route>
+      
       {/* 404 페이지 */}
       <Route>
         <NotFound />
@@ -288,8 +330,10 @@ function App() {
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <Router />
-          <Toaster />
+          <HospitalProvider>
+            <Router />
+            <Toaster />
+          </HospitalProvider>
         </AuthProvider>
       </QueryClientProvider>
     </ThemeProvider>

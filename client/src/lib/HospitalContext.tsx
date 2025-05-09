@@ -1,6 +1,6 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 
-interface Hospital {
+export interface Hospital {
   id: number;
   name: string;
   domain?: string;
@@ -30,7 +30,7 @@ export function HospitalProvider({ children }: { children: ReactNode }) {
   };
 
   // 컴포넌트 마운트 시 로컬 스토리지에서 선택된 병원 정보 복원
-  useState(() => {
+  useEffect(() => {
     const savedHospital = localStorage.getItem('selectedHospital');
     if (savedHospital) {
       try {
@@ -40,7 +40,7 @@ export function HospitalProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem('selectedHospital');
       }
     }
-  });
+  }, []); // 빈 의존성 배열로 컴포넌트 마운트 시에만 실행
 
   return (
     <HospitalContext.Provider value={{ selectedHospital, selectHospital, clearSelectedHospital }}>
