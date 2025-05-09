@@ -77,16 +77,25 @@ const LoginForm: React.FC = () => {
           )}
         </Button>
         
-        {/* 테스트 버튼 */}
-        <div className="mt-4">
-          <Button 
-            type="button" 
-            variant="outline" 
-            className="w-full text-primary" 
-            onClick={() => window.location.href = "/test"}
-          >
-            테스트 페이지로 이동
-          </Button>
+        {/* 계정 찾기 링크 */}
+        <div className="mt-4 text-center">
+          <div className="flex justify-center space-x-5 text-sm">
+            <button 
+              type="button" 
+              className="text-gray-500 hover:text-primary underline" 
+              onClick={() => alert("아이디 찾기 기능은 현재 개발 중입니다.")}
+            >
+              아이디 찾기
+            </button>
+            <span className="text-gray-400">|</span>
+            <button 
+              type="button" 
+              className="text-gray-500 hover:text-primary underline" 
+              onClick={() => alert("비밀번호 찾기 기능은 현재 개발 중입니다.")}
+            >
+              비밀번호 찾기
+            </button>
+          </div>
         </div>
       </form>
     </Form>

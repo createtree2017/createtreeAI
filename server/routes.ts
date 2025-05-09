@@ -264,11 +264,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 일반 사용자를 위한 병원 목록 API (로그인 필요없이 접근 가능)
   app.get("/api/hospitals", async (req, res) => {
     try {
-      const hospitalsList = await db.query.hospitals.findMany({
-        where: eq(hospitals.isActive, true),
-        orderBy: [asc(hospitals.name)]
-      });
-      return res.status(200).json(hospitalsList);
+      const activeHospitals = await db.select().from(hospitals).where(eq(hospitals.isActive, true)).orderBy(hospitals.name);
+      return res.status(200).json(activeHospitals);
     } catch (error) {
       console.error('병원 목록 조회 오류:', error);
       return res.status(500).json({ error: '병원 목록을 가져오는 중 오류가 발생했습니다.' });

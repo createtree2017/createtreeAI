@@ -41,7 +41,7 @@ const RegisterForm: React.FC = () => {
   const [showHospitalSelect, setShowHospitalSelect] = useState(false);
 
   // 병원 목록 가져오기
-  const { data: hospitals } = useQuery({
+  const { data: hospitals, isLoading: isHospitalsLoading, error: hospitalsError } = useQuery({
     queryKey: ["/api/hospitals"],
     queryFn: async () => {
       const response = await fetch("/api/hospitals");
@@ -50,6 +50,8 @@ const RegisterForm: React.FC = () => {
       }
       return response.json();
     },
+    staleTime: 1000 * 60 * 10, // 10분 동안 데이터 캐시
+    retry: 3, // 실패 시 3번 재시도
   });
 
   // React Hook Form 설정
@@ -227,19 +229,36 @@ const RegisterForm: React.FC = () => {
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
-                  disabled={isRegisterLoading}
+                  disabled={isRegisterLoading || isHospitalsLoading}
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="병원을 선택하세요" />
+                      {isHospitalsLoading ? (
+                        <div className="flex items-center space-x-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span>병원 목록 로딩중...</span>
+                        </div>
+                      ) : (
+                        <SelectValue placeholder="병원을 선택하세요" />
+                      )}
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {hospitals?.map((hospital: any) => (
-                      <SelectItem key={hospital.id} value={hospital.id.toString()}>
-                        {hospital.name}
-                      </SelectItem>
-                    ))}
+                    {hospitalsError ? (
+                      <div className="p-2 text-red-500 text-center">
+                        병원 목록을 불러오지 못했습니다
+                      </div>
+                    ) : hospitals && hospitals.length > 0 ? (
+                      hospitals.map((hospital: any) => (
+                        <SelectItem key={hospital.id} value={hospital.id.toString()}>
+                          {hospital.name}
+                        </SelectItem>
+                      ))
+                    ) : !isHospitalsLoading && (
+                      <div className="p-2 text-center text-gray-500">
+                        등록된 병원이 없습니다
+                      </div>
+                    )}
                   </SelectContent>
                 </Select>
                 <FormDescription>
