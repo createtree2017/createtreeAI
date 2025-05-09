@@ -1012,46 +1012,48 @@ export default function Image() {
       
       {/* 이미지 상세 보기 다이얼로그 */}
       <Dialog open={viewImageDialog} onOpenChange={setViewImageDialog}>
-        <DialogContent className="sm:max-w-lg p-0 overflow-hidden bg-transparent border-none shadow-2xl">
-          <div className="relative bg-card p-4 pb-2 rounded-t-lg">
-            <div className="absolute top-2 right-2">
+        <DialogContent className="sm:max-w-lg p-0 overflow-hidden bg-background border border-border shadow-2xl">
+          {/* 헤더 영역 통합 */}
+          <div className="relative bg-background/95 backdrop-blur-sm p-3 border-b border-border">
+            <div className="absolute top-3 right-3">
               <button
                 onClick={() => setViewImageDialog(false)}
-                className="text-muted-foreground hover:text-card-foreground transition-colors"
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="닫기"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <h3 className="text-lg font-medium text-center text-card-foreground mb-2">
+            <h3 className="text-lg font-medium text-center text-foreground pr-6">
               {selectedGalleryImage?.title}
             </h3>
           </div>
           
-          <div className="bg-muted p-1">
-            <div className="bg-black flex items-center justify-center">
-              {selectedGalleryImage && (
-                <img 
-                  src={selectedGalleryImage.transformedUrl} 
-                  alt={selectedGalleryImage.title} 
-                  className="max-w-full max-h-[70vh] object-contain"
-                />
-              )}
-            </div>
+          {/* 이미지 영역 */}
+          <div className="bg-black flex items-center justify-center">
+            {selectedGalleryImage && (
+              <img 
+                src={selectedGalleryImage.transformedUrl} 
+                alt={selectedGalleryImage.title || "변환된 이미지"} 
+                className="max-w-full max-h-[70vh] object-contain"
+              />
+            )}
           </div>
           
-          <div className="bg-card p-4 rounded-b-lg">
-            <div className="flex justify-center space-x-2">
+          {/* 하단 버튼 영역 */}
+          <div className="bg-background/95 backdrop-blur-sm p-4 border-t border-border">
+            <div className="flex justify-center gap-3">
               {selectedGalleryImage && (
                 <>
                   <Button 
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground flex-1 max-w-[180px]"
                     onClick={() => handleDownload(selectedGalleryImage.id)}
                   >
                     <Download className="mr-2 h-4 w-4" />
                     <span>다운로드</span>
                   </Button>
                   <Button 
-                    className="bg-muted hover:bg-muted/90 text-muted-foreground"
+                    className="bg-muted hover:bg-muted/90 text-muted-foreground flex-1 max-w-[180px]"
                     onClick={() => handleShare(selectedGalleryImage.id)}
                   >
                     <Share2 className="mr-2 h-4 w-4" />
