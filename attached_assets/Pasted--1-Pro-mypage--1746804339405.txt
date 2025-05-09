@@ -1,0 +1,153 @@
+✅ 마이페이지 구성 요약
+👤 1. 일반회원(Pro/무료/멤버쉽) 마이페이지
+구분	내용
+공통	로그인한 사용자 누구나 접근 가능 (/mypage)
+표시되는 정보	이름, 이메일, 등급(일반/프로/멤버쉽), 최근 로그인일
+멤버쉽회원만 추가로 표시	✅ 소속 병원 이름 (병원 로고 + 병원이름)
+메뉴	
+
+📄 내 정보 보기 / 수정
+
+🛍️ 참여한 캠페인 보기
+
+🎁 받은 리워드 / 쿠폰 조회
+
+🧾 내 후기 / 리뷰 목록
+
+🔐 비밀번호 변경
+
+📤 로그아웃
+
+🏥 2. 업체회원(병원관리자) 마이페이지
+구분	내용
+대상	role = hospital_admin 사용자
+표시되는 정보	병원명, 담당자명, 담당자 이메일, 계약 플랜 (220/330), 등록일, 계약 만료일
+메뉴	
+
+🏥 병원 기본정보 수정 (슈퍼관리자만 수정 가능 항목은 비활성화 처리)
+
+📈 우리 병원의 캠페인 목록
+
+📊 참여자 관리 (신청자 보기, 후기 확인)
+
+🎟️ 프로모션 코드 발급 / 관리
+
+🎁 병원별 리워드 지급 내역
+
+🔐 비밀번호 변경
+
+📤 로그아웃
+
+🛠 라플이에게 전달할 개발 지시사항
+📌 구조 설계 개요
+📁 페이지 라우팅
+tsx
+복사
+편집
+/mypage                   // 로그인한 모든 사용자 공통
+/mypage/admin             // 업체회원 전용 마이페이지 (병원 관리자)
+✅ 역할에 따른 분기 처리
+tsx
+복사
+편집
+if (user.role === 'hospital_admin') {
+  redirect to /mypage/admin
+} else {
+  render /mypage
+}
+✅ [공통] 사용자 정보 조회 API
+ts
+복사
+편집
+GET /api/users/me
+
+응답 예시:
+{
+  id: 12,
+  name: "김예진",
+  email: "yejin@example.com",
+  role: "member_user", // 또는 "pro_user", "hospital_admin"
+  membershipType: "pro", // 일반, 프로, 멤버쉽
+  hospital: {
+    id: 3,
+    name: "포유문산부인과",
+    logoUrl: "https://cdn.example.com/hospital/3.png"
+  }
+}
+🧩 일반회원 마이페이지 (/mypage) 작업 지시
+✅ 표시 항목
+이름, 이메일, 회원등급
+
+(멤버쉽회원만) 소속 병원 이름 표시
+
+최근 로그인일 (user.lastLogin)
+
+참여한 캠페인, 후기, 리워드 등 리스트
+
+✅ 기능 컴포넌트
+tsx
+복사
+편집
+<MyInfoCard />                  // 이름, 이메일, 등급
+<MyHospitalCard />             // 병원 정보 (멤버쉽회원만)
+<MyCampaignHistory />          // 참여한 캠페인 리스트
+<MyRewardHistory />            // 받은 리워드/쿠폰
+<MyReviewHistory />            // 후기
+<PasswordChangeForm />         // 비밀번호 변경
+<LogoutButton />
+🧩 병원 관리자 마이페이지 (/mypage/admin) 작업 지시
+✅ 표시 항목
+병원명, 담당자 이름, 이메일
+
+계약 요금제(220/330), 등록일, 만료일
+
+병원 ID (hospitalId)
+
+✅ 기능 컴포넌트
+tsx
+복사
+편집
+<HospitalProfileCard />        // 병원 기본 정보
+<CampaignListForHospital />    // 병원 등록 캠페인 리스트
+<ApplicantManager />           // 신청자 확인, 후기 상태 관리
+<PromoCodeManager />           // 프로모션 코드 발급 및 상태
+<HospitalRewardHistory />      // 병원에서 지급한 리워드 내역
+<PasswordChangeForm />
+<LogoutButton />
+✅ 병원 정보 수정 조건 (주의사항)
+병원 정보는 슈퍼관리자만 수정 가능
+
+병원관리자 계정에서는 수정 버튼 비활성화 또는 "관리자에게 문의하세요" 안내 표시
+
+🧩 API 설계 요약 (서버에서 추가 필요)
+✅ 사용자 본인 정보 조회
+vbnet
+복사
+편집
+GET /api/users/me
+→ 세션 기반 인증 필요
+✅ 내 참여 캠페인
+swift
+복사
+편집
+GET /api/users/me/campaigns
+✅ 내 후기 리스트
+swift
+복사
+편집
+GET /api/users/me/reviews
+✅ 내 리워드
+swift
+복사
+편집
+GET /api/users/me/rewards
+✅ 병원 관리자용 병원 기본정보
+bash
+복사
+편집
+GET /api/hospitals/:id
+🔐 권한 체크
+역할	접근 가능 경로
+member_user, pro_user, membership_user	/mypage
+hospital_admin	/mypage/admin
+superadmin	둘 다 접근 가능 (테스트용)

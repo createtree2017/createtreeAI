@@ -920,36 +920,45 @@ export default function Image() {
                         }}
                       />
                     </div>
-                    {/* 개선된 액션 버튼 - 하단 중앙에 위치한 가로 배열 */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3 flex justify-center">
-                      <div className="flex gap-4 bg-white/90 backdrop-blur-md rounded-full px-4 py-2 shadow-lg">
+
+                  </div>
+                  <div className="p-3">
+                    <div className="flex justify-between items-center mb-1">
+                      <h4 className="font-medium text-[15px] text-neutral-dark line-clamp-1">{transformedImage.title}</h4>
+                      <div className="flex gap-1.5">
                         <button
-                          onClick={() => handleViewImage(transformedImage)}
-                          className="text-gray-800 hover:text-[#ff2d55] transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewImage(transformedImage);
+                          }}
+                          className="text-gray-500 hover:text-[#ff2d55] transition-colors"
                           title="크게 보기"
                         >
-                          <Eye className="h-5 w-5" />
+                          <Eye className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => handleShare(transformedImage.id)}
-                          className="text-gray-800 hover:text-[#ff2d55] transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleShare(transformedImage.id);
+                          }}
+                          className="text-gray-500 hover:text-[#ff2d55] transition-colors"
                           title="공유하기"
                         >
-                          <Share2 className="h-5 w-5" />
+                          <Share2 className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => handleDownload(transformedImage.id)}
-                          className="text-gray-800 hover:text-[#ff2d55] transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDownload(transformedImage.id);
+                          }}
+                          className="text-gray-500 hover:text-[#ff2d55] transition-colors"
                           title="다운로드"
                         >
-                          <Download className="h-5 w-5" />
+                          <Download className="h-4 w-4" />
                         </button>
                       </div>
                     </div>
-                  </div>
-                  <div className="p-3">
-                    <h4 className="font-medium text-[15px] text-neutral-dark line-clamp-1">{transformedImage.title}</h4>
-                    <p className="text-xs text-muted-foreground mt-0.5">{transformedImage.createdAt}</p>
+                    <p className="text-xs text-muted-foreground">{transformedImage.createdAt}</p>
                   </div>
                 </div>
               )}
@@ -976,36 +985,45 @@ export default function Image() {
                           }}
                         />
                       </div>
-                      {/* 개선된 액션 버튼 - 하단 중앙에 위치한 가로 배열 */}
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3 flex justify-center">
-                        <div className="flex gap-4 bg-white/90 backdrop-blur-md rounded-full px-4 py-2 shadow-lg">
+
+                    </div>
+                    <div className="p-3">
+                      <div className="flex justify-between items-center mb-1">
+                        <h4 className="font-medium text-[15px] text-neutral-dark line-clamp-1">{image.title}</h4>
+                        <div className="flex gap-1.5">
                           <button
-                            onClick={() => handleViewImage(image)}
-                            className="text-gray-800 hover:text-[#ff2d55] transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewImage(image);
+                            }}
+                            className="text-gray-500 hover:text-[#ff2d55] transition-colors"
                             title="크게 보기"
                           >
-                            <Eye className="h-5 w-5" />
+                            <Eye className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => handleShare(image.id)}
-                            className="text-gray-800 hover:text-[#ff2d55] transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleShare(image.id);
+                            }}
+                            className="text-gray-500 hover:text-[#ff2d55] transition-colors"
                             title="공유하기"
                           >
-                            <Share2 className="h-5 w-5" />
+                            <Share2 className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => handleDownload(image.id)}
-                            className="text-gray-800 hover:text-[#ff2d55] transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownload(image.id);
+                            }}
+                            className="text-gray-500 hover:text-[#ff2d55] transition-colors"
                             title="다운로드"
                           >
-                            <Download className="h-5 w-5" />
+                            <Download className="h-4 w-4" />
                           </button>
                         </div>
                       </div>
-                    </div>
-                    <div className="p-3">
-                      <h4 className="font-medium text-[15px] text-neutral-dark line-clamp-1">{image.title}</h4>
-                      <p className="text-xs text-muted-foreground mt-0.5">{image.createdAt}</p>
+                      <p className="text-xs text-muted-foreground">{image.createdAt}</p>
                     </div>
                   </div>
                 ))}
