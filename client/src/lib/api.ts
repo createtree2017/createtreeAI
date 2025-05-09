@@ -109,19 +109,28 @@ export const deleteSavedChat = async (id: number) => {
 
 // Gallery API endpoints
 export const getGalleryItems = async (filter?: string) => {
-  // URL 형식 수정 - apiRequest 함수에서 이 URL을 올바르게 처리할 수 있도록
-  const url = '/api/gallery';
+  // URL 형식 수정 - 필터 파라미터를 URL에 직접 추가
+  let url = '/api/gallery';
   
-  // 옵션 객체에 필터링 파라미터 추가
-  const options: any = {};
-  
-  // 필터가 존재하고 'all'이 아닌 경우에만 params 추가
+  // 필터가 존재하고 'all'이 아닌 경우에만 쿼리 스트링 추가
   if (filter && filter !== 'all') {
-    options.params = { filter };
+    url = `/api/gallery?filter=${filter}`;
   }
   
-  // 수정된 요청 방법
-  const response = await apiRequest(url, options);
+  // 직접 fetch API 사용
+  const response = await fetch(url, {
+    method: 'GET',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
+  
+  if (!response.ok) {
+    console.error('갤러리 데이터 가져오기 실패:', response.status);
+    throw new Error('갤러리 데이터를 가져오는데 실패했습니다.');
+  }
+  
   return response.json();
 };
 

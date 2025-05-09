@@ -103,6 +103,7 @@ export function useAuth() {
   // 로그인 기능
   const login = useMutation({
     mutationFn: async (credentials: LoginCredentials) => {
+      // 직접 fetch API 사용 (apiRequest 대신)
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
@@ -159,6 +160,7 @@ export function useAuth() {
       
       console.log("회원가입 요청 데이터:", serverData);
       
+      // 직접 fetch API 사용 (apiRequest 대신)
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: {
