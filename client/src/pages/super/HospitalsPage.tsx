@@ -56,6 +56,10 @@ export default function HospitalsPage() {
   
   const { data: hospitals = [], isLoading, error } = useQuery<any[]>({
     queryKey: ['/api/super/hospitals'],
+    queryFn: async () => {
+      const response = await apiRequest('/api/super/hospitals');
+      return response.json();
+    },
     staleTime: 5 * 60 * 1000, // 5분
   });
 
