@@ -308,6 +308,18 @@ export async function updateUser(req: Request, res: Response) {
       return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' });
     }
     
+    // 현재 로그인한 사용자 확인
+    const currentUser = req.user;
+    
+    // 슈퍼관리자가 아니면 병원 정보 수정 불가
+    if (currentUser && currentUser.memberType !== 'superadmin' && 
+        userData.hospitalId !== undefined && 
+        userData.hospitalId !== existingUser.hospitalId) {
+      return res.status(403).json({ 
+        error: '슈퍼관리자만 병원 정보를 수정할 수 있습니다.' 
+      });
+    }
+    
     // 업데이트 데이터 (비밀번호 필드는 제외)
     const { password, roles: userRolesList, ...updateData } = userData;
     updateData.updatedAt = new Date();

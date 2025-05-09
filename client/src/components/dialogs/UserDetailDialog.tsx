@@ -116,7 +116,7 @@ const UserDetailDialog: React.FC<UserDetailDialogProps> = ({
               
               <div className="flex justify-between">
                 <dt className="font-medium text-muted-foreground">소속 병원</dt>
-                <dd>{userData.hospital?.name || '-'}</dd>
+                <dd>{userData.hospital?.name || userData.hospitalName || '-'}</dd>
               </div>
               <Separator />
               

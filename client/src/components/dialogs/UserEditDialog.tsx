@@ -18,6 +18,7 @@ import { toast } from "@/hooks/use-toast";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useAuth } from "@/hooks/useAuth";
 
 // 회원 유형 옵션
 const memberTypeOptions = [
@@ -51,8 +52,12 @@ const UserEditDialog: React.FC<UserEditDialogProps> = ({
   onClose,
 }) => {
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
   const [hospitals, setHospitals] = useState<any[]>([]);
   const [showHospitalSelect, setShowHospitalSelect] = useState(false);
+  
+  // 병원 정보 수정 권한 확인 (슈퍼관리자만 가능)
+  const canEditHospital = currentUser?.memberType === 'superadmin';
 
   // 병원 목록 가져오기
   const { data: hospitalsData, isLoading: isHospitalsLoading } = useQuery({
@@ -296,29 +301,37 @@ const UserEditDialog: React.FC<UserEditDialogProps> = ({
 
             {showHospitalSelect && (
               <div className="space-y-2">
-                <Label htmlFor="hospitalId">소속 병원</Label>
-                <Controller
-                  name="hospitalId"
-                  control={control}
-                  render={({ field }) => (
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="병원을 선택하세요" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">선택 안함</SelectItem>
-                        {hospitals.map((hospital) => (
-                          <SelectItem key={hospital.id} value={hospital.id.toString()}>
-                            {hospital.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
+                <Label htmlFor="hospitalId">
+                  소속 병원 {!canEditHospital && "(슈퍼관리자만 수정 가능)"}
+                </Label>
+                {canEditHospital ? (
+                  <Controller
+                    name="hospitalId"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="병원을 선택하세요" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">선택 안함</SelectItem>
+                          {hospitals.map((hospital) => (
+                            <SelectItem key={hospital.id} value={hospital.id.toString()}>
+                              {hospital.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                ) : (
+                  <div className="p-2 border rounded-md bg-muted/20">
+                    {hospitals.find(h => h.id.toString() === watch("hospitalId"))?.name || "병원 미선택"}
+                  </div>
+                )}
               </div>
             )}
 
