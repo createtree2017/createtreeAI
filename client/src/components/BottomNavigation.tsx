@@ -3,6 +3,15 @@ import { Link, useLocation } from 'wouter';
 import { Home, Image, ImagePlus, Music, MessageCircle, User, Award, LogIn, Settings } from 'lucide-react';
 import { useAuthContext } from '@/lib/AuthProvider';
 
+interface NavItem {
+  path: string;
+  icon: React.ForwardRefExoticComponent<any>;
+  label: string;
+  ariaLabel: string;
+  highlight?: boolean;
+  new?: boolean;
+}
+
 export default function BottomNavigation() {
   const [location] = useLocation();
   const { user } = useAuthContext();

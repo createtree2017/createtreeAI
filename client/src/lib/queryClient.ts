@@ -49,18 +49,12 @@ export const apiRequest = async (
   url: string,
   options: ApiRequestOptions = {}
 ): Promise<Response> => {
-  const token = localStorage.getItem("accessToken");
   const method = options.method || "GET";
   
   const headers: HeadersInit = {
     "Content-Type": "application/json",
     ...options.headers,
   };
-  
-  if (token) {
-    // @ts-ignore - HeadersInit 타입 문제 무시
-    headers.Authorization = `Bearer ${token}`;
-  }
   
   // URL에 쿼리 파라미터 추가 처리
   let finalUrl = url;
