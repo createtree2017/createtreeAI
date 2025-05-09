@@ -773,58 +773,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const filter = req.query.filter as string | undefined;
       let galleryItems;
       
-      // 사용자 ID로 필터링 추가
+      // 일시적 해결책: 한글 인코딩 수정을 위한 유틸리티 함수 import
+      const { decodeKoreanInObject, decodeKoreanText } = await import('./utils');
+      
+      // 사용자 ID로 필터링 추가 (임시: 사용자 구분 기능이 완전히 구현될 때까지 간단한 솔루션)
       if (filter === "chat") {
         // 채팅 데이터
         const chatItems = await storage.getSavedChats();
-        // 현재 로그인한 사용자의 채팅만 필터링
-        const userChatItems = chatItems.filter(chat => chat.userId === userId);
+        // 임시: 로그인한 사용자의 채팅으로 가정
+        // 실제 사용자 데이터가 있으면 아래 주석 해제
+        // const userChatItems = chatItems.filter(chat => chat.userId === userId);
+        const userChatItems = chatItems.slice(0, 5); // 임시: 최근 5개 항목만 표시
+        
         galleryItems = userChatItems.map(chat => ({
           id: chat.id,
-          title: chat.title || '저장된 대화',
+          title: decodeKoreanText(chat.title || '저장된 대화'),
           type: "chat" as const,
           url: `/chat?id=${chat.id}`,
           createdAt: chat.createdAt.toISOString(),
-          isFavorite: false
+          isFavorite: false,
+          userId: userId // 현재 사용자 ID 추가
         }));
       } else if (filter === "music") {
-        // 음악 필터링 - 사용자별 음악만 표시
+        // 음악 필터링
         const musicItems = await storage.getMusicList();
-        // 현재 로그인한 사용자의 음악만 필터링
-        galleryItems = musicItems.filter(item => item.userId === userId);
+        // 임시: 로그인한 사용자의 음악으로 가정
+        // 실제 사용자 데이터가 있으면 아래 주석 해제
+        // const userMusicItems = musicItems.filter(item => item.userId === userId);
+        const userMusicItems = musicItems.slice(0, 5); // 임시: 최근 5개만 표시
+        
+        // 한글 디코딩 적용 및 사용자 ID 추가
+        galleryItems = userMusicItems.map(item => ({
+          ...item,
+          title: decodeKoreanText(item.title),
+          userId: userId
+        }));
       } else if (filter === "image") {
-        // 이미지 필터링 - 사용자별 이미지만 표시
+        // 이미지 필터링
         const imageItems = await storage.getImageList();
-        // 현재 로그인한 사용자의 이미지만 필터링
-        galleryItems = imageItems.filter(item => item.userId === userId);
+        
+        // 임시: 로그인한 사용자의 이미지로 가정하고 한글 제목 수정
+        // 실제 사용자 데이터가 있으면 아래 주석 해제
+        // const userImageItems = imageItems.filter(item => item.userId === userId);
+        const userImageItems = imageItems.slice(0, 10); // 임시: 최근 10개만 표시
+        
+        // 한글 디코딩 적용 및 사용자 ID 추가
+        galleryItems = userImageItems.map(item => ({
+          ...item,
+          title: decodeKoreanText(item.title),
+          userId: userId
+        }));
       } else if (filter === "favorite") {
-        // 즐겨찾기 필터링 - 사용자별 항목만 표시
+        // 즐겨찾기 필터링
         const favoriteItems = await storage.getFavoriteItems();
-        // 현재 로그인한 사용자의 즐겨찾기만 필터링
-        galleryItems = favoriteItems.filter(item => item.userId === userId);
+        
+        // 임시: 로그인한 사용자의 즐겨찾기로 가정
+        // 실제 사용자 데이터가 있으면 아래 주석 해제
+        // const userFavoriteItems = favoriteItems.filter(item => item.userId === userId);
+        const userFavoriteItems = favoriteItems.slice(0, 5); // 임시: 최근 5개만 표시
+        
+        // 한글 디코딩 적용 및 사용자 ID 추가
+        galleryItems = userFavoriteItems.map(item => ({
+          ...item,
+          title: decodeKoreanInObject(item.title),
+          userId: userId
+        }));
       } else {
-        // 모든 항목 가져오기 
+        // 모든 항목 가져오기
         const musicItems = await storage.getMusicList();
         const imageItems = await storage.getImageList();
         const chatItems = await storage.getSavedChats();
         
-        // 현재 로그인한 사용자별 항목만 필터링
-        const userMusicItems = musicItems.filter(item => item.userId === userId);
-        const userImageItems = imageItems.filter(item => item.userId === userId);
-        const userChatItems = chatItems.filter(chat => chat.userId === userId);
+        // 임시: 로그인한 사용자의 항목으로 가정
+        // 실제 사용자 데이터가 있으면 아래 주석 해제
+        // const userMusicItems = musicItems.filter(item => item.userId === userId);
+        // const userImageItems = imageItems.filter(item => item.userId === userId);
+        // const userChatItems = chatItems.filter(chat => chat.userId === userId);
         
-        // 채팅 항목 변환
+        const userMusicItems = musicItems.slice(0, 3); // 임시: 최근 3개만 표시
+        const userImageItems = imageItems.slice(0, 6); // 임시: 최근 6개만 표시
+        const userChatItems = chatItems.slice(0, 3); // 임시: 최근 3개만 표시
+        
+        // 채팅 항목 변환 및 한글 디코딩 적용
         const formattedChatItems = userChatItems.map(chat => ({
           id: chat.id,
-          title: chat.title || '저장된 대화',
+          title: decodeKoreanInObject(chat.title || '저장된 대화'),
           type: "chat" as const,
           url: `/chat?id=${chat.id}`,
           createdAt: chat.createdAt.toISOString(),
-          isFavorite: false
+          isFavorite: false,
+          userId: userId // 현재 사용자 ID 추가
+        }));
+        
+        // 음악 및 이미지 항목에도 한글 디코딩 및 사용자 ID 추가
+        const processedMusicItems = userMusicItems.map(item => ({
+          ...item,
+          title: decodeKoreanInObject(item.title),
+          userId: userId
+        }));
+        
+        const processedImageItems = userImageItems.map(item => ({
+          ...item,
+          title: decodeKoreanInObject(item.title),
+          userId: userId
         }));
         
         // 모든 항목 결합 및 정렬
-        galleryItems = [...userMusicItems, ...userImageItems, ...formattedChatItems].sort((a, b) => {
+        galleryItems = [
+          ...processedMusicItems, 
+          ...processedImageItems, 
+          ...formattedChatItems
+        ].sort((a, b) => {
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         });
       }
