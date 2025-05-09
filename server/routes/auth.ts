@@ -106,13 +106,13 @@ router.post("/register", async (req, res) => {
         createdAt: new Date(),
       });
 
-      // 토큰 생성
-      const user = {
+      // 회원가입 후 세션에 바로 로그인 될 수 있도록 준비
+      const userWithRoles = {
         ...newUser[0],
         roles: ["user"],
       };
       
-      const accessToken = generateToken(user);
+      const accessToken = generateToken(userWithRoles);
       const refreshToken = await generateRefreshToken(newUser[0].id);
 
       // 응답
@@ -124,7 +124,7 @@ router.post("/register", async (req, res) => {
       });
 
       return res.status(201).json({
-        user: sanitizeUser(user),
+        user: sanitizeUser(userWithRoles),
         accessToken,
       });
     } catch (dbError: any) {
