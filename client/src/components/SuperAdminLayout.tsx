@@ -60,7 +60,7 @@ const navItems = [
 
 export function SuperAdminLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const { selectedHospital, selectHospital } = useHospital();
+  const { selectedHospital, selectHospital, clearSelectedHospital } = useHospital();
   
   // 전체 병원 목록 가져오기
   const { data: hospitals = [], isLoading: isHospitalsLoading } = useQuery<Hospital[]>({
@@ -78,7 +78,10 @@ export function SuperAdminLayout({ children }: { children: React.ReactNode }) {
   
   // 선택된 병원 ID 변경 처리
   const handleHospitalChange = (hospitalId: string) => {
-    if (hospitals) {
+    if (hospitalId === "all") {
+      // 전체 병원 선택 시 병원 선택 해제
+      clearSelectedHospital();
+    } else if (hospitals) {
       const hospital = hospitals.find(h => h.id.toString() === hospitalId);
       if (hospital) {
         selectHospital(hospital);
