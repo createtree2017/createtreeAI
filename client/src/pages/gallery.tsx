@@ -4,13 +4,14 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { getGalleryItems, toggleFavorite } from "@/lib/api";
 import { queryClient } from "@/lib/queryClient";
-import { Music, PaintbrushVertical, Heart, Play, Eye, Share2 } from "lucide-react";
+import { Music, PaintbrushVertical, Heart, Play, Eye, Share2, MessageCircle } from "lucide-react";
 import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
 
 interface GalleryItem {
   id: number;
   title: string;
-  type: "music" | "image";
+  type: "music" | "image" | "chat";
   url: string;
   thumbnailUrl?: string;
   duration?: number;
@@ -18,14 +19,15 @@ interface GalleryItem {
   isFavorite: boolean;
 }
 
-type FilterType = "all" | "music" | "image" | "favorite";
+type FilterType = "all" | "music" | "image" | "chat" | "favorite";
 
 export default function Gallery() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   
-  // Fetch gallery items
+  // Fetch gallery items (these are now filtered by user on the server side)
   const { data: galleryItems, isLoading } = useQuery({
     queryKey: ["/api/gallery", activeFilter],
     queryFn: () => getGalleryItems(activeFilter !== "all" ? activeFilter : undefined),
@@ -37,13 +39,13 @@ export default function Gallery() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/gallery"] });
       toast({
-        title: "Favorites updated",
-        description: "Your gallery has been updated",
+        title: "즐겨찾기 업데이트됨",
+        description: "갤러리가 업데이트되었습니다",
       });
     },
     onError: (error) => {
       toast({
-        title: "Error updating favorites",
+        title: "즐겨찾기 업데이트 오류",
         description: error.message,
         variant: "destructive",
       });
@@ -55,26 +57,40 @@ export default function Gallery() {
   };
   
   const handleToggleFavorite = (item: GalleryItem) => {
+    // 채팅은 즐겨찾기를 지원하지 않음
+    if (item.type === 'chat') {
+      toast({
+        title: "지원되지 않는 기능",
+        description: "채팅은 현재 즐겨찾기를 지원하지 않습니다.",
+        variant: "destructive"
+      });
+      return;
+    }
     toggleFavoriteMutation({ itemId: item.id, type: item.type });
   };
   
   const handleItemAction = (item: GalleryItem, action: 'view' | 'play' | 'share') => {
     if (action === 'view' || action === 'play') {
-      // Navigate to the appropriate page with the item ID
-      setLocation(`/${item.type === 'music' ? 'music' : 'image'}?id=${item.id}`);
+      // 적절한 페이지로 이동
+      if (item.type === 'chat') {
+        setLocation(`/chat?id=${item.id}`);
+      } else {
+        setLocation(`/${item.type === 'music' ? 'music' : 'image'}?id=${item.id}`);
+      }
     } else if (action === 'share') {
       toast({
-        title: "Share feature",
-        description: "Coming soon!",
+        title: "공유 기능",
+        description: "준비 중입니다!",
       });
     }
   };
   
   const filters: { type: FilterType; label: string }[] = [
-    { type: "all", label: "All Items" },
-    { type: "music", label: "Music" },
-    { type: "image", label: "Artwork" },
-    { type: "favorite", label: "Favorites" },
+    { type: "all", label: "전체 컨텐츠" },
+    { type: "image", label: "이미지" },
+    { type: "music", label: "노래" },
+    { type: "chat", label: "채팅" },
+    { type: "favorite", label: "즐겨찾기" },
   ];
   
   return (
@@ -121,6 +137,12 @@ export default function Gallery() {
                 <div className="h-32 bg-primary-light flex items-center justify-center">
                   <div className="p-3 bg-white rounded-full text-primary-dark">
                     <Music className="h-5 w-5" />
+                  </div>
+                </div>
+              ) : item.type === "chat" ? (
+                <div className="h-32 bg-accent2-light flex items-center justify-center">
+                  <div className="p-3 bg-white rounded-full text-accent2-dark">
+                    <MessageCircle className="h-5 w-5" />
                   </div>
                 </div>
               ) : (
@@ -200,26 +222,31 @@ export default function Gallery() {
               <Music className="h-8 w-8 text-accent2-dark" />
             ) : activeFilter === "image" ? (
               <PaintbrushVertical className="h-8 w-8 text-accent2-dark" />
+            ) : activeFilter === "chat" ? (
+              <MessageCircle className="h-8 w-8 text-accent2-dark" />
             ) : activeFilter === "favorite" ? (
               <Heart className="h-8 w-8 text-accent2-dark" />
             ) : (
               <div className="flex">
                 <Music className="h-8 w-8 text-accent2-dark" />
                 <PaintbrushVertical className="h-8 w-8 text-accent2-dark ml-1" />
+                <MessageCircle className="h-8 w-8 text-accent2-dark ml-1" />
               </div>
             )}
           </div>
           <h3 className="font-heading font-semibold text-lg mb-1">
-            No items found
+            찾을 수 없습니다
           </h3>
           <p className="text-neutral-dark">
             {activeFilter === "favorite"
-              ? "Mark some items as favorites to see them here!"
+              ? "즐겨찾기 항목을 추가하면 여기에 표시됩니다!"
               : activeFilter === "music"
-              ? "Create your first melody in the Baby Melody section!"
+              ? "태교 음악 메뉴에서 첫 음악을 만들어보세요!"
               : activeFilter === "image"
-              ? "Transform your photos in the Memory Art section!"
-              : "Create melodies or transform photos to fill your gallery!"}
+              ? "추억 예술 메뉴에서 사진을 변환해보세요!"
+              : activeFilter === "chat"
+              ? "엄마 상담사 메뉴에서 대화를 나눠보세요!"
+              : "음악을 만들거나 사진을 변환하거나 상담사와 대화해보세요!"}
           </p>
         </div>
       )}

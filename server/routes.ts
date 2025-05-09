@@ -764,11 +764,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Gallery endpoints
   app.get("/api/gallery", async (req, res) => {
     try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "로그인이 필요합니다." });
+      }
+      
+      // 현재는 사용자별 필터링을 지원하지 않으므로 모든 항목을 가져옵니다.
+      // 실제로는 로그인한 사용자의 ID로 필터링해야 합니다.
       const filter = req.query.filter as string | undefined;
       let galleryItems;
       
-      if (filter === "recent") {
-        galleryItems = await storage.getRecentItems();
+      if (filter === "chat") {
+        // 채팅 데이터를 위한 임시 처리
+        const chatItems = await storage.getSavedChats();
+        galleryItems = chatItems.map(chat => ({
+          id: chat.id,
+          title: chat.title || '저장된 대화',
+          type: "chat" as const,
+          url: `/chat?id=${chat.id}`,
+          createdAt: chat.createdAt.toISOString(),
+          isFavorite: false
+        }));
       } else if (filter === "music") {
         galleryItems = await storage.getMusicList();
       } else if (filter === "image") {
@@ -776,7 +791,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else if (filter === "favorite") {
         galleryItems = await storage.getFavoriteItems();
       } else {
-        galleryItems = await storage.getAllItems();
+        // 모든 항목 가져오기
+        const musicItems = await storage.getMusicList();
+        const imageItems = await storage.getImageList();
+        const chatItems = await storage.getSavedChats();
+        
+        // 채팅 항목 변환
+        const formattedChatItems = chatItems.map(chat => ({
+          id: chat.id,
+          title: chat.title || '저장된 대화',
+          type: "chat" as const,
+          url: `/chat?id=${chat.id}`,
+          createdAt: chat.createdAt.toISOString(),
+          isFavorite: false
+        }));
+        
+        // 모든 항목 결합 및 정렬
+        galleryItems = [...musicItems, ...imageItems, ...formattedChatItems].sort((a, b) => {
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
       }
       
       return res.json(galleryItems);
