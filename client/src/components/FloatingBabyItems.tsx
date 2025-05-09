@@ -69,21 +69,26 @@ const FloatingBabyItems: React.FC = () => {
       let sizeCategory = 1; // 기본값은 가장 작은 크기
       
       // 카테고리 결정 로직
-      // 1. 각 카테고리에 최소 개수 이상 할당되어 있는지 확인
-      // 2. 그 후에는 작은 크기(1,2)가 더 높은 확률로 선택되도록 함
-      if (sizeCounters.size5 < sizeMaxCount.size5 && Math.random() < 0.1) {
+      // 강제로 각 크기 카테고리에 최소한의 객체 배정
+      // 작은 객체부터 큰 객체 순으로 최소 갯수 배정하여 모든 크기가 화면에 나타나도록 함
+      if (index < sizeMaxCount.size5) {
+        // 처음 1개는 무조건 매우 큰 객체로
         sizeCategory = 5;
         sizeCounters.size5++;
-      } else if (sizeCounters.size4 < sizeMaxCount.size4 && Math.random() < 0.2) {
+      } else if (index < sizeMaxCount.size5 + sizeMaxCount.size4) {
+        // 그 다음은 큰 객체로
         sizeCategory = 4;
         sizeCounters.size4++;
-      } else if (sizeCounters.size3 < sizeMaxCount.size3 && Math.random() < 0.3) {
+      } else if (index < sizeMaxCount.size5 + sizeMaxCount.size4 + sizeMaxCount.size3) {
+        // 그 다음은 중간 객체로
         sizeCategory = 3;
         sizeCounters.size3++;
-      } else if (sizeCounters.size2 < sizeMaxCount.size2 && Math.random() < 0.4) {
+      } else if (index < sizeMaxCount.size5 + sizeMaxCount.size4 + sizeMaxCount.size3 + sizeMaxCount.size2) {
+        // 그 다음은 작은 객체로
         sizeCategory = 2;
         sizeCounters.size2++;
       } else {
+        // 나머지는 매우 작은 객체로
         sizeCategory = 1;
         sizeCounters.size1++;
       }
@@ -95,27 +100,27 @@ const FloatingBabyItems: React.FC = () => {
         size = Math.random() * 8 + 12; // 12-20px
         opacity = Math.random() * 0.1 + 0.1; // 0.1-0.2
         blur = Math.random() * 0.5 + 1; // 1-1.5px (약한 흐림)
-        duration = Math.random() * 25 + 55; // 55-80초 (가장 느리게)
+        duration = Math.random() * 10 + 25; // 25-35초 (더 빠르게 수정)
       } else if (sizeCategory === 2) { // 작은 아이템 (2단계)
         size = Math.random() * 10 + 20; // 20-30px
         opacity = Math.random() * 0.1 + 0.08; // 0.08-0.18
         blur = Math.random() * 0.7 + 1.5; // 1.5-2.2px (약간 흐림)
-        duration = Math.random() * 20 + 45; // 45-65초 (느리게)
+        duration = Math.random() * 10 + 20; // 20-30초 (더 빠르게 수정)
       } else if (sizeCategory === 3) { // 중간 아이템 (3단계)
         size = Math.random() * 15 + 30; // 30-45px
-        opacity = Math.random() * 0.08 + 0.06; // 0.06-0.14
-        blur = Math.random() * 0.8 + 2.2; // 2.2-3px (중간 흐림)
-        duration = Math.random() * 15 + 35; // 35-50초 (중간 속도)
+        opacity = Math.random() * 0.1 + 0.08; // 0.08-0.18 (더 선명하게)
+        blur = Math.random() * 0.8 + 2; // 2-2.8px (중간 흐림)
+        duration = Math.random() * 8 + 15; // 15-23초 (더 빠르게 수정)
       } else if (sizeCategory === 4) { // 큰 아이템 (4단계)
         size = Math.random() * 25 + 45; // 45-70px
-        opacity = Math.random() * 0.06 + 0.04; // 0.04-0.1
-        blur = Math.random() * 1 + 3; // 3-4px (더 흐리게)
-        duration = Math.random() * 15 + 25; // 25-40초 (빠르게)
+        opacity = Math.random() * 0.08 + 0.06; // 0.06-0.14 (더 선명하게)
+        blur = Math.random() * 1 + 2.5; // 2.5-3.5px (약간 줄임)
+        duration = Math.random() * 7 + 12; // 12-19초 (더 빠르게 수정)
       } else { // 매우 큰 아이템 (5단계)
         size = Math.random() * 60 + 90; // 90-150px (매우 큰 사이즈)
-        opacity = Math.random() * 0.04 + 0.02; // 0.02-0.06 (매우 투명하게)
-        blur = Math.random() * 2 + 4; // 4-6px (매우 흐릿하게)
-        duration = Math.random() * 10 + 20; // 20-30초 (매우 빠르게)
+        opacity = Math.random() * 0.07 + 0.04; // 0.04-0.11 (더 선명하게)
+        blur = Math.random() * 1.5 + 3; // 3-4.5px (약간 줄임)
+        duration = Math.random() * 5 + 8; // 8-13초 (더 빠르게 수정)
       }
       
       return {
@@ -150,29 +155,55 @@ const FloatingBabyItems: React.FC = () => {
             filter: `blur(${item.blur}px)`,
           }}
           animate={{
-            x: [
-              // 크기에 따라 움직임의 범위 조절
-              Math.random() * (item.size * 0.8) - (item.size * 0.4),
-              Math.random() * (item.size * 0.8) - (item.size * 0.4),
-              Math.random() * (item.size * 0.8) - (item.size * 0.4),
-              Math.random() * (item.size * 0.8) - (item.size * 0.4),
-              Math.random() * (item.size * 0.8) - (item.size * 0.4),
-            ],
-            y: [
-              Math.random() * (item.size * 0.8) - (item.size * 0.4),
-              Math.random() * (item.size * 0.8) - (item.size * 0.4),
-              Math.random() * (item.size * 0.8) - (item.size * 0.4),
-              Math.random() * (item.size * 0.8) - (item.size * 0.4),
-              Math.random() * (item.size * 0.8) - (item.size * 0.4),
-            ],
-            rotate: [0, Math.random() * 20 - 10, Math.random() * 20 - 10, Math.random() * 20 - 10, 0], // 회전 각도 줄임
+            // 각 객체마다 다른 랜덤 움직임 패턴을 적용
+            // useMemo나 useCallback을 사용하지 않고 한 번만 계산되도록 내부에서 값 생성
+            ...(() => {
+              // 랜덤하게 x, y 움직임 생성
+              const generateRandomMovement = (baseSize: number) => {
+                // 랜덤 움직임 강도 (일부 객체는 더 크게 움직이고 일부는 작게 움직임)
+                const movementIntensity = Math.random() * 0.5 + 0.5; // 0.5-1.0 사이의 랜덤 강도
+                const range = baseSize * 0.8 * movementIntensity;
+                
+                return [
+                  Math.random() * range * 2 - range,
+                  Math.random() * range * 2 - range,
+                  Math.random() * range * 2 - range,
+                  Math.random() * range * 2 - range,
+                  Math.random() * range * 2 - range,
+                ];
+              };
+              
+              // 랜덤하게 회전 움직임 생성
+              const generateRandomRotation = () => {
+                // 회전 각도도 랜덤하게 설정 (일부 객체는 많이 회전하고 일부는 덜 회전)
+                const rotationIntensity = Math.random() * 20 + 5; // 5-25 사이의 회전 강도
+                
+                return [
+                  0,
+                  Math.random() * rotationIntensity * 2 - rotationIntensity,
+                  Math.random() * rotationIntensity * 2 - rotationIntensity,
+                  Math.random() * rotationIntensity * 2 - rotationIntensity,
+                  0
+                ];
+              };
+              
+              return {
+                x: generateRandomMovement(item.size),
+                y: generateRandomMovement(item.size),
+                rotate: generateRandomRotation(),
+              };
+            })(),
           }}
           transition={{
             repeat: Infinity,
             repeatType: "reverse",
             duration: item.duration,
             delay: item.delay,
-            ease: "easeInOut",
+            // 랜덤하게 ease 효과 결정 (easeInOut, easeIn, easeOut, linear 중에서)
+            ease: (() => {
+              const easeTypes = ["easeInOut", "easeIn", "easeOut", "linear", "circIn", "circOut"];
+              return easeTypes[Math.floor(Math.random() * easeTypes.length)];
+            })(),
           }}
           aria-label={item.name}
         >
