@@ -31,7 +31,7 @@ const registerSchema = z.object({
   }),
   birthdate: z.date().optional(),
   memberType: z.enum(["general", "membership"]),
-  hospitalId: z.string().optional(),
+  hospitalId: z.string().optional(), // 폼에서는 문자열로 유지 (select value가 문자열)
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;

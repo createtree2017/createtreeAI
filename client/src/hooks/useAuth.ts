@@ -123,7 +123,9 @@ export function useAuth() {
         phoneNumber: data.phoneNumber,
         birthdate: data.birthdate || null,
         memberType: data.memberType,
-        hospitalId: data.memberType === "membership" ? data.hospitalId : null
+        hospitalId: data.memberType === "membership" && data.hospitalId 
+          ? parseInt(data.hospitalId, 10) // 문자열을 숫자로 변환
+          : null
       };
       
       console.log("회원가입 요청 데이터:", serverData);
