@@ -454,16 +454,18 @@ export default function Image() {
 
   return (
     <div className="p-5 animate-fadeIn">
-      {/* 전체 페이지 로딩 오버레이 (이미지 생성 중에만 표시) */}
+      {/* 이미지 생성 중 알림 (상단에 고정된 알림으로 변경) */}
       {isTransforming && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
-          <div className="bg-card rounded-xl p-6 shadow-lg max-w-md">
-            <div className="flex flex-col items-center">
-              <RefreshCw className="h-10 w-10 text-primary animate-spin mb-4" />
-              <h3 className="text-lg font-bold mb-2 text-card-foreground">이미지 생성 중...</h3>
-              <p className="text-muted-foreground text-center">
-                AI가 이미지를 생성하고 있습니다. 잠시만 기다려주세요.
-                이 과정은 약 15-30초 정도 소요됩니다.
+        <div className="fixed top-4 right-4 z-50 max-w-sm">
+          <div className="bg-card rounded-xl p-4 shadow-lg border border-[#ff2d55] flex items-start gap-3">
+            <div className="mt-1">
+              <RefreshCw className="h-5 w-5 text-primary animate-spin" />
+            </div>
+            <div>
+              <h3 className="font-medium text-sm mb-1 text-card-foreground">이미지 생성 중...</h3>
+              <p className="text-muted-foreground text-xs">
+                AI가 이미지를 생성하고 있습니다. 약 15-30초 정도 소요됩니다.
+                다른 작업을 계속하셔도 됩니다.
               </p>
             </div>
           </div>
@@ -733,53 +735,59 @@ export default function Image() {
         {selectedCategory !== "mansak_img" && (
           <div className="mb-5">
             <label className="block text-muted-foreground text-sm mb-2">종횡비</label>
-            <div className="grid grid-cols-3 gap-2">
-              <div 
-                className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
-                  selectedAspectRatio === "1:1" 
-                    ? "bg-primary/10 border-primary" 
-                    : "bg-muted border-[#ff2d55] hover:border-muted-foreground/30"
-                }`}
-                onClick={() => setSelectedAspectRatio("1:1")}
-              >
-                <div className="aspect-square flex items-center justify-center">
-                  <span className={`text-xs font-medium ${
+            {/* 최대 너비 제한 및 중앙 정렬 적용 */}
+            <div className="mx-auto max-w-[360px]">
+              <div className="grid grid-cols-3 gap-2">
+                <div 
+                  className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
                     selectedAspectRatio === "1:1" 
-                      ? "text-primary" 
-                      : "text-muted-foreground"
-                  }`}>1:1</span>
+                      ? "bg-primary/10 border-primary" 
+                      : "bg-muted border-[#ff2d55] hover:border-muted-foreground/30"
+                  }`}
+                  onClick={() => setSelectedAspectRatio("1:1")}
+                >
+                  {/* 높이 제한 추가 */}
+                  <div className="aspect-square flex items-center justify-center h-24 max-h-[90px]">
+                    <span className={`text-xs font-medium ${
+                      selectedAspectRatio === "1:1" 
+                        ? "text-primary" 
+                        : "text-muted-foreground"
+                    }`}>1:1</span>
+                  </div>
                 </div>
-              </div>
-              <div 
-                className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
-                  selectedAspectRatio === "2:3" 
-                    ? "bg-primary/10 border-primary" 
-                    : "bg-muted border-[#ff2d55] hover:border-muted-foreground/30"
-                }`}
-                onClick={() => setSelectedAspectRatio("2:3")}
-              >
-                <div className="aspect-[2/3] flex items-center justify-center">
-                  <span className={`text-xs font-medium ${
+                <div 
+                  className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
                     selectedAspectRatio === "2:3" 
-                      ? "text-primary" 
-                      : "text-muted-foreground"
-                  }`}>2:3</span>
+                      ? "bg-primary/10 border-primary" 
+                      : "bg-muted border-[#ff2d55] hover:border-muted-foreground/30"
+                  }`}
+                  onClick={() => setSelectedAspectRatio("2:3")}
+                >
+                  {/* 높이 제한 추가 */}
+                  <div className="aspect-[2/3] flex items-center justify-center h-24 max-h-[90px]">
+                    <span className={`text-xs font-medium ${
+                      selectedAspectRatio === "2:3" 
+                        ? "text-primary" 
+                        : "text-muted-foreground"
+                    }`}>2:3</span>
+                  </div>
                 </div>
-              </div>
-              <div 
-                className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
-                  selectedAspectRatio === "9:16" 
-                    ? "bg-primary/10 border-primary" 
-                    : "bg-muted border-[#ff2d55] hover:border-muted-foreground/30"
-                }`}
-                onClick={() => setSelectedAspectRatio("9:16")}
-              >
-                <div className="aspect-[9/16] flex items-center justify-center">
-                  <span className={`text-xs font-medium ${
+                <div 
+                  className={`cursor-pointer rounded-lg border overflow-hidden transition-colors ${
                     selectedAspectRatio === "9:16" 
-                      ? "text-primary" 
-                      : "text-muted-foreground"
-                  }`}>9:16</span>
+                      ? "bg-primary/10 border-primary" 
+                      : "bg-muted border-[#ff2d55] hover:border-muted-foreground/30"
+                  }`}
+                  onClick={() => setSelectedAspectRatio("9:16")}
+                >
+                  {/* 높이 제한 추가 */}
+                  <div className="aspect-[9/16] flex items-center justify-center h-24 max-h-[90px]">
+                    <span className={`text-xs font-medium ${
+                      selectedAspectRatio === "9:16" 
+                        ? "text-primary" 
+                        : "text-muted-foreground"
+                    }`}>9:16</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -800,7 +808,7 @@ export default function Image() {
           {isTransforming ? (
             <div className="flex items-center">
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              <span>생성 중...</span>
+              <span>생성 중... (계속 사용 가능)</span>
             </div>
           ) : (
             <div className="flex items-center">
@@ -873,8 +881,8 @@ export default function Image() {
 
         {/* 이미지 목록 조회 및 표시 */}
         <div className="relative">
-          {isTransforming ? (
-            // 변환 중일 때 로딩 상태 표시
+          {isTransforming && !Array.isArray(recentImages) ? (
+            // 이미지가 없고 변환 중일 때만 로딩 상태 표시 (이미지가 있으면 계속 표시)
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-neutral-lightest h-52 rounded-xl animate-pulse"></div>
               <div className="bg-neutral-lightest h-52 rounded-xl animate-pulse"></div>
