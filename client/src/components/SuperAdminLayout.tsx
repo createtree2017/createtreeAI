@@ -131,17 +131,16 @@ export function SuperAdminLayout({ children }: { children: React.ReactNode }) {
                   key={item.href}
                   href={isDisabled ? '#' : item.href}
                   onClick={(e) => isDisabled && e.preventDefault()}
-                >
-                  <a className={cn(
+                  className={cn(
                     "group flex items-center px-2 py-2 text-sm font-medium rounded-md",
                     location === item.href
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:bg-muted",
                     isDisabled && "opacity-50 cursor-not-allowed"
-                  )}>
-                    {item.icon}
-                    <span className="ml-3">{item.label}</span>
-                  </a>
+                  )}
+                >
+                  {item.icon}
+                  <span className="ml-3">{item.label}</span>
                 </Link>
               );
             })}

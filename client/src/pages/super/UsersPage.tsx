@@ -57,7 +57,7 @@ export default function UsersPage() {
       params.append('search', searchTerm);
     }
     
-    if (memberTypeFilter) {
+    if (memberTypeFilter && memberTypeFilter !== 'all') {
       params.append('memberType', memberTypeFilter);
     }
     
@@ -183,7 +183,7 @@ export default function UsersPage() {
                   </div>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">전체 회원</SelectItem>
+                  <SelectItem value="all">전체 회원</SelectItem>
                   <SelectItem value="general">일반 회원</SelectItem>
                   <SelectItem value="pro">프로 회원</SelectItem>
                   <SelectItem value="hospital_admin">병원 관리자</SelectItem>
