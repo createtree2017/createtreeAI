@@ -1,6 +1,17 @@
 // Adapted from https://ui.shadcn.com/docs/components/toast
 import * as React from "react"
-import { type ToastActionElement, type ToastProps } from "@/components/ui/toast"
+// ToastActionElement와 ToastProps 타입을 직접 정의
+type ToastProps = {
+  id: string
+  title?: React.ReactNode
+  description?: React.ReactNode
+  action?: React.ReactNode
+  variant?: "default" | "destructive"
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}
+
+type ToastActionElement = React.ReactElement
 
 const TOAST_LIMIT = 5
 const TOAST_REMOVE_DELAY = 1000000
