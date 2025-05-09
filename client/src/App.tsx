@@ -184,10 +184,8 @@ function Router() {
         <div className="min-h-screen flex flex-col items-center justify-center p-4">
           <h1 className="text-3xl font-bold text-red-500 mb-4">접근 권한이 없습니다</h1>
           <p className="mb-6">이 페이지에 접근할 권한이 없습니다. 관리자에게 문의하세요.</p>
-          <Link href="/">
-            <a className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90">
-              홈으로 돌아가기
-            </a>
+          <Link to="/" className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90">
+            홈으로 돌아가기
           </Link>
         </div>
       )} />

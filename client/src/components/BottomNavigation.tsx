@@ -1,9 +1,11 @@
 import React from 'react';
 import { Link, useLocation } from 'wouter';
-import { Home, Image, ImagePlus, Music, MessageCircle, User, Award } from 'lucide-react';
+import { Home, Image, ImagePlus, Music, MessageCircle, User, Award, LogIn } from 'lucide-react';
+import { useAuthContext } from '@/lib/AuthProvider';
 
 export default function BottomNavigation() {
   const [location] = useLocation();
+  const { user } = useAuthContext();
   
   const navItems = [
     {
@@ -32,11 +34,18 @@ export default function BottomNavigation() {
       label: 'AI 도우미',
       ariaLabel: 'AI 채팅 페이지',
     },
-    {
+    // 로그인 상태에 따라 갤러리 또는 로그인 버튼 표시
+    user ? {
       path: '/gallery',
       icon: Image,
       label: '갤러리',
       ariaLabel: '갤러리 페이지',
+    } : {
+      path: '/auth',
+      icon: LogIn,
+      label: '로그인',
+      ariaLabel: '로그인 페이지',
+      highlight: true,
     },
   ];
 
@@ -48,7 +57,7 @@ export default function BottomNavigation() {
           return (
             <Link 
               key={item.path} 
-              href={item.path}
+              to={item.path}
               aria-label={item.ariaLabel}
               className={`
                 flex flex-col items-center justify-center flex-1 py-1 px-1 relative
@@ -62,11 +71,17 @@ export default function BottomNavigation() {
                 flex items-center justify-center w-8 h-8
                 ${isActive 
                   ? 'bg-primary-lavender/10 rounded-lg' 
-                  : 'bg-transparent'}
+                  : item.highlight 
+                    ? 'bg-primary-lavender/10 rounded-lg'
+                    : 'bg-transparent'}
               `}>
-                <item.icon size={20} strokeWidth={isActive ? 2 : 1.5} />
+                <item.icon 
+                  size={20} 
+                  strokeWidth={isActive || item.highlight ? 2 : 1.5} 
+                  className={item.highlight ? 'text-primary-lavender' : ''} 
+                />
               </div>
-              <span className="text-xs font-medium mt-1">{item.label}</span>
+              <span className={`text-xs font-medium mt-1 ${item.highlight ? 'text-primary-lavender' : ''}`}>{item.label}</span>
               
               {/* 신규 배지 */}
               {item.new && (
