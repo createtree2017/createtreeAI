@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { db } from '../../db';
 import { hospitals, users, roles, userRoles } from '@shared/schema';
-import { eq, and, like, desc, sql } from '@shared/schema';
+import { eq, and, like, desc, sql, inArray } from 'drizzle-orm';
 
 // 병원 관련 컨트롤러
 export async function getAllHospitals(req: Request, res: Response) {
@@ -210,12 +210,11 @@ export async function getAllUsers(req: Request, res: Response) {
     let hospitalMap: Record<number, any> = {};
     
     if (hospitalIds.length > 0) {
-      // 중복 제거
-      const uniqueHospitalIds = [...new Set(hospitalIds)];
-      
       // 모든 관련 병원을 한 번에 가져오기
       const hospitalsList = await db.query.hospitals.findMany({
-        where: inArray(hospitals.id, uniqueHospitalIds)
+        where: hospitalIds.length === 1 
+          ? eq(hospitals.id, hospitalIds[0]) 
+          : inArray(hospitals.id, hospitalIds)
       });
       
       // 맵으로 변환하여 빠른 조회 가능하게 함
