@@ -1,183 +1,130 @@
-import { useState } from "react";
+import React from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useLocation } from "wouter";
-import { useAuth } from "@/lib/AuthProvider";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useAuthContext } from "@/lib/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 
-// 회원가입 폼 검증 스키마
-const registerSchema = z.object({
-  username: z.string().min(2, "사용자명은 2자 이상이어야 합니다."),
-  email: z.string().email("유효한 이메일 주소를 입력해주세요.").optional(),
-  password: z.string().min(6, "비밀번호는 6자 이상이어야 합니다."),
-  confirmPassword: z.string().min(6, "비밀번호 확인은 6자 이상이어야 합니다."),
-  name: z.string().optional(),
-  phoneNumber: z.string().optional(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "비밀번호가 일치하지 않습니다.",
-  path: ["confirmPassword"],
-});
+// 회원가입 폼 스키마
+const registerSchema = z
+  .object({
+    username: z.string().min(3, "사용자 이름은 최소 3자 이상이어야 합니다"),
+    email: z.string().email("유효한 이메일 주소를 입력해주세요"),
+    password: z.string().min(6, "비밀번호는 최소 6자 이상이어야 합니다"),
+    confirmPassword: z.string(),
+    fullName: z.string().min(2, "이름은 최소 2자 이상이어야 합니다").optional(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "비밀번호가 일치하지 않습니다",
+    path: ["confirmPassword"],
+  });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
-export function RegisterForm({ redirectPath = "/" }: { redirectPath?: string }) {
-  const [_, navigate] = useLocation();
-  const { register: registerUser, isRegisterLoading } = useAuth();
-  const [error, setError] = useState<string | null>(null);
-  
-  const form = useForm<RegisterFormValues>({
+const RegisterForm = () => {
+  const { register: registerUser, isRegisterLoading } = useAuthContext();
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       username: "",
       email: "",
       password: "",
       confirmPassword: "",
-      name: "",
-      phoneNumber: "",
+      fullName: "",
     },
   });
-  
-  async function onSubmit(data: RegisterFormValues) {
-    try {
-      setError(null);
-      
-      // 비밀번호 확인 필드는 서버에 보내지 않음
-      const { confirmPassword, ...registerData } = data;
-      
-      await registerUser(registerData, {
-        onSuccess: () => {
-          navigate(redirectPath);
-        },
-        onError: (err: Error) => {
-          setError(err.message);
-        },
-      });
-    } catch (err) {
-      setError("회원가입 중 오류가 발생했습니다. 다시 시도해주세요.");
-    }
-  }
-  
+
+  const onSubmit = (data: RegisterFormValues) => {
+    // confirmPassword는 제외하고 API로 전송
+    const { confirmPassword, ...registerData } = data;
+    registerUser(registerData);
+  };
+
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="username">사용자명 *</Label>
-          <Input
-            id="username"
-            type="text"
-            autoComplete="username"
-            {...form.register("username")}
-          />
-          {form.formState.errors.username && (
-            <p className="text-sm text-destructive">
-              {form.formState.errors.username.message}
-            </p>
-          )}
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="email">이메일</Label>
-          <Input
-            id="email"
-            type="email"
-            autoComplete="email"
-            {...form.register("email")}
-          />
-          {form.formState.errors.email && (
-            <p className="text-sm text-destructive">
-              {form.formState.errors.email.message}
-            </p>
-          )}
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="name">이름</Label>
-          <Input
-            id="name"
-            type="text"
-            autoComplete="name"
-            {...form.register("name")}
-          />
-          {form.formState.errors.name && (
-            <p className="text-sm text-destructive">
-              {form.formState.errors.name.message}
-            </p>
-          )}
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="phoneNumber">전화번호</Label>
-          <Input
-            id="phoneNumber"
-            type="tel"
-            autoComplete="tel"
-            {...form.register("phoneNumber")}
-          />
-          {form.formState.errors.phoneNumber && (
-            <p className="text-sm text-destructive">
-              {form.formState.errors.phoneNumber.message}
-            </p>
-          )}
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="password">비밀번호 *</Label>
-          <Input
-            id="password"
-            type="password"
-            autoComplete="new-password"
-            {...form.register("password")}
-          />
-          {form.formState.errors.password && (
-            <p className="text-sm text-destructive">
-              {form.formState.errors.password.message}
-            </p>
-          )}
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="confirmPassword">비밀번호 확인 *</Label>
-          <Input
-            id="confirmPassword"
-            type="password"
-            autoComplete="new-password"
-            {...form.register("confirmPassword")}
-          />
-          {form.formState.errors.confirmPassword && (
-            <p className="text-sm text-destructive">
-              {form.formState.errors.confirmPassword.message}
-            </p>
-          )}
-        </div>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="username">사용자 이름</Label>
+        <Input
+          id="username"
+          placeholder="사용자 이름을 입력하세요"
+          {...register("username")}
+        />
+        {errors.username && (
+          <p className="text-sm text-red-500">{errors.username.message}</p>
+        )}
       </div>
-      
-      {error && (
-        <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
-          {error}
-        </div>
-      )}
-      
-      <Button
-        type="submit"
-        className="w-full flex items-center justify-center"
-        disabled={isRegisterLoading}
-      >
+
+      <div className="space-y-2">
+        <Label htmlFor="email">이메일</Label>
+        <Input
+          id="email"
+          type="email"
+          placeholder="이메일을 입력하세요"
+          {...register("email")}
+        />
+        {errors.email && (
+          <p className="text-sm text-red-500">{errors.email.message}</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="fullName">이름 (선택사항)</Label>
+        <Input
+          id="fullName"
+          placeholder="이름을 입력하세요"
+          {...register("fullName")}
+        />
+        {errors.fullName && (
+          <p className="text-sm text-red-500">{errors.fullName.message}</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="password">비밀번호</Label>
+        <Input
+          id="password"
+          type="password"
+          placeholder="비밀번호를 입력하세요"
+          {...register("password")}
+        />
+        {errors.password && (
+          <p className="text-sm text-red-500">{errors.password.message}</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="confirmPassword">비밀번호 확인</Label>
+        <Input
+          id="confirmPassword"
+          type="password"
+          placeholder="비밀번호를 다시 입력하세요"
+          {...register("confirmPassword")}
+        />
+        {errors.confirmPassword && (
+          <p className="text-sm text-red-500">{errors.confirmPassword.message}</p>
+        )}
+      </div>
+
+      <Button type="submit" className="w-full" disabled={isRegisterLoading}>
         {isRegisterLoading ? (
           <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 가입 중...
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            가입 중...
           </>
         ) : (
           "회원가입"
         )}
       </Button>
-      
-      <p className="text-xs text-muted-foreground text-center">
-        회원가입을 진행하시면 서비스 이용약관 및 개인정보 처리방침에 동의하게 됩니다.
-      </p>
     </form>
   );
-}
+};
+
+export default RegisterForm;

@@ -173,44 +173,69 @@ function Layout({ children }: { children: React.ReactNode }) {
 }
 
 function Router() {
+  // 로그인 상태는 각 페이지 컴포넌트에서 처리
+  const [location] = useLocation();
+  
   return (
     <Switch>
+      {/* 인증 불필요 경로 */}
+      <Route path="/auth" component={AuthPage} />
+      <Route path="/unauthorized" component={() => (
+        <div className="min-h-screen flex flex-col items-center justify-center p-4">
+          <h1 className="text-3xl font-bold text-red-500 mb-4">접근 권한이 없습니다</h1>
+          <p className="mb-6">이 페이지에 접근할 권한이 없습니다. 관리자에게 문의하세요.</p>
+          <Link href="/">
+            <a className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90">
+              홈으로 돌아가기
+            </a>
+          </Link>
+        </div>
+      )} />
+      
+      {/* 일반 경로 */}
       <Route path="/" component={() => (
         <Layout>
           <Home />
         </Layout>
       )} />
+      
       <Route path="/music" component={() => (
         <Layout>
           <Music />
         </Layout>
       )} />
+      
       <Route path="/image" component={() => (
         <Layout>
           <Image />
         </Layout>
       )} />
+      
       <Route path="/chat" component={() => (
         <Layout>
           <Chat />
         </Layout>
       )} />
+      
       <Route path="/gallery" component={() => (
         <Layout>
           <Gallery />
         </Layout>
       )} />
-      <Route path="/admin" component={() => (
-        <div className="w-full max-w-7xl mx-auto">
-          <Admin />
-        </div>
-      )} />
+      
       <Route path="/milestones" component={() => (
         <Layout>
           <Milestones />
         </Layout>
       )} />
-      <Route path="/auth" component={AuthPage} />
+      
+      {/* 관리자 경로 */}
+      <Route path="/admin" component={() => (
+        <div className="w-full max-w-7xl mx-auto">
+          <Admin />
+        </div>
+      )} />
+      
       <Route component={NotFound} />
     </Switch>
   );
