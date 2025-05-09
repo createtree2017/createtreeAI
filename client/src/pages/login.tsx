@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import LoginForm from "../components/forms/LoginForm";
 import { useAuthContext } from "@/lib/AuthProvider";
@@ -41,16 +41,12 @@ const LoginPage = () => {
             <div className="mt-4 text-center">
               <p className="text-sm text-muted-foreground">
                 계정이 없으신가요?{" "}
-                <a 
-                  href="/register" 
+                <Link
+                  to="/register"
                   className="text-primary hover:underline"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setLocation("/register");
-                  }}
                 >
                   회원가입
-                </a>
+                </Link>
               </p>
             </div>
           </CardContent>

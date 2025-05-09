@@ -289,14 +289,14 @@ export default function Sidebar({ collapsed = false }) {
             상태
           </div>
         )}
-        <div 
-          onClick={() => window.location.href = '/login'} 
+        <Link 
+          to="/test" 
           className="text-neutral-400 hover:text-primary-lavender transition-colors flex items-center gap-2 cursor-pointer" 
-          aria-label="로그인"
+          aria-label="테스트"
         >
-          {!collapsed && <span className="text-sm">로그인</span>}
+          {!collapsed && <span className="text-sm">테스트</span>}
           <LogIn size={collapsed ? 20 : 18} strokeWidth={1.5} />
-        </div>
+        </Link>
       </div>
     </aside>
   );
