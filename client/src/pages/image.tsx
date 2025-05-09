@@ -572,17 +572,29 @@ export default function Image() {
         </div>
         
         <div 
-          className="border cursor-pointer rounded-lg p-4 flex justify-between items-center hover:bg-muted/50 transition-colors"
+          className="border cursor-pointer rounded-lg p-3 flex justify-between items-center hover:bg-muted/50 transition-colors"
           onClick={() => setStyleDialogOpen(true)}
         >
           <div className="flex items-center">
-            <PaintbrushVertical className="h-5 w-5 text-muted-foreground mr-3" />
             {selectedStyle ? (
-              <span className="text-card-foreground">
-                {artStyles.find(style => style.value === selectedStyle)?.label || "스타일 선택"}
-              </span>
+              <>
+                {/* 선택된 스타일의 썸네일 이미지 */}
+                <div className="h-12 w-12 rounded-md overflow-hidden border border-border mr-3 flex-shrink-0">
+                  <img 
+                    src={artStyles.find(style => style.value === selectedStyle)?.thumbnailUrl || ''} 
+                    alt="스타일 썸네일" 
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <span className="text-card-foreground">
+                  {artStyles.find(style => style.value === selectedStyle)?.label || "스타일 선택"}
+                </span>
+              </>
             ) : (
-              <span className="text-muted-foreground">스타일을 선택해주세요</span>
+              <>
+                <PaintbrushVertical className="h-5 w-5 text-muted-foreground mr-3" />
+                <span className="text-muted-foreground">스타일을 선택해주세요</span>
+              </>
             )}
           </div>
           <ChevronRight className="h-5 w-5 text-muted-foreground" />
