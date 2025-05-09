@@ -2,8 +2,9 @@ import React, { useEffect } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import LoginForm from "@/components/forms/LoginForm";
-import RegisterForm from "@/components/forms/RegisterForm";
+// 상대 경로로 변경
+import LoginForm from "../components/forms/LoginForm";
+import RegisterForm from "../components/forms/RegisterForm";
 import { useAuthContext } from "@/lib/AuthProvider";
 
 const AuthPage = () => {
