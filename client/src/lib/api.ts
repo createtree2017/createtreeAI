@@ -135,10 +135,22 @@ export const getGalleryItems = async (filter?: string) => {
 };
 
 export const toggleFavorite = async (itemId: number, type: string) => {
-  const response = await apiRequest('/api/gallery/favorite', {
+  // 직접 fetch API 사용
+  const response = await fetch('/api/gallery/favorite', {
     method: 'POST',
-    data: { itemId, type }
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ itemId, type }),
+    credentials: 'include',
   });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('즐겨찾기 토글 실패:', response.status, errorText);
+    throw new Error(errorText || response.statusText);
+  }
+  
   return response.json();
 };
 
@@ -277,56 +289,111 @@ export const shareMedia = async (id: number, type: string) => {
 
 // Get all personas
 export const getPersonas = async () => {
-  const response = await apiRequest('/api/admin/personas');
+  const response = await fetch('/api/admin/personas', {
+    method: 'GET',
+    credentials: 'include',
+  });
+  
+  if (!response.ok) {
+    throw new Error(`페르소나 목록 가져오기 실패: ${response.statusText}`);
+  }
+  
   return response.json();
 };
 
 // Get a specific persona
 export const getPersona = async (id: string) => {
-  const response = await apiRequest(`/api/admin/personas/${id}`);
+  const response = await fetch(`/api/admin/personas/${id}`, {
+    method: 'GET',
+    credentials: 'include',
+  });
+  
+  if (!response.ok) {
+    throw new Error(`페르소나 상세 정보 가져오기 실패: ${response.statusText}`);
+  }
+  
   return response.json();
 };
 
 // Create a new persona
 export const createPersona = async (personaData: any) => {
-  const response = await apiRequest('/api/admin/personas', {
+  const response = await fetch('/api/admin/personas', {
     method: 'POST',
-    data: personaData
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(personaData),
+    credentials: 'include',
   });
+  
+  if (!response.ok) {
+    throw new Error(`페르소나 생성 실패: ${response.statusText}`);
+  }
+  
   return response.json();
 };
 
 // Update an existing persona
 export const updatePersona = async (id: string, personaData: any) => {
-  const response = await apiRequest(`/api/admin/personas/${id}`, {
+  const response = await fetch(`/api/admin/personas/${id}`, {
     method: 'PUT',
-    data: personaData
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(personaData),
+    credentials: 'include',
   });
+  
+  if (!response.ok) {
+    throw new Error(`페르소나 업데이트 실패: ${response.statusText}`);
+  }
+  
   return response.json();
 };
 
 // Delete a persona
 export const deletePersona = async (id: string) => {
-  const response = await apiRequest(`/api/admin/personas/${id}`, {
-    method: 'DELETE'
+  const response = await fetch(`/api/admin/personas/${id}`, {
+    method: 'DELETE',
+    credentials: 'include',
   });
+  
+  if (!response.ok) {
+    throw new Error(`페르소나 삭제 실패: ${response.statusText}`);
+  }
+  
   return response.json();
 };
 
 // Batch import personas
 export const batchImportPersonas = async (personaList: any[]) => {
-  const response = await apiRequest('/api/admin/personas/batch', {
+  const response = await fetch('/api/admin/personas/batch', {
     method: 'POST',
-    data: personaList
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(personaList),
+    credentials: 'include',
   });
+  
+  if (!response.ok) {
+    throw new Error(`페르소나 일괄 가져오기 실패: ${response.statusText}`);
+  }
+  
   return response.json();
 };
 
 // Track persona usage
 export const incrementPersonaUse = async (id: string) => {
-  const response = await apiRequest(`/api/personas/${id}/use`, {
-    method: 'POST'
+  const response = await fetch(`/api/personas/${id}/use`, {
+    method: 'POST',
+    credentials: 'include',
   });
+  
+  if (!response.ok) {
+    throw new Error(`페르소나 사용량 증가 실패: ${response.statusText}`);
+  }
+  
   return response.json();
 };
 
@@ -351,7 +418,15 @@ export const getPersonaRecommendations = async (params?: {
     }
   }
   
-  const response = await apiRequest(url);
+  const response = await fetch(url, {
+    method: 'GET',
+    credentials: 'include',
+  });
+  
+  if (!response.ok) {
+    throw new Error(`페르소나 추천 가져오기 실패: ${response.statusText}`);
+  }
+  
   return response.json();
 };
 
