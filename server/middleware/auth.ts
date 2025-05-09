@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { db } from '../db';
+import { db } from '../../db';
 import { roles, userRoles } from '@shared/schema';
 import { eq, and } from '@shared/schema';
 

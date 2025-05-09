@@ -243,6 +243,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 인증 라우트 등록
   app.use("/api/auth", authRoutes);
   
+  // 슈퍼관리자 라우트 등록
+  app.use("/api/super", superAdminRoutes);
+  
   // 개발 대화 기록을 관리하기 위한 인스턴스 생성
   const devHistoryManager = new DevHistoryManager();
   

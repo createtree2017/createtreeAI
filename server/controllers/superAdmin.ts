@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { db } from '../db';
+import { db } from '../../db';
 import { hospitals, users, roles, userRoles } from '@shared/schema';
 import { eq, and, like, desc, sql } from '@shared/schema';
 
