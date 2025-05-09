@@ -202,26 +202,42 @@ export async function getAllUsers(req: Request, res: Response) {
       offset
     });
     
-    // 병원 정보 추가
-    const usersWithHospitalInfo = await Promise.all(
-      usersList.map(async (user) => {
-        if (user.hospitalId) {
-          const hospital = await db.query.hospitals.findFirst({
-            where: eq(hospitals.id, user.hospitalId)
-          });
-          return {
-            ...user,
-            hospitalName: hospital?.name || null
-          };
-        }
+    // 병원 정보를 효율적으로 가져오기
+    const hospitalIds = usersList
+      .filter(user => user.hospitalId != null)
+      .map(user => user.hospitalId);
+    
+    let hospitalMap: Record<number, any> = {};
+    
+    if (hospitalIds.length > 0) {
+      // 중복 제거
+      const uniqueHospitalIds = [...new Set(hospitalIds)];
+      
+      // 모든 관련 병원을 한 번에 가져오기
+      const hospitalsList = await db.query.hospitals.findMany({
+        where: inArray(hospitals.id, uniqueHospitalIds)
+      });
+      
+      // 맵으로 변환하여 빠른 조회 가능하게 함
+      hospitalMap = hospitalsList.reduce((map, hospital) => {
+        map[hospital.id] = hospital;
+        return map;
+      }, {} as Record<number, any>);
+    }
+    
+    // 사용자 정보에 병원 이름 추가
+    usersList = usersList.map(user => {
+      if (user.hospitalId && hospitalMap[user.hospitalId]) {
         return {
           ...user,
-          hospitalName: null
+          hospitalName: hospitalMap[user.hospitalId].name
         };
-      })
-    );
-    
-    usersList = usersWithHospitalInfo;
+      }
+      return {
+        ...user,
+        hospitalName: null
+      };
+    });
     
     // 총 사용자 수 계산
     const countResult = await db.select({ count: sql<number>`count(*)` })
@@ -286,7 +302,8 @@ export async function getUserById(req: Request, res: Response) {
     return res.status(200).json({
       ...userData,
       roles,
-      hospital
+      hospital,
+      hospitalName: hospital?.name || null
     });
   } catch (error) {
     console.error('사용자 정보 조회 오류:', error);
