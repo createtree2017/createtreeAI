@@ -18,7 +18,7 @@ import { useMobile } from "./hooks/use-mobile";
 import { Menu, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { AuthProvider } from "@/lib/AuthProvider";
+import { AuthProvider, ProtectedRoute } from "@/lib/AuthProvider";
 
 // Main layout component
 function Layout({ children }: { children: React.ReactNode }) {
@@ -192,50 +192,65 @@ function Router() {
         </div>
       )} />
       
-      {/* 일반 경로 */}
+      {/* 인증 필요 경로 - 일반 사용자 */}
       <Route path="/" component={() => (
-        <Layout>
-          <Home />
-        </Layout>
+        <ProtectedRoute>
+          <Layout>
+            <Home />
+          </Layout>
+        </ProtectedRoute>
       )} />
       
       <Route path="/music" component={() => (
-        <Layout>
-          <Music />
-        </Layout>
+        <ProtectedRoute>
+          <Layout>
+            <Music />
+          </Layout>
+        </ProtectedRoute>
       )} />
       
       <Route path="/image" component={() => (
-        <Layout>
-          <Image />
-        </Layout>
+        <ProtectedRoute>
+          <Layout>
+            <Image />
+          </Layout>
+        </ProtectedRoute>
       )} />
       
       <Route path="/chat" component={() => (
-        <Layout>
-          <Chat />
-        </Layout>
+        <ProtectedRoute>
+          <Layout>
+            <Chat />
+          </Layout>
+        </ProtectedRoute>
       )} />
       
       <Route path="/gallery" component={() => (
-        <Layout>
-          <Gallery />
-        </Layout>
+        <ProtectedRoute>
+          <Layout>
+            <Gallery />
+          </Layout>
+        </ProtectedRoute>
       )} />
       
       <Route path="/milestones" component={() => (
-        <Layout>
-          <Milestones />
-        </Layout>
+        <ProtectedRoute>
+          <Layout>
+            <Milestones />
+          </Layout>
+        </ProtectedRoute>
       )} />
       
-      {/* 관리자 경로 */}
+      {/* 관리자 전용 경로 */}
       <Route path="/admin" component={() => (
-        <div className="w-full max-w-7xl mx-auto">
-          <Admin />
-        </div>
+        <ProtectedRoute allowedRoles={["admin"]}>
+          <div className="w-full max-w-7xl mx-auto">
+            <Admin />
+          </div>
+        </ProtectedRoute>
       )} />
       
+      {/* 404 페이지 */}
       <Route component={NotFound} />
     </Switch>
   );

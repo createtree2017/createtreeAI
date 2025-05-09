@@ -1,129 +1,171 @@
 import React from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useAuthContext } from "@/lib/AuthProvider";
 import { Button } from "@/components/ui/button";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
+import { useAuthContext } from "@/lib/AuthProvider";
 import { Loader2 } from "lucide-react";
 
-// 회원가입 폼 스키마
-const registerSchema = z
-  .object({
-    username: z.string().min(3, "사용자 이름은 최소 3자 이상이어야 합니다"),
-    email: z.string().email("유효한 이메일 주소를 입력해주세요"),
-    password: z.string().min(6, "비밀번호는 최소 6자 이상이어야 합니다"),
-    confirmPassword: z.string(),
-    fullName: z.string().min(2, "이름은 최소 2자 이상이어야 합니다").optional(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "비밀번호가 일치하지 않습니다",
-    path: ["confirmPassword"],
-  });
+// 회원가입 폼 검증 스키마
+const registerSchema = z.object({
+  username: z.string().min(3, {
+    message: "사용자명은 최소 3자 이상이어야 합니다.",
+  }),
+  password: z.string().min(6, {
+    message: "비밀번호는 최소 6자 이상이어야 합니다.",
+  }),
+  email: z.string().email({
+    message: "유효한 이메일 주소를 입력해주세요.",
+  }).optional().or(z.literal('')),
+  name: z.string().min(2, {
+    message: "이름은 최소 2자 이상이어야 합니다.",
+  }).optional().or(z.literal('')),
+  phoneNumber: z.string().optional().or(z.literal('')),
+  birthdate: z.date().optional(),
+});
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
-const RegisterForm = () => {
-  const { register: registerUser, isRegisterLoading } = useAuthContext();
+const RegisterForm: React.FC = () => {
+  const { register, isRegisterLoading } = useAuthContext();
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<RegisterFormValues>({
+  // React Hook Form 설정
+  const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       username: "",
-      email: "",
       password: "",
-      confirmPassword: "",
-      fullName: "",
+      email: "",
+      name: "",
+      phoneNumber: "",
     },
   });
 
-  const onSubmit = (data: RegisterFormValues) => {
-    // confirmPassword는 제외하고 API로 전송
-    const { confirmPassword, ...registerData } = data;
-    registerUser(registerData);
+  // 회원가입 폼 제출 핸들러
+  const onSubmit = (values: RegisterFormValues) => {
+    // 타입 문제를 해결하기 위해 날짜 객체를 문자열로 변환
+    const formattedValues = {
+      ...values,
+      birthdate: values.birthdate ? values.birthdate.toISOString().split('T')[0] : undefined,
+    };
+    register(formattedValues);
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="username">사용자 이름</Label>
-        <Input
-          id="username"
-          placeholder="사용자 이름을 입력하세요"
-          {...register("username")}
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="username"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>사용자명*</FormLabel>
+              <FormControl>
+                <Input placeholder="사용자명 입력" {...field} disabled={isRegisterLoading} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-        {errors.username && (
-          <p className="text-sm text-red-500">{errors.username.message}</p>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="email">이메일</Label>
-        <Input
-          id="email"
-          type="email"
-          placeholder="이메일을 입력하세요"
-          {...register("email")}
+        
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>비밀번호*</FormLabel>
+              <FormControl>
+                <Input 
+                  type="password" 
+                  placeholder="비밀번호 입력" 
+                  {...field} 
+                  disabled={isRegisterLoading}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-        {errors.email && (
-          <p className="text-sm text-red-500">{errors.email.message}</p>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="fullName">이름 (선택사항)</Label>
-        <Input
-          id="fullName"
-          placeholder="이름을 입력하세요"
-          {...register("fullName")}
+        
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>이메일</FormLabel>
+              <FormControl>
+                <Input 
+                  type="email" 
+                  placeholder="이메일 입력" 
+                  {...field} 
+                  disabled={isRegisterLoading}
+                />
+              </FormControl>
+              <FormDescription>알림 및 계정 복구에 사용됩니다</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-        {errors.fullName && (
-          <p className="text-sm text-red-500">{errors.fullName.message}</p>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="password">비밀번호</Label>
-        <Input
-          id="password"
-          type="password"
-          placeholder="비밀번호를 입력하세요"
-          {...register("password")}
+        
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>이름</FormLabel>
+              <FormControl>
+                <Input placeholder="이름 입력" {...field} disabled={isRegisterLoading} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-        {errors.password && (
-          <p className="text-sm text-red-500">{errors.password.message}</p>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="confirmPassword">비밀번호 확인</Label>
-        <Input
-          id="confirmPassword"
-          type="password"
-          placeholder="비밀번호를 다시 입력하세요"
-          {...register("confirmPassword")}
+        
+        <FormField
+          control={form.control}
+          name="phoneNumber"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>전화번호</FormLabel>
+              <FormControl>
+                <Input placeholder="전화번호 입력" {...field} disabled={isRegisterLoading} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-        {errors.confirmPassword && (
-          <p className="text-sm text-red-500">{errors.confirmPassword.message}</p>
-        )}
-      </div>
+        
+        <FormField
+          control={form.control}
+          name="birthdate"
+          render={({ field }) => (
+            <FormItem className="flex flex-col">
+              <FormLabel>생년월일</FormLabel>
+              <DatePicker 
+                date={field.value} 
+                setDate={field.onChange}
+                disabled={isRegisterLoading}
+              />
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      <Button type="submit" className="w-full" disabled={isRegisterLoading}>
-        {isRegisterLoading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            가입 중...
-          </>
-        ) : (
-          "회원가입"
-        )}
-      </Button>
-    </form>
+        <Button type="submit" className="w-full" disabled={isRegisterLoading}>
+          {isRegisterLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              가입 중...
+            </>
+          ) : (
+            "회원가입"
+          )}
+        </Button>
+      </form>
+    </Form>
   );
 };
 

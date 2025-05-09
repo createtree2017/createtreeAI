@@ -1,26 +1,7 @@
-import { ToastAction } from "@/components/ui/toast";
-import { useToast as useToastUI } from "@/components/ui/use-toast";
+// useToast.ts
+import { useToast as useShadcnToast } from "@/components/ui/use-toast";
 
-export interface ToastOptions {
-  title: string;
-  description?: string;
-  action?: React.ReactElement<typeof ToastAction>;
-  variant?: "default" | "destructive";
-}
-
+// 더 편리한 인터페이스 제공을 위한 래퍼 훅
 export function useToast() {
-  const toast = useToastUI();
-
-  const showToast = ({ title, description, action, variant = "default" }: ToastOptions) => {
-    toast.toast({
-      title,
-      description,
-      action,
-      variant,
-    });
-  };
-
-  return {
-    toast: showToast,
-  };
+  return useShadcnToast();
 }

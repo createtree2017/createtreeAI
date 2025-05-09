@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { User } from "@shared/schema";
 import { Loader2 } from "lucide-react";
+import { Redirect } from "wouter";
 
 interface AuthContextType {
   user: User | null;
@@ -21,8 +22,10 @@ interface AuthContextType {
   isLogoutLoading: boolean;
 }
 
+// Auth Context 생성
 const AuthContext = createContext<AuthContextType | null>(null);
 
+// AuthProvider 컴포넌트
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const {
     user,
@@ -60,6 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
+// Auth Context 사용을 위한 Hook
 export const useAuthContext = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -68,7 +72,7 @@ export const useAuthContext = () => {
   return context;
 };
 
-// Protected Route 컴포넌트
+// Protected Route 컴포넌트 - 인증이 필요한 라우트를 감싸는 컴포넌트
 export const ProtectedRoute: React.FC<{
   children: React.ReactNode;
   allowedRoles?: string[];
@@ -83,19 +87,17 @@ export const ProtectedRoute: React.FC<{
     );
   }
 
-  // 로그인되지 않은 경우
+  // 로그인되지 않은 경우 /auth로 리다이렉트
   if (!user) {
-    window.location.href = "/auth";
-    return null;
+    return <Redirect to="/auth" />;
   }
 
   // 역할 확인이 필요한 경우
   if (allowedRoles && allowedRoles.length > 0) {
     // 사용자에게 필요한 역할이 없는 경우 (memberType을 확인)
     if (!user.memberType || !allowedRoles.includes(user.memberType)) {
-      // 권한 없음 페이지로 리디렉션
-      window.location.href = "/unauthorized";
-      return null;
+      // 권한 없음 페이지로 리다이렉션
+      return <Redirect to="/unauthorized" />;
     }
   }
 
