@@ -764,14 +764,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Gallery endpoints
   app.get("/api/gallery", async (req, res) => {
     try {
+      // 로그인 체크를 임시로 비활성화 (userId 없이도 갤러리 접근 가능하도록)
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: "로그인이 필요합니다." });
       }
       
-      // 현재 로그인한 사용자 ID
-      const userId = req.user.id;
+      // 필터링 옵션
       const filter = req.query.filter as string | undefined;
-      let galleryItems;
+      let galleryItems = [];
       
       // 일시적 해결책: 한글 인코딩 수정을 위한 유틸리티 함수 import
       const { decodeKoreanInObject, decodeKoreanText } = await import('./utils');
@@ -809,20 +809,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // userId 필드 임시 제거 - 데이터베이스 스키마 업데이트 전까지
         }));
       } else if (filter === "image") {
-        // 이미지 필터링
-        const imageItems = await storage.getImageList();
-        
-        // 임시: 로그인한 사용자의 이미지로 가정하고 한글 제목 수정
-        // 실제 사용자 데이터가 있으면 아래 주석 해제
-        // const userImageItems = imageItems.filter(item => item.userId === userId);
-        const userImageItems = imageItems.slice(0, 10); // 임시: 최근 10개만 표시
-        
-        // 한글 디코딩 적용
-        galleryItems = userImageItems.map(item => ({
-          ...item,
-          title: decodeKoreanText(item.title)
-          // userId 필드 임시 제거 - 데이터베이스 스키마 업데이트 전까지
-        }));
+        try {
+          // 이미지 필터링 - 수정된 getImageList 함수 사용
+          const imageItems = await storage.getImageList();
+          
+          // 최근 10개만 표시 (이미 storage.ts에서 전체 항목 가져오기 성공한 경우)
+          const recentImageItems = imageItems.slice(0, 10);
+          
+          // 한글 디코딩 적용
+          galleryItems = recentImageItems.map(item => ({
+            id: item.id,
+            title: decodeKoreanText(item.title),
+            type: "image" as const,
+            url: item.transformedUrl,
+            thumbnailUrl: item.transformedUrl,
+            createdAt: item.createdAt.toISOString(),
+            isFavorite: false
+          }));
+        } catch (imageError) {
+          console.error("이미지 데이터 조회 중 오류:", imageError);
+          
+          // 대체 방식: 직접 쿼리로 시도
+          try {
+            const directImageItems = await db.select({
+              id: images.id,
+              title: images.title,
+              transformedUrl: images.transformedUrl,
+              createdAt: images.createdAt
+            })
+            .from(images)
+            .orderBy(desc(images.createdAt))
+            .limit(10);
+            
+            galleryItems = directImageItems.map(item => ({
+              id: item.id,
+              title: decodeKoreanText(item.title),
+              type: "image" as const,
+              url: item.transformedUrl,
+              thumbnailUrl: item.transformedUrl,
+              createdAt: item.createdAt.toISOString(),
+              isFavorite: false
+            }));
+          } catch (directError) {
+            console.error("직접 이미지 쿼리 중 오류:", directError);
+            galleryItems = [];
+          }
+        }
       } else if (filter === "favorite") {
         // 즐겨찾기 필터링
         const favoriteItems = await storage.getFavoriteItems();
@@ -839,53 +871,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // userId 필드 임시 제거 - 데이터베이스 스키마 업데이트 전까지
         }));
       } else {
-        // 모든 항목 가져오기
-        const musicItems = await storage.getMusicList();
-        const imageItems = await storage.getImageList();
-        const chatItems = await storage.getSavedChats();
-        
-        // 임시: 로그인한 사용자의 항목으로 가정
-        // 실제 사용자 데이터가 있으면 아래 주석 해제
-        // const userMusicItems = musicItems.filter(item => item.userId === userId);
-        // const userImageItems = imageItems.filter(item => item.userId === userId);
-        // const userChatItems = chatItems.filter(chat => chat.userId === userId);
-        
-        const userMusicItems = musicItems.slice(0, 3); // 임시: 최근 3개만 표시
-        const userImageItems = imageItems.slice(0, 6); // 임시: 최근 6개만 표시
-        const userChatItems = chatItems.slice(0, 3); // 임시: 최근 3개만 표시
-        
-        // 채팅 항목 변환 및 한글 디코딩 적용
-        const formattedChatItems = userChatItems.map(chat => ({
-          id: chat.id,
-          title: decodeKoreanInObject(chat.title || '저장된 대화'),
-          type: "chat" as const,
-          url: `/chat?id=${chat.id}`,
-          createdAt: chat.createdAt.toISOString(),
-          isFavorite: false
-          // userId 필드 임시 제거 - 데이터베이스 스키마 업데이트 전까지
-        }));
-        
-        // 음악 및 이미지 항목에도 한글 디코딩 적용
-        const processedMusicItems = userMusicItems.map(item => ({
-          ...item,
-          title: decodeKoreanInObject(item.title)
-          // userId 필드 임시 제거 - 데이터베이스 스키마 업데이트 전까지
-        }));
-        
-        const processedImageItems = userImageItems.map(item => ({
-          ...item,
-          title: decodeKoreanInObject(item.title)
-          // userId 필드 임시 제거 - 데이터베이스 스키마 업데이트 전까지
-        }));
-        
-        // 모든 항목 결합 및 정렬
-        galleryItems = [
-          ...processedMusicItems, 
-          ...processedImageItems, 
-          ...formattedChatItems
-        ].sort((a, b) => {
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        });
+        try {
+          // 모든 항목 가져오기 - 수정된 getAllItems 함수 사용
+          const allItems = await storage.getAllItems();
+          
+          // 한글 디코딩 적용
+          galleryItems = allItems.map(item => ({
+            ...item,
+            title: decodeKoreanInObject(item.title)
+          }));
+        } catch (allItemsError) {
+          console.error("모든 항목 가져오기 오류:", allItemsError);
+          
+          // 개별적으로 가져오기 시도
+          try {
+            let processedItems = [];
+            
+            // 음악 항목
+            try {
+              const musicItems = await db.select({
+                id: music.id,
+                title: music.title,
+                url: music.url,
+                duration: music.duration,
+                createdAt: music.createdAt
+              })
+              .from(music)
+              .orderBy(desc(music.createdAt))
+              .limit(3);
+              
+              const formattedMusicItems = musicItems.map(item => ({
+                id: item.id,
+                title: decodeKoreanInObject(item.title),
+                type: "music" as const,
+                url: item.url,
+                duration: item.duration,
+                createdAt: item.createdAt.toISOString(),
+                isFavorite: false
+              }));
+              
+              processedItems = [...processedItems, ...formattedMusicItems];
+            } catch (musicError) {
+              console.error("음악 조회 오류:", musicError);
+            }
+            
+            // 이미지 항목
+            try {
+              const imageItems = await db.select({
+                id: images.id,
+                title: images.title,
+                transformedUrl: images.transformedUrl,
+                createdAt: images.createdAt
+              })
+              .from(images)
+              .orderBy(desc(images.createdAt))
+              .limit(6);
+              
+              const formattedImageItems = imageItems.map(item => ({
+                id: item.id,
+                title: decodeKoreanInObject(item.title),
+                type: "image" as const,
+                url: item.transformedUrl,
+                thumbnailUrl: item.transformedUrl,
+                createdAt: item.createdAt.toISOString(),
+                isFavorite: false
+              }));
+              
+              processedItems = [...processedItems, ...formattedImageItems];
+            } catch (imageError) {
+              console.error("이미지 조회 오류:", imageError);
+            }
+            
+            // 채팅 항목
+            try {
+              const chatItems = await storage.getSavedChats();
+              const recentChatItems = chatItems.slice(0, 3);
+              
+              const formattedChatItems = recentChatItems.map(chat => ({
+                id: chat.id,
+                title: decodeKoreanInObject(chat.title || '저장된 대화'),
+                type: "chat" as const,
+                url: `/chat?id=${chat.id}`,
+                createdAt: chat.createdAt.toISOString(),
+                isFavorite: false,
+                personaEmoji: chat.personaEmoji || '💬'
+              }));
+              
+              processedItems = [...processedItems, ...formattedChatItems];
+            } catch (chatError) {
+              console.error("채팅 조회 오류:", chatError);
+            }
+            
+            // 결과 정렬
+            galleryItems = processedItems.sort((a, b) => {
+              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            });
+          } catch (individualError) {
+            console.error("개별 항목 조회 오류:", individualError);
+            galleryItems = [];
+          }
+        }
       }
       
       // 빈 배열이면 빈 배열 반환 (에러 없음)
