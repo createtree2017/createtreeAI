@@ -791,8 +791,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           type: "chat" as const,
           url: `/chat?id=${chat.id}`,
           createdAt: chat.createdAt.toISOString(),
-          isFavorite: false,
-          userId: userId // 현재 사용자 ID 추가
+          isFavorite: false
+          // userId 필드 임시 제거 - 데이터베이스 스키마 업데이트 전까지
         }));
       } else if (filter === "music") {
         // 음악 필터링
@@ -802,11 +802,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // const userMusicItems = musicItems.filter(item => item.userId === userId);
         const userMusicItems = musicItems.slice(0, 5); // 임시: 최근 5개만 표시
         
-        // 한글 디코딩 적용 및 사용자 ID 추가
+        // 한글 디코딩 적용
         galleryItems = userMusicItems.map(item => ({
           ...item,
-          title: decodeKoreanText(item.title),
-          userId: userId
+          title: decodeKoreanText(item.title)
+          // userId 필드 임시 제거 - 데이터베이스 스키마 업데이트 전까지
         }));
       } else if (filter === "image") {
         // 이미지 필터링
@@ -817,11 +817,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // const userImageItems = imageItems.filter(item => item.userId === userId);
         const userImageItems = imageItems.slice(0, 10); // 임시: 최근 10개만 표시
         
-        // 한글 디코딩 적용 및 사용자 ID 추가
+        // 한글 디코딩 적용
         galleryItems = userImageItems.map(item => ({
           ...item,
-          title: decodeKoreanText(item.title),
-          userId: userId
+          title: decodeKoreanText(item.title)
+          // userId 필드 임시 제거 - 데이터베이스 스키마 업데이트 전까지
         }));
       } else if (filter === "favorite") {
         // 즐겨찾기 필터링
@@ -832,11 +832,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // const userFavoriteItems = favoriteItems.filter(item => item.userId === userId);
         const userFavoriteItems = favoriteItems.slice(0, 5); // 임시: 최근 5개만 표시
         
-        // 한글 디코딩 적용 및 사용자 ID 추가
+        // 한글 디코딩 적용
         galleryItems = userFavoriteItems.map(item => ({
           ...item,
-          title: decodeKoreanInObject(item.title),
-          userId: userId
+          title: decodeKoreanInObject(item.title)
+          // userId 필드 임시 제거 - 데이터베이스 스키마 업데이트 전까지
         }));
       } else {
         // 모든 항목 가져오기
@@ -861,21 +861,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           type: "chat" as const,
           url: `/chat?id=${chat.id}`,
           createdAt: chat.createdAt.toISOString(),
-          isFavorite: false,
-          userId: userId // 현재 사용자 ID 추가
+          isFavorite: false
+          // userId 필드 임시 제거 - 데이터베이스 스키마 업데이트 전까지
         }));
         
-        // 음악 및 이미지 항목에도 한글 디코딩 및 사용자 ID 추가
+        // 음악 및 이미지 항목에도 한글 디코딩 적용
         const processedMusicItems = userMusicItems.map(item => ({
           ...item,
-          title: decodeKoreanInObject(item.title),
-          userId: userId
+          title: decodeKoreanInObject(item.title)
+          // userId 필드 임시 제거 - 데이터베이스 스키마 업데이트 전까지
         }));
         
         const processedImageItems = userImageItems.map(item => ({
           ...item,
-          title: decodeKoreanInObject(item.title),
-          userId: userId
+          title: decodeKoreanInObject(item.title)
+          // userId 필드 임시 제거 - 데이터베이스 스키마 업데이트 전까지
         }));
         
         // 모든 항목 결합 및 정렬
