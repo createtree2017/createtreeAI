@@ -11,12 +11,14 @@ import Chat from "@/pages/chat";
 import Gallery from "@/pages/gallery";
 import Admin from "@/pages/admin";
 import Milestones from "@/pages/milestones";
+import AuthPage from "@/pages/auth";
 import BottomNavigation from "@/components/BottomNavigation";
 import Sidebar from "@/components/Sidebar";
 import { useMobile } from "./hooks/use-mobile";
 import { Menu, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { AuthProvider } from "@/lib/AuthProvider";
 
 // Main layout component
 function Layout({ children }: { children: React.ReactNode }) {
@@ -208,6 +210,7 @@ function Router() {
           <Milestones />
         </Layout>
       )} />
+      <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -230,8 +233,10 @@ function App() {
   return (
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
-        <Router />
-        <Toaster />
+        <AuthProvider>
+          <Router />
+          <Toaster />
+        </AuthProvider>
       </QueryClientProvider>
     </ThemeProvider>
   );
