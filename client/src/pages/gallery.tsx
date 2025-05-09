@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { getGalleryItems, toggleFavorite } from "@/lib/api";
 import { queryClient } from "@/lib/queryClient";
-import { Music, PaintbrushVertical, Heart, Play, Eye, Share2, MessageCircle } from "lucide-react";
+import { Music, PaintbrushVertical, Heart, Play, Eye, Share2, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -26,12 +26,35 @@ export default function Gallery() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   
   // Fetch gallery items (these are now filtered by user on the server side)
-  const { data: galleryItems, isLoading } = useQuery({
+  const { data: allGalleryItems, isLoading } = useQuery({
     queryKey: ["/api/gallery", activeFilter],
     queryFn: () => getGalleryItems(activeFilter !== "all" ? activeFilter : undefined),
   });
+  
+  // 필터링된 페이지 항목 계산
+  const paginatedItems = useMemo(() => {
+    if (!allGalleryItems) return [];
+    
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    
+    return allGalleryItems.slice(startIndex, endIndex);
+  }, [allGalleryItems, currentPage, itemsPerPage]);
+  
+  // 총 페이지 수 계산
+  const totalPages = useMemo(() => {
+    if (!allGalleryItems) return 1;
+    return Math.ceil(allGalleryItems.length / itemsPerPage);
+  }, [allGalleryItems, itemsPerPage]);
+  
+  // 필터 변경 시 페이지 초기화
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeFilter]);
   
   // Toggle favorite mutation
   const { mutate: toggleFavoriteMutation } = useMutation({
@@ -105,10 +128,10 @@ export default function Gallery() {
         {filters.map((filter) => (
           <button
             key={filter.type}
-            className={`text-sm py-2 px-4 rounded-full whitespace-nowrap font-medium border ${
+            className={`text-sm py-2 px-4 rounded-full whitespace-nowrap font-semibold ${
               activeFilter === filter.type
-                ? "bg-primary-darker text-white border-primary-darker shadow-md"
-                : "bg-white text-neutral-darker border-neutral-light hover:bg-neutral-lightest"
+                ? "bg-primary text-white"
+                : "bg-gray-700 text-white"
             }`}
             onClick={() => handleFilterGallery(filter.type)}
           >
@@ -125,9 +148,9 @@ export default function Gallery() {
           <div className="bg-neutral-lightest h-56 rounded-lg animate-pulse"></div>
           <div className="bg-neutral-lightest h-56 rounded-lg animate-pulse"></div>
         </div>
-      ) : galleryItems && galleryItems.length > 0 ? (
+      ) : allGalleryItems && allGalleryItems.length > 0 ? (
         <div className="grid grid-cols-2 gap-3">
-          {galleryItems.map((item: GalleryItem) => (
+          {paginatedItems.map((item: GalleryItem) => (
             <div
               key={`${item.type}-${item.id}`}
               className="bg-white rounded-lg overflow-hidden shadow-softer border border-neutral-light"
@@ -146,11 +169,17 @@ export default function Gallery() {
                   </div>
                 </div>
               ) : (
-                <img
-                  src={item.thumbnailUrl || item.url}
-                  alt={item.title}
-                  className="w-full h-32 object-cover"
-                />
+                <div className="relative">
+                  <img
+                    src={item.thumbnailUrl || item.url || "https://placehold.co/300x200/e2e8f0/1e293b?text=이미지+준비중"}
+                    alt={item.title}
+                    className="w-full h-32 object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = "https://placehold.co/300x200/e2e8f0/1e293b?text=이미지+준비중";
+                    }}
+                  />
+                </div>
               )}
               <div className="p-3">
                 <div className="flex justify-between items-start">

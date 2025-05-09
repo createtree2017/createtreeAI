@@ -795,20 +795,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // 실제 프로덕션에서는 musicItems.filter(item => item.userId === userId) 필요
         galleryItems = musicItems.slice(0, 3); // 임시: 첫 3개 항목만 표시
       } else if (filter === "image") {
-        // 이미지 필터링 (userId가 없으므로 제한된 항목 표시)
+        // 이미지 필터링 - 임시: 모든 이미지 표시
         const imageItems = await storage.getImageList();
         // 실제 프로덕션에서는 imageItems.filter(item => item.userId === userId) 필요
-        galleryItems = imageItems.slice(0, 3); // 임시: 첫 3개 항목만 표시
+        galleryItems = imageItems; // 임시: 모든 이미지 표시
       } else if (filter === "favorite") {
         // 즐겨찾기 필터링 (userId가 없으므로 제한된 항목 표시)
         const favoriteItems = await storage.getFavoriteItems();
         // 실제 프로덕션에서는 favoriteItems.filter(item => item.userId === userId) 필요
         galleryItems = favoriteItems.slice(0, 3); // 임시: 첫 3개 항목만 표시
       } else {
-        // 모든 항목 가져오기 (사용자별 필터링)
-        const musicItems = (await storage.getMusicList()).slice(0, 2); // 음악 2개만
-        const imageItems = (await storage.getImageList()).slice(0, 2); // 이미지 2개만
-        const chatItems = (await storage.getSavedChats()).slice(0, 2); // 채팅 2개만
+        // 모든 항목 가져오기 (이미지 모두 표시)
+        const musicItems = (await storage.getMusicList()).slice(0, 5); // 음악 5개만
+        const imageItems = await storage.getImageList(); // 이미지 모두 표시
+        const chatItems = (await storage.getSavedChats()).slice(0, 5); // 채팅 5개만
         
         // 사용자별 필터링 (userId 필드가 없으므로 임시로 제한된 항목 표시)
         // 실제 프로덕션에서는 각 항목들을 userId로 필터링 필요
