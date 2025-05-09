@@ -1,0 +1,106 @@
+**다음 단계 계획 수립**
+
+사용자가 제공한 개발 환경 분석 결과를 바탕으로, 요구 사항에 맞는 절차를 수립할 필요가 있습니다. 우선 Passport 설정, JWT 쿠키, 리프레시 토큰, 사용자 데이터베이스 스키마 및 마이그레이션을 구현해야 합니다. 문서 수정은 새 문서를 만드는 대신 기존 문서에 개발 작업을 포함시키는 것이 좋을 것 같습니다. 사용자가 단순히 자세한 안내를 요청한 것 같으니, 이에 맞춰 단계별 작업을 제공하고 답변을 제공하는 방향으로 진행해야겠네요.
+
+
+14초 동안 생각함
+
+
+### ✅ 현재 환경에 딱 맞춘 **회원 MVP 개발 To‑Do 리스트**
+
+| 순서    | 작업 항목                                                                                                    | 핵심 라이브러리 / 파일                             | 난이도 |
+| ----- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------- | --- |
+| **1** | **User Table 마이그레이션**<br>‑ `users`, `roles`, `user_roles`, `promo_codes`                                 | `drizzle/0001_users.ts`                   | ★☆☆ |
+| **2** | **Passport Local 전략** 구현<br>‑ `passport.ts` – bcrypt 검증<br>‑ `/auth/login`, `/auth/signup` Express Route | `passport`, `bcrypt`, `jsonwebtoken`      | ★★☆ |
+| **3** | **JWT & Refresh 토큰**<br>‑ HTTP‑Only Cookie (`access`) + DB `refresh_tokens` 테이블                          | `cookie-parser`, `drizzle/0002_tokens.ts` | ★★☆ |
+| **4** | **이메일 인증 워크플로**<br>‑ `nodemailer` → SendGrid SMTP API<br>‑ `/auth/verify/:token` Route                   | `nodemailer`, `uuid`                      | ★★☆ |
+| **5** | **회원가입 UI** (React/Vite)<br>‑ 단계별 폼: 일반 / 멤버쉽 선택 → 병원 Dropdown → 프로모코드 입력<br>‑ React Query + Zod 검증      | `react-hook-form`, `zod`, `react-query`   | ★☆☆ |
+| **6** | **슈퍼관리자 Role 부여 UI**<br>‑ `/super/users` 테이블 → Chip 클릭해 Role 토글                                          | `@ui/table`, Zustand store                | ★★☆ |
+| **7** | **보안 하드닝**<br>‑ `helmet`, `express-rate-limit` 기본값<br>‑ SSL Replit 자동, CSP 기본 템플릿                        | `helmet`, `express-rate-limit`            | ★☆☆ |
+| **8** | **코드 품질 & 테스트**<br>‑ ESLint + Prettier 설정<br>‑ Vitest 유닛 테스트 (해시·JWT 함수)                                 | `eslint`, `prettier`, `vitest`            | ★☆☆ |
+| **9** | **DB 백업 & 환경 분리**<br>‑ Replit Postgres → Daily Dump 스크립트<br>‑ `.env.{dev,prod}` 분리                       | Cron Replit, Secrets Store                | ★★☆ |
+
+---
+
+### 1. Drizzle ORM 스키마 샘플 (TypeScript)
+
+```ts
+// drizzle/0001_users.ts
+import { pgTable, uuid, text, varchar, timestamp, integer } from 'drizzle-orm/pg-core';
+
+export const users = pgTable('users', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  username: varchar('username', { length: 80 }).unique().notNull(),
+  passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+  emailVerified: integer('email_verified').default(0),
+  tierId: integer('tier_id').default(1),           // 1=Basic,2=Pro
+  memberType: varchar('member_type', { length: 12 }).default('general'), // general|membership
+  hospitalId: uuid('hospital_id'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const roles = pgTable('roles', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  code: varchar('code', { length: 20 }).unique().notNull(), // superadmin,owner,...
+});
+```
+
+> **Drizzle CLI**: `drizzle-kit generate:pg && drizzle-kit migrate:pg` 로 바로 마이그레이션.
+
+---
+
+### 2. Passport 설정 핵심
+
+```ts
+passport.use('local',
+  new LocalStrategy({ usernameField: 'username' },
+    async (username, password, done) => {
+      const user = await db.select().from(users).where(eq(users.username, username)).first();
+      if (!user) return done(null, false);
+      const ok = await bcrypt.compare(password, user.passwordHash);
+      return ok ? done(null, user) : done(null, false);
+    }));
+```
+
+* **세션 대신 JWT**: `/auth/login` 성공 시
+
+  1. `accessToken` (30 분) → HTTP‑only cookie
+  2. `refreshToken` (14 일) → DB `refresh_tokens` 저장
+
+---
+
+### 3. 회원가입 React 폼 흐름
+
+```mermaid
+graph LR
+A[회원유형 선택] -->|membership| B[병원 선택]
+B --> C[프로모코드 입력 (옵션)]
+A -->|general| D[이메일·PW 등록]
+C --> D
+D --> E[가입 완료 -> Pro Plan]
+```
+
+* 병원 Dropdown `/hospitals?active=1` API
+* 프로모코드 검증은 **OFF**: 입력칸은 있지만 API 스킵
+
+---
+
+### 4. 슈퍼관리자 Role 부여 UX
+
+1. `/super/users` 테이블 → 검색·필터
+2. 한 줄 클릭 → 우측 사이드패널
+3. Role Chip `consumer` `owner` `marketing` 토글
+4. 저장 → 즉시 JWT invalid → 다음 요청에 새 Role 적용
+
+---
+
+### 5. 즉시 착수할 **세 가지**
+
+1. **drizzle migrate** 돌려 `users` 스키마 확보
+2. **Passport local + JWT** 코어 Auth 로직 완성
+3. **회원가입 UI** (step‑form) 첫 화면 PR → 레이아웃 확인
+
+---
+
+> 위 로드맵대로 진행하면 **3 일 내 로그인·회원가입·슈퍼관리자 Role 지정까지 작동**하는 최소 기능이 완성돼.
+> 추가 질문·변경 사항 있으면 바로 알려줘!
