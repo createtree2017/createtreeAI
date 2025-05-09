@@ -195,12 +195,33 @@ export async function getAllUsers(req: Request, res: Response) {
       : undefined;
     
     // 사용자 목록 조회
-    const usersList = await db.query.users.findMany({
+    let usersList = await db.query.users.findMany({
       where: whereClause,
       orderBy: [desc(users.createdAt)],
       limit,
       offset
     });
+    
+    // 병원 정보 추가
+    const usersWithHospitalInfo = await Promise.all(
+      usersList.map(async (user) => {
+        if (user.hospitalId) {
+          const hospital = await db.query.hospitals.findFirst({
+            where: eq(hospitals.id, user.hospitalId)
+          });
+          return {
+            ...user,
+            hospitalName: hospital?.name || null
+          };
+        }
+        return {
+          ...user,
+          hospitalName: null
+        };
+      })
+    );
+    
+    usersList = usersWithHospitalInfo;
     
     // 총 사용자 수 계산
     const countResult = await db.select({ count: sql<number>`count(*)` })
