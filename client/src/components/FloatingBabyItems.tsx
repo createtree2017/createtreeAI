@@ -38,55 +38,84 @@ const FloatingBabyItems: React.FC = () => {
 
   useEffect(() => {
     // 화면 크기에 따라 총 아이템 개수 결정
-    const numItems = window.innerWidth < 768 ? 12 : 18;
+    const numItems = window.innerWidth < 768 ? 20 : 30;
     
-    // 크기 카테고리별 확률 분포 - 작은(0):60%, 중간(1):30%, 큰(2):7%, 특대(3):3%
-    const categoriesProbability = [0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,2,2,3];
+    // 카테고리 5단계로 확장 (1~5 크기)
+    // 1: 매우 작음, 2: 작음, 3: 중간, 4: 큼, 5: 매우 큼
     
-    // 특대 크기 아이템은 최대 1-2개로 제한
-    let extraLargeCount = 0;
-    const maxExtraLarge = window.innerWidth < 768 ? 1 : 2;
+    // 크기별 카운트 변수
+    let sizeCounters = {
+      size1: 0,
+      size2: 0,
+      size3: 0,
+      size4: 0,
+      size5: 0
+    };
+    
+    // 크기별 최대 개수 (반응형)
+    const sizeMaxCount = {
+      size1: window.innerWidth < 768 ? 9 : 13,  // 작은 크기 객체 많게
+      size2: window.innerWidth < 768 ? 7 : 10,  // 작은 크기 객체 많게
+      size3: window.innerWidth < 768 ? 2 : 4,   // 중간 크기는 적당히
+      size4: window.innerWidth < 768 ? 1 : 2,   // 큰 크기는 적게
+      size5: window.innerWidth < 768 ? 1 : 1    // 매우 큰 크기는 1개로 제한
+    };
     
     // 랜덤 아이템 생성
     const newItems: FloatingItem[] = Array.from({ length: numItems }).map((_, index) => {
       const randomItem = babyItems[Math.floor(Math.random() * babyItems.length)];
       
-      // 크기 카테고리 결정 (가중치에 따라 선택)
-      let sizeCategory = categoriesProbability[Math.floor(Math.random() * categoriesProbability.length)];
+      // 크기 카테고리 결정 - 남은 슬롯을 기반으로
+      let sizeCategory = 1; // 기본값은 가장 작은 크기
       
-      // 특대 아이템 수 제한
-      if (sizeCategory === 3) {
-        if (extraLargeCount >= maxExtraLarge) {
-          // 특대 개수가 이미 최대라면 작은 사이즈로 변경
-          sizeCategory = 0;
-        } else {
-          extraLargeCount++;
-        }
+      // 카테고리 결정 로직
+      // 1. 각 카테고리에 최소 개수 이상 할당되어 있는지 확인
+      // 2. 그 후에는 작은 크기(1,2)가 더 높은 확률로 선택되도록 함
+      if (sizeCounters.size5 < sizeMaxCount.size5 && Math.random() < 0.1) {
+        sizeCategory = 5;
+        sizeCounters.size5++;
+      } else if (sizeCounters.size4 < sizeMaxCount.size4 && Math.random() < 0.2) {
+        sizeCategory = 4;
+        sizeCounters.size4++;
+      } else if (sizeCounters.size3 < sizeMaxCount.size3 && Math.random() < 0.3) {
+        sizeCategory = 3;
+        sizeCounters.size3++;
+      } else if (sizeCounters.size2 < sizeMaxCount.size2 && Math.random() < 0.4) {
+        sizeCategory = 2;
+        sizeCounters.size2++;
+      } else {
+        sizeCategory = 1;
+        sizeCounters.size1++;
       }
       
       let size, opacity, blur, duration;
       
       // 크기, 투명도, 블러 효과, 애니메이션 속도를 크기 카테고리에 맞게 설정
-      if (sizeCategory === 0) { // 작은 아이템 (멀리 있는 느낌)
-        size = Math.random() * 15 + 15; // 15-30px
-        opacity = Math.random() * 0.1 + 0.05; // 0.05-0.15
-        blur = Math.random() * 0.5 + 1.5; // 1.5-2px (약한 흐림)
-        duration = Math.random() * 30 + 50; // 50-80초 (느리게)
-      } else if (sizeCategory === 1) { // 중간 아이템 (중간 거리 느낌)
-        size = Math.random() * 15 + 30; // 30-45px
+      if (sizeCategory === 1) { // 가장 작은 아이템 (1단계)
+        size = Math.random() * 8 + 12; // 12-20px
+        opacity = Math.random() * 0.1 + 0.1; // 0.1-0.2
+        blur = Math.random() * 0.5 + 1; // 1-1.5px (약한 흐림)
+        duration = Math.random() * 25 + 55; // 55-80초 (가장 느리게)
+      } else if (sizeCategory === 2) { // 작은 아이템 (2단계)
+        size = Math.random() * 10 + 20; // 20-30px
         opacity = Math.random() * 0.1 + 0.08; // 0.08-0.18
-        blur = Math.random() * 0.7 + 2; // 2-2.7px (중간 흐림)
-        duration = Math.random() * 20 + 40; // 40-60초 (중간 속도)
-      } else if (sizeCategory === 2) { // 큰 아이템 (가까이 있는 느낌)
-        size = Math.random() * 20 + 45; // 45-65px
-        opacity = Math.random() * 0.08 + 0.04; // 0.04-0.12
-        blur = Math.random() * 1 + 2.8; // 2.8-3.8px (더 흐리게)
-        duration = Math.random() * 20 + 30; // 30-50초 (빠르게)
-      } else { // 특대 아이템 (매우 가까이)
-        size = Math.random() * 40 + 75; // 75-115px
-        opacity = Math.random() * 0.05 + 0.03; // 0.03-0.08 (더 투명하게)
-        blur = Math.random() * 1.5 + 3.5; // 3.5-5px (매우 흐릿하게)
-        duration = Math.random() * 15 + 20; // 20-35초 (매우 빠르게)
+        blur = Math.random() * 0.7 + 1.5; // 1.5-2.2px (약간 흐림)
+        duration = Math.random() * 20 + 45; // 45-65초 (느리게)
+      } else if (sizeCategory === 3) { // 중간 아이템 (3단계)
+        size = Math.random() * 15 + 30; // 30-45px
+        opacity = Math.random() * 0.08 + 0.06; // 0.06-0.14
+        blur = Math.random() * 0.8 + 2.2; // 2.2-3px (중간 흐림)
+        duration = Math.random() * 15 + 35; // 35-50초 (중간 속도)
+      } else if (sizeCategory === 4) { // 큰 아이템 (4단계)
+        size = Math.random() * 25 + 45; // 45-70px
+        opacity = Math.random() * 0.06 + 0.04; // 0.04-0.1
+        blur = Math.random() * 1 + 3; // 3-4px (더 흐리게)
+        duration = Math.random() * 15 + 25; // 25-40초 (빠르게)
+      } else { // 매우 큰 아이템 (5단계)
+        size = Math.random() * 60 + 90; // 90-150px (매우 큰 사이즈)
+        opacity = Math.random() * 0.04 + 0.02; // 0.02-0.06 (매우 투명하게)
+        blur = Math.random() * 2 + 4; // 4-6px (매우 흐릿하게)
+        duration = Math.random() * 10 + 20; // 20-30초 (매우 빠르게)
       }
       
       return {
