@@ -19,6 +19,8 @@ import {
   BarChart3,
   MessageSquare
 } from 'lucide-react';
+// LogOut 아이콘 개별 임포트
+import { LogOut } from 'lucide-react';
 
 // 메뉴 아이템 타입 정의
 interface MenuItem {
@@ -289,14 +291,30 @@ export default function Sidebar({ collapsed = false }) {
             상태
           </div>
         )}
-        <Link 
-          to="/test" 
+        <button 
+          onClick={() => {
+            // 단순화된 로그아웃 처리 - 직접 API 호출
+            fetch("/api/auth/logout", {
+              method: "POST",
+              credentials: "include"
+            }).then(() => {
+              // 로컬 스토리지 토큰 삭제
+              localStorage.removeItem("accessToken");
+              // 로그아웃 성공 알림
+              alert("로그아웃 되었습니다.");
+              // 홈페이지로 리디렉션
+              window.location.href = "/";
+            }).catch(err => {
+              console.error("로그아웃 실패:", err);
+              alert("로그아웃에 실패했습니다.");
+            });
+          }}
           className="text-neutral-400 hover:text-primary-lavender transition-colors flex items-center gap-2 cursor-pointer" 
-          aria-label="테스트"
+          aria-label="로그아웃"
         >
-          {!collapsed && <span className="text-sm">테스트</span>}
+          {!collapsed && <span className="text-sm">로그아웃</span>}
           <LogIn size={collapsed ? 20 : 18} strokeWidth={1.5} />
-        </Link>
+        </button>
       </div>
     </aside>
   );

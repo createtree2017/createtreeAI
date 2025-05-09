@@ -130,14 +130,18 @@ export function useAuth() {
       
       toast({
         title: "로그인 성공",
-        description: "환영합니다! 홈 페이지로 이동합니다.",
+        description: "환영합니다!",
         variant: "default",
       });
       
-      // 홈 페이지로 리디렉션 (1초 지연)
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 1000);
+      // 현재 페이지가 로그인/회원가입 페이지인 경우만 홈 페이지로 리디렉션
+      const currentPath = window.location.pathname;
+      if (currentPath === '/login' || currentPath === '/register' || currentPath === '/auth') {
+        // 홈 페이지로 리디렉션 (1초 지연)
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 1000);
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -192,14 +196,18 @@ export function useAuth() {
       
       toast({
         title: "회원가입 성공",
-        description: "환영합니다! 홈 페이지로 이동합니다.",
+        description: "환영합니다!",
         variant: "default",
       });
       
-      // 홈 페이지로 리디렉션 (1초 지연)
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 1000);
+      // 현재 페이지가 로그인/회원가입 페이지인 경우만 홈 페이지로 리디렉션
+      const currentPath = window.location.pathname;
+      if (currentPath === '/login' || currentPath === '/register' || currentPath === '/auth') {
+        // 홈 페이지로 리디렉션 (1초 지연)
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 1000);
+      }
     },
     onError: (error: Error) => {
       toast({
