@@ -92,14 +92,40 @@ export default function Image() {
   const imageId = query.get("id");
   
   // Fetch categories
-  const { data: categories = [] } = useQuery<Category[]>({
-    queryKey: ["/api/concept-categories"]
+  const { data: categories = [], isLoading: categoriesLoading, error: categoriesError } = useQuery<Category[]>({
+    queryKey: ["/api/concept-categories"],
+    staleTime: 60 * 1000, // 1분 동안 캐시 사용
+    refetchOnMount: true,
+    refetchOnWindowFocus: false
   });
   
+  // 카테고리 로드 디버깅 로그
+  useEffect(() => {
+    console.log("카테고리 로드 상태:", { 
+      loading: categoriesLoading,
+      error: categoriesError,
+      data: categories,
+      count: categories?.length 
+    });
+  }, [categories, categoriesLoading, categoriesError]);
+  
   // Fetch concepts (styles)
-  const { data: concepts = [] } = useQuery<Concept[]>({
-    queryKey: ["/api/concepts"]
+  const { data: concepts = [], isLoading: conceptsLoading, error: conceptsError } = useQuery<Concept[]>({
+    queryKey: ["/api/concepts"],
+    staleTime: 60 * 1000, // 1분 동안 캐시 사용
+    refetchOnMount: true,
+    refetchOnWindowFocus: false
   });
+  
+  // 컨셉 로드 디버깅 로그
+  useEffect(() => {
+    console.log("스타일 로드 상태:", { 
+      loading: conceptsLoading,
+      error: conceptsError,
+      data: concepts,
+      count: concepts?.length 
+    });
+  }, [concepts, conceptsLoading, conceptsError]);
   
   // Set default category if none selected
   useEffect(() => {
@@ -510,23 +536,68 @@ export default function Image() {
           ) : (
             // 카테고리가 없거나 로딩 중일 때 기본 카테고리 3개 표시
             <>
-              <div className="cursor-pointer rounded-lg border overflow-hidden transition-colors bg-muted border-muted-foreground/20 hover:border-muted-foreground/30">
+              <div 
+                className={`cursor-pointer rounded-lg border overflow-hidden transition-colors 
+                  ${selectedCategory === "mansak_img" 
+                    ? 'ring-2 ring-primary border-primary' 
+                    : 'bg-muted border-muted-foreground/20 hover:border-muted-foreground/30'
+                  }`}
+                onClick={() => setSelectedCategory("mansak_img")}
+              >
                 <div className="flex items-center justify-between px-4 py-3">
-                  <span className="font-medium text-muted-foreground">임신사진</span>
+                  <span className={`font-medium ${selectedCategory === "mansak_img" ? 'text-primary' : 'text-muted-foreground'}`}>
+                    만삭사진
+                  </span>
+                  {selectedCategory === "mansak_img" && (
+                    <CheckCircle2 className="h-5 w-5 text-primary" />
+                  )}
                 </div>
               </div>
-              <div className="cursor-pointer rounded-lg border overflow-hidden transition-colors ring-2 ring-primary border-primary">
+              <div 
+                className={`cursor-pointer rounded-lg border overflow-hidden transition-colors 
+                  ${selectedCategory === "family_img" 
+                    ? 'ring-2 ring-primary border-primary' 
+                    : 'bg-muted border-muted-foreground/20 hover:border-muted-foreground/30'
+                  }`}
+                onClick={() => setSelectedCategory("family_img")}
+              >
                 <div className="flex items-center justify-between px-4 py-3">
-                  <span className="font-medium text-primary">만삭사진</span>
-                  <CheckCircle2 className="h-5 w-5 text-primary" />
+                  <span className={`font-medium ${selectedCategory === "family_img" ? 'text-primary' : 'text-muted-foreground'}`}>
+                    가족사진
+                  </span>
+                  {selectedCategory === "family_img" && (
+                    <CheckCircle2 className="h-5 w-5 text-primary" />
+                  )}
                 </div>
               </div>
-              <div className="cursor-pointer rounded-lg border overflow-hidden transition-colors bg-muted border-muted-foreground/20 hover:border-muted-foreground/30">
+              <div 
+                className={`cursor-pointer rounded-lg border overflow-hidden transition-colors 
+                  ${selectedCategory === "sticker_img" 
+                    ? 'ring-2 ring-primary border-primary' 
+                    : 'bg-muted border-muted-foreground/20 hover:border-muted-foreground/30'
+                  }`}
+                onClick={() => setSelectedCategory("sticker_img")}
+              >
                 <div className="flex items-center justify-between px-4 py-3">
-                  <span className="font-medium text-muted-foreground">가족사진</span>
+                  <span className={`font-medium ${selectedCategory === "sticker_img" ? 'text-primary' : 'text-muted-foreground'}`}>
+                    스티커
+                  </span>
+                  {selectedCategory === "sticker_img" && (
+                    <CheckCircle2 className="h-5 w-5 text-primary" />
+                  )}
                 </div>
               </div>
             </>
+          )}
+          
+          {/* 디버깅 정보 - 개발용 */}
+          {(categoriesLoading || categoriesError) && (
+            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-yellow-800">
+              <p className="font-semibold">카테고리 로드 상태:</p>
+              <p>로딩: {categoriesLoading ? "예" : "아니오"}</p>
+              {categoriesError && <p>오류: {categoriesError.toString()}</p>}
+              <p>카테고리 수: {categories?.length || 0}</p>
+            </div>
           )}
         </div>
       </div>
@@ -573,8 +644,41 @@ export default function Image() {
               </DialogDescription>
             </DialogHeader>
             
+            {/* 카테고리 필터 버튼 */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {Array.isArray(categories) && categories.length > 0 && (
+                <>
+                  <button
+                    className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      selectedCategory === null
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
+                    onClick={() => setSelectedCategory(null)}
+                  >
+                    전체
+                  </button>
+                  
+                  {categories.map(category => (
+                    <button
+                      key={category.categoryId}
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        selectedCategory === category.categoryId
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                      }`}
+                      onClick={() => setSelectedCategory(category.categoryId)}
+                    >
+                      {category.name}
+                    </button>
+                  ))}
+                </>
+              )}
+            </div>
+
+            {/* 스타일 그리드 */}
             <div className="grid grid-cols-2 gap-4 mt-4">
-              {filteredStyles.map((style) => (
+              {(selectedCategory ? filteredStyles : artStyles).map((style) => (
                 <div 
                   key={style.value}
                   className={`cursor-pointer rounded-lg overflow-hidden border transition-all
@@ -607,6 +711,11 @@ export default function Image() {
                     <span className={`text-sm font-medium ${selectedStyle === style.value ? 'text-primary' : 'text-card-foreground'}`}>
                       {style.label}
                     </span>
+                    {style.categoryId && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {getCategoryTitle(style.categoryId)}
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}
