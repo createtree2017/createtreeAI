@@ -446,52 +446,84 @@ export const storage = {
   },
   
   async getFavoriteItems() {
-    // Get all favorite items
-    const musicFavorites = await db.query.favorites.findMany({
-      where: eq(favorites.itemType, "music"),
-      with: {
-        music: true,
-      },
-    });
-    
-    const imageFavorites = await db.query.favorites.findMany({
-      where: eq(favorites.itemType, "image"),
-      with: {
-        image: true,
-      },
-    });
-    
-    // Transform favorites to the common format
-    const transformedMusicFavorites = musicFavorites
-      .filter((fav) => fav.music) // Filter out any null relations
-      .map((fav) => ({
-        id: fav.music!.id,
-        title: fav.music!.title,
-        type: "music" as const,
-        url: fav.music!.url,
-        duration: fav.music!.duration,
-        createdAt: fav.music!.createdAt.toISOString(),
-        isFavorite: true,
-      }));
-    
-    const transformedImageFavorites = imageFavorites
-      .filter((fav) => fav.image) // Filter out any null relations
-      .map((fav) => ({
-        id: fav.image!.id,
-        title: fav.image!.title,
-        type: "image" as const,
-        url: fav.image!.transformedUrl,
-        thumbnailUrl: fav.image!.transformedUrl,
-        createdAt: fav.image!.createdAt.toISOString(),
-        isFavorite: true,
-      }));
-    
-    // Combine and sort by creation date
-    return [...transformedMusicFavorites, ...transformedImageFavorites].sort(
-      (a, b) => {
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    try {
+      // 수정: 직접 SQL 쿼리 대신 select 사용하여 문제 필드(user_id) 제외하기
+      
+      // 음악 즐겨찾기 가져오기
+      let transformedMusicFavorites: any[] = [];
+      try {
+        // 직접 조인 쿼리로 필요한 필드만 명시적으로 선택
+        const musicFavs = await db.select({
+          id: favorites.id,
+          itemId: favorites.itemId,
+          // 명시적으로 music 테이블에서 필요한 필드만 선택
+          music_id: music.id,
+          music_title: music.title,
+          music_url: music.url,
+          music_duration: music.duration,
+          music_createdAt: music.createdAt
+        })
+        .from(favorites)
+        .innerJoin(music, eq(favorites.itemId, music.id))
+        .where(eq(favorites.itemType, "music"))
+        .orderBy(desc(music.createdAt))
+        .limit(10);
+        
+        // 음악 항목 변환
+        transformedMusicFavorites = musicFavs.map(item => ({
+          id: item.music_id,
+          title: item.music_title,
+          type: "music" as const,
+          url: item.music_url,
+          duration: item.music_duration,
+          createdAt: item.music_createdAt.toISOString(),
+          isFavorite: true
+        }));
+      } catch (musicError) {
+        console.error("음악 즐겨찾기 조회 오류:", musicError);
       }
-    );
+      
+      // 이미지 즐겨찾기 가져오기
+      let transformedImageFavorites: any[] = [];
+      try {
+        // 직접 조인 쿼리로 필요한 필드만 명시적으로 선택
+        const imageFavs = await db.select({
+          id: favorites.id,
+          itemId: favorites.itemId,
+          // 명시적으로 images 테이블에서 필요한 필드만 선택
+          image_id: images.id,
+          image_title: images.title,
+          image_url: images.transformedUrl,
+          image_createdAt: images.createdAt
+        })
+        .from(favorites)
+        .innerJoin(images, eq(favorites.itemId, images.id))
+        .where(eq(favorites.itemType, "image"))
+        .orderBy(desc(images.createdAt))
+        .limit(10);
+        
+        // 이미지 항목 변환
+        transformedImageFavorites = imageFavs.map(item => ({
+          id: item.image_id,
+          title: item.image_title,
+          type: "image" as const,
+          url: item.image_url,
+          thumbnailUrl: item.image_url,
+          createdAt: item.image_createdAt.toISOString(),
+          isFavorite: true
+        }));
+      } catch (imageError) {
+        console.error("이미지 즐겨찾기 조회 오류:", imageError);
+      }
+      
+      // 결합 및 정렬
+      return [...transformedMusicFavorites, ...transformedImageFavorites].sort((a, b) => {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+    } catch (error) {
+      console.error("즐겨찾기 조회 오류:", error);
+      return []; // 오류 발생 시 빈 배열 반환
+    }
   },
   
   async toggleFavorite(itemId: number, itemType: "music" | "image") {
