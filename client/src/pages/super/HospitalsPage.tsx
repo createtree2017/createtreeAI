@@ -43,7 +43,8 @@ const hospitalSchema = z.object({
   phone: z.string().optional(),
   email: z.string().email('올바른 이메일 주소를 입력하세요.').optional().or(z.literal('')),
   domain: z.string().optional(),
-  packageType: z.string().default('basic')
+  packageType: z.string().default('basic'),
+  isActive: z.boolean().default(true)
 });
 
 type HospitalFormValues = z.infer<typeof hospitalSchema>;
@@ -178,7 +179,8 @@ export default function HospitalsPage() {
       phone: hospital.phone || '',
       email: hospital.email || '',
       domain: hospital.domain || '',
-      packageType: hospital.packageType || 'basic'
+      packageType: hospital.packageType || 'basic',
+      isActive: hospital.isActive !== undefined ? hospital.isActive : true
     });
   };
   
