@@ -32,7 +32,7 @@ export const hospitals = pgTable("hospitals", {
   contractStartDate: timestamp("contract_start_date"), // 계약 시작일
   contractEndDate: timestamp("contract_end_date"), // 계약 종료일
   packageType: text("package_type").default("basic"), // basic, premium, enterprise
-  isActive: boolean("is_active").notNull().default(true),
+  isActive: boolean("is_active").notNull().default(true), // 계약 활성화 상태
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

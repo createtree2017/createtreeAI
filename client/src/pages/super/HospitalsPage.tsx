@@ -30,13 +30,14 @@ import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { queryClient, apiRequest } from '@/lib/queryClient';
-import { Loader2, Plus, Pencil, Trash2 } from 'lucide-react';
-import { format } from 'date-fns';
+import { Loader2, Plus, Pencil, Trash2, Calendar } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import { DatePicker } from '@/components/ui/date-picker';
 
 // 병원 폼 스키마 정의
 const hospitalSchema = z.object({
@@ -45,6 +46,8 @@ const hospitalSchema = z.object({
   phone: z.string().optional(),
   email: z.string().email('올바른 이메일 주소를 입력하세요.').optional().or(z.literal('')),
   domain: z.string().optional(),
+  contractStartDate: z.string().optional(), // 계약 시작일
+  contractEndDate: z.string().optional(), // 계약 종료일
   packageType: z.string().default('basic'),
   isActive: z.boolean().default(true)
 });
@@ -156,9 +159,34 @@ export default function HospitalsPage() {
       phone: '',
       email: '',
       domain: '',
+      contractStartDate: '',
+      contractEndDate: '',
       packageType: 'basic'
     }
   });
+  
+  // 날짜 선택 핸들러
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  
+  // 날짜 변경 시 폼 값 업데이트
+  const updateStartDate = (date: Date | undefined) => {
+    setStartDate(date);
+    if (date) {
+      editForm.setValue('contractStartDate', date.toISOString());
+    } else {
+      editForm.setValue('contractStartDate', '');
+    }
+  };
+  
+  const updateEndDate = (date: Date | undefined) => {
+    setEndDate(date);
+    if (date) {
+      editForm.setValue('contractEndDate', date.toISOString());
+    } else {
+      editForm.setValue('contractEndDate', '');
+    }
+  };
   
   // 병원 생성 제출 핸들러
   const onCreateSubmit = (data: HospitalFormValues) => {
@@ -175,12 +203,18 @@ export default function HospitalsPage() {
   // 수정 모달 열기
   const handleEditHospital = (hospital: any) => {
     setEditingHospital(hospital);
+    // 날짜 상태 업데이트
+    setStartDate(hospital.contractStartDate ? new Date(hospital.contractStartDate) : undefined);
+    setEndDate(hospital.contractEndDate ? new Date(hospital.contractEndDate) : undefined);
+    
     editForm.reset({
       name: hospital.name || '',
       address: hospital.address || '',
       phone: hospital.phone || '',
       email: hospital.email || '',
       domain: hospital.domain || '',
+      contractStartDate: hospital.contractStartDate || '',
+      contractEndDate: hospital.contractEndDate || '',
       packageType: hospital.packageType || 'basic',
       isActive: hospital.isActive !== undefined ? hospital.isActive : true
     });
@@ -457,6 +491,40 @@ export default function HospitalsPage() {
                         {...field} 
                         value={field.value || ''}
                       />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* 계약 시작일 */}
+              <FormField
+                control={editForm.control}
+                name="contractStartDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>계약 시작일</FormLabel>
+                    <FormControl>
+                      <div>
+                        <DatePicker date={startDate} setDate={updateStartDate} />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* 계약 종료일 */}
+              <FormField
+                control={editForm.control}
+                name="contractEndDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>계약 종료일</FormLabel>
+                    <FormControl>
+                      <div>
+                        <DatePicker date={endDate} setDate={updateEndDate} />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
