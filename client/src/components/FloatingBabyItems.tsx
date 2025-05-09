@@ -37,7 +37,7 @@ const FloatingBabyItems: React.FC = () => {
 
   useEffect(() => {
     // 화면 크기에 따라 아이템 개수 결정
-    const numItems = window.innerWidth < 768 ? 10 : 15;
+    const numItems = window.innerWidth < 768 ? 15 : 20;
     
     // 랜덤 아이템 생성
     const newItems: FloatingItem[] = Array.from({ length: numItems }).map((_, index) => {
@@ -46,12 +46,12 @@ const FloatingBabyItems: React.FC = () => {
         id: index,
         emoji: randomItem.emoji,
         name: randomItem.name,
-        size: Math.random() * 30 + 20, // 20-50px 크기
+        size: Math.random() * 50 + 40, // 40-90px 크기 (이전: 20-50px)
         x: Math.random() * 100, // 화면 가로 위치 (%)
         y: Math.random() * 100, // 화면 세로 위치 (%)
         duration: Math.random() * 50 + 30, // 30-80초 움직임 주기
         delay: Math.random() * -20, // 시작 지연
-        opacity: Math.random() * 0.4 + 0.1, // 0.1-0.5 투명도 (흐릿한 효과)
+        opacity: Math.random() * 0.4 + 0.2, // 0.2-0.6 투명도 (이전: 0.1-0.5)
       };
     });
     
@@ -63,7 +63,7 @@ const FloatingBabyItems: React.FC = () => {
       {items.map((item) => (
         <motion.div
           key={item.id}
-          className="absolute select-none blur-[1px]"
+          className="absolute select-none blur-[2px]"
           style={{
             fontSize: `${item.size}px`,
             top: `${item.y}%`,
