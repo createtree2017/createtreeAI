@@ -41,7 +41,7 @@ export default function BottomNavigation() {
       label: '갤러리',
       ariaLabel: '갤러리 페이지',
     } : {
-      path: '/auth',
+      path: '/login',
       icon: LogIn,
       label: '로그인',
       ariaLabel: '로그인 페이지',
