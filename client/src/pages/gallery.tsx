@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -27,34 +27,24 @@ export default function Gallery() {
   const { user } = useAuth();
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-  
-  // Fetch gallery items (these are now filtered by user on the server side)
-  const { data: allGalleryItems, isLoading } = useQuery({
+  const itemsPerPage = 6; // 한 페이지당 6개 항목
+
+  // 갤러리 항목 조회
+  const { data: items, isLoading } = useQuery({
     queryKey: ["/api/gallery", activeFilter],
     queryFn: () => getGalleryItems(activeFilter !== "all" ? activeFilter : undefined),
   });
-  
-  // 필터링된 페이지 항목 계산
-  const paginatedItems = useMemo(() => {
-    if (!allGalleryItems) return [];
-    
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    
-    return allGalleryItems.slice(startIndex, endIndex);
-  }, [allGalleryItems, currentPage, itemsPerPage]);
-  
-  // 총 페이지 수 계산
-  const totalPages = useMemo(() => {
-    if (!allGalleryItems) return 1;
-    return Math.ceil(allGalleryItems.length / itemsPerPage);
-  }, [allGalleryItems, itemsPerPage]);
-  
+
   // 필터 변경 시 페이지 초기화
   useEffect(() => {
     setCurrentPage(1);
   }, [activeFilter]);
+
+  // 페이지네이션 처리
+  const filteredItems = items || [];
+  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedItems = filteredItems.slice(startIndex, startIndex + itemsPerPage);
   
   // Toggle favorite mutation
   const { mutate: toggleFavoriteMutation } = useMutation({
@@ -148,106 +138,137 @@ export default function Gallery() {
           <div className="bg-neutral-lightest h-56 rounded-lg animate-pulse"></div>
           <div className="bg-neutral-lightest h-56 rounded-lg animate-pulse"></div>
         </div>
-      ) : allGalleryItems && allGalleryItems.length > 0 ? (
-        <div className="grid grid-cols-2 gap-3">
-          {paginatedItems.map((item: GalleryItem) => (
-            <div
-              key={`${item.type}-${item.id}`}
-              className="bg-white rounded-lg overflow-hidden shadow-softer border border-neutral-light"
-              data-item-type={item.type}
-            >
-              {item.type === "music" ? (
-                <div className="h-32 bg-primary-light flex items-center justify-center">
-                  <div className="p-3 bg-white rounded-full text-primary-dark">
-                    <Music className="h-5 w-5" />
+      ) : filteredItems.length > 0 ? (
+        <>
+          <div className="grid grid-cols-2 gap-3">
+            {paginatedItems.map((item: GalleryItem) => (
+              <div
+                key={`${item.type}-${item.id}`}
+                className="bg-white rounded-lg overflow-hidden shadow-softer border border-neutral-light"
+                data-item-type={item.type}
+              >
+                {item.type === "music" ? (
+                  <div className="h-32 bg-primary-light flex items-center justify-center">
+                    <div className="p-3 bg-white rounded-full text-primary-dark">
+                      <Music className="h-5 w-5" />
+                    </div>
                   </div>
-                </div>
-              ) : item.type === "chat" ? (
-                <div className="h-32 bg-accent2-light flex items-center justify-center">
-                  <div className="p-3 bg-white rounded-full text-accent2-dark">
-                    <MessageCircle className="h-5 w-5" />
+                ) : item.type === "chat" ? (
+                  <div className="h-32 bg-accent2-light flex items-center justify-center">
+                    <div className="p-3 bg-white rounded-full text-accent2-dark">
+                      <MessageCircle className="h-5 w-5" />
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <div className="relative">
-                  <img
-                    src={item.thumbnailUrl || item.url || "https://placehold.co/300x200/e2e8f0/1e293b?text=이미지+준비중"}
-                    alt={item.title}
-                    className="w-full h-32 object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = "https://placehold.co/300x200/e2e8f0/1e293b?text=이미지+준비중";
-                    }}
-                  />
-                </div>
-              )}
-              <div className="p-3">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="font-medium">{item.title}</p>
-                    <p className="text-xs text-neutral-dark">
-                      {item.type === "music" && item.duration
-                        ? `${Math.floor(item.duration / 60)}:${(
-                            item.duration % 60
-                          )
-                            .toString()
-                            .padStart(2, "0")} • `
-                        : ""}
-                      {item.createdAt}
-                    </p>
+                ) : (
+                  <div className="relative">
+                    <img
+                      src={item.thumbnailUrl || item.url || "https://placehold.co/300x200/e2e8f0/1e293b?text=이미지+준비중"}
+                      alt={item.title}
+                      className="w-full h-32 object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = "https://placehold.co/300x200/e2e8f0/1e293b?text=이미지+준비중";
+                      }}
+                    />
                   </div>
-                  <button
-                    className={`${
-                      item.isFavorite ? "text-primary" : "text-neutral hover:text-primary"
-                    }`}
-                    onClick={() => handleToggleFavorite(item)}
-                  >
-                    {item.isFavorite ? (
-                      <Heart className="h-4 w-4 fill-primary" />
-                    ) : (
-                      <Heart className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-                <div className="flex mt-2 space-x-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() =>
-                      handleItemAction(
-                        item,
-                        item.type === "music" ? "play" : "view"
-                      )
-                    }
-                  >
-                    {item.type === "music" ? (
-                      <>
-                        <Play className="mr-1 h-3 w-3" /> 재생
-                      </>
-                    ) : item.type === "chat" ? (
-                      <>
-                        <Eye className="mr-1 h-3 w-3" /> 보기
-                      </>
-                    ) : (
-                      <>
-                        <Eye className="mr-1 h-3 w-3" /> 보기
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => handleItemAction(item, "share")}
-                  >
-                    <Share2 className="mr-1 h-3 w-3" /> 공유
-                  </Button>
+                )}
+                <div className="p-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium">{item.title}</p>
+                      <p className="text-xs text-neutral-dark">
+                        {item.type === "music" && item.duration
+                          ? `${Math.floor(item.duration / 60)}:${(
+                              item.duration % 60
+                            )
+                              .toString()
+                              .padStart(2, "0")} • `
+                          : ""}
+                        {item.createdAt}
+                      </p>
+                    </div>
+                    <button
+                      className={`${
+                        item.isFavorite ? "text-primary" : "text-neutral hover:text-primary"
+                      }`}
+                      onClick={() => handleToggleFavorite(item)}
+                    >
+                      {item.isFavorite ? (
+                        <Heart className="h-4 w-4 fill-primary" />
+                      ) : (
+                        <Heart className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                  <div className="flex mt-2 space-x-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() =>
+                        handleItemAction(
+                          item,
+                          item.type === "music" ? "play" : "view"
+                        )
+                      }
+                    >
+                      {item.type === "music" ? (
+                        <>
+                          <Play className="mr-1 h-3 w-3" /> 재생
+                        </>
+                      ) : item.type === "chat" ? (
+                        <>
+                          <Eye className="mr-1 h-3 w-3" /> 보기
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="mr-1 h-3 w-3" /> 보기
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => handleItemAction(item, "share")}
+                    >
+                      <Share2 className="mr-1 h-3 w-3" /> 공유
+                    </Button>
+                  </div>
                 </div>
               </div>
+            ))}
+          </div>
+          
+          {/* Pagination UI */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center mt-8 mb-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="rounded-full p-2"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              
+              <span className="mx-4 text-sm font-medium">
+                {currentPage} / {totalPages}
+              </span>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="rounded-full p-2"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       ) : (
         <div className="text-center py-10 bg-neutral-lightest rounded-lg">
           <div className="mb-3 w-16 h-16 mx-auto bg-accent2-light rounded-full flex items-center justify-center">
