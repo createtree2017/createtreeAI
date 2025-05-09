@@ -773,14 +773,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const filter = req.query.filter as string | undefined;
       let galleryItems;
       
-      // 실제 DB 쿼리에서 사용자 ID로 필터링하기
+      // 사용자 ID로 필터링 추가
       if (filter === "chat") {
         // 채팅 데이터
         const chatItems = await storage.getSavedChats();
-        // 로그인한 사용자의 채팅 필터링 (userId가 없는 경우 임시 방편)
-        // 실제 프로덕션에서는 userId 필드 추가 후 필터링 필요
-        // 임시 해결책으로 최근 항목 표시 (userId가 있을 때는 해당 사용자 필터링 적용)
-        const userChatItems = chatItems.slice(0, 3); // 임시: 첫 3개 항목만 표시
+        // 현재 로그인한 사용자의 채팅만 필터링
+        const userChatItems = chatItems.filter(chat => chat.userId === userId);
         galleryItems = userChatItems.map(chat => ({
           id: chat.id,
           title: chat.title || '저장된 대화',
@@ -790,31 +788,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isFavorite: false
         }));
       } else if (filter === "music") {
-        // 음악 필터링 (userId가 없으므로 제한된 항목 표시)
+        // 음악 필터링 - 사용자별 음악만 표시
         const musicItems = await storage.getMusicList();
-        // 실제 프로덕션에서는 musicItems.filter(item => item.userId === userId) 필요
-        galleryItems = musicItems.slice(0, 3); // 임시: 첫 3개 항목만 표시
+        // 현재 로그인한 사용자의 음악만 필터링
+        galleryItems = musicItems.filter(item => item.userId === userId);
       } else if (filter === "image") {
-        // 이미지 필터링 - 임시: 모든 이미지 표시
+        // 이미지 필터링 - 사용자별 이미지만 표시
         const imageItems = await storage.getImageList();
-        // 실제 프로덕션에서는 imageItems.filter(item => item.userId === userId) 필요
-        galleryItems = imageItems; // 임시: 모든 이미지 표시
+        // 현재 로그인한 사용자의 이미지만 필터링
+        galleryItems = imageItems.filter(item => item.userId === userId);
       } else if (filter === "favorite") {
-        // 즐겨찾기 필터링 (userId가 없으므로 제한된 항목 표시)
+        // 즐겨찾기 필터링 - 사용자별 항목만 표시
         const favoriteItems = await storage.getFavoriteItems();
-        // 실제 프로덕션에서는 favoriteItems.filter(item => item.userId === userId) 필요
-        galleryItems = favoriteItems.slice(0, 3); // 임시: 첫 3개 항목만 표시
+        // 현재 로그인한 사용자의 즐겨찾기만 필터링
+        galleryItems = favoriteItems.filter(item => item.userId === userId);
       } else {
-        // 모든 항목 가져오기 (이미지 모두 표시)
-        const musicItems = (await storage.getMusicList()).slice(0, 5); // 음악 5개만
-        const imageItems = await storage.getImageList(); // 이미지 모두 표시
-        const chatItems = (await storage.getSavedChats()).slice(0, 5); // 채팅 5개만
+        // 모든 항목 가져오기 
+        const musicItems = await storage.getMusicList();
+        const imageItems = await storage.getImageList();
+        const chatItems = await storage.getSavedChats();
         
-        // 사용자별 필터링 (userId 필드가 없으므로 임시로 제한된 항목 표시)
-        // 실제 프로덕션에서는 각 항목들을 userId로 필터링 필요
-        const userMusicItems = musicItems;
-        const userImageItems = imageItems;
-        const userChatItems = chatItems;
+        // 현재 로그인한 사용자별 항목만 필터링
+        const userMusicItems = musicItems.filter(item => item.userId === userId);
+        const userImageItems = imageItems.filter(item => item.userId === userId);
+        const userChatItems = chatItems.filter(chat => chat.userId === userId);
         
         // 채팅 항목 변환
         const formattedChatItems = userChatItems.map(chat => ({
