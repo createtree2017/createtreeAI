@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useEffect } from "react";
+import * as React from "react";
+import { createContext, useContext } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { User } from "@shared/schema";
 import { Loader2 } from "lucide-react";

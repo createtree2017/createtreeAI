@@ -1,3 +1,4 @@
+import * as React from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/components/ui/use-toast";
@@ -20,10 +21,18 @@ type RegisterData = {
 export function useAuth() {
   const { toast } = useToast();
 
+  // 토큰 재발급 시도 상태 관리
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+
   // 현재 로그인한 사용자 정보 가져오기
-  const userQuery = useQuery<User | null>({
+  const { 
+    data: user, 
+    isLoading, 
+    error,
+    refetch 
+  } = useQuery<User | null>({
     queryKey: ["/api/auth/me"],
-    queryFn: async () => {
+    queryFn: async (): Promise<User | null> => {
       try {
         // 로컬 스토리지에서 토큰 가져오기
         const token = localStorage.getItem("accessToken");
@@ -36,12 +45,23 @@ export function useAuth() {
         });
 
         if (!response.ok) {
-          if (response.status === 401) {
+          if (response.status === 401 && !isRefreshing) {
             // 토큰이 만료된 경우 리프레시 시도
+            setIsRefreshing(true);
             const refreshed = await refreshToken();
+            setIsRefreshing(false);
+            
             if (refreshed) {
-              // 토큰 갱신 성공 시 refetch를 수행할 수 있도록 함
-              return userQuery.refetch().then(result => result.data || null);
+              // 토큰 갱신 성공 시 새로운 요청 시도
+              const newResponse = await fetch("/api/auth/me", {
+                headers: {
+                  Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+              });
+              
+              if (newResponse.ok) {
+                return await newResponse.json();
+              }
             }
             return null;
           }
@@ -56,8 +76,6 @@ export function useAuth() {
     },
     retry: false,
   });
-  
-  const { data: user, isLoading, error } = userQuery;
 
   // 토큰 갱신 함수
   const refreshToken = async (): Promise<boolean> => {
@@ -127,17 +145,32 @@ export function useAuth() {
   // 회원가입 기능
   const register = useMutation({
     mutationFn: async (data: RegisterData) => {
+      // fullName 필드로 매핑
+      const serverData = {
+        username: data.username,
+        password: data.password,
+        email: data.email || null,
+        fullName: data.name || null,
+        phoneNumber: data.phoneNumber || null,
+        birthdate: data.birthdate || null,
+        // memberType 명시적 지정 (Pro 회원으로 자동 설정)
+        memberType: "membership"
+      };
+      
+      console.log("회원가입 요청 데이터:", serverData);
+      
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(serverData),
         credentials: "include", // 쿠키 포함
       });
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error("회원가입 실패 응답:", errorData);
         throw new Error(errorData.message || "회원가입에 실패했습니다.");
       }
 
