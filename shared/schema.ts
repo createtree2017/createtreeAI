@@ -1,13 +1,48 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
-// User table
+// User table - 확장된 사용자 테이블
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+  password: text("password").notNull(),  // 해시된 비밀번호 저장
+  email: varchar("email", { length: 255 }).unique(),
+  fullName: varchar("full_name", { length: 100 }),
+  emailVerified: boolean("email_verified").default(false),
+  memberType: varchar("member_type", { length: 20 }).default("general"),  // general, membership
+  hospitalId: integer("hospital_id"),
+  promoCode: varchar("promo_code", { length: 50 }),
+  lastLogin: timestamp("last_login"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// 역할 (Role) 테이블
+export const roles = pgTable("roles", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(), // admin, user, superadmin
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// 사용자-역할 매핑 테이블 (다대다 관계)
+export const userRoles = pgTable("user_roles", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  roleId: integer("role_id").notNull().references(() => roles.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// 리프레시 토큰 테이블
+export const refreshTokens = pgTable("refresh_tokens", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  token: text("token").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // Music table
@@ -179,6 +214,27 @@ export const abTestResults = pgTable("ab_test_results", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// 사용자 관련 테이블 관계 정의
+export const usersRelations = relations(users, ({ many }) => ({
+  roles: many(userRoles),
+  refreshTokens: many(refreshTokens),
+  userMilestones: many(userMilestones),
+  pregnancyProfiles: many(pregnancyProfiles)
+}));
+
+export const rolesRelations = relations(roles, ({ many }) => ({
+  users: many(userRoles)
+}));
+
+export const userRolesRelations = relations(userRoles, ({ one }) => ({
+  user: one(users, { fields: [userRoles.userId], references: [users.id] }),
+  role: one(roles, { fields: [userRoles.roleId], references: [roles.id] })
+}));
+
+export const refreshTokensRelations = relations(refreshTokens, ({ one }) => ({
+  user: one(users, { fields: [refreshTokens.userId], references: [users.id] })
+}));
+
 // Define relations
 export const musicRelations = relations(music, ({ one }) => ({
   favorite: one(favorites, {
@@ -309,10 +365,15 @@ export const pregnancyProfilesRelations = relations(pregnancyProfiles, ({ one })
 }));
 
 // Insert schemas
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+export const insertUserSchema = createInsertSchema(users, {
+  username: (schema) => schema.min(3, "사용자명은 최소 3자 이상이어야 합니다."),
+  password: (schema) => schema.min(8, "비밀번호는 최소 8자 이상이어야 합니다."),
+  email: (schema) => schema.email("유효한 이메일 주소를 입력해주세요.")
 });
+
+export const insertRoleSchema = createInsertSchema(roles);
+export const insertUserRoleSchema = createInsertSchema(userRoles);
+export const insertRefreshTokenSchema = createInsertSchema(refreshTokens);
 
 export const insertMusicSchema = createInsertSchema(music);
 export const insertImageSchema = createInsertSchema(images);
@@ -333,6 +394,16 @@ export const insertPregnancyProfileSchema = createInsertSchema(pregnancyProfiles
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+// 인증 관련 타입
+export type InsertRole = z.infer<typeof insertRoleSchema>;
+export type Role = typeof roles.$inferSelect;
+
+export type InsertUserRole = z.infer<typeof insertUserRoleSchema>;
+export type UserRole = typeof userRoles.$inferSelect;
+
+export type InsertRefreshToken = z.infer<typeof insertRefreshTokenSchema>;
+export type RefreshToken = typeof refreshTokens.$inferSelect;
 
 // Milestone types
 export type InsertMilestone = z.infer<typeof insertMilestoneSchema>;
