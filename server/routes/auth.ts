@@ -64,6 +64,7 @@ router.post("/register", async (req, res) => {
         fullName: validatedData.name || validatedData.fullName || null, // name 필드 우선 사용
         emailVerified: false,
         memberType: validatedData.memberType || "general",
+        hospitalId: validatedData.hospitalId || null, // 병원 ID 추가
         // 추가 필드
         promoCode: null
       };
