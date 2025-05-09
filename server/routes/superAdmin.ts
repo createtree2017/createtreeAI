@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import {
   getAllHospitals, getHospitalById, createHospital, updateHospital, deleteHospital,
-  getAllUsers, getUserById, updateUser, getAllRoles
+  getAllUsers, getUserById, updateUser, deleteUser, getAllRoles
 } from '../controllers/superAdmin';
 import { isSuperAdmin } from '../middleware/auth';
 
@@ -21,6 +21,7 @@ router.delete('/hospitals/:id', deleteHospital);
 router.get('/users', getAllUsers);
 router.get('/users/:id', getUserById);
 router.put('/users/:id', updateUser);
+router.delete('/users/:id', deleteUser);
 router.get('/roles', getAllRoles);
 
 export default router;

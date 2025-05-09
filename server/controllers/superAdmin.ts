@@ -354,3 +354,48 @@ export async function getAllRoles(req: Request, res: Response) {
     return res.status(500).json({ error: '역할 목록을 가져오는 중 오류가 발생했습니다.' });
   }
 }
+
+export async function deleteUser(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    
+    // 사용자 존재 여부 확인
+    const existingUser = await db.query.users.findFirst({
+      where: eq(users.id, parseInt(id))
+    });
+    
+    if (!existingUser) {
+      return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' });
+    }
+    
+    // 관리자가 자기 자신을 삭제하려는 경우 방지
+    if (req.user && req.user.id === parseInt(id)) {
+      return res.status(400).json({ error: '자기 자신을 삭제할 수 없습니다.' });
+    }
+    
+    // 슈퍼관리자 삭제 방지 (보안상 이유로 - superadmin 계정은 최소 하나 이상 존재해야 함)
+    if (existingUser.memberType === 'superadmin') {
+      // 슈퍼관리자 계정 수 확인
+      const superadminCount = await db.select({ count: sql<number>`count(*)` })
+        .from(users)
+        .where(eq(users.memberType, 'superadmin'));
+        
+      if (superadminCount[0]?.count <= 1) {
+        return res.status(400).json({ 
+          error: '마지막 슈퍼관리자 계정은 삭제할 수 없습니다. 최소 하나의 슈퍼관리자 계정이 필요합니다.' 
+        });
+      }
+    }
+    
+    // 사용자 관련 역할 정보 삭제
+    await db.delete(userRoles).where(eq(userRoles.userId, parseInt(id)));
+    
+    // 사용자 삭제
+    await db.delete(users).where(eq(users.id, parseInt(id)));
+    
+    return res.status(200).json({ message: '사용자가 성공적으로 삭제되었습니다.' });
+  } catch (error) {
+    console.error('사용자 삭제 오류:', error);
+    return res.status(500).json({ error: '사용자를 삭제하는 중 오류가 발생했습니다.' });
+  }
+}

@@ -52,6 +52,13 @@ export default function UsersPage() {
   const [page, setPage] = useState(1);
   const [isSearching, setIsSearching] = useState(false);
   
+  // 다이얼로그 상태 관리
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [selectedUsername, setSelectedUsername] = useState('');
+  
   // 검색 조건 구성
   const buildQueryString = () => {
     const params = new URLSearchParams();
@@ -116,6 +123,25 @@ export default function UsersPage() {
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
     refetch();
+  };
+  
+  // 사용자 상세 정보 다이얼로그 열기
+  const handleOpenDetailDialog = (userId: number) => {
+    setSelectedUserId(userId);
+    setDetailDialogOpen(true);
+  };
+  
+  // 사용자 수정 다이얼로그 열기
+  const handleOpenEditDialog = (userId: number) => {
+    setSelectedUserId(userId);
+    setEditDialogOpen(true);
+  };
+  
+  // 사용자 삭제 다이얼로그 열기
+  const handleOpenDeleteDialog = (userId: number, username: string) => {
+    setSelectedUserId(userId);
+    setSelectedUsername(username);
+    setDeleteDialogOpen(true);
   };
   
   // 로딩 상태 표시
@@ -247,9 +273,18 @@ export default function UsersPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>상세 정보</DropdownMenuItem>
-                        <DropdownMenuItem>수정</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">삭제</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleOpenDetailDialog(user.id)}>
+                          상세 정보
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleOpenEditDialog(user.id)}>
+                          수정
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className="text-destructive"
+                          onClick={() => handleOpenDeleteDialog(user.id, user.username)}
+                        >
+                          삭제
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -294,6 +329,26 @@ export default function UsersPage() {
           </Button>
         </div>
       )}
+
+      {/* 사용자 관리 다이얼로그 */}
+      <UserDetailDialog 
+        userId={selectedUserId}
+        open={detailDialogOpen}
+        onClose={() => setDetailDialogOpen(false)}
+      />
+      
+      <UserEditDialog 
+        userId={selectedUserId}
+        open={editDialogOpen}
+        onClose={() => setEditDialogOpen(false)}
+      />
+      
+      <UserDeleteConfirmDialog 
+        userId={selectedUserId}
+        username={selectedUsername}
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+      />
     </div>
   );
 }

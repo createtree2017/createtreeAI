@@ -224,7 +224,6 @@ const UserEditDialog: React.FC<UserEditDialogProps> = ({
                     id="fullName"
                     placeholder="이름을 입력하세요"
                     {...field}
-                    error={errors.fullName?.message}
                   />
                 )}
               />
@@ -244,7 +243,6 @@ const UserEditDialog: React.FC<UserEditDialogProps> = ({
                     type="email"
                     placeholder="이메일을 입력하세요"
                     {...field}
-                    error={errors.email?.message}
                   />
                 )}
               />
@@ -263,7 +261,6 @@ const UserEditDialog: React.FC<UserEditDialogProps> = ({
                     id="phoneNumber"
                     placeholder="전화번호를 입력하세요"
                     {...field}
-                    error={errors.phoneNumber?.message}
                   />
                 )}
               />
