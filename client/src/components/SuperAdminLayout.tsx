@@ -24,7 +24,8 @@ const navItems = [
   { 
     href: '/super/users', 
     label: '회원 관리', 
-    icon: <UsersIcon className="w-5 h-5" /> 
+    icon: <UsersIcon className="w-5 h-5" />,
+    requiresHospital: false
   },
   { 
     href: '/super/campaigns', 
@@ -62,12 +63,17 @@ export function SuperAdminLayout({ children }: { children: React.ReactNode }) {
   const { selectedHospital, selectHospital } = useHospital();
   
   // 전체 병원 목록 가져오기
-  const { data: hospitals = [] } = useQuery<Hospital[]>({
+  const { data: hospitals = [], isLoading: isHospitalsLoading } = useQuery<Hospital[]>({
     queryKey: ['/api/super/hospitals'],
-    // 이 부분은 API가 구현된 후 실제 데이터를 사용할 예정
-    // API가 구현되기 전까지는 빈 배열을 반환하도록 설정
-    enabled: false,
-    initialData: []
+    queryFn: async () => {
+      const response = await fetch('/api/super/hospitals', {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('병원 목록을 불러오는데 실패했습니다');
+      }
+      return response.json();
+    }
   });
   
   // 선택된 병원 ID 변경 처리
@@ -193,7 +199,8 @@ export function SuperAdminLayout({ children }: { children: React.ReactNode }) {
           {!selectedHospital && location.includes('/super/') && 
            !location.includes('/super/dashboard') && 
            !location.includes('/super/hospitals') && 
-           !location.includes('/super/settings') && (
+           !location.includes('/super/settings') &&
+           !location.includes('/super/users') && (
             <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-4 dark:bg-amber-950 dark:border-amber-600">
               <div className="flex">
                 <div className="flex-shrink-0">
