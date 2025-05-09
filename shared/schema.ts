@@ -71,6 +71,7 @@ export const music = pgTable("music", {
   style: text("style").notNull(),
   url: text("url").notNull(),
   duration: integer("duration").notNull().default(60),
+  userId: integer("user_id"), // 사용자 ID 추가
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -82,6 +83,7 @@ export const images = pgTable("images", {
   originalUrl: text("original_url").notNull(),
   transformedUrl: text("transformed_url").notNull(),
   metadata: text("metadata").default("{}"),
+  userId: integer("user_id"), // 사용자 ID 추가
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -98,6 +100,7 @@ export const favorites = pgTable("favorites", {
   id: serial("id").primaryKey(),
   itemId: integer("item_id").notNull(),
   itemType: text("item_type").notNull(), // 'music', 'image', or 'chat'
+  userId: integer("user_id"), // 사용자 ID 추가
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -160,6 +163,7 @@ export const savedChats = pgTable("saved_chats", {
   summary: text("summary").notNull(),
   userMemo: text("user_memo"),
   mood: text("mood"), // Emoji representing the mood
+  userId: integer("user_id"), // 사용자 ID 추가
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
