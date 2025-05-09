@@ -21,9 +21,6 @@ type RegisterData = {
 export function useAuth() {
   const { toast } = useToast();
 
-  // 토큰 재발급 시도 상태 관리
-  const [isRefreshing, setIsRefreshing] = React.useState(false);
-
   // 현재 로그인한 사용자 정보 가져오기 (세션 기반)
   const { 
     data: user, 
@@ -59,28 +56,7 @@ export function useAuth() {
     retry: false,
   });
 
-  // 토큰 갱신 함수
-  const refreshToken = async (): Promise<boolean> => {
-    try {
-      const response = await fetch("/api/auth/refresh-token", {
-        method: "POST",
-        credentials: "include", // 쿠키 포함
-      });
-
-      if (!response.ok) {
-        // 리프레시 토큰도 만료된 경우 로그아웃 처리
-        localStorage.removeItem("accessToken");
-        return false;
-      }
-
-      const data = await response.json();
-      localStorage.setItem("accessToken", data.accessToken);
-      return true;
-    } catch (error) {
-      console.error("토큰 갱신 오류:", error);
-      return false;
-    }
-  };
+  // 세션 기반이므로 토큰 갱신 함수 불필요
 
   // 로그인 기능 (세션 기반)
   const login = useMutation({
@@ -133,7 +109,7 @@ export function useAuth() {
     },
   });
 
-  // 회원가입 기능
+  // 회원가입 기능 (세션 기반)
   const register = useMutation({
     mutationFn: async (data: RegisterData) => {
       // fullName 필드로 매핑
@@ -157,7 +133,7 @@ export function useAuth() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(serverData),
-        credentials: "include", // 쿠키 포함
+        credentials: "include", // 쿠키 포함 (중요!)
       });
 
       if (!response.ok) {
@@ -169,8 +145,7 @@ export function useAuth() {
       return await response.json();
     },
     onSuccess: (data) => {
-      // 액세스 토큰 저장
-      localStorage.setItem("accessToken", data.accessToken);
+      // 세션 기반이므로 토큰 저장 불필요
       
       // 사용자 정보 캐시 업데이트
       queryClient.setQueryData(["/api/auth/me"], data.user);
@@ -199,12 +174,12 @@ export function useAuth() {
     },
   });
 
-  // 로그아웃 기능
+  // 로그아웃 기능 (세션 기반)
   const logout = useMutation({
     mutationFn: async () => {
       const response = await fetch("/api/auth/logout", {
         method: "POST",
-        credentials: "include", // 쿠키 포함
+        credentials: "include", // 쿠키 포함 (중요!)
       });
 
       if (!response.ok) {
@@ -215,8 +190,7 @@ export function useAuth() {
       return await response.json();
     },
     onSuccess: () => {
-      // 액세스 토큰 제거
-      localStorage.removeItem("accessToken");
+      // 세션 기반이므로 토큰 제거 불필요
       
       // 사용자 정보 캐시 초기화
       queryClient.setQueryData(["/api/auth/me"], null);
