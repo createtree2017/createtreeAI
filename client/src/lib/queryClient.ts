@@ -12,46 +12,45 @@ export const queryClient = new QueryClient({
 interface ApiRequestOptions {
   headers?: HeadersInit;
   on401?: "throw" | "returnNull";
+  params?: Record<string, string | number | boolean>;
+  method?: string;
+  data?: any;
 }
 
 export const getQueryFn = 
   (options: ApiRequestOptions = {}) => 
   async <T>({ queryKey }: { queryKey: string[] }): Promise<T | null> => {
     const [url] = queryKey;
-    const token = localStorage.getItem("accessToken");
-    
-    const headers: HeadersInit = {
-      ...options.headers,
-    };
-    
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
     
     try {
-      const response = await fetch(url, { headers });
+      // 기존 apiRequest 함수 재사용
+      const response = await apiRequest(url, {
+        ...options,
+        method: 'GET'
+      });
       
-      if (!response.ok) {
-        if (response.status === 401 && options.on401 === "returnNull") {
-          return null;
-        }
-        throw new Error(`API error ${response.status}: ${await response.text()}`);
+      if (response.status === 401 && options.on401 === "returnNull") {
+        return null;
       }
       
       return await response.json() as T;
     } catch (error) {
       console.error(`API error for ${url}:`, error);
+      
+      if (options.on401 === "returnNull") {
+        return null;
+      }
+      
       throw error;
     }
   };
 
 export const apiRequest = async (
-  method: string,
   url: string,
-  body?: any,
   options: ApiRequestOptions = {}
 ): Promise<Response> => {
   const token = localStorage.getItem("accessToken");
+  const method = options.method || "GET";
   
   const headers: HeadersInit = {
     "Content-Type": "application/json",
@@ -59,7 +58,22 @@ export const apiRequest = async (
   };
   
   if (token) {
+    // @ts-ignore - HeadersInit 타입 문제 무시
     headers.Authorization = `Bearer ${token}`;
+  }
+  
+  // URL에 쿼리 파라미터 추가 처리
+  let finalUrl = url;
+  if (options.params) {
+    const queryParams = new URLSearchParams();
+    Object.entries(options.params).forEach(([key, value]) => {
+      queryParams.append(key, String(value));
+    });
+    
+    const queryString = queryParams.toString();
+    if (queryString) {
+      finalUrl = `${url}${url.includes('?') ? '&' : '?'}${queryString}`;
+    }
   }
   
   const config: RequestInit = {
@@ -68,11 +82,13 @@ export const apiRequest = async (
     credentials: "include",
   };
   
-  if (body && method !== "GET") {
-    config.body = JSON.stringify(body);
+  // 요청 본문 데이터 처리
+  if (options.data && method !== "GET") {
+    config.body = JSON.stringify(options.data);
   }
   
-  const response = await fetch(url, config);
+  console.log(`API 요청: ${method} ${finalUrl}`);
+  const response = await fetch(finalUrl, config);
   
   if (!response.ok) {
     if (response.status === 401 && options.on401 === "returnNull") {
@@ -90,6 +106,7 @@ export const apiRequest = async (
     }
     
     const error = new Error(errorMessage);
+    console.error(`API 오류: ${method} ${finalUrl}`, error);
     throw error;
   }
   

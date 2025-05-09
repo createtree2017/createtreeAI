@@ -109,11 +109,19 @@ export const deleteSavedChat = async (id: number) => {
 
 // Gallery API endpoints
 export const getGalleryItems = async (filter?: string) => {
-  const url = filter && filter !== 'all' 
-    ? `/api/gallery?filter=${filter}` 
-    : '/api/gallery';
+  // URL 형식 수정 - apiRequest 함수에서 이 URL을 올바르게 처리할 수 있도록
+  const url = '/api/gallery';
   
-  const response = await apiRequest(url);
+  // 옵션 객체에 필터링 파라미터 추가
+  const options: any = {};
+  
+  // 필터가 존재하고 'all'이 아닌 경우에만 params 추가
+  if (filter && filter !== 'all') {
+    options.params = { filter };
+  }
+  
+  // 수정된 요청 방법
+  const response = await apiRequest(url, options);
   return response.json();
 };
 
