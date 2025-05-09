@@ -96,8 +96,8 @@ export default function Gallery() {
   return (
     <div className="p-5 animate-fadeIn">
       <div className="text-center mb-6">
-        <h2 className="font-heading font-bold text-2xl mb-2">My Gallery</h2>
-        <p className="text-neutral-dark">All your beautiful memories in one place</p>
+        <h2 className="font-heading font-bold text-2xl mb-2">나의 갤러리</h2>
+        <p className="text-neutral-dark">소중한 추억이 모두 모인 공간</p>
       </div>
       
       {/* Gallery Filters */}
@@ -194,11 +194,15 @@ export default function Gallery() {
                   >
                     {item.type === "music" ? (
                       <>
-                        <Play className="mr-1 h-3 w-3" /> Play
+                        <Play className="mr-1 h-3 w-3" /> 재생
+                      </>
+                    ) : item.type === "chat" ? (
+                      <>
+                        <Eye className="mr-1 h-3 w-3" /> 보기
                       </>
                     ) : (
                       <>
-                        <Eye className="mr-1 h-3 w-3" /> View
+                        <Eye className="mr-1 h-3 w-3" /> 보기
                       </>
                     )}
                   </Button>
@@ -208,7 +212,7 @@ export default function Gallery() {
                     className="flex-1"
                     onClick={() => handleItemAction(item, "share")}
                   >
-                    <Share2 className="mr-1 h-3 w-3" /> Share
+                    <Share2 className="mr-1 h-3 w-3" /> 공유
                   </Button>
                 </div>
               </div>
