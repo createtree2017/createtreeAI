@@ -184,15 +184,12 @@ function Router() {
       <Route path="/auth">
         <AuthPage />
       </Route>
-      
       <Route path="/login">
         <LoginPage />
       </Route>
-      
       <Route path="/register">
         <RegisterPage />
       </Route>
-      
       <Route path="/unauthorized">
         <div className="min-h-screen flex flex-col items-center justify-center p-4">
           <h1 className="text-3xl font-bold text-red-500 mb-4">접근 권한이 없습니다</h1>
