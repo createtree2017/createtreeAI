@@ -32,6 +32,7 @@ const memberTypeColors = {
   superadmin: "bg-purple-100 text-purple-800",
   admin: "bg-blue-100 text-blue-800",
   hospital_admin: "bg-indigo-100 text-indigo-800",
+  membership: "bg-pink-100 text-pink-800",
   pro: "bg-green-100 text-green-800",
   general: "bg-gray-100 text-gray-800"
 };
