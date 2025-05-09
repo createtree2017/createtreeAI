@@ -374,8 +374,7 @@ export default function Image() {
     formData.append("aspectRatio", selectedAspectRatio);
     
     // 전역 이미지 처리 상태 업데이트 - 처리 시작
-    const styleName = filteredStyles.find(s => s.value === selectedStyle)?.label || '선택한 스타일';
-    startProcessing(`${styleName} 스타일로 변환 중...`);
+    startProcessing(`1개 이미지 생성 중`);
 
     // 일반 사용자 페이지에서는 관리자 플래그 없이 호출 (이미지 임시 표시용)
     transformImageMutation(formData);
