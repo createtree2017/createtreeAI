@@ -23,6 +23,9 @@ import { Loader2, Search, Filter, MoreHorizontal, UserPlus } from 'lucide-react'
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { useHospital } from '@/lib/HospitalContext';
+import UserDetailDialog from '@/components/dialogs/UserDetailDialog';
+import UserEditDialog from '@/components/dialogs/UserEditDialog';
+import UserDeleteConfirmDialog from '@/components/dialogs/UserDeleteConfirmDialog';
 
 // 멤버십 타입에 따른 배지 컬러
 const memberTypeColors = {
