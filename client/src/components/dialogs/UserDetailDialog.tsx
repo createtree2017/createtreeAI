@@ -21,6 +21,7 @@ const memberTypeLabels = {
   admin: "관리자",
   hospital_admin: "병원관리자",
   pro: "프로회원",
+  membership: "멤버십회원",
   general: "일반회원"
 };
 

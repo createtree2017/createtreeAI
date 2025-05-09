@@ -24,6 +24,7 @@ import { useAuth } from "@/hooks/useAuth";
 const memberTypeOptions = [
   { value: "general", label: "일반회원" },
   { value: "pro", label: "프로회원" },
+  { value: "membership", label: "멤버십회원" },
   { value: "hospital_admin", label: "병원관리자" },
   { value: "admin", label: "관리자" },
   { value: "superadmin", label: "슈퍼관리자" },

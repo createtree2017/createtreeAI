@@ -42,6 +42,7 @@ const memberTypeLabels = {
   admin: "관리자",
   hospital_admin: "병원관리자",
   pro: "프로회원",
+  membership: "멤버십회원",
   general: "일반회원"
 };
 
@@ -215,6 +216,7 @@ export default function UsersPage() {
                   <SelectItem value="all">전체 회원</SelectItem>
                   <SelectItem value="general">일반 회원</SelectItem>
                   <SelectItem value="pro">프로 회원</SelectItem>
+                  <SelectItem value="membership">멤버십 회원</SelectItem>
                   <SelectItem value="hospital_admin">병원 관리자</SelectItem>
                   <SelectItem value="admin">관리자</SelectItem>
                   <SelectItem value="superadmin">슈퍼관리자</SelectItem>
