@@ -905,7 +905,8 @@ export default function Image() {
               {transformedImage && (
                 <div 
                   key="latest"
-                  className="bg-white rounded-xl overflow-hidden shadow-soft border border-[#ff2d55] hover:shadow-md transition-shadow"
+                  className="bg-white rounded-xl overflow-hidden shadow-soft border border-[#ff2d55] hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => handleViewImage(transformedImage)}
                 >
                   <div className="relative">
                     <div className="aspect-square w-full overflow-hidden">
@@ -923,42 +924,44 @@ export default function Image() {
 
                   </div>
                   <div className="p-3">
-                    <div className="flex justify-between items-center mb-1">
+                    <div className="flex flex-col gap-2">
                       <h4 className="font-medium text-[15px] text-neutral-dark line-clamp-1">{transformedImage.title}</h4>
-                      <div className="flex gap-1.5">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleViewImage(transformedImage);
-                          }}
-                          className="text-gray-500 hover:text-[#ff2d55] transition-colors"
-                          title="크게 보기"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleShare(transformedImage.id);
-                          }}
-                          className="text-gray-500 hover:text-[#ff2d55] transition-colors"
-                          title="공유하기"
-                        >
-                          <Share2 className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDownload(transformedImage.id);
-                          }}
-                          className="text-gray-500 hover:text-[#ff2d55] transition-colors"
-                          title="다운로드"
-                        >
-                          <Download className="h-4 w-4" />
-                        </button>
+                      <div className="flex justify-between items-center">
+                        <p className="text-xs text-muted-foreground">{transformedImage.createdAt}</p>
+                        <div className="flex gap-3 mr-1">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewImage(transformedImage);
+                            }}
+                            className="text-gray-600 hover:text-[#ff2d55] transition-colors p-1"
+                            title="크게 보기"
+                          >
+                            <Eye className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleShare(transformedImage.id);
+                            }}
+                            className="text-gray-600 hover:text-[#ff2d55] transition-colors p-1"
+                            title="공유하기"
+                          >
+                            <Share2 className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownload(transformedImage.id);
+                            }}
+                            className="text-gray-600 hover:text-[#ff2d55] transition-colors p-1"
+                            title="다운로드"
+                          >
+                            <Download className="h-5 w-5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">{transformedImage.createdAt}</p>
                   </div>
                 </div>
               )}
@@ -970,7 +973,8 @@ export default function Image() {
                 .map((image: TransformedImage) => (
                   <div 
                     key={image.id} 
-                    className="bg-white rounded-xl overflow-hidden shadow-soft border border-border hover:shadow-md transition-shadow"
+                    className="bg-white rounded-xl overflow-hidden shadow-soft border border-border hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => handleViewImage(image)}
                   >
                     <div className="relative">
                       <div className="aspect-square w-full overflow-hidden">
@@ -988,42 +992,44 @@ export default function Image() {
 
                     </div>
                     <div className="p-3">
-                      <div className="flex justify-between items-center mb-1">
+                      <div className="flex flex-col gap-2">
                         <h4 className="font-medium text-[15px] text-neutral-dark line-clamp-1">{image.title}</h4>
-                        <div className="flex gap-1.5">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleViewImage(image);
-                            }}
-                            className="text-gray-500 hover:text-[#ff2d55] transition-colors"
-                            title="크게 보기"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleShare(image.id);
-                            }}
-                            className="text-gray-500 hover:text-[#ff2d55] transition-colors"
-                            title="공유하기"
-                          >
-                            <Share2 className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDownload(image.id);
-                            }}
-                            className="text-gray-500 hover:text-[#ff2d55] transition-colors"
-                            title="다운로드"
-                          >
-                            <Download className="h-4 w-4" />
-                          </button>
+                        <div className="flex justify-between items-center">
+                          <p className="text-xs text-muted-foreground">{image.createdAt}</p>
+                          <div className="flex gap-3 mr-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewImage(image);
+                              }}
+                              className="text-gray-600 hover:text-[#ff2d55] transition-colors p-1"
+                              title="크게 보기"
+                            >
+                              <Eye className="h-5 w-5" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleShare(image.id);
+                              }}
+                              className="text-gray-600 hover:text-[#ff2d55] transition-colors p-1"
+                              title="공유하기"
+                            >
+                              <Share2 className="h-5 w-5" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDownload(image.id);
+                              }}
+                              className="text-gray-600 hover:text-[#ff2d55] transition-colors p-1"
+                              title="다운로드"
+                            >
+                              <Download className="h-5 w-5" />
+                            </button>
+                          </div>
                         </div>
                       </div>
-                      <p className="text-xs text-muted-foreground">{image.createdAt}</p>
                     </div>
                   </div>
                 ))}
