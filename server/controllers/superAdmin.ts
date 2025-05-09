@@ -229,7 +229,7 @@ export async function getUserById(req: Request, res: Response) {
     }
     
     // 사용자 역할 정보 가공
-    const roles = user.roles.map(userRole => ({
+    const roles = user.roles.map((userRole: any) => ({
       id: userRole.roleId,
       name: userRole.role.name,
       description: userRole.role.description
