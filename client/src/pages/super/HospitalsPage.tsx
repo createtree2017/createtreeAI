@@ -225,7 +225,7 @@ export default function HospitalsPage() {
     <SuperAdminLayout>
       <div className="mb-8">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">병원 관리</h1>
+          {/* 제목은 슈퍼어드민 레이아웃에서 이미 표시하므로 여기서는 제거 */}
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button className="flex items-center gap-2">

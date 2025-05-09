@@ -1,13 +1,18 @@
 import React from 'react';
 import { Link, useLocation } from 'wouter';
-import { Home, Image, ImagePlus, Music, MessageCircle, User, Award, LogIn } from 'lucide-react';
+import { Home, Image, ImagePlus, Music, MessageCircle, User, Award, LogIn, Settings } from 'lucide-react';
 import { useAuthContext } from '@/lib/AuthProvider';
 
 export default function BottomNavigation() {
   const [location] = useLocation();
   const { user } = useAuthContext();
   
-  const navItems = [
+  // 사용자 역할에 따라 관리자 메뉴 추가 여부 결정
+  const isAdmin = user && (user.memberType === 'admin' || user.memberType === 'superadmin');
+  const isSuperAdmin = user && user.memberType === 'superadmin';
+  
+  // 기본 메뉴 항목
+  const baseNavItems = [
     {
       path: '/',
       icon: Home,
@@ -19,35 +24,56 @@ export default function BottomNavigation() {
       icon: ImagePlus,
       label: '추억 예술',
       ariaLabel: '이미지 변환 페이지',
-      new: true,
     },
     {
       path: '/music',
       icon: Music,
       label: '자장가',
       ariaLabel: '음악 생성 페이지',
-      new: true,
     },
     {
       path: '/chat',
       icon: MessageCircle,
       label: 'AI 도우미',
       ariaLabel: 'AI 채팅 페이지',
-    },
-    // 로그인 상태에 따라 갤러리 또는 로그인 버튼 표시
-    user ? {
+    }
+  ];
+  
+  // 로그인 상태에 따른 추가 메뉴
+  let additionalItems = [];
+  
+  if (user) {
+    // 로그인한 경우 갤러리 메뉴 추가
+    additionalItems.push({
       path: '/gallery',
       icon: Image,
       label: '갤러리',
       ariaLabel: '갤러리 페이지',
-    } : {
+    });
+    
+    // 관리자인 경우 관리자 메뉴 추가
+    if (isAdmin) {
+      additionalItems.push({
+        path: isSuperAdmin ? '/super/hospitals' : '/admin',
+        icon: Settings,
+        label: '관리자',
+        ariaLabel: '관리자 페이지',
+        highlight: true
+      });
+    }
+  } else {
+    // 로그인하지 않은 경우 테스트 메뉴 추가
+    additionalItems.push({
       path: '/test',
       icon: LogIn,
       label: '테스트',
       ariaLabel: '테스트 페이지',
       highlight: true,
-    },
-  ];
+    });
+  }
+  
+  // 최종 네비게이션 아이템 (최대 5개까지만)
+  const navItems = [...baseNavItems, ...additionalItems].slice(0, 5);
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 safe-area-bottom">
