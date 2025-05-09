@@ -1022,56 +1022,54 @@ export default function Image() {
         </div>
       </div>
       
-      {/* 이미지 상세 보기 다이얼로그 */}
+      {/* 이미지 상세 보기 다이얼로그 - 더 깔끔한 디자인 */}
       <Dialog open={viewImageDialog} onOpenChange={setViewImageDialog}>
-        <DialogContent className="sm:max-w-lg p-0 overflow-hidden bg-background border border-border shadow-2xl">
-          {/* 헤더 영역 통합 */}
-          <div className="relative bg-background/95 backdrop-blur-sm p-3 border-b border-border">
-            <div className="absolute top-3 right-3">
-              <button
-                onClick={() => setViewImageDialog(false)}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-                aria-label="닫기"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <h3 className="text-lg font-medium text-center text-foreground pr-6">
-              {selectedGalleryImage?.title}
-            </h3>
-          </div>
+        <DialogContent className="max-w-5xl w-[95vw] h-auto p-0 overflow-hidden bg-white dark:bg-zinc-900 rounded-xl shadow-xl border-0">
+          {/* X 버튼만 별도로 표시 (제목 없음) */}
+          <button
+            onClick={() => setViewImageDialog(false)}
+            className="absolute top-4 right-4 z-50 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white bg-white/80 dark:bg-black/50 hover:bg-white/90 dark:hover:bg-black/70 p-2 rounded-full transition-all shadow-md"
+            aria-label="닫기"
+          >
+            <X className="h-5 w-5" />
+          </button>
           
-          {/* 이미지 영역 */}
-          <div className="bg-black flex items-center justify-center">
+          {/* 이미지만 집중해서 표시 */}
+          <div className="bg-black w-full h-full flex items-center justify-center">
             {selectedGalleryImage && (
               <img 
                 src={selectedGalleryImage.transformedUrl} 
                 alt={selectedGalleryImage.title || "변환된 이미지"} 
-                className="max-w-full max-h-[70vh] object-contain"
+                className="max-w-full max-h-[85vh] object-contain"
               />
             )}
           </div>
           
-          {/* 하단 버튼 영역 */}
-          <div className="bg-background/95 backdrop-blur-sm p-4 border-t border-border">
-            <div className="flex justify-center gap-3">
+          {/* 하단 정보 및 액션 영역 */}
+          <div className="absolute bottom-0 left-0 right-0 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-t border-gray-200 dark:border-gray-800">
+            {/* 제목 및 버튼 */}
+            <div className="px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                {selectedGalleryImage?.title}
+              </h3>
+              
               {selectedGalleryImage && (
-                <>
+                <div className="flex items-center gap-3">
                   <Button 
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground flex-1 max-w-[180px]"
+                    className="bg-[#ff2d55] hover:bg-[#ff2d55]/90 text-white rounded-lg h-11"
                     onClick={() => handleDownload(selectedGalleryImage.id)}
                   >
                     <Download className="mr-2 h-4 w-4" />
                     <span>다운로드</span>
                   </Button>
                   <Button 
-                    className="bg-muted hover:bg-muted/90 text-muted-foreground flex-1 max-w-[180px]"
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-gray-200 rounded-lg h-11"
                     onClick={() => handleShare(selectedGalleryImage.id)}
                   >
                     <Share2 className="mr-2 h-4 w-4" />
                     <span>공유하기</span>
                   </Button>
-                </>
+                </div>
               )}
             </div>
           </div>
