@@ -8,12 +8,12 @@ const LoginPage = () => {
   const [location, setLocation] = useLocation();
   const { user, isLoading } = useAuthContext();
 
-  // 이미 로그인된 상태이면 홈페이지로 리디렉션
-  useEffect(() => {
-    if (user && !isLoading) {
-      setLocation("/");
-    }
-  }, [user, isLoading, setLocation]);
+  // 이미 로그인된 상태 확인 (주석 처리하여 중복 리디렉션 방지)
+  // useEffect(() => {
+  //   if (user && !isLoading) {
+  //     setLocation("/");
+  //   }
+  // }, [user, isLoading, setLocation]);
 
   if (isLoading) {
     return <div>로딩 중...</div>;
