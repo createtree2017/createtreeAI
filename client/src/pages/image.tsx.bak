@@ -166,17 +166,8 @@ export default function Image() {
   
   // Filter styles by selected category
   const filteredStyles = useMemo(() => {
-    console.log("필터링 상태:", { selectedCategory, styles: artStyles });
     if (!selectedCategory) return artStyles;
-    
-    const filtered = artStyles.filter(style => style.categoryId === selectedCategory);
-    console.log("필터링 결과:", { 
-      categoryId: selectedCategory, 
-      filteredCount: filtered.length,
-      filtered
-    });
-    
-    return filtered;
+    return artStyles.filter(style => style.categoryId === selectedCategory);
   }, [artStyles, selectedCategory]);
 
   // 최근 이미지 10개 목록 조회 기능
@@ -449,7 +440,7 @@ export default function Image() {
     const category = Array.isArray(categories) 
       ? categories.find(cat => cat.categoryId === categoryId)
       : null;
-    return category ? (category.title || category.name) : categoryId;
+    return category ? category.title : categoryId;
   };
 
   return (
@@ -560,25 +551,133 @@ export default function Image() {
               </div>
             </>
           )}
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* 카테고리 선택 섹션 */}
+      <div className="bg-card rounded-xl p-5 mb-6 shadow-md border border-[#ff2d55]">
+        <div className="flex justify-between items-center mb-5">
+          <h3 className="font-heading font-semibold text-lg text-card-foreground">카테고리</h3>
+        </div>
+        
+        <div className="grid grid-cols-3 gap-2">
+          {Array.isArray(categories) && categories.length > 0 ? (
+            // 카테고리가 로드됐을 때
+            categories.map((category) => (
+              <div 
+                key={category.categoryId}
+                className={`cursor-pointer rounded-lg border overflow-hidden transition-colors
+                  ${selectedCategory === category.categoryId 
+                    ? 'ring-2 ring-primary border-primary' 
+                    : 'bg-muted border-muted-foreground/20 hover:border-muted-foreground/30'
+                  }`}
+                onClick={() => setSelectedCategory(category.categoryId)}
+              >
+                <div className="flex items-center justify-between px-4 py-3">
+                  <span className={`font-medium ${selectedCategory === category.categoryId ? 'text-primary' : 'text-card-foreground'}`}>
+                    {category.name}
+                  </span>
+                  {selectedCategory === category.categoryId && (
+                    <CheckCircle2 className="h-5 w-5 text-primary" />
+                  )}
+                </div>
+              </div>
+            ))
+          ) : (
+            // 카테고리가 없거나 로딩 중일 때 기본 카테고리 3개 표시
+            <>
+              <div 
+                className={`cursor-pointer rounded-lg border overflow-hidden transition-colors 
+                  ${selectedCategory === "mansak_img" 
+                    ? 'ring-2 ring-primary border-primary' 
+                    : 'bg-muted border-muted-foreground/20 hover:border-muted-foreground/30'
+                  }`}
+                onClick={() => setSelectedCategory("mansak_img")}
+              >
+                <div className="flex items-center justify-between px-4 py-3">
+                  <span className={`font-medium ${selectedCategory === "mansak_img" ? 'text-primary' : 'text-muted-foreground'}`}>
+                    만삭사진
+                  </span>
+                  {selectedCategory === "mansak_img" && (
+                    <CheckCircle2 className="h-5 w-5 text-primary" />
+                  )}
+                </div>
+              </div>
+              <div 
+                className={`cursor-pointer rounded-lg border overflow-hidden transition-colors 
+                  ${selectedCategory === "family_img" 
+                    ? 'ring-2 ring-primary border-primary' 
+                    : 'bg-muted border-muted-foreground/20 hover:border-muted-foreground/30'
+                  }`}
+                onClick={() => setSelectedCategory("family_img")}
+              >
+                <div className="flex items-center justify-between px-4 py-3">
+                  <span className={`font-medium ${selectedCategory === "family_img" ? 'text-primary' : 'text-muted-foreground'}`}>
+                    가족사진
+                  </span>
+                  {selectedCategory === "family_img" && (
+                    <CheckCircle2 className="h-5 w-5 text-primary" />
+                  )}
+                </div>
+              </div>
+              <div 
+                className={`cursor-pointer rounded-lg border overflow-hidden transition-colors 
+                  ${selectedCategory === "sticker_img" 
+                    ? 'ring-2 ring-primary border-primary' 
+                    : 'bg-muted border-muted-foreground/20 hover:border-muted-foreground/30'
+                  }`}
+                onClick={() => setSelectedCategory("sticker_img")}
+              >
+                <div className="flex items-center justify-between px-4 py-3">
+                  <span className={`font-medium ${selectedCategory === "sticker_img" ? 'text-primary' : 'text-muted-foreground'}`}>
+                    스티커
+                  </span>
+                  {selectedCategory === "sticker_img" && (
+                    <CheckCircle2 className="h-5 w-5 text-primary" />
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+          
+          {/* 디버깅 정보 - 개발용 */}
+          {(categoriesLoading || categoriesError) && (
+            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-yellow-800">
+              <p className="font-semibold">카테고리 로드 상태:</p>
+              <p>로딩: {categoriesLoading ? "예" : "아니오"}</p>
+              {categoriesError && <p>오류: {categoriesError.toString()}</p>}
+              <p>카테고리 수: {categories?.length || 0}</p>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Style Selection */}
-      <div id="transform-section" className="bg-card rounded-xl p-5 mb-6 shadow-md border border-[#ff2d55]">
+      {/* 스타일 선택 섹션 */}
+      <div className="bg-card rounded-xl p-5 mb-6 shadow-md border border-[#ff2d55]">
         <div className="flex justify-between items-center mb-5">
-          <h3 className="font-heading font-semibold text-lg text-card-foreground">스타일 선택</h3>
+          <h3 className="font-heading font-semibold text-lg text-card-foreground">스타일</h3>
         </div>
-        
+
+        {/* 스타일 선택 버튼 */}
         <div 
-          className="border cursor-pointer rounded-lg p-4 flex justify-between items-center hover:bg-muted/50 transition-colors"
+          className="cursor-pointer rounded-lg border border-[#ff2d55] overflow-hidden flex items-center justify-between px-4 py-3 hover:bg-muted transition-all"
           onClick={() => setStyleDialogOpen(true)}
         >
           <div className="flex items-center">
-            <PaintbrushVertical className="h-5 w-5 text-muted-foreground mr-3" />
-            {selectedStyle ? (
-              <span className="text-card-foreground">
-                {artStyles.find(style => style.value === selectedStyle)?.label || "스타일 선택"}
-              </span>
+            {selectedStyle && filteredStyles.find(style => style.value === selectedStyle) ? (
+              <>
+                <div className="w-10 h-10 rounded-lg overflow-hidden mr-3">
+                  <img 
+                    src={filteredStyles.find(style => style.value === selectedStyle)?.thumbnailUrl} 
+                    alt={filteredStyles.find(style => style.value === selectedStyle)?.label}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <span className="font-medium text-card-foreground">
+                  {filteredStyles.find(style => style.value === selectedStyle)?.label}
+                </span>
+              </>
             ) : (
               <span className="text-muted-foreground">스타일을 선택해주세요</span>
             )}
@@ -630,53 +729,47 @@ export default function Image() {
 
             {/* 스타일 그리드 */}
             <div className="grid grid-cols-2 gap-4 mt-4">
-              {(selectedCategory ? filteredStyles : artStyles).length > 0 ? (
-                (selectedCategory ? filteredStyles : artStyles).map((style) => (
-                  <div 
-                    key={style.value}
-                    className={`cursor-pointer rounded-lg overflow-hidden border transition-all
-                      ${selectedStyle === style.value 
-                        ? 'border-primary ring-2 ring-primary' 
-                        : 'border-border hover:border-muted-foreground/50'
-                      }`}
-                    onClick={() => {
-                      handleStyleSelected(style.value);
-                      setStyleDialogOpen(false);
-                    }}
-                  >
-                    <div className="relative">
-                      <div className="aspect-square w-full overflow-hidden"> {/* 이미지 컨테이너를 정사각형으로 설정 */}
-                        <img 
-                          src={style.thumbnailUrl} 
-                          alt={style.label} 
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className={`absolute inset-0 ${selectedStyle === style.value ? 'bg-primary/20' : ''}`}>
-                        {selectedStyle === style.value && (
-                          <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center shadow-md">
-                            <Check className="h-4 w-4" />
-                          </div>
-                        )}
-                      </div>
+              {(selectedCategory ? filteredStyles : artStyles).map((style) => (
+                <div 
+                  key={style.value}
+                  className={`cursor-pointer rounded-lg overflow-hidden border transition-all
+                    ${selectedStyle === style.value 
+                      ? 'border-primary ring-2 ring-primary' 
+                      : 'border-border hover:border-muted-foreground/50'
+                    }`}
+                  onClick={() => {
+                    handleStyleSelected(style.value);
+                    setStyleDialogOpen(false);
+                  }}
+                >
+                  <div className="relative">
+                    <div className="aspect-square w-full overflow-hidden"> {/* 이미지 컨테이너를 정사각형으로 설정 */}
+                      <img 
+                        src={style.thumbnailUrl} 
+                        alt={style.label} 
+                        className="w-full h-full object-cover"
+                      />
                     </div>
-                    <div className="bg-muted text-center py-3 px-2">
-                      <span className={`text-sm font-medium ${selectedStyle === style.value ? 'text-primary' : 'text-card-foreground'}`}>
-                        {style.label}
-                      </span>
-                      {style.categoryId && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {getCategoryTitle(style.categoryId)}
-                        </p>
+                    <div className={`absolute inset-0 ${selectedStyle === style.value ? 'bg-primary/20' : ''}`}>
+                      {selectedStyle === style.value && (
+                        <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center shadow-md">
+                          <Check className="h-4 w-4" />
+                        </div>
                       )}
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="col-span-2 py-8 text-center text-muted-foreground">
-                  <p>이 카테고리에 사용 가능한 스타일이 없습니다</p>
+                  <div className="bg-muted text-center py-3 px-2">
+                    <span className={`text-sm font-medium ${selectedStyle === style.value ? 'text-primary' : 'text-card-foreground'}`}>
+                      {style.label}
+                    </span>
+                    {style.categoryId && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {getCategoryTitle(style.categoryId)}
+                      </p>
+                    )}
+                  </div>
                 </div>
-              )}
+              ))}
             </div>
             
             <DialogFooter className="sm:justify-center mt-6">
@@ -900,101 +993,105 @@ export default function Image() {
                         }}
                       />
                     </div>
-                    <div className="absolute top-2 right-2 flex flex-col gap-2">
-                      <button
-                        onClick={() => handleViewImage(transformedImage)}
-                        className="bg-white/80 backdrop-blur-sm p-2 rounded-full shadow-md text-foreground hover:bg-white transition-colors"
-                        title="크게 보기"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleShare(transformedImage.id)}
-                        className="bg-white/80 backdrop-blur-sm p-2 rounded-full shadow-md text-foreground hover:bg-white transition-colors"
-                        title="공유하기"
-                      >
-                        <Share2 className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDownload(transformedImage.id)}
-                        className="bg-white/80 backdrop-blur-sm p-2 rounded-full shadow-md text-foreground hover:bg-white transition-colors"
-                        title="다운로드"
-                      >
-                        <Download className="h-4 w-4" />
-                      </button>
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-2">
+                      <p className="text-white text-xs font-medium">{transformedImage.style} 스타일</p>
+                    </div>
+                    <div className="absolute top-2 right-2 bg-[#ff2d55] text-white text-xs rounded-full px-2 py-0.5">
+                      최신
                     </div>
                   </div>
                   <div className="p-3">
-                    <h4 className="font-medium text-[15px] text-neutral-dark line-clamp-1">{transformedImage.title}</h4>
-                    <p className="text-xs text-muted-foreground mt-0.5">{transformedImage.createdAt}</p>
+                    <p className="font-medium text-sm truncate">{transformedImage.title}</p>
+                    <p className="text-xs text-neutral-dark mb-2">
+                      {typeof transformedImage.createdAt === 'string' 
+                        ? new Date(transformedImage.createdAt).toLocaleDateString('ko-KR')
+                        : '방금 전'}
+                    </p>
+                    <div className="flex space-x-2">
+                      <Button
+                        size="sm"
+                        className="flex-1 text-xs bg-[#ff2d55] hover:bg-[#ff2d55]/90 text-white font-medium shadow-sm"
+                        onClick={() => handleDownload(transformedImage.id)}
+                      >
+                        <Download className="mr-1 h-3 w-3" /> 저장
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}
-              
-              {/* 나머지 최근 이미지들 표시 */}
-              {Array.isArray(recentImages) && recentImages
-                .filter((img: TransformedImage) => !transformedImage || img.id !== transformedImage.id)
-                .slice(0, transformedImage ? 9 : 10) // 새 이미지가 있다면 나머지 9개만, 없다면 10개
-                .map((image: TransformedImage) => (
-                  <div 
-                    key={image.id} 
-                    className="bg-white rounded-xl overflow-hidden shadow-soft border border-border hover:shadow-md transition-shadow"
-                  >
-                    <div className="relative">
-                      <div className="aspect-square w-full overflow-hidden">
-                        <img 
-                          src={image.transformedUrl} 
-                          alt={image.title} 
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                          onError={(e) => {
-                            console.error(`이미지 로드 실패: ${image.transformedUrl}`);
-                            e.currentTarget.src = "https://placehold.co/400x400/F0F0F0/AAA?text=이미지+로드+실패";
-                          }}
-                        />
+
+              {/* 서버에서 가져온 최근 이미지 목록 */}
+              {recentImages && recentImages.length > 0 && 
+                recentImages
+                  // 현재 표시된 이미지와 겹치지 않도록 필터링
+                  .filter((img: TransformedImage) => !transformedImage || img.id !== transformedImage.id)
+                  // 최대 9개만 표시 (현재 변환 이미지 1개 + 목록에서 9개 = 10개)
+                  .slice(0, transformedImage ? 9 : 10)
+                  .map((image: TransformedImage) => (
+                    <div 
+                      key={image.id}
+                      className="bg-white rounded-xl overflow-hidden shadow-soft border border-[#ff2d55] hover:shadow-md transition-shadow"
+                    >
+                      <div className="relative">
+                        <div className="aspect-square w-full overflow-hidden">
+                          <img 
+                            src={image.transformedUrl} 
+                            alt={image.title} 
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                            onError={(e) => {
+                              console.error(`이미지 로드 실패:`, image);
+                              e.currentTarget.src = "https://placehold.co/400x400/F0F0F0/AAA?text=이미지+로드+실패";
+                            }}
+                          />
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-2">
+                          <p className="text-white text-xs font-medium">{image.style} 스타일</p>
+                        </div>
                       </div>
-                      <div className="absolute top-2 right-2 flex flex-col gap-2">
-                        <button
-                          onClick={() => handleViewImage(image)}
-                          className="bg-white/80 backdrop-blur-sm p-2 rounded-full shadow-md text-foreground hover:bg-white transition-colors"
-                          title="크게 보기"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleShare(image.id)}
-                          className="bg-white/80 backdrop-blur-sm p-2 rounded-full shadow-md text-foreground hover:bg-white transition-colors"
-                          title="공유하기"
-                        >
-                          <Share2 className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDownload(image.id)}
-                          className="bg-white/80 backdrop-blur-sm p-2 rounded-full shadow-md text-foreground hover:bg-white transition-colors"
-                          title="다운로드"
-                        >
-                          <Download className="h-4 w-4" />
-                        </button>
+                      <div className="p-3">
+                        <p className="font-medium text-sm truncate">{image.title}</p>
+                        <p className="text-xs text-neutral-dark mb-2">
+                          {typeof image.createdAt === 'string' 
+                            ? new Date(image.createdAt).toLocaleDateString('ko-KR')
+                            : '날짜 없음'}
+                        </p>
+                        <div className="flex space-x-2">
+                          <Button
+                            size="sm"
+                            className="flex-1 text-xs bg-neutral-light hover:bg-neutral-light/80 text-neutral-dark font-medium shadow-sm"
+                            onClick={() => handleViewImage(image)}
+                          >
+                            <Eye className="mr-1 h-3 w-3" /> 보기
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="flex-1 text-xs bg-[#ff2d55] hover:bg-[#ff2d55]/90 text-white font-medium shadow-sm"
+                            onClick={() => handleDownload(image.id)}
+                          >
+                            <Download className="mr-1 h-3 w-3" /> 저장
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                    <div className="p-3">
-                      <h4 className="font-medium text-[15px] text-neutral-dark line-clamp-1">{image.title}</h4>
-                      <p className="text-xs text-muted-foreground mt-0.5">{image.createdAt}</p>
-                    </div>
-                  </div>
-                ))}
-              
-              {/* 이미지가 없을 때 안내 메시지 표시 */}
-              {(!Array.isArray(recentImages) || recentImages.length === 0) && !transformedImage && (
-                <div className="col-span-2 bg-muted rounded-xl p-8 text-center">
-                  <div className="flex flex-col items-center justify-center">
-                    <ImageIcon className="h-12 w-12 text-muted-foreground/50 mb-4" />
-                    <h4 className="text-lg font-medium text-card-foreground mb-2">아직 생성된 이미지가 없습니다</h4>
-                    <p className="text-muted-foreground text-sm">
-                      사진을 업로드하고 스타일을 선택한 다음 <br />
-                      변환 버튼을 클릭해 첫 번째 이미지를 만들어보세요!
-                    </p>
-                  </div>
+                  ))
+              }
+
+              {/* 데이터는 로드됐지만 이미지가 없는 경우 */}
+              {recentImages && recentImages.length === 0 && !transformedImage && (
+                <div className="col-span-2 text-center py-8 bg-neutral-lightest rounded-xl border border-dashed border-[#ff2d55]">
+                  <PaintbrushVertical className="h-8 w-8 mx-auto mb-2 text-neutral" />
+                  <p className="text-neutral-dark font-medium">아직 추억이 없습니다</p>
+                  <p className="text-sm mt-1 mb-4 text-neutral-dark">첫 번째 사진을 변환하여 추억 컬렉션을 시작하세요</p>
+                </div>
+              )}
+
+              {/* 에러 발생 또는 로딩 중인 경우 */}
+              {isLoadingImages && !transformedImage && (
+                <div className="col-span-2 text-center py-8 bg-neutral-lightest rounded-xl border border-dashed border-[#ff2d55]">
+                  <RefreshCw className="h-8 w-8 mx-auto mb-2 text-neutral animate-spin" />
+                  <p className="text-neutral-dark font-medium">이미지 데이터 로딩 중...</p>
+                  <p className="text-sm mt-1 mb-4 text-neutral-dark">잠시만 기다려주세요</p>
                 </div>
               )}
             </div>
@@ -1004,55 +1101,59 @@ export default function Image() {
       
       {/* 이미지 상세 보기 다이얼로그 */}
       <Dialog open={viewImageDialog} onOpenChange={setViewImageDialog}>
-        <DialogContent className="sm:max-w-lg p-0 overflow-hidden bg-transparent border-none shadow-2xl">
-          <div className="relative bg-card p-4 pb-2 rounded-t-lg">
-            <div className="absolute top-2 right-2">
-              <button
-                onClick={() => setViewImageDialog(false)}
-                className="text-muted-foreground hover:text-card-foreground transition-colors"
+        <DialogContent className="max-w-4xl bg-white border border-[#ff2d55]">
+          <DialogHeader>
+            <DialogTitle>{selectedGalleryImage?.title}</DialogTitle>
+            <DialogDescription className="text-neutral-dark">
+              {selectedGalleryImage?.createdAt && 
+                new Date(selectedGalleryImage.createdAt).toLocaleDateString('ko-KR', {
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })
+              } 생성됨
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="relative aspect-video bg-neutral-lightest rounded-md overflow-hidden">
+            <img 
+              src={selectedGalleryImage?.transformedUrl} 
+              alt={selectedGalleryImage?.title}
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                console.error("상세 이미지 로드 실패:", selectedGalleryImage);
+                e.currentTarget.src = "https://placehold.co/400x400/F0F0F0/AAA?text=이미지+로드+실패";
+              }}
+            />
+          </div>
+          
+          <DialogFooter>
+            <div className="flex items-center gap-2 w-full justify-end">
+              <Button 
+                className="bg-neutral-light hover:bg-neutral-light/80 text-neutral-dark font-medium shadow-sm"
+                onClick={() => {
+                  if (selectedGalleryImage) {
+                    handleDownload(selectedGalleryImage.id);
+                  }
+                }}
               >
-                <X className="h-5 w-5" />
-              </button>
+                <Download className="mr-2 h-4 w-4" /> 다운로드
+              </Button>
+              
+              <Button
+                className="bg-[#ff2d55] hover:bg-[#ff2d55]/90 text-white font-medium shadow-sm"
+                onClick={() => {
+                  if (selectedGalleryImage) {
+                    handleShare(selectedGalleryImage.id);
+                  }
+                }}
+              >
+                <Share2 className="mr-2 h-4 w-4" /> 공유하기
+              </Button>
             </div>
-            <h3 className="text-lg font-medium text-center text-card-foreground mb-2">
-              {selectedGalleryImage?.title}
-            </h3>
-          </div>
-          
-          <div className="bg-muted p-1">
-            <div className="bg-black flex items-center justify-center">
-              {selectedGalleryImage && (
-                <img 
-                  src={selectedGalleryImage.transformedUrl} 
-                  alt={selectedGalleryImage.title} 
-                  className="max-w-full max-h-[70vh] object-contain"
-                />
-              )}
-            </div>
-          </div>
-          
-          <div className="bg-card p-4 rounded-b-lg">
-            <div className="flex justify-center space-x-2">
-              {selectedGalleryImage && (
-                <>
-                  <Button 
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                    onClick={() => handleDownload(selectedGalleryImage.id)}
-                  >
-                    <Download className="mr-2 h-4 w-4" />
-                    <span>다운로드</span>
-                  </Button>
-                  <Button 
-                    className="bg-muted hover:bg-muted/90 text-muted-foreground"
-                    onClick={() => handleShare(selectedGalleryImage.id)}
-                  >
-                    <Share2 className="mr-2 h-4 w-4" />
-                    <span>공유하기</span>
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
