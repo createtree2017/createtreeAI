@@ -76,6 +76,18 @@ const LoginForm: React.FC = () => {
             "로그인"
           )}
         </Button>
+        
+        {/* 테스트 버튼 */}
+        <div className="mt-4">
+          <Button 
+            type="button" 
+            variant="outline" 
+            className="w-full text-primary" 
+            onClick={() => window.location.href = "/test"}
+          >
+            테스트 페이지로 이동
+          </Button>
+        </div>
       </form>
     </Form>
   );
