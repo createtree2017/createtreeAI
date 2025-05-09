@@ -33,7 +33,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { Loader2, Plus, Pencil, Trash2 } from 'lucide-react';
-import { SuperAdminLayout } from '@/components/SuperAdminLayout';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
@@ -195,37 +194,33 @@ export default function HospitalsPage() {
   // 로딩 중 상태
   if (isLoading) {
     return (
-      <SuperAdminLayout>
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </SuperAdminLayout>
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
     );
   }
   
   // 오류 상태
   if (error) {
     return (
-      <SuperAdminLayout>
-        <div className="rounded-md bg-destructive/10 p-6 text-center">
-          <p className="text-destructive">병원 목록을 불러오는 중 오류가 발생했습니다.</p>
-          <Button
-            variant="outline"
-            className="mt-4"
-            onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/super/hospitals'] })}
-          >
-            다시 시도
-          </Button>
-        </div>
-      </SuperAdminLayout>
+      <div className="rounded-md bg-destructive/10 p-6 text-center">
+        <p className="text-destructive">병원 목록을 불러오는 중 오류가 발생했습니다.</p>
+        <Button
+          variant="outline"
+          className="mt-4"
+          onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/super/hospitals'] })}
+        >
+          다시 시도
+        </Button>
+      </div>
     );
   }
 
   return (
-    <SuperAdminLayout>
+    <>
       <div className="mb-8">
         <div className="flex justify-between items-center mb-6">
-          {/* 제목은 슈퍼어드민 레이아웃에서 이미 표시하므로 여기서는 제거 */}
+          <h1 className="text-2xl font-bold">병원 관리</h1>
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button className="flex items-center gap-2">
@@ -514,6 +509,6 @@ export default function HospitalsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </SuperAdminLayout>
+    </>
   );
 }
