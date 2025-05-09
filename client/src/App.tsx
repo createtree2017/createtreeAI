@@ -8,7 +8,7 @@ import Home from "@/pages/home";
 import Music from "@/pages/music";
 import Image from "@/pages/image";
 import Chat from "@/pages/chat";
-import Gallery from "@/pages/gallery";
+import Gallery from "@/pages/gallery-simplified";
 import Admin from "@/pages/admin";
 import Milestones from "@/pages/milestones";
 import AuthPage from "@/pages/auth";

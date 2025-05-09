@@ -149,7 +149,7 @@ export default function Gallery() {
       {/* 갤러리 그리드 */}
       {!isLoading && paginatedItems.length > 0 && (
         <div className="grid grid-cols-2 gap-3">
-          {paginatedItems.map((item) => (
+          {paginatedItems.map((item: GalleryItem) => (
             <div
               key={`${item.type}-${item.id}`}
               className="bg-white rounded-lg overflow-hidden shadow-softer border border-neutral-light"
