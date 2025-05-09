@@ -231,14 +231,28 @@ import authRoutes from "./routes/auth";
 // 인증 서비스 가져오기
 import { initPassport } from "./services/auth";
 import cookieParser from "cookie-parser";
+import session from "express-session";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // 쿠키 파서 미들웨어 등록
   app.use(cookieParser());
   
+  // 세션 미들웨어 등록
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 24 * 60 * 60 * 1000 // 24시간
+    }
+  }));
+  
   // Passport 초기화 및 미들웨어 등록
   const passport = initPassport();
   app.use(passport.initialize());
+  app.use(passport.session());
   
   // 인증 라우트 등록
   app.use("/api/auth", authRoutes);
