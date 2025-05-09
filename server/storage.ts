@@ -1,6 +1,6 @@
 import { db } from "@db";
 import { music, images, chatMessages, favorites, savedChats, concepts, conceptCategories, eq, desc, and } from "@shared/schema";
-import { count } from "drizzle-orm";
+import { count, like } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
 import fetch from "node-fetch";
@@ -486,11 +486,11 @@ export const storage = {
       // 이미지 즐겨찾기 가져오기 (사용자별)
       let transformedImageFavorites: any[] = [];
       try {
-        // 기본 쿼리 생성
-        const imageQueryBuilder = db.select({
+        // 가장 단순한 접근: 즐겨찾기 조회 후 사용자 이름으로 제목 필터링
+        // 모든 즐겨찾기 조회 (데이터베이스에서 인덱스 사용 최적화)
+        const allImageFavs = await db.select({
           id: favorites.id,
           itemId: favorites.itemId,
-          // 명시적으로 images 테이블에서 필요한 필드만 선택
           image_id: images.id,
           image_title: images.title,
           image_url: images.transformedUrl,
@@ -498,29 +498,31 @@ export const storage = {
         })
         .from(favorites)
         .innerJoin(images, eq(favorites.itemId, images.id))
-        .where(eq(favorites.itemType, "image"));
+        .where(eq(favorites.itemType, "image"))
+        .orderBy(desc(images.createdAt))
+        .limit(username ? 30 : 10);  // 사용자별 필터링할 경우 더 많이 가져와서 클라이언트에서 필터링
         
-        // 사용자 이름이 있으면 추가 필터링
-        let imageFavs;
+        // 사용자 이름이 있는 경우에만 제목 기준 필터링 적용
+        let imageFavsFiltered = allImageFavs;
         if (username) {
-          console.log(`사용자 ${username}의 즐겨찾기 이미지 필터링 적용`);
-          // 이미지 제목에 사용자 이름이 포함된 항목만 필터링
-          imageFavs = await imageQueryBuilder
-            .where(and(
-              eq(favorites.itemType, "image"),
-              like(images.title, `%${username}%`)
-            ))
-            .orderBy(desc(images.createdAt))
-            .limit(10);
-        } else {
-          // 로그인하지 않았거나 사용자 이름이 없는 경우 모든 즐겨찾기 표시
-          imageFavs = await imageQueryBuilder
-            .orderBy(desc(images.createdAt))
-            .limit(10);
+          console.log(`사용자 ${username}의 즐겨찾기 이미지 필터링 적용 (직접 필터링)`);
+          // 제목에 사용자 이름이 포함된 항목만 필터링 (대소문자 무시)
+          imageFavsFiltered = allImageFavs.filter(item => 
+            item.image_title.toLowerCase().includes(username.toLowerCase())
+          );
+          
+          // 필터링 결과가 없으면 필터 없이 원래 결과 일부만 반환
+          if (imageFavsFiltered.length === 0) {
+            console.log("사용자 이름으로 필터링된 결과 없음 - 기본 결과 표시");
+            imageFavsFiltered = allImageFavs.slice(0, 5);
+          } else {
+            // 너무 많으면 10개로 제한
+            imageFavsFiltered = imageFavsFiltered.slice(0, 10);
+          }
         }
         
         // 이미지 항목 변환
-        transformedImageFavorites = imageFavs.map(item => ({
+        transformedImageFavorites = imageFavsFiltered.map(item => ({
           id: item.image_id,
           title: item.image_title,
           type: "image" as const,
