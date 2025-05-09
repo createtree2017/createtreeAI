@@ -24,7 +24,7 @@ export function useAuth() {
   // 토큰 재발급 시도 상태 관리
   const [isRefreshing, setIsRefreshing] = React.useState(false);
 
-  // 현재 로그인한 사용자 정보 가져오기
+  // 현재 로그인한 사용자 정보 가져오기 (세션 기반)
   const { 
     data: user, 
     isLoading, 
@@ -34,41 +34,14 @@ export function useAuth() {
     queryKey: ["/api/auth/me"],
     queryFn: async (): Promise<User | null> => {
       try {
-        // 로컬 스토리지에서 토큰 가져오기
-        const token = localStorage.getItem("accessToken");
-        if (!token) return null;
-
+        // 세션 쿠키와 함께 요청
         const response = await fetch("/api/auth/me", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          credentials: "include", // 쿠키 포함 (중요!)
         });
 
         if (!response.ok) {
-          if (response.status === 401 && !isRefreshing) {
-            // 토큰이 만료된 경우 리프레시 시도
-            setIsRefreshing(true);
-            const refreshed = await refreshToken();
-            setIsRefreshing(false);
-            
-            if (refreshed) {
-              // 토큰 갱신 성공 시 새로운 요청 시도
-              const newResponse = await fetch("/api/auth/me", {
-                headers: {
-                  Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-                },
-              });
-              
-              if (newResponse.ok) {
-                console.log("토큰 갱신 후 사용자 정보 조회 성공");
-                const userData = await newResponse.json();
-                // 디버깅을 위해 사용자 정보 로깅 (비밀번호는 제외)
-                const { password, ...userInfo } = userData;
-                console.log("사용자 정보:", userInfo);
-                return userData;
-              }
-            }
-            return null;
+          if (response.status === 401) {
+            return null; // 로그인 되지 않음
           }
           throw new Error("사용자 정보를 가져오는데 실패했습니다.");
         }
@@ -109,7 +82,7 @@ export function useAuth() {
     }
   };
 
-  // 로그인 기능
+  // 로그인 기능 (세션 기반)
   const login = useMutation({
     mutationFn: async (credentials: LoginCredentials) => {
       // 직접 fetch API 사용 (apiRequest 대신)
@@ -119,7 +92,7 @@ export function useAuth() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(credentials),
-        credentials: "include", // 쿠키 포함
+        credentials: "include", // 쿠키 포함 (중요!)
       });
 
       if (!response.ok) {
@@ -131,8 +104,7 @@ export function useAuth() {
       return data;
     },
     onSuccess: (data) => {
-      // 액세스 토큰 저장
-      localStorage.setItem("accessToken", data.accessToken);
+      // 세션 기반이므로 토큰 저장 불필요
       
       // 사용자 정보 캐시 업데이트
       queryClient.setQueryData(["/api/auth/me"], data.user);

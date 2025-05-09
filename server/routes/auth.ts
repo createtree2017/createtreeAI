@@ -149,9 +149,9 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// 로그인 API
+// 로그인 API (세션 기반)
 router.post("/login", (req, res, next) => {
-  passport.authenticate("local", async (err: any, user: any, info: any) => {
+  passport.authenticate("local", (err: any, user: any, info: any) => {
     try {
       if (err) {
         return next(err);
@@ -161,22 +161,16 @@ router.post("/login", (req, res, next) => {
         return res.status(401).json({ message: info.message || "로그인 실패" });
       }
       
-      // JWT 토큰 생성
-      const accessToken = generateToken(user);
-      const refreshToken = await generateRefreshToken(user.id);
-      
-      // 쿠키에 리프레시 토큰 저장
-      res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 14 * 24 * 60 * 60 * 1000, // 14일
-      });
-      
-      // 응답
-      return res.json({
-        user: sanitizeUser(user),
-        accessToken,
+      // req.login()을 사용하여 세션에 사용자 저장
+      req.login(user, (loginErr) => {
+        if (loginErr) {
+          return next(loginErr);
+        }
+        
+        // 응답 - 사용자 정보만 반환 (토큰 없음)
+        return res.json({
+          user: sanitizeUser(user)
+        });
       });
     } catch (error) {
       return next(error);
@@ -210,43 +204,59 @@ router.post("/refresh-token", async (req, res) => {
   }
 });
 
-// 로그아웃 API
+// 로그아웃 API (세션 기반)
 router.post("/logout", (req, res) => {
-  const refreshToken = req.cookies.refreshToken;
-  
-  if (refreshToken) {
-    // 리프레시 토큰 무효화
-    invalidateRefreshToken(refreshToken);
-  }
-  
-  // 쿠키 삭제
-  res.clearCookie("refreshToken");
-  
-  return res.json({ message: "로그아웃 성공" });
+  // req.logout() 사용하여 세션에서 사용자 정보 제거
+  req.logout((err) => {
+    if (err) {
+      console.error("로그아웃 오류:", err);
+      return res.status(500).json({ message: "로그아웃 중 오류가 발생했습니다." });
+    }
+    
+    // 세션 파기
+    req.session.destroy((sessionErr) => {
+      if (sessionErr) {
+        console.error("세션 파기 오류:", sessionErr);
+      }
+      
+      // 쿠키 삭제
+      res.clearCookie("connect.sid");
+      
+      return res.json({ message: "로그아웃 성공" });
+    });
+  });
 });
 
 // 현재 로그인한 사용자 정보 조회 API
-router.get("/me", authenticateJWT, async (req, res) => {
+router.get("/me", (req, res) => {
   try {
-    const userId = (req.user as any).sub;
-    
-    const user = await db.query.users.findFirst({
-      where: eq(users.id, userId),
-    });
-    
-    if (!user) {
-      return res.status(404).json({ message: "사용자를 찾을 수 없습니다." });
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "로그인이 필요합니다." });
     }
     
-    return res.json(sanitizeUser(user));
+    // 이미 인증된 사용자 정보가 req.user에 있음
+    return res.json(req.user);
   } catch (error) {
     console.error("사용자 정보 조회 오류:", error);
     return res.status(500).json({ message: "서버 오류가 발생했습니다." });
   }
 });
 
-// 관리자 역할 확인 API (예시)
-router.get("/admin-check", authenticateJWT, checkRole(["admin", "superadmin"]), (req, res) => {
+// 관리자 역할 확인 API (세션 기반)
+router.get("/admin-check", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ message: "로그인이 필요합니다." });
+  }
+  
+  // 사용자의 역할이나 memberType을 확인
+  const user = req.user as any;
+  const isAdmin = user.memberType === 'admin' || user.memberType === 'superadmin' || 
+                 (user.roles && user.roles.some((role: string) => ['admin', 'superadmin'].includes(role)));
+  
+  if (!isAdmin) {
+    return res.status(403).json({ message: "관리자 권한이 필요합니다." });
+  }
+  
   return res.json({ isAdmin: true });
 });
 
