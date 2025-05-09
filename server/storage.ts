@@ -247,15 +247,23 @@ export const storage = {
     }
   },
   
-  // 기존 getImageList 함수 (전체 이미지 목록 불러오기)
+  // 수정된 getImageList 함수 (전체 이미지 목록 불러오기)
   async getImageList() {
     try {
       console.log(`[Storage] getImageList 호출됨: ${new Date().toISOString()}`);
       
-      // SQL 쿼리 직접 실행으로 변경 - 캐싱 이슈 방지
-      const results = await db.query.images.findMany({
-        orderBy: [desc(images.createdAt)],
-      });
+      // 명시적으로 필요한 필드만 선택하여 userId 참조 제거 (스키마 업데이트 전까지)
+      const results = await db.select({
+        id: images.id,
+        title: images.title,
+        style: images.style,
+        originalUrl: images.originalUrl,
+        transformedUrl: images.transformedUrl,
+        createdAt: images.createdAt,
+        metadata: images.metadata
+      })
+      .from(images)
+      .orderBy(desc(images.createdAt));
       
       // 결과 데이터 검증 및 로깅
       console.log(`[Storage] 이미지 조회 결과: ${results ? results.length : 0}개 이미지 찾음`);
@@ -291,12 +299,20 @@ export const storage = {
       
       console.log(`[Storage] 이미지 총 개수: ${total}`);
       
-      // 페이지네이션 적용한 쿼리
-      const results = await db.query.images.findMany({
-        orderBy: [desc(images.createdAt)],
-        limit: limit,
-        offset: (page - 1) * limit
-      });
+      // 명시적으로 필요한 필드만 선택하여 userId 참조 제거 (스키마 업데이트 전까지)
+      const results = await db.select({
+        id: images.id,
+        title: images.title,
+        style: images.style,
+        originalUrl: images.originalUrl,
+        transformedUrl: images.transformedUrl,
+        createdAt: images.createdAt,
+        metadata: images.metadata
+      })
+      .from(images)
+      .orderBy(desc(images.createdAt))
+      .limit(limit)
+      .offset((page - 1) * limit);
       
       console.log(`[Storage] 페이지네이션 이미지 조회 결과: ${results.length}개 (page=${page}, limit=${limit})`);
       
@@ -357,48 +373,70 @@ export const storage = {
   
   // Gallery and Favorites related functions
   async getAllItems() {
-    // Get all music items with favorite status
-    const musicItems = await db.query.music.findMany({
-      orderBy: [desc(music.createdAt)],
-      with: {
-        favorite: true,
-      },
-    });
-    
-    // Transform music items
-    const transformedMusic = musicItems.map((item) => ({
-      id: item.id,
-      title: item.title,
-      type: "music" as const,
-      url: item.url,
-      duration: item.duration,
-      createdAt: item.createdAt.toISOString(),
-      isFavorite: !!item.favorite,
-    }));
-    
-    // Get all image items with favorite status
-    const imageItems = await db.query.images.findMany({
-      orderBy: [desc(images.createdAt)],
-      with: {
-        favorite: true,
-      },
-    });
-    
-    // Transform image items
-    const transformedImages = imageItems.map((item) => ({
-      id: item.id,
-      title: item.title,
-      type: "image" as const,
-      url: item.transformedUrl,
-      thumbnailUrl: item.transformedUrl,
-      createdAt: item.createdAt.toISOString(),
-      isFavorite: !!item.favorite,
-    }));
-    
-    // Combine and sort by creation date
-    return [...transformedMusic, ...transformedImages].sort((a, b) => {
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
+    try {
+      let transformedMusic: any[] = [];
+      let transformedImages: any[] = [];
+      
+      // Get all music items with favorite status (임시 해결책: userId 필드 제외)
+      try {
+        const musicItems = await db.select({
+          id: music.id,
+          title: music.title,
+          url: music.url,
+          duration: music.duration,
+          createdAt: music.createdAt
+        })
+        .from(music)
+        .orderBy(desc(music.createdAt));
+        
+        // Transform music items
+        transformedMusic = musicItems.map((item) => ({
+          id: item.id,
+          title: item.title,
+          type: "music" as const,
+          url: item.url,
+          duration: item.duration,
+          createdAt: item.createdAt.toISOString(),
+          isFavorite: false, // 임시로 즐겨찾기 false로 설정
+        }));
+      } catch (musicError) {
+        console.error("[Storage] 음악 아이템 조회 중 오류:", musicError);
+      }
+      
+      // Get all image items (임시 해결책: userId 필드 제외)
+      try {
+        const imageItems = await db.select({
+          id: images.id,
+          title: images.title,
+          style: images.style,
+          transformedUrl: images.transformedUrl,
+          createdAt: images.createdAt
+        })
+        .from(images)
+        .orderBy(desc(images.createdAt));
+        
+        // Transform image items
+        transformedImages = imageItems.map((item) => ({
+          id: item.id,
+          title: item.title,
+          type: "image" as const,
+          url: item.transformedUrl,
+          thumbnailUrl: item.transformedUrl,
+          createdAt: item.createdAt.toISOString(),
+          isFavorite: false, // 임시로 즐겨찾기 false로 설정
+        }));
+      } catch (imageError) {
+        console.error("[Storage] 이미지 아이템 조회 중 오류:", imageError);
+      }
+      
+      // Combine and sort by creation date
+      return [...transformedMusic, ...transformedImages].sort((a, b) => {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+    } catch (error) {
+      console.error("[Storage] getAllItems 조회 중 오류 발생:", error);
+      return []; // 오류 발생 시 빈 배열 반환
+    }
   },
   
   async getRecentItems() {
