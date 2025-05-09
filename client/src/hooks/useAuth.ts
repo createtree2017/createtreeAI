@@ -60,7 +60,12 @@ export function useAuth() {
               });
               
               if (newResponse.ok) {
-                return await newResponse.json();
+                console.log("토큰 갱신 후 사용자 정보 조회 성공");
+                const userData = await newResponse.json();
+                // 디버깅을 위해 사용자 정보 로깅 (비밀번호는 제외)
+                const { password, ...userInfo } = userData;
+                console.log("사용자 정보:", userInfo);
+                return userData;
               }
             }
             return null;
@@ -68,7 +73,11 @@ export function useAuth() {
           throw new Error("사용자 정보를 가져오는데 실패했습니다.");
         }
 
-        return await response.json();
+        const userData = await response.json();
+        // 디버깅을 위해 사용자 정보 로깅 (비밀번호는 제외)
+        const { password, ...userInfo } = userData;
+        console.log("직접 요청으로 가져온 사용자 정보:", userInfo);
+        return userData;
       } catch (error) {
         console.error("사용자 정보 조회 오류:", error);
         return null;

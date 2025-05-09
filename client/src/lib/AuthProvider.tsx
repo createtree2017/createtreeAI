@@ -96,8 +96,12 @@ export const ProtectedRoute: React.FC<{
   // 역할 확인이 필요한 경우
   if (allowedRoles && allowedRoles.length > 0) {
     // 사용자에게 필요한 역할이 없는 경우 (memberType을 확인)
-    if (!user.memberType || !allowedRoles.includes(user.memberType)) {
+    // superadmin은 모든 경로에 접근 가능
+    if (user.memberType === 'superadmin') {
+      // 슈퍼관리자는 모든 페이지 접근 가능
+    } else if (!user.memberType || !allowedRoles.includes(user.memberType)) {
       // 권한 없음 페이지로 리다이렉션
+      console.log('권한 부족:', user.memberType, '필요한 역할:', allowedRoles);
       return <Redirect to="/unauthorized" />;
     }
   }
