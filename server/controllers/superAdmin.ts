@@ -194,54 +194,32 @@ export async function getAllUsers(req: Request, res: Response) {
       ? and(...conditions) 
       : undefined;
     
-    // 사용자 목록 조회
-    let usersList = await db.query.users.findMany({
-      where: whereClause,
-      orderBy: [desc(users.createdAt)],
-      limit,
-      offset
-    });
+    // 사용자 목록 조회 - 병원 정보와 조인하여 한 번에 가져오기
+    const usersList = await db.select({
+      id: users.id,
+      username: users.username,
+      email: users.email,
+      fullName: users.fullName,
+      memberType: users.memberType,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+      // 암호와 같은 민감 정보는 선택하지 않음
+      hospitalId: users.hospitalId,
+      hospitalName: hospitals.name,
+    })
+    .from(users)
+    .leftJoin(hospitals, eq(users.hospitalId, hospitals.id))
+    .where(whereClause || sql`1=1`)
+    .orderBy(desc(users.createdAt))
+    .limit(limit)
+    .offset(offset);
     
-    // 병원 정보를 효율적으로 가져오기
-    const hospitalIds = usersList
-      .filter(user => user.hospitalId != null)
-      .map(user => user.hospitalId);
-    
-    let hospitalMap: Record<number, any> = {};
-    
-    if (hospitalIds.length > 0) {
-      // 모든 관련 병원을 한 번에 가져오기
-      const hospitalsList = await db.query.hospitals.findMany({
-        where: hospitalIds.length === 1 
-          ? eq(hospitals.id, hospitalIds[0]) 
-          : inArray(hospitals.id, hospitalIds)
-      });
-      
-      // 맵으로 변환하여 빠른 조회 가능하게 함
-      hospitalMap = hospitalsList.reduce((map, hospital) => {
-        map[hospital.id] = hospital;
-        return map;
-      }, {} as Record<number, any>);
-    }
-    
-    // 사용자 정보에 병원 이름 추가
-    console.log("병원 맵 정보:", JSON.stringify(hospitalMap));
-    console.log("사용자 목록:", JSON.stringify(usersList.map(u => ({ id: u.id, username: u.username, hospitalId: u.hospitalId }))));
-    
-    usersList = usersList.map(user => {
-      if (user.hospitalId && hospitalMap[user.hospitalId]) {
-        console.log(`사용자 ${user.username}(${user.id})에 병원 정보 추가: ${hospitalMap[user.hospitalId].name}`);
-        return {
-          ...user,
-          hospitalName: hospitalMap[user.hospitalId].name
-        };
-      }
-      console.log(`사용자 ${user.username}(${user.id})에 병원 정보 없음. hospitalId: ${user.hospitalId}`);
-      return {
-        ...user,
-        hospitalName: null
-      };
-    });
+    console.log("사용자 목록 SQL 결과:", JSON.stringify(usersList.map(u => ({
+      id: u.id,
+      username: u.username,
+      hospitalId: u.hospitalId,
+      hospitalName: u.hospitalName
+    }))));
     
     // 총 사용자 수 계산
     const countResult = await db.select({ count: sql<number>`count(*)` })
@@ -269,36 +247,42 @@ export async function getUserById(req: Request, res: Response) {
   try {
     const { id } = req.params;
     
-    // 사용자 정보 조회
-    const user = await db.query.users.findFirst({
-      where: eq(users.id, parseInt(id)),
-      with: {
-        roles: {
-          with: {
-            role: true
-          }
-        }
-      }
-    });
+    // 사용자 정보 조회 - 병원 정보를 조인하여 한 번에 가져오기
+    const result = await db.select({
+      user: users,
+      hospital: hospitals,
+      userRoles: userRoles,
+      role: roles,
+    })
+    .from(users)
+    .leftJoin(hospitals, eq(users.hospitalId, hospitals.id))
+    .leftJoin(userRoles, eq(users.id, userRoles.userId))
+    .leftJoin(roles, eq(userRoles.roleId, roles.id))
+    .where(eq(users.id, parseInt(id)));
     
-    if (!user) {
+    if (result.length === 0) {
       return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' });
     }
     
-    // 소속 병원 정보 조회
-    let hospital = null;
-    if (user.hospitalId) {
-      hospital = await db.query.hospitals.findFirst({
-        where: eq(hospitals.id, user.hospitalId)
-      });
-    }
+    // 사용자 기본 정보 추출
+    const user = result[0].user;
     
-    // 사용자 역할 정보 가공
-    const roles = user.roles.map((userRole: any) => ({
-      id: userRole.roleId,
-      name: userRole.role.name,
-      description: userRole.role.description
-    }));
+    // 병원 정보 추출
+    const hospital = result[0].hospital;
+    
+    // 역할 정보 가공
+    const userRolesMap = new Map();
+    result.forEach(row => {
+      if (row.role) {
+        userRolesMap.set(row.role.id, {
+          id: row.role.id,
+          name: row.role.name,
+          description: row.role.description
+        });
+      }
+    });
+    
+    const roles = Array.from(userRolesMap.values());
     
     // 비밀번호 필드 제외
     const { password, ...userData } = user;
