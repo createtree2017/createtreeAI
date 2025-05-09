@@ -21,12 +21,7 @@ export function useAuth() {
   const { toast } = useToast();
 
   // 현재 로그인한 사용자 정보 가져오기
-  const {
-    data: user,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery<User | null>({
+  const userQuery = useQuery<User | null>({
     queryKey: ["/api/auth/me"],
     queryFn: async () => {
       try {
@@ -45,8 +40,8 @@ export function useAuth() {
             // 토큰이 만료된 경우 리프레시 시도
             const refreshed = await refreshToken();
             if (refreshed) {
-              // 토큰 갱신 성공 시 다시 시도
-              return refetch();
+              // 토큰 갱신 성공 시 refetch를 수행할 수 있도록 함
+              return userQuery.refetch().then(result => result.data || null);
             }
             return null;
           }
@@ -61,6 +56,8 @@ export function useAuth() {
     },
     retry: false,
   });
+  
+  const { data: user, isLoading, error } = userQuery;
 
   // 토큰 갱신 함수
   const refreshToken = async (): Promise<boolean> => {

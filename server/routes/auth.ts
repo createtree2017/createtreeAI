@@ -52,70 +52,86 @@ router.post("/register", async (req, res) => {
     // 비밀번호 해싱
     const hashedPassword = await hashPassword(validatedData.password);
 
-    // 사용자 생성
-    const newUser = await db
-      .insert(users)
-      .values({
-        ...validatedData,
+    try {
+      // 사용자 생성 - createdAt과 updatedAt을 SQL 레벨에서 DEFAULT(current_timestamp)로 처리
+      const userValues = {
+        username: validatedData.username,
         password: hashedPassword,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .returning();
+        email: validatedData.email || null,
+        fullName: validatedData.fullName || null,
+        emailVerified: false,
+        memberType: validatedData.memberType || "general"
+      };
 
-    if (!newUser || newUser.length === 0) {
-      return res.status(500).json({ message: "사용자 생성에 실패했습니다." });
-    }
-
-    // 기본 역할 (user) 찾기
-    const userRole = await db.query.roles.findFirst({
-      where: eq(roles.name, "user"),
-    });
-
-    // 만약 역할이 존재하지 않는다면 생성
-    let roleId = userRole?.id;
-    if (!roleId) {
-      const newRole = await db
-        .insert(roles)
-        .values({
-          name: "user",
-          description: "일반 사용자",
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
+      // 사용자 생성
+      const newUser = await db
+        .insert(users)
+        .values(userValues)
         .returning();
+
+      if (!newUser || newUser.length === 0) {
+        return res.status(500).json({ message: "사용자 생성에 실패했습니다." });
+      }
+
+      // 기본 역할 (user) 찾기
+      const userRole = await db.query.roles.findFirst({
+        where: eq(roles.name, "user"),
+      });
+
+      // 만약 역할이 존재하지 않는다면 생성
+      let roleId = userRole?.id;
+      if (!roleId) {
+        const newRole = await db
+          .insert(roles)
+          .values({
+            name: "user",
+            description: "일반 사용자",
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .returning();
+        
+        roleId = newRole[0].id;
+      }
+
+      // 사용자-역할 매핑 생성
+      await db.insert(userRoles).values({
+        userId: newUser[0].id,
+        roleId: roleId,
+        createdAt: new Date(),
+      });
+
+      // 토큰 생성
+      const user = {
+        ...newUser[0],
+        roles: ["user"],
+      };
       
-      roleId = newRole[0].id;
+      const accessToken = generateToken(user);
+      const refreshToken = await generateRefreshToken(newUser[0].id);
+
+      // 응답
+      res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 14 * 24 * 60 * 60 * 1000, // 14일
+      });
+
+      return res.status(201).json({
+        user: sanitizeUser(user),
+        accessToken,
+      });
+    } catch (dbError: any) {
+      console.error("DB 저장 오류:", dbError);
+      
+      // 구체적인 오류 메시지 제공
+      if (dbError.code === '23505') {
+        return res.status(400).json({ message: "이미 등록된 계정입니다." });
+      }
+      
+      throw dbError; // 다른 오류는 상위 catch 블록으로 전달
     }
-
-    // 사용자-역할 매핑 생성
-    await db.insert(userRoles).values({
-      userId: newUser[0].id,
-      roleId: roleId,
-      createdAt: new Date(),
-    });
-
-    // 토큰 생성
-    const user = {
-      ...newUser[0],
-      roles: ["user"],
-    };
-    
-    const accessToken = generateToken(user);
-    const refreshToken = await generateRefreshToken(newUser[0].id);
-
-    // 응답
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 14 * 24 * 60 * 60 * 1000, // 14일
-    });
-
-    return res.status(201).json({
-      user: sanitizeUser(user),
-      accessToken,
-    });
   } catch (error: any) {
     console.error("회원가입 오류:", error);
     if (error.name === "ZodError") {
