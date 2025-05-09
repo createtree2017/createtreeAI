@@ -111,6 +111,7 @@ export function SuperAdminLayout({ children }: { children: React.ReactNode }) {
                 <SelectValue placeholder="병원을 선택해주세요" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem key="all" value="all">전체 병원</SelectItem>
                 {hospitals?.map(hospital => (
                   <SelectItem key={hospital.id} value={hospital.id.toString()}>
                     {hospital.name}
@@ -188,6 +189,7 @@ export function SuperAdminLayout({ children }: { children: React.ReactNode }) {
                 <SelectValue placeholder="병원을 선택해주세요" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem key="all" value="all">전체 병원</SelectItem>
                 {hospitals?.map(hospital => (
                   <SelectItem key={hospital.id} value={hospital.id.toString()}>
                     {hospital.name}
@@ -212,7 +214,7 @@ export function SuperAdminLayout({ children }: { children: React.ReactNode }) {
                 </div>
                 <div className="ml-3">
                   <p className="text-sm text-amber-700 dark:text-amber-300">
-                    병원을 선택해야 이 기능을 사용할 수 있습니다. 좌측 메뉴에서 병원을 선택해주세요.
+                    병원을 선택해야 이 기능을 사용할 수 있습니다. 좌측 메뉴에서, 병원을 선택해주세요.
                   </p>
                 </div>
               </div>
