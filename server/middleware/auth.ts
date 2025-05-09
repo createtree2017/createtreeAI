@@ -5,6 +5,10 @@ import { eq, and } from '@shared/schema';
 
 // 사용자 인증 여부 확인
 export function isAuthenticated(req: Request, res: Response, next: NextFunction) {
+  console.log('인증 확인 - isAuthenticated:', req.isAuthenticated());
+  console.log('세션 정보:', req.session);
+  console.log('쿠키 정보:', req.cookies);
+  
   if (!req.isAuthenticated()) {
     return res.status(401).json({ error: '로그인이 필요합니다.' });
   }
@@ -13,6 +17,9 @@ export function isAuthenticated(req: Request, res: Response, next: NextFunction)
 
 // 관리자 권한 확인
 export async function isAdmin(req: Request, res: Response, next: NextFunction) {
+  console.log('관리자 권한 확인 - isAuthenticated:', req.isAuthenticated());
+  console.log('사용자 정보:', req.user);
+  
   if (!req.isAuthenticated()) {
     return res.status(401).json({ error: '로그인이 필요합니다.' });
   }
