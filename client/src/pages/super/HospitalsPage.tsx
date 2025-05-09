@@ -23,8 +23,10 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormMessage
+  FormMessage,
+  FormDescription
 } from '@/components/ui/form';
+import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
@@ -457,6 +459,27 @@ export default function HospitalsPage() {
                       />
                     </FormControl>
                     <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={editForm.control}
+                name="isActive"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between space-x-2 rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">계약 상태</FormLabel>
+                      <FormDescription>
+                        병원 계약이 활성 상태인지 설정합니다. 비활성화 시 소속 회원들의 멤버십이 일반 회원으로 변경됩니다.
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
                   </FormItem>
                 )}
               />

@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { db } from '../../db';
 import { roles, userRoles } from '@shared/schema';
-import { eq, and } from '@shared/schema';
+import { eq, and } from 'drizzle-orm';
+import { hospitals } from '@shared/schema';
 
 // 사용자 인증 여부 확인
 export function isAuthenticated(req: Request, res: Response, next: NextFunction) {
@@ -102,13 +103,30 @@ export async function isHospitalAdmin(req: Request, res: Response, next: NextFun
     return res.status(401).json({ error: '로그인이 필요합니다.' });
   }
 
-  // member_type이 'hospital_admin'인 경우 또는 'superadmin'인 경우 허용
-  if (req.user.memberType === 'hospital_admin' || req.user.memberType === 'superadmin') {
+  // 슈퍼관리자는 항상 접근 허용
+  if (req.user.memberType === 'superadmin') {
     return next();
   }
 
-  // 사용자의 역할 확인
   try {
+    // 병원 관리자이고 소속 병원이 있는 경우, 병원의 활성 상태 확인
+    if (req.user.memberType === 'hospital_admin' && req.user.hospitalId) {
+      const userHospital = await db.query.hospitals.findFirst({
+        where: eq(hospitals.id, req.user.hospitalId)
+      });
+
+      // 병원이 존재하지 않거나 비활성 상태인 경우 접근 거부
+      if (!userHospital || !userHospital.isActive) {
+        return res.status(403).json({ 
+          error: '소속 병원이 비활성 상태입니다. 관리자에게 문의하세요.' 
+        });
+      }
+
+      // 병원이 활성 상태이면 병원 관리자 접근 허용
+      return next();
+    }
+
+    // 역할 기반 확인
     const hospitalAdminRole = await db.query.roles.findFirst({
       where: eq(roles.name, 'hospital_admin')
     });
@@ -125,6 +143,23 @@ export async function isHospitalAdmin(req: Request, res: Response, next: NextFun
     });
 
     if (userRole) {
+      // 역할은 있지만 소속 병원이 없는 경우
+      if (!req.user.hospitalId) {
+        return res.status(403).json({ error: '소속 병원 정보가 없습니다.' });
+      }
+
+      // 소속 병원의 활성 상태 확인
+      const userHospital = await db.query.hospitals.findFirst({
+        where: eq(hospitals.id, req.user.hospitalId)
+      });
+
+      // 병원이 존재하지 않거나 비활성 상태인 경우 접근 거부
+      if (!userHospital || !userHospital.isActive) {
+        return res.status(403).json({ 
+          error: '소속 병원이 비활성 상태입니다. 관리자에게 문의하세요.' 
+        });
+      }
+
       return next();
     }
     

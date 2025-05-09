@@ -94,10 +94,34 @@ export async function updateHospital(req: Request, res: Response) {
       updateData.contractEndDate = new Date(hospitalData.contractEndDate);
     }
     
+    // 병원 상태(활성/비활성) 변경 확인
+    const isStatusChanged = existingHospital.isActive !== hospitalData.isActive;
+    
+    // 병원 정보 업데이트
     const [updatedHospital] = await db.update(hospitals)
       .set(updateData)
       .where(eq(hospitals.id, parseInt(id)))
       .returning();
+    
+    // 병원이 비활성화되었을 경우 소속 사용자들의 멤버십을 변경
+    if (isStatusChanged && hospitalData.isActive === false) {
+      // 해당 병원에 소속된 사용자 목록 조회
+      const hospitalUsers = await db.query.users.findMany({
+        where: eq(users.hospitalId, parseInt(id))
+      });
+      
+      // 사용자들의 멤버십을 일반 회원(general)으로 변경
+      if (hospitalUsers.length > 0) {
+        await db.update(users)
+          .set({ 
+            memberType: 'general',
+            updatedAt: new Date()
+          })
+          .where(eq(users.hospitalId, parseInt(id)));
+        
+        console.log(`병원 ID ${id} 비활성화로 인해 ${hospitalUsers.length}명의 사용자 멤버십이 일반 회원으로 변경되었습니다.`);
+      }
+    }
     
     return res.status(200).json(updatedHospital);
   } catch (error) {
