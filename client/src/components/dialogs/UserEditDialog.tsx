@@ -123,7 +123,7 @@ const UserEditDialog: React.FC<UserEditDialogProps> = ({
   
   useEffect(() => {
     setShowHospitalSelect(
-      memberType === "hospital_admin" || memberType === "pro"
+      memberType === "hospital_admin" || memberType === "pro" || memberType === "membership"
     );
   }, [memberType]);
 
