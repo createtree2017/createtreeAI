@@ -146,9 +146,34 @@ export default function HospitalsPage() {
       phone: '',
       email: '',
       domain: '',
+      contractStartDate: '',
+      contractEndDate: '',
       packageType: 'basic'
     }
   });
+  
+  // 생성폼용 날짜 선택 핸들러
+  const [createStartDate, setCreateStartDate] = useState<Date | undefined>(undefined);
+  const [createEndDate, setCreateEndDate] = useState<Date | undefined>(undefined);
+  
+  // 생성폼의 날짜 변경 시 폼 값 업데이트
+  const updateCreateStartDate = (date: Date | undefined) => {
+    setCreateStartDate(date);
+    if (date) {
+      createForm.setValue('contractStartDate', date.toISOString());
+    } else {
+      createForm.setValue('contractStartDate', '');
+    }
+  };
+  
+  const updateCreateEndDate = (date: Date | undefined) => {
+    setCreateEndDate(date);
+    if (date) {
+      createForm.setValue('contractEndDate', date.toISOString());
+    } else {
+      createForm.setValue('contractEndDate', '');
+    }
+  };
   
   // 수정 폼
   const editForm = useForm<HospitalFormValues>({
@@ -337,6 +362,40 @@ export default function HospitalsPage() {
                     )}
                   />
                   
+                  {/* 계약 시작일 */}
+                  <FormField
+                    control={createForm.control}
+                    name="contractStartDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>계약 시작일</FormLabel>
+                        <FormControl>
+                          <div>
+                            <DatePicker date={createStartDate} setDate={updateCreateStartDate} />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* 계약 종료일 */}
+                  <FormField
+                    control={createForm.control}
+                    name="contractEndDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>계약 종료일</FormLabel>
+                        <FormControl>
+                          <div>
+                            <DatePicker date={createEndDate} setDate={updateCreateEndDate} />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
                   <DialogFooter>
                     <Button 
                       type="button" 
@@ -368,7 +427,7 @@ export default function HospitalsPage() {
                 <TableHead>ID</TableHead>
                 <TableHead>병원명</TableHead>
                 <TableHead>연락처</TableHead>
-                <TableHead>이메일</TableHead>
+                <TableHead>계약 기간</TableHead>
                 <TableHead>계약상태</TableHead>
                 <TableHead>가입일</TableHead>
                 <TableHead className="text-right">관리</TableHead>
@@ -381,7 +440,17 @@ export default function HospitalsPage() {
                     <TableCell>{hospital.id}</TableCell>
                     <TableCell className="font-medium">{hospital.name}</TableCell>
                     <TableCell>{hospital.phone || '-'}</TableCell>
-                    <TableCell>{hospital.email || '-'}</TableCell>
+                    <TableCell>
+                      {hospital.contractStartDate && hospital.contractEndDate ? (
+                        <>
+                          {format(new Date(hospital.contractStartDate), 'yyyy-MM-dd', { locale: ko })}
+                          <span className="mx-1">~</span>
+                          {format(new Date(hospital.contractEndDate), 'yyyy-MM-dd', { locale: ko })}
+                        </>
+                      ) : (
+                        '-'
+                      )}
+                    </TableCell>
                     <TableCell>
                       {hospital.isActive ? (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
