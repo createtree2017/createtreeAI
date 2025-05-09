@@ -91,9 +91,16 @@ export default function Image() {
   const query = new URLSearchParams(location.split("?")[1] || "");
   const imageId = query.get("id");
   
-  // Fetch categories
+  // Fetch categories 
   const { data: categories = [], isLoading: categoriesLoading, error: categoriesError } = useQuery<Category[]>({
     queryKey: ["/api/concept-categories"],
+    queryFn: async () => {
+      const response = await fetch("/api/concept-categories");
+      if (!response.ok) {
+        throw new Error(`API 오류: ${response.status}`);
+      }
+      return response.json();
+    },
     staleTime: 60 * 1000, // 1분 동안 캐시 사용
     refetchOnMount: true,
     refetchOnWindowFocus: false
@@ -112,6 +119,13 @@ export default function Image() {
   // Fetch concepts (styles)
   const { data: concepts = [], isLoading: conceptsLoading, error: conceptsError } = useQuery<Concept[]>({
     queryKey: ["/api/concepts"],
+    queryFn: async () => {
+      const response = await fetch("/api/concepts");
+      if (!response.ok) {
+        throw new Error(`API 오류: ${response.status}`);
+      }
+      return response.json();
+    },
     staleTime: 60 * 1000, // 1분 동안 캐시 사용
     refetchOnMount: true,
     refetchOnWindowFocus: false
