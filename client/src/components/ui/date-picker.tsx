@@ -29,7 +29,7 @@ export function DatePicker({ date, setDate, disabled = false }: DatePickerProps)
           {date ? format(date, "PPP") : <span>날짜 선택</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+      <PopoverContent className="w-auto p-0 flex flex-col" align="start">
         <Calendar
           mode="single"
           selected={date}
@@ -37,6 +37,16 @@ export function DatePicker({ date, setDate, disabled = false }: DatePickerProps)
           initialFocus
           disabled={disabled}
         />
+        <div className="p-2 border-t border-border">
+          <Button 
+            onClick={() => {}} 
+            className="w-full"
+            variant="default"
+            size="sm"
+          >
+            확인
+          </Button>
+        </div>
       </PopoverContent>
     </Popover>
   );

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -8,6 +8,9 @@ import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { useAuthContext } from "@/lib/AuthProvider";
 import { Loader2 } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useQuery } from "@tanstack/react-query";
 
 // 회원가입 폼 검증 스키마
 const registerSchema = z.object({
@@ -23,8 +26,12 @@ const registerSchema = z.object({
   name: z.string().min(2, {
     message: "이름은 최소 2자 이상이어야 합니다.",
   }).optional().or(z.literal('')),
-  phoneNumber: z.string().optional().or(z.literal('')),
+  phoneNumber: z.string().min(10, {
+    message: "유효한 전화번호를 입력해주세요.",
+  }),
   birthdate: z.date().optional(),
+  memberType: z.enum(["general", "membership"]),
+  hospitalId: z.string().optional(),
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
