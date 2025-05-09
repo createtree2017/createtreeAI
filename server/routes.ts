@@ -52,6 +52,8 @@ import {
   banners,
   styleCards,
   serviceCategories,
+  favorites,
+  savedChats,
   insertConceptSchema,
   insertConceptCategorySchema,
   insertBannerSchema,
@@ -61,7 +63,8 @@ import {
   asc,
   desc,
   and,
-  sql
+  sql,
+  like
 } from "../shared/schema";
 import { db } from "../db";
 
@@ -810,38 +813,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }));
       } else if (filter === "image") {
         try {
-          // 이미지 필터링 - 수정된 getImageList 함수 사용
-          const imageItems = await storage.getImageList();
+          // 이미지 탭에서도 사용자별 필터링 구현
+          const username = req.user?.username;
           
-          // 최근 10개만 표시 (이미 storage.ts에서 전체 항목 가져오기 성공한 경우)
-          const recentImageItems = imageItems.slice(0, 10);
+          // 사용자 이름으로 이미지 필터링 (임시 솔루션)
+          const imageQuery = db.select({
+            id: images.id,
+            title: images.title,
+            transformedUrl: images.transformedUrl,
+            createdAt: images.createdAt
+          })
+          .from(images)
+          .orderBy(desc(images.createdAt));
           
-          // 한글 디코딩 적용
-          galleryItems = recentImageItems.map(item => ({
-            id: item.id,
-            title: decodeKoreanText(item.title),
-            type: "image" as const,
-            url: item.transformedUrl,
-            thumbnailUrl: item.transformedUrl,
-            createdAt: item.createdAt.toISOString(),
-            isFavorite: false
-          }));
-        } catch (imageError) {
-          console.error("이미지 데이터 조회 중 오류:", imageError);
-          
-          // 대체 방식: 직접 쿼리로 시도
-          try {
-            const directImageItems = await db.select({
-              id: images.id,
-              title: images.title,
-              transformedUrl: images.transformedUrl,
-              createdAt: images.createdAt
-            })
-            .from(images)
-            .orderBy(desc(images.createdAt))
-            .limit(10);
+          // 사용자 이름이 있는 경우 제목이나 원본 파일명에 사용자 이름이 있는 항목만 필터링
+          if (username) {
+            console.log(`[이미지 탭] 사용자 ${username}의 이미지만 필터링합니다.`);
+            const filteredImages = await imageQuery
+              .where(like(images.title, `%${username}%`))
+              .limit(10);
+              
+            if (filteredImages.length === 0) {
+              // 필터링 결과가 없으면 최근 몇 개만 표시 (임시 솔루션)
+              console.log("사용자 이름으로 필터링된 이미지가 없어 몇 개만 표시합니다.");
+              const recentImages = await imageQuery.limit(3);
+              
+              galleryItems = recentImages.map(item => ({
+                id: item.id,
+                title: decodeKoreanText(item.title),
+                type: "image" as const,
+                url: item.transformedUrl,
+                thumbnailUrl: item.transformedUrl,
+                createdAt: item.createdAt.toISOString(),
+                isFavorite: false
+              }));
+            } else {
+              // 필터링 결과가 있으면 사용
+              galleryItems = filteredImages.map(item => ({
+                id: item.id,
+                title: decodeKoreanText(item.title),
+                type: "image" as const,
+                url: item.transformedUrl,
+                thumbnailUrl: item.transformedUrl,
+                createdAt: item.createdAt.toISOString(),
+                isFavorite: false
+              }));
+            }
+          } else {
+            // 로그인하지 않은 경우 최근 이미지 표시
+            const recentImages = await imageQuery.limit(5);
             
-            galleryItems = directImageItems.map(item => ({
+            galleryItems = recentImages.map(item => ({
               id: item.id,
               title: decodeKoreanText(item.title),
               type: "image" as const,
@@ -850,10 +872,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
               createdAt: item.createdAt.toISOString(),
               isFavorite: false
             }));
-          } catch (directError) {
-            console.error("직접 이미지 쿼리 중 오류:", directError);
-            galleryItems = [];
           }
+        } catch (imageError) {
+          console.error("이미지 데이터 조회 중 오류:", imageError);
+          galleryItems = [];
         }
       } else if (filter === "favorite") {
         // 즐겨찾기 필터링
@@ -871,105 +893,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // userId 필드 임시 제거 - 데이터베이스 스키마 업데이트 전까지
         }));
       } else {
+        // 전체 컨텐츠 필터링 - 사용자별 컨텐츠 관리 개선
         try {
-          // 모든 항목 가져오기 - 수정된 getAllItems 함수 사용
-          const allItems = await storage.getAllItems();
+          // 타입 명시적 선언으로 오류 해결
+          let processedItems: Array<{
+            id: number;
+            title: string;
+            type: "music" | "image" | "chat";
+            url: string;
+            thumbnailUrl?: string;
+            duration?: number;
+            createdAt: string;
+            isFavorite: boolean;
+            personaEmoji?: string;
+          }> = [];
+          const username = req.user?.username;
           
-          // 한글 디코딩 적용
-          galleryItems = allItems.map(item => ({
-            ...item,
-            title: decodeKoreanInObject(item.title)
-          }));
-        } catch (allItemsError) {
-          console.error("모든 항목 가져오기 오류:", allItemsError);
-          
-          // 개별적으로 가져오기 시도
+          // 음악 항목 (공유 - 모든 사용자 음악)
           try {
-            let processedItems = [];
+            const musicItems = await db.select({
+              id: music.id,
+              title: music.title,
+              url: music.url,
+              duration: music.duration,
+              createdAt: music.createdAt
+            })
+            .from(music)
+            .orderBy(desc(music.createdAt))
+            .limit(3);
             
-            // 음악 항목
-            try {
-              const musicItems = await db.select({
-                id: music.id,
-                title: music.title,
-                url: music.url,
-                duration: music.duration,
-                createdAt: music.createdAt
-              })
-              .from(music)
-              .orderBy(desc(music.createdAt))
-              .limit(3);
-              
-              const formattedMusicItems = musicItems.map(item => ({
-                id: item.id,
-                title: decodeKoreanInObject(item.title),
-                type: "music" as const,
-                url: item.url,
-                duration: item.duration,
-                createdAt: item.createdAt.toISOString(),
-                isFavorite: false
-              }));
-              
-              processedItems = [...processedItems, ...formattedMusicItems];
-            } catch (musicError) {
-              console.error("음악 조회 오류:", musicError);
-            }
+            const formattedMusicItems = musicItems.map(item => ({
+              id: item.id,
+              title: decodeKoreanInObject(item.title),
+              type: "music" as const,
+              url: item.url,
+              duration: item.duration,
+              createdAt: item.createdAt.toISOString(),
+              isFavorite: false
+            }));
             
-            // 이미지 항목
-            try {
-              const imageItems = await db.select({
-                id: images.id,
-                title: images.title,
-                transformedUrl: images.transformedUrl,
-                createdAt: images.createdAt
-              })
-              .from(images)
-              .orderBy(desc(images.createdAt))
-              .limit(6);
-              
-              const formattedImageItems = imageItems.map(item => ({
-                id: item.id,
-                title: decodeKoreanInObject(item.title),
-                type: "image" as const,
-                url: item.transformedUrl,
-                thumbnailUrl: item.transformedUrl,
-                createdAt: item.createdAt.toISOString(),
-                isFavorite: false
-              }));
-              
-              processedItems = [...processedItems, ...formattedImageItems];
-            } catch (imageError) {
-              console.error("이미지 조회 오류:", imageError);
-            }
-            
-            // 채팅 항목
-            try {
-              const chatItems = await storage.getSavedChats();
-              const recentChatItems = chatItems.slice(0, 3);
-              
-              const formattedChatItems = recentChatItems.map(chat => ({
-                id: chat.id,
-                title: decodeKoreanInObject(chat.title || '저장된 대화'),
-                type: "chat" as const,
-                url: `/chat?id=${chat.id}`,
-                createdAt: chat.createdAt.toISOString(),
-                isFavorite: false,
-                personaEmoji: chat.personaEmoji || '💬'
-              }));
-              
-              processedItems = [...processedItems, ...formattedChatItems];
-            } catch (chatError) {
-              console.error("채팅 조회 오류:", chatError);
-            }
-            
-            // 결과 정렬
-            galleryItems = processedItems.sort((a, b) => {
-              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-            });
-          } catch (individualError) {
-            console.error("개별 항목 조회 오류:", individualError);
-            galleryItems = [];
+            processedItems = [...processedItems, ...formattedMusicItems];
+          } catch (musicError) {
+            console.error("음악 조회 오류:", musicError);
           }
+          
+          // 이미지 항목 (개인별 - 사용자 이름으로 필터링)
+          try {
+            // 사용자 이름으로 이미지 필터링 (임시 솔루션)
+            const imageQuery = db.select({
+              id: images.id,
+              title: images.title,
+              transformedUrl: images.transformedUrl,
+              createdAt: images.createdAt
+            })
+            .from(images)
+            .orderBy(desc(images.createdAt));
+            
+            // 사용자 이름이 있는 경우 제목이나 원본 파일명에 사용자 이름이 있는 항목만 필터링
+            if (username) {
+              console.log(`사용자 ${username}의 이미지만 필터링합니다.`);
+              const filteredImages = await imageQuery
+                .where(like(images.title, `%${username}%`))
+                .limit(6);
+                
+              if (filteredImages.length === 0) {
+                // 필터링 결과가 없으면 최근 이미지 몇 개만 표시 (데모용, 실제 구현에서는 제거)
+                console.log("사용자 이름으로 필터링된 이미지가 없습니다. 최근 이미지를 표시합니다.");
+                const recentImages = await imageQuery.limit(6);
+                
+                const formattedImageItems = recentImages.map(item => ({
+                  id: item.id,
+                  title: decodeKoreanInObject(item.title),
+                  type: "image" as const,
+                  url: item.transformedUrl,
+                  thumbnailUrl: item.transformedUrl,
+                  createdAt: item.createdAt.toISOString(),
+                  isFavorite: false
+                }));
+                
+                processedItems = [...processedItems, ...formattedImageItems];
+              } else {
+                // 필터링 결과가 있으면 사용
+                const formattedImageItems = filteredImages.map(item => ({
+                  id: item.id,
+                  title: decodeKoreanInObject(item.title),
+                  type: "image" as const,
+                  url: item.transformedUrl,
+                  thumbnailUrl: item.transformedUrl,
+                  createdAt: item.createdAt.toISOString(),
+                  isFavorite: false
+                }));
+                
+                processedItems = [...processedItems, ...formattedImageItems];
+              }
+            } else {
+              // 로그인하지 않은 경우 빈 이미지 배열 반환
+              console.log("로그인하지 않음 - 빈 이미지 배열 반환");
+            }
+          } catch (imageError) {
+            console.error("이미지 조회 오류:", imageError);
+          }
+          
+          // 채팅 항목 (공유 - 모든 사용자 채팅)
+          try {
+            const chatItems = await storage.getSavedChats();
+            const recentChatItems = chatItems.slice(0, 3);
+            
+            const formattedChatItems = recentChatItems.map(chat => ({
+              id: chat.id,
+              title: decodeKoreanInObject(chat.title || '저장된 대화'),
+              type: "chat" as const,
+              url: `/chat?id=${chat.id}`,
+              createdAt: chat.createdAt.toISOString(),
+              isFavorite: false,
+              personaEmoji: chat.personaEmoji || '💬'
+            }));
+            
+            processedItems = [...processedItems, ...formattedChatItems];
+          } catch (chatError) {
+            console.error("채팅 조회 오류:", chatError);
+          }
+          
+          // 결과 정렬
+          galleryItems = processedItems.sort((a, b) => {
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          });
+        } catch (allError) {
+          console.error("전체 항목 조회 오류:", allError);
+          galleryItems = [];
         }
       }
       
