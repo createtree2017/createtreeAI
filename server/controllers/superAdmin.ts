@@ -225,13 +225,18 @@ export async function getAllUsers(req: Request, res: Response) {
     }
     
     // 사용자 정보에 병원 이름 추가
+    console.log("병원 맵 정보:", JSON.stringify(hospitalMap));
+    console.log("사용자 목록:", JSON.stringify(usersList.map(u => ({ id: u.id, username: u.username, hospitalId: u.hospitalId }))));
+    
     usersList = usersList.map(user => {
       if (user.hospitalId && hospitalMap[user.hospitalId]) {
+        console.log(`사용자 ${user.username}(${user.id})에 병원 정보 추가: ${hospitalMap[user.hospitalId].name}`);
         return {
           ...user,
           hospitalName: hospitalMap[user.hospitalId].name
         };
       }
+      console.log(`사용자 ${user.username}(${user.id})에 병원 정보 없음. hospitalId: ${user.hospitalId}`);
       return {
         ...user,
         hospitalName: null
