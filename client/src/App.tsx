@@ -16,6 +16,7 @@ import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
 import TestPage from "@/pages/test";
 import HospitalsPage from "@/pages/super/HospitalsPage";
+import UsersPage from "@/pages/super/UsersPage";
 import BottomNavigation from "@/components/BottomNavigation";
 import Sidebar from "@/components/Sidebar";
 import { SuperAdminLayout } from "@/components/SuperAdminLayout";
@@ -288,8 +289,7 @@ function Router() {
       <Route path="/super/users">
         <ProtectedRoute allowedRoles={["superadmin"]}>
           <SuperAdminLayout>
-            <h1 className="text-2xl font-bold mb-6">회원 관리</h1>
-            <p className="text-muted-foreground">회원 관리 페이지가 여기에 표시됩니다.</p>
+            <UsersPage />
           </SuperAdminLayout>
         </ProtectedRoute>
       </Route>
