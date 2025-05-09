@@ -55,7 +55,7 @@ export default function HospitalsPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [hospitalToDelete, setHospitalToDelete] = useState<number | null>(null);
   
-  const { data: hospitals = [], isLoading, error } = useQuery({
+  const { data: hospitals = [], isLoading, error } = useQuery<any[]>({
     queryKey: ['/api/super/hospitals'],
     staleTime: 5 * 60 * 1000, // 5분
   });
