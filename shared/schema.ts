@@ -367,8 +367,15 @@ export const pregnancyProfilesRelations = relations(pregnancyProfiles, ({ one })
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users, {
   username: (schema) => schema.min(3, "사용자명은 최소 3자 이상이어야 합니다."),
-  password: (schema) => schema.min(8, "비밀번호는 최소 8자 이상이어야 합니다."),
-  email: (schema) => schema.email("유효한 이메일 주소를 입력해주세요.")
+  password: (schema) => schema.min(6, "비밀번호는 최소 6자 이상이어야 합니다."), // 비밀번호 최소 길이 완화
+  email: (schema) => schema.email("유효한 이메일 주소를 입력해주세요.").optional().nullable()
+}).extend({
+  // name 필드를 추가로 받아서 fullName에 매핑하기 위한 확장
+  name: z.string().optional().nullable(),
+  // phoneNumber 필드 추가
+  phoneNumber: z.string().optional().nullable(),
+  // birthdate 필드 추가
+  birthdate: z.string().optional().nullable(),
 });
 
 export const insertRoleSchema = createInsertSchema(roles);

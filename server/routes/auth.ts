@@ -54,13 +54,18 @@ router.post("/register", async (req, res) => {
 
     try {
       // 사용자 생성 - createdAt과 updatedAt을 SQL 레벨에서 DEFAULT(current_timestamp)로 처리
+      console.log("회원가입 요청 데이터:", validatedData); // 로깅 추가
+      
+      // name 필드가 있으면 fullName에 매핑, 아니면 fullName 사용
       const userValues = {
         username: validatedData.username,
         password: hashedPassword,
         email: validatedData.email || null,
-        fullName: validatedData.fullName || null,
+        fullName: validatedData.name || validatedData.fullName || null, // name 필드 우선 사용
         emailVerified: false,
-        memberType: validatedData.memberType || "general"
+        memberType: validatedData.memberType || "general",
+        // 추가 필드
+        promoCode: null
       };
 
       // 사용자 생성
