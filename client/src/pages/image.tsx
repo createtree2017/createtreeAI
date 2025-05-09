@@ -920,28 +920,31 @@ export default function Image() {
                         }}
                       />
                     </div>
-                    <div className="absolute top-2 right-2 flex flex-col gap-2">
-                      <button
-                        onClick={() => handleViewImage(transformedImage)}
-                        className="bg-white/80 backdrop-blur-sm p-2 rounded-full shadow-md text-foreground hover:bg-white transition-colors"
-                        title="크게 보기"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleShare(transformedImage.id)}
-                        className="bg-white/80 backdrop-blur-sm p-2 rounded-full shadow-md text-foreground hover:bg-white transition-colors"
-                        title="공유하기"
-                      >
-                        <Share2 className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDownload(transformedImage.id)}
-                        className="bg-white/80 backdrop-blur-sm p-2 rounded-full shadow-md text-foreground hover:bg-white transition-colors"
-                        title="다운로드"
-                      >
-                        <Download className="h-4 w-4" />
-                      </button>
+                    {/* 개선된 액션 버튼 - 하단 중앙에 위치한 가로 배열 */}
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3 flex justify-center">
+                      <div className="flex gap-4 bg-white/90 backdrop-blur-md rounded-full px-4 py-2 shadow-lg">
+                        <button
+                          onClick={() => handleViewImage(transformedImage)}
+                          className="text-gray-800 hover:text-[#ff2d55] transition-colors"
+                          title="크게 보기"
+                        >
+                          <Eye className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => handleShare(transformedImage.id)}
+                          className="text-gray-800 hover:text-[#ff2d55] transition-colors"
+                          title="공유하기"
+                        >
+                          <Share2 className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => handleDownload(transformedImage.id)}
+                          className="text-gray-800 hover:text-[#ff2d55] transition-colors"
+                          title="다운로드"
+                        >
+                          <Download className="h-5 w-5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <div className="p-3">
@@ -973,28 +976,31 @@ export default function Image() {
                           }}
                         />
                       </div>
-                      <div className="absolute top-2 right-2 flex flex-col gap-2">
-                        <button
-                          onClick={() => handleViewImage(image)}
-                          className="bg-white/80 backdrop-blur-sm p-2 rounded-full shadow-md text-foreground hover:bg-white transition-colors"
-                          title="크게 보기"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleShare(image.id)}
-                          className="bg-white/80 backdrop-blur-sm p-2 rounded-full shadow-md text-foreground hover:bg-white transition-colors"
-                          title="공유하기"
-                        >
-                          <Share2 className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDownload(image.id)}
-                          className="bg-white/80 backdrop-blur-sm p-2 rounded-full shadow-md text-foreground hover:bg-white transition-colors"
-                          title="다운로드"
-                        >
-                          <Download className="h-4 w-4" />
-                        </button>
+                      {/* 개선된 액션 버튼 - 하단 중앙에 위치한 가로 배열 */}
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3 flex justify-center">
+                        <div className="flex gap-4 bg-white/90 backdrop-blur-md rounded-full px-4 py-2 shadow-lg">
+                          <button
+                            onClick={() => handleViewImage(image)}
+                            className="text-gray-800 hover:text-[#ff2d55] transition-colors"
+                            title="크게 보기"
+                          >
+                            <Eye className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={() => handleShare(image.id)}
+                            className="text-gray-800 hover:text-[#ff2d55] transition-colors"
+                            title="공유하기"
+                          >
+                            <Share2 className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={() => handleDownload(image.id)}
+                            className="text-gray-800 hover:text-[#ff2d55] transition-colors"
+                            title="다운로드"
+                          >
+                            <Download className="h-5 w-5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                     <div className="p-3">
