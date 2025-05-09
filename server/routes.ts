@@ -48,6 +48,7 @@ import {
   abTests,
   abTestVariants,
   abTestResults,
+  hospitals,
   banners,
   styleCards,
   serviceCategories,
@@ -259,6 +260,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // 슈퍼관리자 라우트 등록
   app.use("/api/super", superAdminRoutes);
+  
+  // 일반 사용자를 위한 병원 목록 API (로그인 필요없이 접근 가능)
+  app.get("/api/hospitals", async (req, res) => {
+    try {
+      const hospitalsList = await db.query.hospitals.findMany({
+        where: eq(hospitals.isActive, true),
+        orderBy: [asc(hospitals.name)]
+      });
+      return res.status(200).json(hospitalsList);
+    } catch (error) {
+      console.error('병원 목록 조회 오류:', error);
+      return res.status(500).json({ error: '병원 목록을 가져오는 중 오류가 발생했습니다.' });
+    }
+  });
   
   // 개발 대화 기록을 관리하기 위한 인스턴스 생성
   const devHistoryManager = new DevHistoryManager();
