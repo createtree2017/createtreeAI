@@ -12,6 +12,8 @@ import Gallery from "@/pages/gallery";
 import Admin from "@/pages/admin";
 import Milestones from "@/pages/milestones";
 import AuthPage from "@/pages/auth";
+import LoginPage from "@/pages/login";
+import RegisterPage from "@/pages/register";
 import BottomNavigation from "@/components/BottomNavigation";
 import Sidebar from "@/components/Sidebar";
 import { useMobile } from "./hooks/use-mobile";
@@ -179,8 +181,11 @@ function Router() {
   return (
     <Switch>
       {/* 인증 불필요 경로 */}
-      <Route path="/auth" component={AuthPage} />
-      <Route path="/unauthorized" component={() => (
+      <Route path="/auth">
+        <AuthPage />
+      </Route>
+      
+      <Route path="/unauthorized">
         <div className="min-h-screen flex flex-col items-center justify-center p-4">
           <h1 className="text-3xl font-bold text-red-500 mb-4">접근 권한이 없습니다</h1>
           <p className="mb-6">이 페이지에 접근할 권한이 없습니다. 관리자에게 문의하세요.</p>
@@ -188,68 +193,70 @@ function Router() {
             홈으로 돌아가기
           </Link>
         </div>
-      )} />
+      </Route>
       
       {/* 인증 필요 경로 - 일반 사용자 */}
-      <Route path="/" component={() => (
+      <Route path="/">
         <ProtectedRoute>
           <Layout>
             <Home />
           </Layout>
         </ProtectedRoute>
-      )} />
+      </Route>
       
-      <Route path="/music" component={() => (
+      <Route path="/music">
         <ProtectedRoute>
           <Layout>
             <Music />
           </Layout>
         </ProtectedRoute>
-      )} />
+      </Route>
       
-      <Route path="/image" component={() => (
+      <Route path="/image">
         <ProtectedRoute>
           <Layout>
             <Image />
           </Layout>
         </ProtectedRoute>
-      )} />
+      </Route>
       
-      <Route path="/chat" component={() => (
+      <Route path="/chat">
         <ProtectedRoute>
           <Layout>
             <Chat />
           </Layout>
         </ProtectedRoute>
-      )} />
+      </Route>
       
-      <Route path="/gallery" component={() => (
+      <Route path="/gallery">
         <ProtectedRoute>
           <Layout>
             <Gallery />
           </Layout>
         </ProtectedRoute>
-      )} />
+      </Route>
       
-      <Route path="/milestones" component={() => (
+      <Route path="/milestones">
         <ProtectedRoute>
           <Layout>
             <Milestones />
           </Layout>
         </ProtectedRoute>
-      )} />
+      </Route>
       
       {/* 관리자 전용 경로 */}
-      <Route path="/admin" component={() => (
+      <Route path="/admin">
         <ProtectedRoute allowedRoles={["admin"]}>
           <div className="w-full max-w-7xl mx-auto">
             <Admin />
           </div>
         </ProtectedRoute>
-      )} />
+      </Route>
       
       {/* 404 페이지 */}
-      <Route component={NotFound} />
+      <Route>
+        <NotFound />
+      </Route>
     </Switch>
   );
 }
