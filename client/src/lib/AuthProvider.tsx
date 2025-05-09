@@ -14,8 +14,10 @@ interface AuthContextType {
     password: string;
     email?: string;
     name?: string;
-    phoneNumber?: string;
+    phoneNumber: string;
     birthdate?: string;
+    memberType: "general" | "membership";
+    hospitalId?: string;
   }) => void;
   logout: () => void;
   isLoginLoading: boolean;

@@ -14,8 +14,10 @@ type RegisterData = {
   password: string;
   email?: string;
   name?: string;
-  phoneNumber?: string;
+  phoneNumber: string;
   birthdate?: string;
+  memberType: "general" | "membership";
+  hospitalId?: string;
 };
 
 export function useAuth() {
@@ -118,10 +120,10 @@ export function useAuth() {
         password: data.password,
         email: data.email || null,
         fullName: data.name || null,
-        phoneNumber: data.phoneNumber || null,
+        phoneNumber: data.phoneNumber,
         birthdate: data.birthdate || null,
-        // memberType 명시적 지정 (Pro 회원으로 자동 설정)
-        memberType: "membership"
+        memberType: data.memberType,
+        hospitalId: data.memberType === "membership" ? data.hospitalId : null
       };
       
       console.log("회원가입 요청 데이터:", serverData);
