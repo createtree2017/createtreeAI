@@ -311,6 +311,9 @@ export default function Image() {
       }
     },
     onError: (error) => {
+      // 전역 이미지 처리 상태 업데이트 - 오류 발생으로 처리 종료
+      stopProcessing();
+      
       toast({
         title: "Error transforming image",
         description: error.message,
@@ -369,6 +372,10 @@ export default function Image() {
     formData.append("image", selectedFile);
     formData.append("style", selectedStyle);
     formData.append("aspectRatio", selectedAspectRatio);
+    
+    // 전역 이미지 처리 상태 업데이트 - 처리 시작
+    const styleName = filteredStyles.find(s => s.value === selectedStyle)?.label || '선택한 스타일';
+    startProcessing(`${styleName} 스타일로 변환 중...`);
 
     // 일반 사용자 페이지에서는 관리자 플래그 없이 호출 (이미지 임시 표시용)
     transformImageMutation(formData);
@@ -461,23 +468,6 @@ export default function Image() {
 
   return (
     <div className="p-5 animate-fadeIn">
-      {/* 이미지 생성 중 알림 (상단에 고정된 알림으로 변경) */}
-      {isTransforming && (
-        <div className="fixed top-4 right-4 z-50 max-w-sm">
-          <div className="bg-card rounded-xl p-4 shadow-lg border border-[#ff2d55] flex items-start gap-3">
-            <div className="mt-1">
-              <RefreshCw className="h-5 w-5 text-primary animate-spin" />
-            </div>
-            <div>
-              <h3 className="font-medium text-sm mb-1 text-card-foreground">이미지 생성 중...</h3>
-              <p className="text-muted-foreground text-xs">
-                AI가 이미지를 생성하고 있습니다. 약 15-30초 정도 소요됩니다.
-                다른 작업을 계속하셔도 됩니다.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
       
       <div className="text-center mb-6">
         <h2 className="font-heading font-bold text-2xl mb-2 text-foreground">AI 이미지 생성</h2>
