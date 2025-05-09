@@ -105,10 +105,10 @@ export default function Gallery() {
         {filters.map((filter) => (
           <button
             key={filter.type}
-            className={`text-sm py-1.5 px-3 rounded-full whitespace-nowrap ${
+            className={`text-sm py-2 px-4 rounded-full whitespace-nowrap font-medium border ${
               activeFilter === filter.type
-                ? "bg-accent2 text-white"
-                : "bg-neutral-lightest text-neutral-darkest"
+                ? "bg-primary-darker text-white border-primary-darker shadow-md"
+                : "bg-white text-neutral-darker border-neutral-light hover:bg-neutral-lightest"
             }`}
             onClick={() => handleFilterGallery(filter.type)}
           >
