@@ -19,10 +19,28 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// 병원 (Hospital) 테이블
+export const hospitals = pgTable("hospitals", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  address: text("address"),
+  phone: text("phone"),
+  email: text("email"),
+  domain: text("domain"), // 커스텀 도메인
+  logoUrl: text("logo_url"), // 병원 로고 URL
+  themeColor: text("theme_color"), // 테마 색상
+  contractStartDate: timestamp("contract_start_date"), // 계약 시작일
+  contractEndDate: timestamp("contract_end_date"), // 계약 종료일
+  packageType: text("package_type").default("basic"), // basic, premium, enterprise
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // 역할 (Role) 테이블
 export const roles = pgTable("roles", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull().unique(), // admin, user, superadmin
+  name: text("name").notNull().unique(), // user, admin, hospital_admin, superadmin
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -215,11 +233,17 @@ export const abTestResults = pgTable("ab_test_results", {
 });
 
 // 사용자 관련 테이블 관계 정의
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ many, one }) => ({
   roles: many(userRoles),
   refreshTokens: many(refreshTokens),
   userMilestones: many(userMilestones),
-  pregnancyProfiles: many(pregnancyProfiles)
+  pregnancyProfiles: many(pregnancyProfiles),
+  hospital: one(hospitals, { fields: [users.hospitalId], references: [hospitals.id] })
+}));
+
+// 병원 관계 정의
+export const hospitalsRelations = relations(hospitals, ({ many }) => ({
+  users: many(users)
 }));
 
 export const rolesRelations = relations(roles, ({ many }) => ({
@@ -378,6 +402,7 @@ export const insertUserSchema = createInsertSchema(users, {
   birthdate: z.string().optional().nullable(),
 });
 
+export const insertHospitalSchema = createInsertSchema(hospitals);
 export const insertRoleSchema = createInsertSchema(roles);
 export const insertUserRoleSchema = createInsertSchema(userRoles);
 export const insertRefreshTokenSchema = createInsertSchema(refreshTokens);
