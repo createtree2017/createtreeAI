@@ -26,6 +26,7 @@ import { ThemeProvider } from "@/hooks/use-theme";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AuthProvider, ProtectedRoute } from "@/lib/AuthProvider";
 import { HospitalProvider } from "@/lib/HospitalContext";
+import { ImageProcessingIndicator } from "@/components/ImageProcessingIndicator";
 
 // Main layout component
 function Layout({ children }: { children: React.ReactNode }) {
@@ -104,7 +105,8 @@ function Layout({ children }: { children: React.ReactNode }) {
 
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* 데스크톱 헤더 추가 - 테마 토글 포함 */}
-          <header className="bg-card h-14 border-b border-border px-6 flex items-center justify-end">
+          <header className="bg-card h-14 border-b border-border px-6 flex items-center justify-end gap-4">
+            <ImageProcessingIndicator />
             <ThemeToggle />
           </header>
           
@@ -160,8 +162,11 @@ function Layout({ children }: { children: React.ReactNode }) {
               </h1>
             </div>
             
-            {/* 테마 토글 */}
-            <ThemeToggle />
+            {/* 상태 표시기 및 테마 토글 */}
+            <div className="flex items-center gap-3">
+              <ImageProcessingIndicator />
+              <ThemeToggle />
+            </div>
           </div>
         </header>
       )}

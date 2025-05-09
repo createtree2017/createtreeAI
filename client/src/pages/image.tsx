@@ -23,6 +23,7 @@ import {
 import ABTestComparer from "@/components/ABTestComparer";
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useTheme } from "@/hooks/use-theme";
+import { useImageProcessingStore } from "@/stores/imageProcessingStore";
 
 interface ImageStyle {
   value: string;
@@ -86,6 +87,9 @@ export default function Image() {
   const [activeAbTest, setActiveAbTest] = useState<any>(null);
   const [abTestImages, setAbTestImages] = useState<Record<string, string>>({});
   const [showAbTest, setShowAbTest] = useState<boolean>(false);
+  
+  // 전역 이미지 처리 상태 관리
+  const { startProcessing, stopProcessing } = useImageProcessingStore();
 
   // Extract image ID from URL if any
   const query = new URLSearchParams(location.split("?")[1] || "");
@@ -266,6 +270,9 @@ export default function Image() {
       setTransformedImage(data);
       
       console.log("이미지 변환 성공, 새 이미지:", data);
+      
+      // 전역 이미지 처리 상태 업데이트 - 처리 완료
+      stopProcessing();
       
       // 이미지 삭제 후 캐시 초기화
       await queryClient.invalidateQueries({ queryKey: ["/api/image"] });
