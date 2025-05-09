@@ -3,6 +3,7 @@ import { useLocation, Link } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import LoginForm from "../components/forms/LoginForm";
 import { useAuthContext } from "@/lib/AuthProvider";
+import FloatingBabyItems from "@/components/FloatingBabyItems";
 
 const LoginPage = () => {
   const [location, setLocation] = useLocation();
@@ -20,7 +21,10 @@ const LoginPage = () => {
   }
 
   return (
-    <div className="flex min-h-screen flex-col justify-center items-center bg-gradient-to-br from-blue-50 to-purple-50 p-4">
+    <div className="flex min-h-screen flex-col justify-center items-center bg-gradient-to-br from-blue-50 to-purple-50 p-4 relative overflow-hidden">
+      {/* 배경에 떠다니는 유아용품 아이템 */}
+      <FloatingBabyItems />
+      
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold text-primary">CreateTree 문화센터</h1>
@@ -29,7 +33,7 @@ const LoginPage = () => {
           </p>
         </div>
 
-        <Card>
+        <Card className="relative z-10">
           <CardHeader>
             <CardTitle>로그인</CardTitle>
             <CardDescription>
@@ -52,31 +56,6 @@ const LoginPage = () => {
                   회원가입
                 </a>
               </p>
-              <div className="mt-4 space-y-2">
-                {/* 방법 1: setLocation 사용 */}
-                <button
-                  className="w-full bg-gray-200 hover:bg-gray-300 py-2 rounded"
-                  onClick={() => setLocation("/test")}
-                >
-                  테스트 페이지 (setLocation)
-                </button>
-                
-                {/* 방법 2: window.location.href 사용 */}
-                <button
-                  className="w-full bg-blue-200 hover:bg-blue-300 py-2 rounded"
-                  onClick={() => window.location.href = "/test"}
-                >
-                  테스트 페이지 (href)
-                </button>
-                
-                {/* 방법 3: 일반 a 태그 */}
-                <a
-                  href="/test"
-                  className="block w-full bg-green-200 hover:bg-green-300 py-2 rounded text-center"
-                >
-                  테스트 페이지 (a 태그)
-                </a>
-              </div>
             </div>
           </CardContent>
         </Card>

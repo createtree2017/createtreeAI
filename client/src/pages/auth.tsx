@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LoginForm from "../components/forms/LoginForm";
 import RegisterForm from "../components/forms/RegisterForm";
 import { useAuthContext } from "@/lib/AuthProvider";
+import FloatingBabyItems from "@/components/FloatingBabyItems";
 
 const AuthPage = () => {
   const [location, setLocation] = useLocation();
@@ -23,7 +24,10 @@ const AuthPage = () => {
   }
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row bg-gradient-to-br from-blue-50 to-purple-50">
+    <div className="flex min-h-screen flex-col md:flex-row bg-gradient-to-br from-blue-50 to-purple-50 relative overflow-hidden">
+      {/* 배경에 떠다니는 유아용품 아이템 */}
+      <FloatingBabyItems />
+      
       {/* 왼쪽 로그인/회원가입 영역 */}
       <div className="w-full md:w-1/2 p-4 md:p-10 flex flex-col justify-center">
         <div className="max-w-md mx-auto w-full">
