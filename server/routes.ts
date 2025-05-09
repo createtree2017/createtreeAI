@@ -225,7 +225,23 @@ const conceptSchema = z.object({
   // OpenAI 이미지 생성 관련 필드만 유지
 });
 
+// 인증 라우트 가져오기
+import authRoutes from "./routes/auth";
+// 인증 서비스 가져오기
+import { initPassport } from "./services/auth";
+import cookieParser from "cookie-parser";
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // 쿠키 파서 미들웨어 등록
+  app.use(cookieParser());
+  
+  // Passport 초기화 및 미들웨어 등록
+  const passport = initPassport();
+  app.use(passport.initialize());
+  
+  // 인증 라우트 등록
+  app.use("/api/auth", authRoutes);
+  
   // 개발 대화 기록을 관리하기 위한 인스턴스 생성
   const devHistoryManager = new DevHistoryManager();
   

@@ -3,7 +3,7 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import { db } from "../db";
+import { db } from "../../db";
 import { users, roles, userRoles, refreshTokens } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import { randomBytes } from "crypto";
@@ -96,7 +96,7 @@ export function initPassport() {
           // 사용자 역할 목록 추가
           const userWithRoles = {
             ...user,
-            roles: userRolesResult.map((r) => r.roleName),
+            roles: userRolesResult.map((r: { roleName: string }) => r.roleName),
           };
 
           // 로그인 시간 업데이트
@@ -185,7 +185,7 @@ export async function refreshAccessToken(refreshToken: string): Promise<string |
     // 새 액세스 토큰 생성
     const userWithRoles = {
       ...user,
-      roles: userRolesResult.map((r) => r.roleName),
+      roles: userRolesResult.map((r: { roleName: string }) => r.roleName),
     };
 
     return generateToken(userWithRoles);

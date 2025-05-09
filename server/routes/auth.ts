@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import passport from "passport";
-import { db } from "../db";
+import { db } from "../../db";
 import { 
   users, 
   roles, 
@@ -130,7 +130,7 @@ router.post("/register", async (req, res) => {
 
 // 로그인 API
 router.post("/login", (req, res, next) => {
-  passport.authenticate("local", async (err, user, info) => {
+  passport.authenticate("local", async (err: any, user: any, info: any) => {
     try {
       if (err) {
         return next(err);
