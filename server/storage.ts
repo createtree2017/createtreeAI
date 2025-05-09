@@ -445,9 +445,9 @@ export const storage = {
     return allItems.slice(0, 5); // Return only the 5 most recent items
   },
   
-  async getFavoriteItems() {
+  async getFavoriteItems(username?: string) {
     try {
-      // 수정: 직접 SQL 쿼리 대신 select 사용하여 문제 필드(user_id) 제외하기
+      // 수정: username 파라미터로 사용자별 필터링 기능 추가
       
       // 음악 즐겨찾기 가져오기
       let transformedMusicFavorites: any[] = [];
@@ -483,11 +483,11 @@ export const storage = {
         console.error("음악 즐겨찾기 조회 오류:", musicError);
       }
       
-      // 이미지 즐겨찾기 가져오기
+      // 이미지 즐겨찾기 가져오기 (사용자별)
       let transformedImageFavorites: any[] = [];
       try {
-        // 직접 조인 쿼리로 필요한 필드만 명시적으로 선택
-        const imageFavs = await db.select({
+        // 기본 쿼리 생성
+        const imageQueryBuilder = db.select({
           id: favorites.id,
           itemId: favorites.itemId,
           // 명시적으로 images 테이블에서 필요한 필드만 선택
@@ -498,9 +498,26 @@ export const storage = {
         })
         .from(favorites)
         .innerJoin(images, eq(favorites.itemId, images.id))
-        .where(eq(favorites.itemType, "image"))
-        .orderBy(desc(images.createdAt))
-        .limit(10);
+        .where(eq(favorites.itemType, "image"));
+        
+        // 사용자 이름이 있으면 추가 필터링
+        let imageFavs;
+        if (username) {
+          console.log(`사용자 ${username}의 즐겨찾기 이미지 필터링 적용`);
+          // 이미지 제목에 사용자 이름이 포함된 항목만 필터링
+          imageFavs = await imageQueryBuilder
+            .where(and(
+              eq(favorites.itemType, "image"),
+              like(images.title, `%${username}%`)
+            ))
+            .orderBy(desc(images.createdAt))
+            .limit(10);
+        } else {
+          // 로그인하지 않았거나 사용자 이름이 없는 경우 모든 즐겨찾기 표시
+          imageFavs = await imageQueryBuilder
+            .orderBy(desc(images.createdAt))
+            .limit(10);
+        }
         
         // 이미지 항목 변환
         transformedImageFavorites = imageFavs.map(item => ({

@@ -829,6 +829,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // 사용자 이름이 있는 경우 제목이나 원본 파일명에 사용자 이름이 있는 항목만 필터링
           if (username) {
             console.log(`[이미지 탭] 사용자 ${username}의 이미지만 필터링합니다.`);
+            // 사용자 이름으로 필터링 (직접 쿼리)
             const filteredImages = await imageQuery
               .where(like(images.title, `%${username}%`))
               .limit(10);
@@ -878,16 +879,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           galleryItems = [];
         }
       } else if (filter === "favorite") {
-        // 즐겨찾기 필터링
-        const favoriteItems = await storage.getFavoriteItems();
+        // 즐겨찾기 필터링 (사용자별)
+        const username = req.user?.username;
+        console.log(`[즐겨찾기 필터] 사용자 ${username || '없음'} 필터링 적용`);
         
-        // 임시: 로그인한 사용자의 즐겨찾기로 가정
-        // 실제 사용자 데이터가 있으면 아래 주석 해제
-        // const userFavoriteItems = favoriteItems.filter(item => item.userId === userId);
-        const userFavoriteItems = favoriteItems.slice(0, 5); // 임시: 최근 5개만 표시
+        // 사용자 이름으로 필터링된 즐겨찾기 목록 가져오기
+        const favoriteItems = await storage.getFavoriteItems(username);
         
         // 한글 디코딩 적용
-        galleryItems = userFavoriteItems.map(item => ({
+        galleryItems = favoriteItems.map(item => ({
           ...item,
           title: decodeKoreanInObject(item.title)
           // userId 필드 임시 제거 - 데이터베이스 스키마 업데이트 전까지
@@ -952,6 +952,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // 사용자 이름이 있는 경우 제목이나 원본 파일명에 사용자 이름이 있는 항목만 필터링
             if (username) {
               console.log(`사용자 ${username}의 이미지만 필터링합니다.`);
+              // 사용자 이름으로 필터링 (or 대신 개별 쿼리 실행)
               const filteredImages = await imageQuery
                 .where(like(images.title, `%${username}%`))
                 .limit(6);
