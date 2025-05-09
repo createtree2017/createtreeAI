@@ -290,7 +290,7 @@ export default function Sidebar({ collapsed = false }) {
           </div>
         )}
         <Link 
-          href="/login" 
+          href="/auth" 
           className="text-neutral-400 hover:text-primary-lavender transition-colors flex items-center gap-2" 
           aria-label="로그인"
         >
