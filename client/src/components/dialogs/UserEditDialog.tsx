@@ -147,7 +147,7 @@ const UserEditDialog: React.FC<UserEditDialogProps> = ({
       
       const formattedData = {
         ...data,
-        hospitalId: data.hospitalId ? parseInt(data.hospitalId) : null,
+        hospitalId: data.hospitalId && data.hospitalId !== "0" ? parseInt(data.hospitalId) : null,
       };
       
       const response = await fetch(`/api/super/users/${userId}`, {
@@ -317,7 +317,7 @@ const UserEditDialog: React.FC<UserEditDialogProps> = ({
                           <SelectValue placeholder="병원을 선택하세요" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">선택 안함</SelectItem>
+                          <SelectItem value="0">선택 안함</SelectItem>
                           {hospitals.map((hospital) => (
                             <SelectItem key={hospital.id} value={hospital.id.toString()}>
                               {hospital.name}
