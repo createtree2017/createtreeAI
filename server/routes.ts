@@ -907,15 +907,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           // 필터링된 이미지 변환
-          galleryItems = filteredImages.map(item => ({
-            id: item.id,
-            title: decodeKoreanText(item.title),
-            type: "image" as const,
-            url: item.transformedUrl,
-            thumbnailUrl: item.transformedUrl,
-            createdAt: item.createdAt.toISOString(),
-            isFavorite: false
-          }));
+          galleryItems = filteredImages.map(item => {
+            // 한글 디코딩 더 강화하여 적용
+            const decodedTitle = decodeKoreanText(item.title || '');
+            console.log(`디코딩 전: ${item.title}, 디코딩 후: ${decodedTitle}`);
+            return {
+              id: item.id,
+              title: decodedTitle,
+              type: "image" as const,
+              url: item.transformedUrl,
+              thumbnailUrl: item.transformedUrl,
+              createdAt: item.createdAt.toISOString(),
+              isFavorite: false
+            };
+          });
           
           console.log(`갤러리에 표시할 이미지 ${galleryItems.length}개 준비됨`);
         } catch (imageError) {
@@ -931,11 +936,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const favoriteItems = await storage.getFavoriteItems(username);
         
         // 한글 디코딩 적용
-        galleryItems = favoriteItems.map(item => ({
-          ...item,
-          title: decodeKoreanInObject(item.title)
-          // userId 필드 임시 제거 - 데이터베이스 스키마 업데이트 전까지
-        }));
+        galleryItems = favoriteItems.map(item => {
+          // decodeKoreanInObject 대신 decodeKoreanText 사용하여 통일
+          const decodedTitle = decodeKoreanText(typeof item.title === 'string' ? item.title : '');
+          console.log(`즐겨찾기 항목 디코딩 전: ${item.title}, 디코딩 후: ${decodedTitle}`);
+          return {
+            ...item,
+            title: decodedTitle
+            // userId 필드 임시 제거 - 데이터베이스 스키마 업데이트 전까지
+          };
+        });
       } else {
         // 전체 컨텐츠 필터링 - 사용자별 컨텐츠 관리 개선
         try {
@@ -966,15 +976,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .orderBy(desc(music.createdAt))
             .limit(3);
             
-            const formattedMusicItems = musicItems.map(item => ({
-              id: item.id,
-              title: decodeKoreanInObject(item.title),
-              type: "music" as const,
-              url: item.url,
-              duration: item.duration,
-              createdAt: item.createdAt.toISOString(),
-              isFavorite: false
-            }));
+            const formattedMusicItems = musicItems.map(item => {
+              // decodeKoreanInObject 대신 decodeKoreanText 사용하여 통일
+              const decodedTitle = decodeKoreanText(typeof item.title === 'string' ? item.title : '');
+              console.log(`음악 항목 디코딩 전: ${item.title}, 디코딩 후: ${decodedTitle}`);
+              return {
+                id: item.id,
+                title: decodedTitle,
+                type: "music" as const,
+                url: item.url,
+                duration: item.duration,
+                createdAt: item.createdAt.toISOString(),
+                isFavorite: false
+              };
+            });
             
             processedItems = [...processedItems, ...formattedMusicItems];
           } catch (musicError) {
@@ -1037,15 +1052,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .orderBy(desc(savedChats.createdAt))
             .limit(3);
             
-            const formattedChatItems = chatItems.map(chat => ({
-              id: chat.id,
-              title: decodeKoreanInObject(chat.title || '저장된 대화'),
-              type: "chat" as const,
-              url: `/chat?id=${chat.id}`,
-              createdAt: chat.createdAt.toISOString(),
-              isFavorite: false,
-              personaEmoji: chat.personaEmoji || '💬'
-            }));
+            const formattedChatItems = chatItems.map(chat => {
+              // decodeKoreanInObject 대신 decodeKoreanText 사용하여 통일
+              const decodedTitle = decodeKoreanText(typeof chat.title === 'string' ? chat.title : '저장된 대화');
+              console.log(`채팅 항목 디코딩 전: ${chat.title}, 디코딩 후: ${decodedTitle}`);
+              return {
+                id: chat.id,
+                title: decodedTitle,
+                type: "chat" as const,
+                url: `/chat?id=${chat.id}`,
+                createdAt: chat.createdAt.toISOString(),
+                isFavorite: false,
+                personaEmoji: chat.personaEmoji || '💬'
+              };
+            });
             
             processedItems = [...processedItems, ...formattedChatItems];
           } catch (chatError) {
