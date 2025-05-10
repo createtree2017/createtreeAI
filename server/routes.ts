@@ -881,8 +881,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           originalMaxAge: req.session.cookie.originalMaxAge,
           expires: req.session.cookie.expires
         } : 'No cookie',
-        passport: req.session.passport ? {
-          user: req.session.passport.user || 'No user ID'
+        // passport 프로퍼티 안전하게 접근
+        passport: req.session['passport'] ? {
+          user: req.session['passport']['user'] || 'No user ID'
         } : 'No passport data'
       } : 'No session';
       
@@ -1082,9 +1083,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     ? JSON.parse(image.metadata) 
                     : image.metadata;
                   
-                  // 메타데이터에 userId가 있고 현재 사용자와 일치하는지 확인
-                  if (metadata.userId && metadata.userId === userId) {
-                    return true;
+                  // 메타데이터에 userId가 있고 현재 사용자와 일치하는지 확인 (문자열 변환 후 비교)
+                  if (metadata.userId) {
+                    // 문자열로 변환하여 비교 (타입 불일치 해결)
+                    const metadataUserIdStr = metadata.userId.toString();
+                    const currentUserIdStr = userId.toString();
+                    
+                    console.log(`[이미지 필터링] 비교: metadata.userId=${metadataUserIdStr}(${typeof metadata.userId}), 현재 userId=${currentUserIdStr}(${typeof userId})`);
+                    
+                    if (metadataUserIdStr === currentUserIdStr) {
+                      console.log(`[이미지 필터링] 일치 항목 발견: metadata.userId=${metadataUserIdStr}, 현재 userId=${currentUserIdStr}`);
+                      return true;
+                    }
                   }
                   
                   // 메타데이터에 username이 있고 현재 사용자와 일치하는지 확인
