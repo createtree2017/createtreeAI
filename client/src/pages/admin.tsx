@@ -4189,7 +4189,7 @@ function ImageTester() {
   // Get list of previously transformed images with pagination
   const { data: paginatedImages, isLoading: isLoadingImages } = useQuery({
     queryKey: ["/api/image", currentPage, imagesPerPage],
-    queryFn: () => getImageList(currentPage, imagesPerPage),
+    queryFn: () => getImageList(currentPage, imagesPerPage, false), // 관리자는 모든 이미지를 볼 수 있도록 사용자 필터링 비활성화
   });
   
   // Extract image list and pagination information

@@ -663,23 +663,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Expires', '0');
       res.setHeader('Surrogate-Control', 'no-store');
       
+      // 현재 로그인한 사용자 정보 확인
+      const user = req.user;
+      const userId = user?.id;
+      
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
       
-      // 모든 이미지 가져오기 (데이터베이스에 있는 모든 이미지)
-      const allImages = await storage.getImageList();
+      // 사용자 ID로 이미지 필터링 여부 설정
+      const filterByUser = req.query.filterByUser !== 'false';
+      
+      if (user && filterByUser) {
+        console.log(`[최근 이미지 API] 사용자 ${user.username}의 이미지만 필터링`);
+      } else {
+        console.log(`[최근 이미지 API] 사용자 필터링 없음 (전체 이미지 표시)`);
+      }
+      
+      // 페이지네이션 적용하여 데이터베이스에서 최근 이미지 가져오기
+      // 로그인 상태이고 사용자 필터링이 활성화된 경우에만 사용자 ID로 필터링
+      const result = await storage.getPaginatedImageList(
+        1, // 첫 페이지 
+        limit, 
+        (user && filterByUser) ? userId : null
+      );
       
       // 1시간 이내 생성된 이미지만 필터링 (사용자에게 보여줄 이미지)
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000); // 1시간 전 타임스탬프
       
-      const recentImages = allImages
+      const recentImages = result.images
         .filter(img => {
           // createdAt이 1시간 이내인 이미지만 포함
           const createTime = new Date(img.createdAt);
           return createTime > oneHourAgo;
-        })
-        .slice(0, limit); // 요청된 개수만큼만 반환
+        });
       
-      console.log(`최근 이미지 API: 전체 ${allImages.length}개 중 1시간 이내 이미지 ${recentImages.length}개 반환`);
+      console.log(`최근 이미지 API: 전체 ${result.images.length}개 중 1시간 이내 이미지 ${recentImages.length}개 반환`);
       
       return res.json(recentImages);
     } catch (error) {

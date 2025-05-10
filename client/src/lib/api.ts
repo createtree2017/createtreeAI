@@ -41,8 +41,9 @@ export const transformImage = async (data: FormData, isAdmin: boolean = false) =
   return response.json();
 };
 
-export const getImageList = async (page: number = 1, limit: number = 10) => {
-  const response = await apiRequest(`/api/image?page=${page}&limit=${limit}`);
+export const getImageList = async (page: number = 1, limit: number = 10, filterByUser: boolean = true) => {
+  // filterByUser 파라미터를 추가하여 사용자별 필터링 활성화 여부 제어
+  const response = await apiRequest(`/api/image?page=${page}&limit=${limit}&filterByUser=${filterByUser}`);
   return response.json();
 };
 
