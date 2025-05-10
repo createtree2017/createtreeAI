@@ -298,11 +298,11 @@ export const storage = {
     try {
       console.log(`[Storage] getPaginatedImageList 호출됨: page=${page}, limit=${limit}, userId=${userId || '없음'}, ${new Date().toISOString()}`);
       
-      // 현재 사용자의 이미지만 필터링할 조건 설정
+      // 현재 사용자의 이미지만 필터링할 조건 설정 (임시 비활성화: user_id 컬럼이 데이터베이스에 없음)
       let whereCondition = undefined;
       if (userId) {
-        console.log(`[Storage] 사용자 ID ${userId}로 이미지 필터링 적용`);
-        whereCondition = eq(images.userId, userId); // userId는 TypeScript의 필드명
+        console.log(`[Storage] 사용자 ID ${userId}로 이미지 필터링 적용 - 필터링 비활성화됨`);
+        // whereCondition = eq(images.userId, userId); 
       }
       
       // 사용자 필터링이 적용된 이미지 카운트를 위한 쿼리

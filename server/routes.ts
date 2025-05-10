@@ -893,10 +893,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .orderBy(desc(images.createdAt))
           .limit(100);
           
-          // 사용자 ID로 필터링 적용
-          if (userId) {
-            query = query.where(eq(images.userId, userId)); // userId는 TypeScript의 필드명
-          }
+          // 사용자 ID로 필터링 적용 (임시 비활성화: user_id 컬럼이 데이터베이스에 없음)
+          // if (userId) {
+          //   query = query.where(eq(images.userId, userId));
+          // }
           
           const allImages = await query;
           
@@ -994,10 +994,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .orderBy(desc(images.createdAt))
             .limit(10);
             
-            // 사용자 ID로 필터링 적용
-            if (userId) {
-              query = query.where(eq(images.userId, userId)); // userId는 TypeScript의 필드명
-            }
+            // 사용자 ID로 필터링 적용 (임시 비활성화: user_id 컬럼이 데이터베이스에 없음)
+            // if (userId) {
+            //   query = query.where(eq(images.userId, userId));
+            // }
             
             const allImages = await query;
             
