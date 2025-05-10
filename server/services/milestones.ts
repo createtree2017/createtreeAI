@@ -196,8 +196,8 @@ export async function getUserCompletedMilestones(userId: number) {
 export async function completeMilestone(
   userId: number, 
   milestoneId: string,
-  notes?: string,
-  photoUrl?: string
+  notes?: string
+  // photoUrl 필드는 데이터베이스에 존재하지 않아 제거
 ) {
   // Check if already completed
   const existing = await db.query.userMilestones.findFirst({
@@ -211,8 +211,8 @@ export async function completeMilestone(
     // Update existing entry
     const [updated] = await db.update(userMilestones)
       .set({
-        notes: notes || existing.notes,
-        photoUrl: photoUrl || existing.photoUrl
+        notes: notes || existing.notes
+        // photoUrl 필드는 데이터베이스에 존재하지 않아 제거
       })
       .where(and(
         eq(userMilestones.userId, userId),
@@ -233,7 +233,7 @@ export async function completeMilestone(
     userId,
     milestoneId,
     notes,
-    photoUrl,
+    // photoUrl 필드는 데이터베이스에 존재하지 않아 제거
     completedAt: new Date(),
     createdAt: new Date()
   }).returning();

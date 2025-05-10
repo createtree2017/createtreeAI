@@ -1650,12 +1650,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = user?.id || 1; // 로그인이 안 된 경우 기본값 사용 (개발용)
       
       const { milestoneId } = req.params;
-      const { notes, photoUrl } = req.body;
+      const { notes } = req.body;
+      // photoUrl 필드는 데이터베이스에 존재하지 않아 제거
       
       console.log(`[마일스톤] 마일스톤 완료 처리: 사용자 ID ${userId}, 마일스톤 ID ${milestoneId}`);
       
       const { completeMilestone } = await import("./services/milestones");
-      const result = await completeMilestone(userId, milestoneId, notes, photoUrl);
+      const result = await completeMilestone(userId, milestoneId, notes);
       
       console.log(`[마일스톤] 마일스톤 완료 처리 결과:`, result ? "성공" : "실패");
       return res.json(result);
