@@ -1524,15 +1524,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Milestone and Pregnancy Profile endpoints
-  // For testing, using userId=1, in a real app this would come from authentication
-  const TEST_USER_ID = 1;
   
   // Get or update the pregnancy profile
   app.get("/api/pregnancy-profile", async (req, res) => {
     try {
+      // 로그인한 사용자 정보 가져오기
+      const user = req.user;
+      
+      // 인증 확인 - 인증되지 않은 경우에도 기본 페이지는 보여주되 프로필 생성을 유도
+      const userId = user?.id || 1; // 로그인이 안 된 경우 기본값 사용 (개발용)
+      
+      console.log(`[마일스톤] 프로필 조회 요청: 사용자 ID ${userId}`);
+      
       const { getOrCreatePregnancyProfile } = await import("./services/milestones");
-      const profile = await getOrCreatePregnancyProfile(TEST_USER_ID);
-      return res.json(profile || { error: "No profile found" });
+      const profile = await getOrCreatePregnancyProfile(userId);
+      
+      if (profile) {
+        console.log(`[마일스톤] 프로필 발견: 임신 ${profile.currentWeek}주차, 출산예정일: ${profile.dueDate}`);
+        return res.json(profile);
+      } else {
+        console.log(`[마일스톤] 프로필이 없음: 사용자 ID ${userId}`);
+        return res.json({ error: "No profile found" });
+      }
     } catch (error) {
       console.error("Error fetching pregnancy profile:", error);
       return res.status(500).json({ error: "Failed to fetch pregnancy profile" });
@@ -1541,20 +1554,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post("/api/pregnancy-profile", async (req, res) => {
     try {
+      // 로그인한 사용자 정보 가져오기
+      const user = req.user;
+      
+      // 인증 확인 - 인증되지 않은 경우에도 기본 페이지는 보여주되 프로필 생성을 유도
+      const userId = user?.id || 1; // 로그인이 안 된 경우 기본값 사용 (개발용)
+      
       const { updatePregnancyProfile } = await import("./services/milestones");
       const profileData = req.body;
       
+      // 로그 추가 - 데이터 확인
+      console.log(`[마일스톤] 프로필 업데이트 요청: 사용자 ID ${userId}`);
+      console.log(`[마일스톤] 출산예정일(원본): ${profileData.dueDate}`);
+      
       // Ensure dueDate is a proper Date object if provided
       if (profileData.dueDate) {
-        profileData.dueDate = new Date(profileData.dueDate);
+        try {
+          profileData.dueDate = new Date(profileData.dueDate);
+          console.log(`[마일스톤] 출산예정일(변환): ${profileData.dueDate}`);
+        } catch (err) {
+          console.error(`[마일스톤] 출산예정일 변환 오류:`, err);
+          return res.status(400).json({ error: "Invalid date format" });
+        }
       }
       
-      const profile = await updatePregnancyProfile(TEST_USER_ID, profileData);
+      const profile = await updatePregnancyProfile(userId, profileData);
       
       if (!profile) {
+        console.log(`[마일스톤] 프로필 업데이트 실패: 출산예정일 누락`);
         return res.status(400).json({ error: "Failed to update profile - dueDate is required" });
       }
       
+      console.log(`[마일스톤] 프로필 업데이트 성공: 임신 ${profile.currentWeek}주차, 출산예정일: ${profile.dueDate}`);
       return res.json(profile);
     } catch (error) {
       console.error("Error updating pregnancy profile:", error);
@@ -1576,8 +1607,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/milestones/available", async (req, res) => {
     try {
+      // 로그인한 사용자 정보 가져오기
+      const user = req.user;
+      const userId = user?.id || 1; // 로그인이 안 된 경우 기본값 사용 (개발용)
+      
+      console.log(`[마일스톤] 가능한 마일스톤 조회: 사용자 ID ${userId}`);
+      
       const { getAvailableMilestones } = await import("./services/milestones");
-      const milestones = await getAvailableMilestones(TEST_USER_ID);
+      const milestones = await getAvailableMilestones(userId);
+      
+      console.log(`[마일스톤] 가능한 마일스톤 ${milestones.length}개 조회됨`);
       return res.json(milestones);
     } catch (error) {
       console.error("Error fetching available milestones:", error);
@@ -1587,8 +1626,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/milestones/completed", async (req, res) => {
     try {
+      // 로그인한 사용자 정보 가져오기
+      const user = req.user;
+      const userId = user?.id || 1; // 로그인이 안 된 경우 기본값 사용 (개발용)
+      
+      console.log(`[마일스톤] 완료된 마일스톤 조회: 사용자 ID ${userId}`);
+      
       const { getUserCompletedMilestones } = await import("./services/milestones");
-      const milestones = await getUserCompletedMilestones(TEST_USER_ID);
+      const milestones = await getUserCompletedMilestones(userId);
+      
+      console.log(`[마일스톤] 완료된 마일스톤 ${milestones.length}개 조회됨`);
       return res.json(milestones);
     } catch (error) {
       console.error("Error fetching completed milestones:", error);
@@ -1598,12 +1645,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post("/api/milestones/:milestoneId/complete", async (req, res) => {
     try {
+      // 로그인한 사용자 정보 가져오기
+      const user = req.user;
+      const userId = user?.id || 1; // 로그인이 안 된 경우 기본값 사용 (개발용)
+      
       const { milestoneId } = req.params;
       const { notes, photoUrl } = req.body;
       
-      const { completeMilestone } = await import("./services/milestones");
-      const result = await completeMilestone(TEST_USER_ID, milestoneId, notes, photoUrl);
+      console.log(`[마일스톤] 마일스톤 완료 처리: 사용자 ID ${userId}, 마일스톤 ID ${milestoneId}`);
       
+      const { completeMilestone } = await import("./services/milestones");
+      const result = await completeMilestone(userId, milestoneId, notes, photoUrl);
+      
+      console.log(`[마일스톤] 마일스톤 완료 처리 결과:`, result ? "성공" : "실패");
       return res.json(result);
     } catch (error) {
       console.error("Error completing milestone:", error);
@@ -1613,8 +1667,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/milestones/stats", async (req, res) => {
     try {
+      // 로그인한 사용자 정보 가져오기
+      const user = req.user;
+      const userId = user?.id || 1; // 로그인이 안 된 경우 기본값 사용 (개발용)
+      
+      console.log(`[마일스톤] 성취 통계 조회: 사용자 ID ${userId}`);
+      
       const { getUserAchievementStats } = await import("./services/milestones");
-      const stats = await getUserAchievementStats(TEST_USER_ID);
+      const stats = await getUserAchievementStats(userId);
+      
+      console.log(`[마일스톤] 성취 통계 조회 결과: 완료 ${stats.totalCompleted}/${stats.totalAvailable} (${Math.round(stats.completionRate)}%)`);
       return res.json(stats);
     } catch (error) {
       console.error("Error fetching achievement stats:", error);
