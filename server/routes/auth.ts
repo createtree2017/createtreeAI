@@ -283,7 +283,7 @@ router.post("/firebase-login", async (req, res) => {
       email: firebaseUser.email,
       displayName: firebaseUser.displayName,
       // photoUrl 필드는 데이터베이스에 존재하지 않아 제거
-      phoneNumber: firebaseUser.phoneNumber
+      // phoneNumber: firebaseUser.phoneNumber // phone_number 필드도 데이터베이스에 존재하지 않음
     };
 
     // 사용자 조회 또는 생성

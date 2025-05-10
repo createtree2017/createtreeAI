@@ -15,7 +15,7 @@ export interface FirebaseUserData {
   email: string;
   displayName?: string;
   // photoUrl 필드는 데이터베이스에 존재하지 않아 제거
-  phoneNumber?: string;
+  // phoneNumber?: string; // phone_number 필드도 데이터베이스에 존재하지 않아 제거
 }
 
 /**
@@ -42,7 +42,7 @@ export async function handleFirebaseAuth(firebaseUser: FirebaseUserData) {
       emailVerified: true, // Firebase 인증은 이메일이 이미 검증됨
       memberType: 'general', // 기본 회원 타입
       // photoUrl 필드는 데이터베이스에 존재하지 않아 제거
-      phoneNumber: firebaseUser.phoneNumber || null,
+      // phoneNumber: firebaseUser.phoneNumber || null, // phone_number 필드도 데이터베이스에 존재하지 않음
       lastLogin: new Date(),
       createdAt: new Date(),
       updatedAt: new Date()
