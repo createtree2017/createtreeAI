@@ -251,7 +251,7 @@ export function useAuth() {
             uid: firebaseUser.uid,
             email: firebaseUser.email || "",
             displayName: firebaseUser.displayName || "",
-            photoURL: firebaseUser.photoURL || "",
+            // photoURL: firebaseUser.photoURL || "", // 데이터베이스에 존재하지 않는 필드
             phoneNumber: firebaseUser.phoneNumber || ""
           };
           
@@ -296,7 +296,7 @@ export function useAuth() {
             uid: firebaseUser.uid,
             email: firebaseUser.email || "",
             displayName: firebaseUser.displayName || "",
-            photoURL: firebaseUser.photoURL || "",
+            // photoURL: firebaseUser.photoURL || "", // 데이터베이스에 존재하지 않는 필드
             phoneNumber: firebaseUser.phoneNumber || ""
           };
           
