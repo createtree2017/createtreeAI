@@ -16,26 +16,29 @@ console.log("🔥 환경변수 확인:", {
   VITE_FIREBASE_APP_ID: import.meta.env.VITE_FIREBASE_APP_ID
 });
 
-// 하드코딩 값 사용 (환경변수 미작동 시 대체용)
-const firebaseConfig = {
-  apiKey: "AIzaSyCINDZ1I6iqCNkxLG73GEOFwOrPm52uxMQ",
-  authDomain: "createai-7facc.firebaseapp.com",
-  projectId: "createai-7facc",
-  storageBucket: "createai-7facc.appspot.com",
-  messagingSenderId: "980137173202",
-  appId: "1:980137173202:web:aef6cd9e1b3914ad7ac997"
-};
-
-// Firebase 앱 초기화 로직을 이 파일에 직접 포함 (테스트 전용)
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
-
+// Firebase 앱 초기화 로직 - 직접 구성
 export default function FirebaseTestPage() {
+  const [firebaseConfig, setFirebaseConfig] = useState({
+    apiKey: "AIzaSyCINDZ1I6iqCNkxLG73GEOFwOrPm52uxMQ",
+    authDomain: "createai-7facc.firebaseapp.com",
+    projectId: "createai-7facc",
+    storageBucket: "createai-7facc.appspot.com",
+    messagingSenderId: "980137173202",
+    appId: "1:980137173202:web:aef6cd9e1b3914ad7ac997"
+  });
+  
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
+  const [app, setApp] = useState<any>(null);
+  const [auth, setAuth] = useState<any>(null);
+  const [provider, setProvider] = useState<any>(null);
+  const [initStatus, setInitStatus] = useState({
+    app: false,
+    auth: false,
+    provider: false
+  });
 
   // 로그 함수
   const log = (message: string) => {
@@ -48,16 +51,66 @@ export default function FirebaseTestPage() {
     setError(null);
     setLogs([]);
   };
+  
+  // Firebase 초기화
+  useEffect(() => {
+    try {
+      log("Firebase 초기화 시작...");
+      log(`현재 도메인: ${window.location.origin}`);
+      
+      // 앱 초기화
+      const appInstance = initializeApp(firebaseConfig);
+      setApp(appInstance);
+      setInitStatus(prev => ({ ...prev, app: true }));
+      log("✅ Firebase 앱 초기화 성공");
+      
+      // 인증 서비스 초기화
+      const authInstance = getAuth(appInstance);
+      setAuth(authInstance);
+      setInitStatus(prev => ({ ...prev, auth: true }));
+      log("✅ Firebase 인증 서비스 초기화 성공");
+      
+      // Google 로그인 제공업체 초기화
+      const providerInstance = new GoogleAuthProvider();
+      providerInstance.setCustomParameters({
+        prompt: 'select_account'
+      });
+      setProvider(providerInstance);
+      setInitStatus(prev => ({ ...prev, provider: true }));
+      log("✅ Google 로그인 제공업체 초기화 성공");
+      
+      // 인증 상태 감시
+      const unsubscribe = authInstance.onAuthStateChanged((authUser) => {
+        if (authUser) {
+          log(`이미 로그인된 사용자 감지: ${authUser.displayName}`);
+          setUser(authUser);
+        } else {
+          log("로그인된 사용자 없음");
+        }
+      });
+      
+      return () => unsubscribe();
+      
+    } catch (error: any) {
+      log(`❌ Firebase 초기화 오류: ${error.message}`);
+      console.error("Firebase 초기화 오류:", error);
+      setError(`Firebase 초기화 실패: ${error.message}`);
+    }
+  }, [firebaseConfig]);
 
   // Firebase 로그인 함수
   const handleGoogleLogin = async () => {
+    if (!auth || !provider || !initStatus.app || !initStatus.auth || !initStatus.provider) {
+      setError("Firebase가 아직 초기화되지 않았습니다. 잠시 후 다시 시도해 주세요.");
+      return;
+    }
+    
     resetState();
     setLoading(true);
     
     try {
       log('Google 로그인 시작...');
       log(`현재 도메인: ${window.location.origin}`);
-      log('Firebase 초기화 확인 완료');
       
       // 팝업 로그인 시도
       log('Google 로그인 팝업 시도...');
@@ -92,25 +145,6 @@ export default function FirebaseTestPage() {
     }
   };
 
-  // Firebase 정보 확인
-  useEffect(() => {
-    log('Firebase 테스트 페이지 로드됨');
-    log(`현재 URL: ${window.location.href}`);
-    log(`Firebase 프로젝트: ${firebaseConfig.projectId}`);
-    
-    // 현재 인증 상태 확인
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
-        log(`이미 인증된 사용자: ${user.displayName}`);
-        setUser(user);
-      } else {
-        log('인증된 사용자 없음');
-      }
-    });
-    
-    return () => unsubscribe();
-  }, []);
-
   return (
     <div className="container max-w-3xl py-10">
       <h1 className="text-3xl font-bold mb-2">Firebase 인증 테스트</h1>
@@ -142,6 +176,14 @@ export default function FirebaseTestPage() {
               <div className="flex justify-between">
                 <span className="font-medium">현재 도메인:</span>
                 <span>{window.location.origin}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium">초기화 상태:</span>
+                <div className="flex gap-2">
+                  <Badge variant={initStatus.app ? "default" : "destructive"}>앱</Badge>
+                  <Badge variant={initStatus.auth ? "default" : "destructive"}>인증</Badge>
+                  <Badge variant={initStatus.provider ? "default" : "destructive"}>공급자</Badge>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -186,7 +228,7 @@ export default function FirebaseTestPage() {
               <div className="flex justify-center">
                 <Button 
                   onClick={handleGoogleLogin} 
-                  disabled={loading}
+                  disabled={loading || !initStatus.app || !initStatus.auth || !initStatus.provider}
                   className="flex items-center gap-2"
                 >
                   {loading ? (
@@ -212,9 +254,11 @@ export default function FirebaseTestPage() {
               <Button 
                 variant="outline" 
                 onClick={() => {
-                  auth.signOut();
-                  setUser(null);
-                  log('로그아웃 완료');
+                  if (auth) {
+                    auth.signOut();
+                    setUser(null);
+                    log('로그아웃 완료');
+                  }
                 }}
               >
                 로그아웃
