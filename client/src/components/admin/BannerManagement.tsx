@@ -129,6 +129,7 @@ export default function BannerManagement() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include", // 쿠키 전송을 위해 필수
         body: JSON.stringify(values),
       });
       
@@ -164,6 +165,7 @@ export default function BannerManagement() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include", // 쿠키 전송을 위해 필수
         body: JSON.stringify(values),
       });
       
@@ -197,6 +199,7 @@ export default function BannerManagement() {
     mutationFn: async (id: number) => {
       const response = await fetch(`/api/admin/banners/${id}`, {
         method: "DELETE",
+        credentials: "include", // 쿠키 전송을 위해 필수
       });
       
       if (!response.ok) {
