@@ -40,7 +40,7 @@ export async function handleFirebaseAuth(firebaseUser: FirebaseUserData) {
       firebaseUid: firebaseUser.uid,
       emailVerified: true, // Firebase 인증은 이메일이 이미 검증됨
       memberType: 'general', // 기본 회원 타입
-      photoUrl: firebaseUser.photoURL || null,
+      photoUrl: firebaseUser.photoURL || null, // photoURL -> photoUrl로 매핑
       phoneNumber: firebaseUser.phoneNumber || null,
       lastLogin: new Date(),
       createdAt: new Date(),
