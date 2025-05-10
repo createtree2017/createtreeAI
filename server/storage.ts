@@ -125,14 +125,54 @@ export const storage = {
       console.log(`[Storage] getMusicList 호출됨: 사용자=${username || '없음'}, ID=${userId || '없음'}`);
       
       // 기본 쿼리: 모든 음악 항목 가져오기 (생성 시간 역순)
+      // 주의: 실제 DB에는 user_id 컬럼이 없으므로 metadata를 통해 필터링해야 함
       const results = await db.query.music.findMany({
         orderBy: [desc(music.createdAt)]
       });
       
       console.log(`[Storage] 음악 항목 ${results.length}개 로드됨`);
       
+      // 사용자 ID 또는 사용자명이 제공된 경우, 메타데이터로 필터링
+      let filteredResults = results;
+      if (userId || username) {
+        filteredResults = results.filter(item => {
+          try {
+            if (!item.metadata) return false;
+            
+            const metadata = typeof item.metadata === 'string' 
+              ? JSON.parse(item.metadata) 
+              : item.metadata;
+            
+            // userId 비교 (문자열로 변환해서 비교)
+            if (userId && metadata.userId) {
+              const metadataUserId = typeof metadata.userId === 'string' 
+                ? parseInt(metadata.userId) 
+                : metadata.userId;
+              
+              if (metadataUserId === userId) {
+                console.log(`[Storage] 음악 항목 일치: ID=${item.id}, userId=${metadata.userId}`);
+                return true;
+              }
+            }
+            
+            // username 비교
+            if (username && metadata.username && metadata.username === username) {
+              console.log(`[Storage] 음악 항목 일치: ID=${item.id}, username=${metadata.username}`);
+              return true;
+            }
+            
+            return false;
+          } catch (err) {
+            console.error(`[Storage] 메타데이터 파싱 오류:`, err);
+            return false;
+          }
+        });
+        
+        console.log(`[Storage] 사용자 필터링 후 음악 항목 ${filteredResults.length}개 남음`);
+      }
+      
       // 메타데이터 처리 및 반환
-      return results.map(item => {
+      return filteredResults.map(item => {
         // 메타데이터 필드가 있으면 파싱
         try {
           if (item.metadata && typeof item.metadata === 'string') {
@@ -140,7 +180,7 @@ export const storage = {
             
             // 메타데이터에 사용자 정보 추가 (없을 경우)
             if (userId && !metadata.userId) {
-              metadata.userId = userId;
+              metadata.userId = userId.toString();
             }
             if (username && !metadata.username) {
               metadata.username = username;
@@ -411,15 +451,19 @@ export const storage = {
           try {
             const metadata = JSON.parse(image.metadata);
             
-            // 디버깅 로그 추가
-            console.log(`[이미지 필터링 분석] ID=${image.id}, 제목="${image.title}", 메타데이터:`, metadata);
+            // 메타데이터 분석 디버깅 로그 (샘플 5개 이미지만 출력)
+            if (image.id % 20 === 0) { // 간격을 두고 샘플 이미지만 로깅하여 로그 양 제한
+              console.log(`[이미지 필터링 분석] ID=${image.id}, 제목="${image.title}", 메타데이터:`, metadata);
+            }
             
             // 첫 번째 조건: metadata에 userId가 있고 파라미터 userId와 일치 (문자열/숫자 타입 불일치 해결)
             if (userId && metadata.userId) {
-              // 문자열과 숫자 비교를 위해 문자열로 변환하거나 정수로 변환
-              const metadataUserId = typeof metadata.userId === 'string' ? parseInt(metadata.userId) : metadata.userId;
-              if (metadataUserId === userId) {
-                console.log(`[이미지 필터링] 사용자 ID 일치: ${metadataUserId} === ${userId}`);
+              // 문자열과 숫자 비교를 위해 문자열로 변환해서 비교
+              const userIdStr = userId.toString();
+              const metadataUserIdStr = metadata.userId.toString();
+              
+              if (userIdStr === metadataUserIdStr) {
+                console.log(`[이미지 필터링] 사용자 ID 일치: ${metadata.userId} === ${userId}`);
                 return true;
               }
             }
