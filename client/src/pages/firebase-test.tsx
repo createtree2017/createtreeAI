@@ -19,12 +19,13 @@ console.log("🔥 환경변수 확인:", {
 // Firebase 앱 초기화 로직 - 직접 구성
 export default function FirebaseTestPage() {
   const [firebaseConfig, setFirebaseConfig] = useState({
-    apiKey: "AIzaSyCINDZ1I6iqCNkxLG73GEOFwOrPm52uxMQ",
+    apiKey: "AIzaSyCINDZ1I6iqCNkxLG73GEOFYwOrPm52uxM", // 스크린샷에서 확인된 API 키
     authDomain: "createai-7facc.firebaseapp.com",
     projectId: "createai-7facc",
-    storageBucket: "createai-7facc.appspot.com",
+    storageBucket: "createai-7facc.firebasestorage.app", // 정확한 스토리지 버킷 주소
     messagingSenderId: "980137173202",
-    appId: "1:980137173202:web:aef6cd9e1b3914ad7ac997"
+    appId: "1:980137173202:web:aef6cd9e1b3914ad7ac997",
+    measurementId: "G-2MZ24X4RDX"
   });
   
   const [user, setUser] = useState<any>(null);
@@ -266,7 +267,7 @@ export default function FirebaseTestPage() {
               <div className="flex flex-col items-center gap-4">
                 <Button 
                   onClick={handleGoogleLogin} 
-                  disabled={loading || !initStatus.app || !initStatus.auth || !initStatus.provider}
+                  disabled={loading || !initStatus.app || !initStatus.auth || !initStatus.provider || true} /* API 키 문제로 비활성화 */
                   className="flex items-center gap-2"
                 >
                   {loading ? (
@@ -276,6 +277,15 @@ export default function FirebaseTestPage() {
                   )}
                   Google로 로그인
                 </Button>
+                
+                <Alert variant="destructive" className="mt-2">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>API 키 오류</AlertTitle>
+                  <AlertDescription className="text-xs">
+                    현재 Firebase API 키 문제로 Google 로그인을 사용할 수 없습니다.<br />
+                    Firebase 콘솔에서 올바른 API 키를 확인하고 업데이트해 주세요.
+                  </AlertDescription>
+                </Alert>
                 
                 <div className="text-xs text-muted-foreground text-center max-w-md">
                   테스트 서버에서는 Firebase가 도메인 검증을 하기 때문에, 
