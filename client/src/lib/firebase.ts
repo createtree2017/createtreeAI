@@ -9,18 +9,28 @@ import { FirebaseApp } from "firebase/app";
  * 환경 변수와 하드코딩된 Firebase 프로젝트 정보를 사용합니다.
  */
 
-// Firebase 구성 객체 (환경 변수와 하드코딩된 값 혼합)
+// Firebase 구성 객체 (환경 변수 우선 사용)
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyCINDZ1I6iqCNkxLG73GEOFfwOrPm52uxM",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: "createai-7facc.firebaseapp.com", 
-  projectId: "createai-7facc",
-  storageBucket: "createai-7facc.firebasestorage.app",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "createai-7facc",
+  storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID || "createai-7facc"}.firebasestorage.app`,
   messagingSenderId: "980137173202",
-  appId: "1:980137173202:web:aef6cd9e1b3914ad7ac997",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:980137173202:web:aef6cd9e1b3914ad7ac997",
   measurementId: "G-2MZ24X4RDX"
 };
 
-console.log("Firebase 구성:", { ...firebaseConfig, apiKey: "사용 중" });
+// 환경 변수 디버깅
+console.log("Firebase 환경 변수:", {
+  VITE_FIREBASE_API_KEY: import.meta.env.VITE_FIREBASE_API_KEY ? "설정됨" : "설정되지 않음",
+  VITE_FIREBASE_PROJECT_ID: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  VITE_FIREBASE_APP_ID: import.meta.env.VITE_FIREBASE_APP_ID
+});
+
+console.log("Firebase 구성:", { 
+  ...firebaseConfig, 
+  apiKey: firebaseConfig.apiKey ? "설정됨" : "설정되지 않음"
+});
 
 // Firebase 초기화 - 오류 처리 추가
 let app: FirebaseApp;
