@@ -93,6 +93,8 @@ export const images = pgTable("images", {
   templateId: integer("template_id"),
   compositeMask: text("composite_mask"),
   facePositions: jsonb("face_positions"),
+  // 사용자 ID 필드 추가
+  userId: integer("user_id"),
 });
 
 // Chat messages table

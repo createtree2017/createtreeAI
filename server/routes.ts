@@ -59,9 +59,6 @@ import {
   insertBannerSchema,
   insertStyleCardSchema,
   insertServiceCategorySchema,
-  eq,
-  asc,
-  desc,
   and,
   sql,
   like
