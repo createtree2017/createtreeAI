@@ -42,7 +42,9 @@ export default function StyleCardManagement() {
   const { data: styleCards, isLoading, isError } = useQuery({
     queryKey: ["/api/style-cards", "all"],
     queryFn: async () => {
-      const response = await fetch("/api/style-cards?showAll=true");
+      const response = await fetch("/api/style-cards?showAll=true", {
+        credentials: 'include'
+      });
       if (!response.ok) {
         throw new Error("스타일 카드 데이터를 불러오는데 실패했습니다");
       }

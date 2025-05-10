@@ -44,7 +44,9 @@ const RegisterForm: React.FC = () => {
   const { data: hospitals, isLoading: isHospitalsLoading, error: hospitalsError } = useQuery({
     queryKey: ["/api/hospitals"],
     queryFn: async () => {
-      const response = await fetch("/api/hospitals");
+      const response = await fetch("/api/hospitals", {
+        credentials: 'include'
+      });
       if (!response.ok) {
         throw new Error("병원 목록을 가져오는데 실패했습니다.");
       }

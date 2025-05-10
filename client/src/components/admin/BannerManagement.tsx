@@ -99,7 +99,9 @@ export default function BannerManagement() {
   const { data: banners, isLoading } = useQuery<Banner[]>({
     queryKey: ["/api/admin/banners"],
     queryFn: async () => {
-      const response = await fetch("/api/banners");
+      const response = await fetch("/api/banners", {
+        credentials: 'include'
+      });
       if (!response.ok) {
         throw new Error("배너 목록을 불러오는데 실패했습니다");
       }

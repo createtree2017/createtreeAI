@@ -44,7 +44,9 @@ export default function Sidebar({ collapsed = false }) {
   const { data: serviceCategories } = useQuery({
     queryKey: ['/api/service-categories'],
     queryFn: async () => {
-      const response = await fetch('/api/service-categories');
+      const response = await fetch('/api/service-categories', {
+        credentials: 'include'
+      });
       if (!response.ok) {
         throw new Error('서비스 카테고리를 가져오는 데 실패했습니다.');
       }
