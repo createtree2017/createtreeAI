@@ -28,7 +28,7 @@ console.log("🔥 Firebase 초기화 환경변수:", {
 // 개발 환경에서는 환경변수가 로드되지 않을 수 있으므로 하드코딩 값으로 강제 지정
 // 이후 환경변수 설정이 완료되면 해당 코드를 수정해야 합니다
 const config = {
-  apiKey: "AIzaSyCINDZ1I6iqCNkxLG73GEOFwOrPm52uxMQ", // 임시로 하드코딩
+  apiKey: "AIza9jCINDZ1l6qCNkxLG73GEOFYwOimP52uxM", // Firebase 콘솔에서 확인한 정확한 API 키
   authDomain: "createai-7facc.firebaseapp.com", 
   projectId: "createai-7facc",
   storageBucket: "createai-7facc.appspot.com",
