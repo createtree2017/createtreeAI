@@ -821,7 +821,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Gallery endpoints
   app.get("/api/gallery", async (req, res) => {
     try {
-      // 로그인 체크를 임시로 비활성화 (userId 없이도 갤러리 접근 가능하도록)
+      // 로그인 체크
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: "로그인이 필요합니다." });
       }
@@ -836,7 +836,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const username = usernameFilter || req.user?.username;
       
       // 로그에 사용자 정보 출력
-      console.log(`이미지 항목 로딩 - 사용자: ${username}`);
+      console.log(`갤러리 항목 로딩 - 사용자: ${username} (ID: ${userId})`);
+      
+      // 요청 시작 시간 기록 (성능 측정용)
+      const startTime = Date.now();
       
       // 일시적 해결책: 한글 인코딩 수정을 위한 유틸리티 함수 import
       const { decodeKoreanInObject, decodeKoreanText } = await import('./utils');
@@ -880,12 +883,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else if (filter === "image") {
         try {
           // 이미지 탭에서 사용자별 필터링 구현
-          console.log(`[이미지 탭] 사용자 ${username || '없음'}`);
+          console.log(`[이미지 탭] 사용자 ID: ${userId}, 이름: ${username || '없음'}`);
           
           // 통합된 getPaginatedImageList 함수 사용
           const imageResult = await storage.getPaginatedImageList(
             1, // 첫 페이지
-            500, // 충분히 많은 수량
+            100, // 충분히 많은 수량 (하지만 너무 많으면 성능에 영향)
             userId, // 사용자 ID
             username // 사용자 이름 (필터링용)
           );
@@ -895,22 +898,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           console.log(`[갤러리 API] 이미지 탭: ${filteredImages.length}개 이미지 로드됨`);
           
-          // 필터링 후 결과가 너무 적으면 결과를 복제해서 더 많이 표시
-          if (filteredImages.length < 10) {
-            console.log("필터링된 이미지가 너무 적어 결과를 복제합니다");
-            const originalLength = filteredImages.length;
-            for (let i = 0; i < Math.min(2, Math.ceil(10/originalLength)); i++) {
-              filteredImages = [...filteredImages, ...filteredImages];
-            }
-            // 최대 20개로 제한
-            filteredImages = filteredImages.slice(0, 20);
+          // 결과가 없는 경우 메시지 준비
+          if (filteredImages.length === 0) {
+            console.log(`[갤러리 API] 사용자 ${username}의 이미지가 없습니다.`);
           }
           
           // 필터링된 이미지 변환
           galleryItems = filteredImages.map(item => {
             // 한글 디코딩 더 강화하여 적용
             const decodedTitle = decodeKoreanText(item.title || '');
-            console.log(`디코딩 전: ${item.title}, 디코딩 후: ${decodedTitle}`);
+            
+            // 메타데이터 파싱
+            let metaUserId = null;
+            let metaUsername = null;
+            if (item.metadata) {
+              try {
+                const meta = JSON.parse(item.metadata);
+                metaUserId = meta.userId;
+                metaUsername = meta.username;
+              } catch (e) {
+                // 파싱 오류는 무시
+              }
+            }
+            
+            console.log(`이미지 항목: ID=${item.id}, 제목=${decodedTitle}, 메타데이터 사용자 ID=${metaUserId}, 메타데이터 사용자명=${metaUsername}`);
+            
             return {
               id: item.id,
               title: decodedTitle,
@@ -918,7 +930,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               url: item.transformedUrl,
               thumbnailUrl: item.transformedUrl,
               createdAt: item.createdAt.toISOString(),
-              isFavorite: false
+              isFavorite: false,
+              userId: metaUserId // 메타데이터에서 추출한 사용자 ID 추가
             };
           });
           
@@ -998,7 +1011,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // 이미지 항목 (통합된 사용자별 필터링)
           try {
-            console.log(`[갤러리 API] 전체 컨텐츠: 사용자 ${username || '없음'}`);
+            console.log(`[갤러리 API] 전체 컨텐츠: 사용자 ID: ${userId}, 이름: ${username || '없음'}`);
             
             // 통합된 getPaginatedImageList 함수 사용
             const imageResult = await storage.getPaginatedImageList(
@@ -1018,7 +1031,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const formattedImageItems = filteredImages.map(item => {
                 // 한글 디코딩 더 강화하여 적용
                 const decodedTitle = decodeKoreanText(item.title || '');
-                console.log(`디코딩 전: ${item.title}, 디코딩 후: ${decodedTitle}`);
+                
+                // 메타데이터 파싱
+                let metaUserId = null;
+                let metaUsername = null;
+                if (item.metadata) {
+                  try {
+                    const meta = JSON.parse(item.metadata);
+                    metaUserId = meta.userId;
+                    metaUsername = meta.username;
+                  } catch (e) {
+                    // 파싱 오류는 무시
+                  }
+                }
+                
+                // 현재 로그인 사용자와 연관된 이미지인지 확인
+                const isUserImage = (metaUserId && metaUserId === userId) || 
+                                   (metaUsername && metaUsername === username);
+                                   
+                if (isUserImage) {
+                  console.log(`사용자 소유 이미지 발견: ID=${item.id}, 제목=${decodedTitle}`);
+                }
+                
                 return {
                   id: item.id,
                   title: decodedTitle,
@@ -1026,7 +1060,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   url: item.transformedUrl,
                   thumbnailUrl: item.transformedUrl,
                   createdAt: item.createdAt.toISOString(),
-                  isFavorite: false
+                  isFavorite: false,
+                  userId: metaUserId, // 메타데이터에서 추출한 사용자 ID 추가
+                  isOwner: isUserImage // 소유 여부 표시
                 };
               });
               
@@ -1082,12 +1118,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // 빈 배열이면 빈 배열 반환 (에러 없음)
-      if (!galleryItems || galleryItems.length === 0) {
-        return res.json([]);
-      }
+      // 결과 반환 전 처리 시간 계산 및 메타데이터 추가
+      const processingTime = Date.now() - startTime;
       
-      return res.json(galleryItems);
+      // 디버깅 정보 추가
+      console.log(`갤러리 API 응답 준비 완료 - ${galleryItems.length}개 항목, 처리 시간: ${processingTime}ms`);
+      
+      // 응답에 메타데이터 포함
+      return res.json({
+        items: galleryItems,
+        meta: {
+          filter: filter || 'all',
+          count: galleryItems.length,
+          userId: userId,
+          username: username,
+          processingTimeMs: processingTime
+        }
+      });
     } catch (error) {
       console.error("Error fetching gallery items:", error);
       return res.status(500).json({ error: "Failed to fetch gallery items" });
