@@ -28,12 +28,12 @@ console.log("🔥 Firebase 초기화 환경변수:", {
 // 개발 환경에서는 환경변수가 로드되지 않을 수 있으므로 하드코딩 값으로 강제 지정
 // 이후 환경변수 설정이 완료되면 해당 코드를 수정해야 합니다
 const config = {
-  apiKey: "AIza9jCINDZ1l6qCNkxLG73GEOFYwOimP52uxM", // Firebase 콘솔에서 확인한 정확한 API 키
-  authDomain: "createai-7facc.firebaseapp.com", 
+  apiKey: "AIzaSyCINDZ1I6iqCNkxLG73GEOFYwOrPm52uxM",
+  authDomain: "createai-7facc.firebaseapp.com",
   projectId: "createai-7facc",
-  storageBucket: "createai-7facc.appspot.com",
-  messagingSenderId: "980137173202",
-  appId: "1:980137173202:web:aef6cd9e1b3914ad7ac997",
+  storageBucket: "createai-7facc.firestorage.app",
+  messagingSenderId: "98013717302",
+  appId: "1:98013717302:web:aef6cd9e1b3914ad7ac997",
   measurementId: "G-2MZ24X4RDX"
 };
 
