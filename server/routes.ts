@@ -959,26 +959,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
               return false;
             });
             
-            // 필터링 결과가 없으면 최신 5개 항목 표시 (임시 조치)
+            // 필터링 결과가 없으면 빈 배열 반환 (사용자 소유의 콘텐츠만 표시)
             if (userMusicItems.length === 0) {
-              console.log('사용자별 음악 필터링 결과 없음, 최신 5개 항목 표시');
-              userMusicItems = musicItems.slice(0, 5);
+              console.log('사용자별 음악 필터링 결과 없음. 로그인 사용자에게는 빈 갤러리 표시');
+              userMusicItems = []; // 자신의 콘텐츠만 볼 수 있도록 수정
             }
           } else {
-            // 비로그인 사용자: 최신 5개 항목만 표시
-            userMusicItems = musicItems.slice(0, 5);
+            // 비로그인 사용자: 빈 배열 반환 (로그인 필요 메시지 표시용)
+            console.log('비로그인 사용자에게 음악 갤러리 접근 제한');
+            userMusicItems = []; // 로그인이 필요한 기능으로 변경
           }
           
           console.log(`음악 필터링 결과: ${userMusicItems.length}개 항목`);
           
           // 한글 디코딩 적용 및 소유권 메타데이터 추가
           galleryItems = userMusicItems.map(item => {
+            // 메타데이터에서 userId 추출
+            let itemUserId = null;
+            let itemUsername = null;
+            
+            // 메타데이터 파싱 시도
+            if (item.metadata) {
+              try {
+                const metadata = typeof item.metadata === 'string'
+                  ? JSON.parse(item.metadata)
+                  : item.metadata;
+                  
+                itemUserId = metadata.userId || null;
+                itemUsername = metadata.username || null;
+              } catch (error) {
+                console.error('음악 메타데이터 파싱 오류:', error);
+              }
+            }
+            
+            // 아이템의 사용자 ID와 현재 사용자 ID가 일치하는지 비교
+            const isOwnerOfItem = !!userId && !!itemUserId && itemUserId === userId;
+            
+            console.log(`음악 항목 소유권 확인: ID=${item.id}, 제목=${item.title}, 아이템 사용자=${itemUserId}, 현재 사용자=${userId}, 소유자=${isOwnerOfItem}`);
+            
             return {
               ...item,
               title: decodeKoreanText(item.title || '제목 없음'),
-              // 로그인한 사용자의 경우 소유권 표시
-              userId: userId || null,
-              isOwner: !!userId // 로그인한 경우에만 소유자로 표시
+              userId: itemUserId, // 메타데이터에서 추출한 사용자 ID 사용
+              username: itemUsername, // 메타데이터에서 추출한 사용자 이름 사용
+              isOwner: isOwnerOfItem // 현재 사용자 ID와 일치하는 경우에만 소유자로 표시
             };
           });
         } catch (error) {
@@ -1024,14 +1048,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
               return false;
             });
             
-            // 필터링 결과가 없으면 최신 8개 이미지 표시 (임시 조치)
+            // 필터링 결과가 없으면 빈 배열 반환 (사용자 소유의 콘텐츠만 표시)
             if (filteredImages.length === 0) {
-              console.log('사용자별 이미지 필터링 결과 없음, 최신 8개 항목 표시');
-              filteredImages = allImages.slice(0, 8);
+              console.log('사용자별 이미지 필터링 결과 없음. 로그인 사용자에게는 빈 갤러리 표시');
+              filteredImages = []; // 자신의 콘텐츠만 볼 수 있도록 수정
             }
           } else {
-            // 비로그인 사용자: 최신 8개 이미지만 표시
-            filteredImages = allImages.slice(0, 8);
+            // 비로그인 사용자: 빈 배열 반환 (로그인 필요 메시지 표시용)
+            console.log('비로그인 사용자에게 이미지 갤러리 접근 제한');
+            filteredImages = []; // 로그인이 필요한 기능으로 변경
           }
           
           console.log(`[갤러리 API] 이미지 탭: ${filteredImages.length}개 이미지 필터링됨`);
