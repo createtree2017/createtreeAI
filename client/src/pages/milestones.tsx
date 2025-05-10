@@ -35,7 +35,7 @@ interface UserMilestone {
   milestoneId: string;
   completedAt: string;
   notes?: string;
-  photoUrl?: string;
+  // photoUrl?: string; // 필드가 실제 데이터베이스에 존재하지 않아 제거
   milestone: Milestone;
 }
 
@@ -377,6 +377,7 @@ const CompletedMilestoneCard = ({ userMilestone }: { userMilestone: UserMileston
                   </div>
                 </div>
                 
+                {/* photoUrl 필드가 실제 데이터베이스에 존재하지 않아 제거
                 {userMilestone.photoUrl && (
                   <div className="space-y-2">
                     <Label>내 사진</Label>
@@ -387,6 +388,7 @@ const CompletedMilestoneCard = ({ userMilestone }: { userMilestone: UserMileston
                     />
                   </div>
                 )}
+                */}
               </div>
             </DialogContent>
           </Dialog>
