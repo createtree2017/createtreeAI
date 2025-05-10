@@ -460,8 +460,8 @@ export const storage = {
                 : img.metadata;
               
               metadataLog = `{userId: ${metadata.userId || '없음'}, username: ${metadata.username || '없음'}}`;
-            } catch (err) {
-              metadataLog = `파싱 오류: ${err.message}`;
+            } catch (error) {
+              metadataLog = `파싱 오류: ${error instanceof Error ? error.message : String(error)}`;
             }
           }
           
@@ -583,8 +583,10 @@ export const storage = {
             }
             
             return isMatch;
-          } catch (e) {
+          } catch (error) {
             // 메타데이터 파싱 오류 시 false 반환
+            console.error(`[이미지 ID ${item.id}] 메타데이터 파싱 오류:`, 
+              error instanceof Error ? error.message : String(error));
             return false;
           }
         });
