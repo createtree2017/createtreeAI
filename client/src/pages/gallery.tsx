@@ -17,6 +17,8 @@ interface GalleryItem {
   duration?: number;
   createdAt: string;
   isFavorite: boolean;
+  userId?: number;      // 항목 소유자의 사용자 ID
+  isOwner?: boolean;    // 현재 로그인한 사용자가 소유자인지 여부
 }
 
 type FilterType = "all" | "music" | "image" | "chat" | "favorite";
@@ -305,17 +307,19 @@ export default function Gallery() {
             )}
           </div>
           <h3 className="font-heading font-semibold text-lg mb-1">
-            찾을 수 없습니다
+            {!user ? "로그인이 필요합니다" : "찾을 수 없습니다"}
           </h3>
           <p className="text-neutral-dark">
-            {activeFilter === "favorite"
-              ? "즐겨찾기 항목을 추가하면 여기에 표시됩니다!"
-              : activeFilter === "music"
-              ? "태교 음악 메뉴에서 첫 음악을 만들어보세요!"
-              : activeFilter === "image"
-              ? "추억 예술 메뉴에서 사진을 변환해보세요!"
-              : activeFilter === "chat"
-              ? "엄마 상담사 메뉴에서 대화를 나눠보세요!"
+            {!user 
+              ? "콘텐츠를 보려면 먼저 로그인해주세요"
+              : activeFilter === "favorite"
+                ? "즐겨찾기 항목을 추가하면 여기에 표시됩니다!"
+                : activeFilter === "music"
+                ? "태교 음악 메뉴에서 첫 음악을 만들어보세요!"
+                : activeFilter === "image"
+                ? "추억 예술 메뉴에서 사진을 변환해보세요!"
+                : activeFilter === "chat"
+                ? "엄마 상담사 메뉴에서 대화를 나눠보세요!"
               : "음악을 만들거나 사진을 변환하거나 상담사와 대화해보세요!"}
           </p>
         </div>
