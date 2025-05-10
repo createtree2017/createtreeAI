@@ -41,7 +41,7 @@ export async function handleFirebaseAuth(firebaseUser: FirebaseUserData) {
       firebaseUid: firebaseUser.uid,
       emailVerified: true, // Firebase 인증은 이메일이 이미 검증됨
       memberType: 'general', // 기본 회원 타입
-      photoUrl: firebaseUser.photoUrl || null, // Firebase에서 가져온 프로필 사진 URL
+      // photoUrl 필드는 데이터베이스에 존재하지 않아 제거
       phoneNumber: firebaseUser.phoneNumber || null,
       lastLogin: new Date(),
       createdAt: new Date(),
@@ -59,7 +59,7 @@ export async function handleFirebaseAuth(firebaseUser: FirebaseUserData) {
       .set({
         firebaseUid: firebaseUser.uid,
         emailVerified: true,
-        photoUrl: user.photoUrl || firebaseUser.photoUrl,
+        // photoUrl 필드는 데이터베이스에 존재하지 않아 제거
         lastLogin: new Date(),
         updatedAt: new Date()
       })
