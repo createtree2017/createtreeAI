@@ -67,7 +67,7 @@ import {
   like
 } from "../shared/schema";
 import { db } from "../db";
-import { or } from "drizzle-orm";
+import { or, eq, desc, asc } from "drizzle-orm";
 
 // Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), "uploads");
@@ -851,16 +851,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // 사용자 ID로 필터링 추가 (임시: 사용자 구분 기능이 완전히 구현될 때까지 간단한 솔루션)
       if (filter === "chat") {
-        // 채팅 데이터 - 직접 쿼리로 조회
-        const chatItems = await db.select({
-          id: savedChats.id,
-          title: savedChats.title,
-          personaEmoji: savedChats.personaEmoji,
-          createdAt: savedChats.createdAt
-        })
-        .from(savedChats)
-        .orderBy(desc(savedChats.createdAt))
-        .limit(5);
+        // 채팅 데이터 - 직접 쿼리로 조회 (사용자 필터링 추가)
+        let chatQuery;
+        
+        // 로그인한 경우 사용자별 필터링 적용
+        if (userId) {
+          console.log(`채팅 항목 사용자 필터링 적용: userId=${userId}`);
+          chatQuery = db.select({
+            id: savedChats.id,
+            title: savedChats.title,
+            personaEmoji: savedChats.personaEmoji,
+            createdAt: savedChats.createdAt,
+            userId: savedChats.userId
+          })
+          .from(savedChats)
+          .where(eq(savedChats.userId, userId))
+          .orderBy(desc(savedChats.createdAt))
+          .limit(5);
+        } else {
+          // 로그인하지 않은 경우 최근 항목만 가져옴
+          chatQuery = db.select({
+            id: savedChats.id,
+            title: savedChats.title,
+            personaEmoji: savedChats.personaEmoji,
+            createdAt: savedChats.createdAt,
+            userId: savedChats.userId
+          })
+          .from(savedChats)
+          .orderBy(desc(savedChats.createdAt))
+          .limit(5);
+        }
+        
+        // 쿼리 실행
+        const chatItems = await chatQuery;
+        
+        console.log(`채팅 항목 조회 결과: ${chatItems.length}개`);
         
         galleryItems = chatItems.map(chat => ({
           id: chat.id,
@@ -869,7 +894,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           url: `/chat?id=${chat.id}`,
           createdAt: chat.createdAt.toISOString(),
           isFavorite: false,
-          personaEmoji: chat.personaEmoji || '💬'
+          personaEmoji: chat.personaEmoji || '💬',
+          userId: chat.userId,
+          isOwner: userId === chat.userId
         }));
       } else if (filter === "music") {
         // 음악 필터링
