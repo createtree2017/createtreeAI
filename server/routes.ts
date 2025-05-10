@@ -323,6 +323,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = musicGenerationSchema.parse(req.body);
       
+      // 현재 사용자 정보 가져오기
+      let userId: number | null = null;
+      let username: string | null = null;
+      
+      // 인증된 사용자인 경우 사용자 정보 추출
+      if (req.isAuthenticated && req.isAuthenticated()) {
+        const user = req.user as any;
+        if (user) {
+          userId = user.id || null;
+          username = user.username || user.email || null;
+        }
+      }
+      
+      console.log(`음악 생성 요청: ${validatedData.babyName}, 사용자=${username || '비로그인'}, ID=${userId || '없음'}`);
+      
       // Generate music using AI service
       const musicData = await generateMusic(
         validatedData.babyName,
@@ -330,12 +345,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         validatedData.duration
       );
       
-      // Save to database
+      // Save to database with user information
       const savedMusic = await storage.saveMusicGeneration(
         validatedData.babyName,
         validatedData.style,
         musicData.url,
-        validatedData.duration
+        validatedData.duration,
+        userId,
+        username
       );
       
       return res.status(201).json(savedMusic);

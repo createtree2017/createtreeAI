@@ -76,22 +76,48 @@ export const storage = {
     babyName: string,
     style: string,
     url: string,
-    duration: number
+    duration: number,
+    userId?: number | null,
+    username?: string | null
   ) {
-    const title = `${babyName}'s ${style.charAt(0).toUpperCase() + style.slice(1)}`;
-    
-    const [savedMusic] = await db
-      .insert(music)
-      .values({
-        title,
-        babyName,
-        style,
-        url,
-        duration,
-      })
-      .returning();
-    
-    return savedMusic;
+    try {
+      const title = `${babyName}'s ${style.charAt(0).toUpperCase() + style.slice(1)}`;
+      
+      // 사용자 정보가 있는 경우 메타데이터에 포함
+      let metadataObj: any = {
+        generatedAt: new Date().toISOString(),
+        appVersion: '1.0.0'
+      };
+      
+      // 사용자 정보가 있으면 메타데이터와 userId 필드에 추가
+      if (userId) {
+        metadataObj.userId = userId;
+      }
+      
+      if (username) {
+        metadataObj.username = username;
+      }
+      
+      console.log(`음악 생성 저장: ${title}, 사용자 ID=${userId || '없음'}, 이름=${username || '없음'}`);
+      
+      const [savedMusic] = await db
+        .insert(music)
+        .values({
+          title,
+          babyName,
+          style,
+          url,
+          duration,
+          userId: userId || null,
+          metadata: JSON.stringify(metadataObj),
+        })
+        .returning();
+      
+      return savedMusic;
+    } catch (error) {
+      console.error('음악 저장 오류:', error);
+      throw error;
+    }
   },
   
   async getMusicList(userId?: number | null, username?: string | null) {
