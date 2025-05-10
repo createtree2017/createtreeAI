@@ -821,25 +821,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Gallery endpoints
   app.get("/api/gallery", async (req, res) => {
     try {
-      // 로그인 체크
-      if (!req.isAuthenticated()) {
-        return res.status(401).json({ error: "로그인이 필요합니다." });
-      }
+      // 요청 시작 시간 기록 (성능 측정용)
+      const startTime = Date.now();
+      
+      // 로그인 체크 - 갤러리는 로그인 없이도 조회 가능하게 변경
+      // 로그인한 경우 사용자별 필터링, 로그인하지 않은 경우 모든 갤러리 항목 표시
+      const user = req.user;
+      const userId = user ? user.id : null;
+      const username = user ? user.username : null;
+      
+      // 로그인 상태 로깅
+      console.log(`갤러리 API 요청 - 로그인 상태: ${!!user}, 사용자 ID: ${userId}, 사용자명: ${username || '없음'}`);
       
       // 필터링 옵션
       const filter = req.query.filter as string | undefined;
       const usernameFilter = req.query.username as string | undefined;
       let galleryItems = [];
       
-      // 현재 로그인한 사용자 정보 가져오기
-      const userId = req.user?.id;
-      const username = usernameFilter || req.user?.username;
+      // 사용자명 필터 우선 적용 (관리자 기능 대비)
+      if (usernameFilter) {
+        console.log(`사용자명 필터 적용: ${usernameFilter}`);
+      }
       
       // 로그에 사용자 정보 출력
       console.log(`갤러리 항목 로딩 - 사용자: ${username} (ID: ${userId})`);
-      
-      // 요청 시작 시간 기록 (성능 측정용)
-      const startTime = Date.now();
       
       // 일시적 해결책: 한글 인코딩 수정을 위한 유틸리티 함수 import
       const { decodeKoreanInObject, decodeKoreanText } = await import('./utils');

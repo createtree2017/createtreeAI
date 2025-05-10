@@ -309,7 +309,7 @@ export default function Gallery() {
           <h3 className="font-heading font-semibold text-lg mb-1">
             {!user ? "로그인이 필요합니다" : "찾을 수 없습니다"}
           </h3>
-          <p className="text-neutral-dark">
+          <p className="text-neutral-dark mb-4">
             {!user 
               ? "콘텐츠를 보려면 먼저 로그인해주세요"
               : activeFilter === "favorite"
@@ -322,6 +322,17 @@ export default function Gallery() {
                 ? "엄마 상담사 메뉴에서 대화를 나눠보세요!"
               : "음악을 만들거나 사진을 변환하거나 상담사와 대화해보세요!"}
           </p>
+          
+          {/* 로그인이 필요한 경우 로그인 버튼 표시 */}
+          {!user && (
+            <Button 
+              variant="default" 
+              className="bg-primary hover:bg-primary-dark text-white font-semibold"
+              onClick={() => setLocation("/auth")}
+            >
+              로그인하기
+            </Button>
+          )}
         </div>
       )}
     </div>
