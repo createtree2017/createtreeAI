@@ -29,22 +29,38 @@ export default function Gallery() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6; // 한 페이지당 6개 항목
 
-  // 갤러리 항목 조회
-  const { data: items, isLoading } = useQuery({
-    queryKey: ["/api/gallery", activeFilter],
+  // 사용자 인증 상태에 따라 다른 쿼리키 사용
+  const { data: items, isLoading, isError } = useQuery({
+    queryKey: ["/api/gallery", activeFilter, user?.id],
     queryFn: () => getGalleryItems(activeFilter !== "all" ? activeFilter : undefined),
+    // 재시도 옵션 추가
+    retry: 1,
+    // 사용자 변경 시 자동으로 쿼리 리프레시
+    enabled: true
   });
 
-  // 필터 변경 시 페이지 초기화
+  // 필터 변경 또는 사용자 변경 시 페이지 초기화
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeFilter]);
+  }, [activeFilter, user?.id]);
 
   // 페이지네이션 처리
   const filteredItems = items || [];
-  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+  
+  useEffect(() => {
+    // 디버깅: 갤러리 항목과 사용자 정보 출력
+    console.log('갤러리 데이터:', filteredItems);
+    console.log('현재 사용자:', user ? `ID: ${user.id}, 이름: ${user.username || 'Unknown'}` : 'Not logged in');
+  }, [filteredItems, user]);
+  
+  // 사용자가 로그인한 경우에만 isOwner = true인 항목 필터링
+  const userOwnedItems = user 
+    ? filteredItems.filter((item: GalleryItem) => item.isOwner === true)
+    : filteredItems;
+  
+  const totalPages = Math.ceil(userOwnedItems.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedItems = filteredItems.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedItems = userOwnedItems.slice(startIndex, startIndex + itemsPerPage);
   
   // Toggle favorite mutation
   const { mutate: toggleFavoriteMutation } = useMutation({
@@ -138,7 +154,7 @@ export default function Gallery() {
           <div className="bg-neutral-lightest h-56 rounded-lg animate-pulse"></div>
           <div className="bg-neutral-lightest h-56 rounded-lg animate-pulse"></div>
         </div>
-      ) : filteredItems.length > 0 ? (
+      ) : userOwnedItems.length > 0 ? (
         <>
           <div className="grid grid-cols-2 gap-3">
             {paginatedItems.map((item: GalleryItem) => (

@@ -118,8 +118,7 @@ export const getGalleryItems = async (filter?: string) => {
     url = `/api/gallery?filter=${filter}`;
   }
 
-  // 사용자 정보는 서버 측에서 세션을 통해 자동으로 가져오므로 
-  // 별도로 사용자 정보를 요청하지 않고 바로 갤러리 API를 호출합니다.
+  console.log(`갤러리 데이터 요청: ${url}`);
   
   // 직접 fetch API 사용 (자격 증명 포함)
   const response = await fetch(url, {
@@ -135,7 +134,21 @@ export const getGalleryItems = async (filter?: string) => {
     throw new Error('갤러리 데이터를 가져오는데 실패했습니다.');
   }
   
-  return response.json();
+  // 응답 데이터 파싱
+  const data = await response.json();
+  
+  // API 응답 형식 확인: 
+  // 새 형식({items: [...], meta: {...}})인지 이전 형식(직접 배열)인지 체크
+  if (data.items && Array.isArray(data.items)) {
+    console.log(`갤러리 데이터 ${data.items.length}개 로드됨, 메타데이터:`, data.meta);
+    return data.items;
+  } else if (Array.isArray(data)) {
+    console.log(`갤러리 데이터 ${data.length}개 로드됨 (레거시 포맷)`);
+    return data;
+  } else {
+    console.warn('예상치 못한 API 응답 형식:', data);
+    return []; // 빈 배열 반환
+  }
 };
 
 export const toggleFavorite = async (itemId: number, type: string) => {
