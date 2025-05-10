@@ -7,7 +7,8 @@ import { auth, googleProvider } from "@/lib/firebase";
 import { 
   signInWithPopup, 
   GoogleAuthProvider,
-  User as FirebaseUser
+  User as FirebaseUser,
+  Auth,
 } from "firebase/auth";
 
 type LoginCredentials = {
@@ -224,8 +225,16 @@ export function useAuth() {
   const loginWithGoogle = useMutation({
     mutationFn: async () => {
       try {
+        // Firebase 초기화 여부 확인
+        if (!auth || !googleProvider) {
+          console.error("Firebase가 초기화되지 않았습니다.");
+          throw new Error("Firebase 설정이 올바르지 않습니다.");
+        }
+        
+        console.log("Firebase Google 로그인 시도...");
+        
         // Firebase Google 로그인 - 팝업 방식
-        const result = await signInWithPopup(auth, googleProvider);
+        const result = await signInWithPopup(auth as Auth, googleProvider);
         
         // Google 계정 정보 확인
         const credential = GoogleAuthProvider.credentialFromResult(result);
@@ -238,13 +247,21 @@ export function useAuth() {
         
         console.log("Firebase 로그인 성공:", firebaseUser.displayName);
         
+        const userData = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: firebaseUser.displayName,
+          photoURL: firebaseUser.photoURL,
+          phoneNumber: firebaseUser.phoneNumber
+        };
+        
         // 서버로 Firebase 사용자 정보 전송
         const response = await fetch("/api/auth/firebase-login", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ user: firebaseUser.toJSON() }),
+          body: JSON.stringify({ user: userData }),
           credentials: "include", // 쿠키 포함
         });
         
@@ -262,6 +279,9 @@ export function useAuth() {
         }
         if (error.code === 'auth/cancelled-popup-request') {
           throw new Error("다중 팝업 요청이 취소되었습니다.");
+        }
+        if (error.code === 'auth/api-key-not-valid') {
+          throw new Error("Firebase API 키가 유효하지 않습니다. Firebase 설정을 확인해주세요.");
         }
         
         console.error("Google 로그인 오류:", error);

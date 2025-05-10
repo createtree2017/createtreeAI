@@ -41,7 +41,13 @@ const LoginForm: React.FC = () => {
   
   // Google 로그인 핸들러
   const handleGoogleLogin = () => {
-    loginWithGoogle();
+    try {
+      console.log("Google 로그인 시작");
+      loginWithGoogle();
+    } catch (error) {
+      console.error("Google 로그인 버튼 오류:", error);
+      alert("Google 로그인을 시작할 수 없습니다. Firebase 설정을 확인해 주세요.");
+    }
   };
 
   return (
@@ -102,22 +108,25 @@ const LoginForm: React.FC = () => {
         <Button 
           type="button" 
           variant="outline" 
-          className="w-full flex items-center justify-center"
+          className="w-full flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-black border-gray-300 py-6"
           onClick={handleGoogleLogin}
           disabled={isGoogleLoginLoading}
         >
           {isGoogleLoginLoading ? (
             <>
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              <Loader2 className="h-5 w-5 animate-spin" />
               <span>구글 로그인 중...</span>
             </>
           ) : (
             <>
-              <FcGoogle className="mr-2 h-5 w-5" />
+              <FcGoogle className="h-5 w-5" />
               <span>Google 계정으로 로그인</span>
             </>
           )}
         </Button>
+        <div className="text-xs text-center text-muted-foreground mt-1">
+          <span className="text-gray-500">Google 계정으로 간편하게 로그인하세요</span>
+        </div>
         
         {/* 계정 찾기 링크 */}
         <div className="mt-4 text-center">

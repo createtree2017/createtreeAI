@@ -5,10 +5,10 @@ import { getAuth, GoogleAuthProvider } from "firebase/auth";
  * Firebase 설정
  * 
  * 애플리케이션에서 Firebase 서비스를 사용하기 위한 설정 파일입니다.
- * 환경 변수에서 Firebase 프로젝트 정보를 가져옵니다.
+ * 직접 제공된 Firebase 프로젝트 정보를 사용합니다.
  */
 
-// Firebase 구성 객체
+// Firebase 구성 객체 (직접 제공된 값)
 const firebaseConfig = {
   apiKey: "AIzaSyCINDZ1I6iqCNkxLG73GEOFfwOrPm52uxM",
   authDomain: "createai-7facc.firebaseapp.com",
@@ -19,21 +19,44 @@ const firebaseConfig = {
   measurementId: "G-2MZ24X4RDX"
 };
 
-// Firebase 초기화
-export const app = initializeApp(firebaseConfig);
+console.log("Firebase 구성:", { ...firebaseConfig, apiKey: "사용 중" });
 
-// Firebase 인증 서비스 
-export const auth = getAuth(app);
+// Firebase 초기화 - 오류 처리 추가
+let app;
+let auth;
+let googleProvider;
 
-// Google 로그인 프로바이더
-export const googleProvider = new GoogleAuthProvider();
+try {
+  // Firebase 초기화
+  app = initializeApp(firebaseConfig);
+  
+  // Firebase 인증 서비스
+  auth = getAuth(app);
+  
+  // Google 로그인 프로바이더
+  googleProvider = new GoogleAuthProvider();
+  
+  // 로그인 성공 시 접근 권한, 이메일, 프로필 정보 요청 설정
+  googleProvider.setCustomParameters({
+    prompt: 'select_account',
+  });
+  
+  // 언어 설정 (한국어)
+  auth.languageCode = 'ko';
+  
+  console.log("Firebase 초기화 성공");
+} catch (error) {
+  console.error("Firebase 초기화 오류:", error);
+  
+  // 임시 대체 객체 생성 (오류 방지용)
+  app = {} as any;
+  auth = {
+    onAuthStateChanged: () => {},
+    signOut: async () => {},
+    languageCode: 'ko'
+  } as any;
+  googleProvider = {} as any;
+}
 
-// 로그인 성공 시 접근 권한, 이메일, 프로필 정보 요청 설정
-googleProvider.setCustomParameters({
-  prompt: 'select_account',
-});
-
-// 언어 설정 (한국어)
-auth.languageCode = 'ko';
-
+export { app, auth, googleProvider };
 export default app;
