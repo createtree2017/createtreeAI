@@ -125,7 +125,7 @@ const LoginForm: React.FC = () => {
           variant="outline" 
           className="w-full flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-black border-gray-300 py-6"
           onClick={handleGoogleLogin}
-          disabled={isGoogleLoginLoading || true} /* 현재 API 키 문제로 버튼 비활성화 */
+          disabled={isGoogleLoginLoading}
         >
           {isGoogleLoginLoading ? (
             <>
@@ -139,9 +139,8 @@ const LoginForm: React.FC = () => {
             </>
           )}
         </Button>
-        <div className="mt-2 p-2 bg-red-50 rounded-md border border-red-200">
-          <p className="text-xs text-red-600 font-medium">⚠️ API 키 오류로 현재 Google 로그인 기능을 사용할 수 없습니다.</p>
-          <p className="text-xs text-red-500 mt-1">일반 계정으로 로그인해 주세요.</p>
+        <div className="text-xs text-center text-muted-foreground mt-1">
+          <span className="text-gray-500">Google 계정으로 간편하게 로그인하세요</span>
         </div>
         
         {/* 계정 찾기 링크 */}
