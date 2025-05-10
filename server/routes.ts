@@ -874,14 +874,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const username = user ? user.username : null;
       
       // 갤러리 API 호출 시 사용자 인증 상태 및 정보 상세 로깅 (디버깅용)
+      // 세션 디버깅
+      const sessionData = req.session ? {
+        id: req.session.id,
+        cookie: req.session.cookie ? {
+          originalMaxAge: req.session.cookie.originalMaxAge,
+          expires: req.session.cookie.expires
+        } : 'No cookie',
+        passport: req.session.passport ? {
+          user: req.session.passport.user || 'No user ID'
+        } : 'No passport data'
+      } : 'No session';
+      
+      // 인증 상태 디버깅
+      const authDetails = {
+        isAuthenticated: req.isAuthenticated ? req.isAuthenticated() : 'function missing',
+        user: user ? {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          memberType: user.memberType
+        } : 'No user data'
+      };
+      
       console.log(`
 ===============================================================
-[갤러리 API 호출]
+[갤러리 API 호출] ${new Date().toISOString()}
 - 로그인 상태: ${!!user}
 - 사용자 ID: ${userId || '없음'} 
 - 사용자명: ${username || '없음'}
 - 쿼리 파라미터: ${JSON.stringify(req.query)}
 - 현재 필터: ${req.query.filter || '전체'}
+- 인증 세부 정보: ${JSON.stringify(authDetails)}
+- 세션 정보: ${JSON.stringify(sessionData)}
 ===============================================================
       `);
       
@@ -961,9 +986,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     ? JSON.parse(item.metadata) 
                     : item.metadata;
                     
-                  // 메타데이터에 userId가 현재 사용자와 일치하는지 확인
-                  if (metadata.userId && metadata.userId === userId) {
-                    return true;
+                  // 메타데이터에 userId가 현재 사용자와 일치하는지 확인 (문자열 변환 후 비교)
+                  if (metadata.userId) {
+                    // 문자열로 변환하여 비교 (타입 불일치 해결)
+                    const metadataUserIdStr = metadata.userId.toString();
+                    const currentUserIdStr = userId.toString();
+                    
+                    if (metadataUserIdStr === currentUserIdStr) {
+                      console.log(`[음악 필터링] 일치 항목 발견: metadata.userId=${metadataUserIdStr}, 현재 userId=${currentUserIdStr}`);
+                      return true;
+                    }
                   }
                   
                   // 메타데이터에 username이 현재 사용자와 일치하는지 확인 (대체 방법)
