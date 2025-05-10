@@ -830,8 +830,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             id: images.id,
             title: images.title,
             transformedUrl: images.transformedUrl,
-            createdAt: images.createdAt,
-            userId: images.userId
+            createdAt: images.createdAt
           })
           .from(images)
           .orderBy(desc(images.createdAt));
@@ -938,8 +937,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               id: images.id,
               title: images.title,
               transformedUrl: images.transformedUrl,
-              createdAt: images.createdAt,
-              userId: images.userId
+              createdAt: images.createdAt
             })
             .from(images)
             .orderBy(desc(images.createdAt));
