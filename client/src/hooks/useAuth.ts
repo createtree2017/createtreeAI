@@ -3,11 +3,9 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/useToast";
 import { User } from "@shared/schema";
-import { 
-  signInWithPopup,
-  GoogleAuthProvider,
-  getAuth
-} from "firebase/auth";
+// Firebase 가져오기 - 기존 초기화된 인스턴스를 사용
+import { auth as firebaseAuth, googleProvider } from "@/lib/firebase"; 
+import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 
 type LoginCredentials = {
   username: string;
@@ -224,16 +222,18 @@ export function useAuth() {
     mutationFn: async () => {
       try {
         console.log("[Google 로그인] 시작");
+        console.log("[Google 로그인] firebaseAuth 인스턴스 확인:", firebaseAuth ? "존재함" : "존재하지 않음");
+        console.log("[Google 로그인] 현재 도메인:", window.location.origin);
         
-        // 새로운 Firebase Auth 인스턴스와 제공업체 생성
-        const authInstance = getAuth();
-        const provider = new GoogleAuthProvider();
-        provider.setCustomParameters({ prompt: 'select_account' });
+        // 기존 초기화된 Firebase Auth 인스턴스 사용
+        if (!firebaseAuth) {
+          throw new Error("Firebase Auth가 초기화되지 않았습니다. 페이지를 새로고침 후 다시 시도해 주세요.");
+        }
         
         console.log("[Google 로그인] 팝업 창으로 로그인 시도");
         
         // 팝업 방식으로 로그인 시도
-        const result = await signInWithPopup(authInstance, provider);
+        const result = await signInWithPopup(firebaseAuth, googleProvider);
         
         // 성공 메시지
         console.log("[Google 로그인] 성공!");
