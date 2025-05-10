@@ -17,15 +17,22 @@ console.log("[Firebase Config] 현재 환경:", {
  * - projectId: Firebase 프로젝트 ID
  */
 
+// 환경변수 디버깅 로그
+console.log("🔥 Firebase 초기화 환경변수:", {
+  VITE_FIREBASE_API_KEY: import.meta.env.VITE_FIREBASE_API_KEY ? "설정됨" : "미설정",
+  VITE_FIREBASE_PROJECT_ID: import.meta.env.VITE_FIREBASE_PROJECT_ID ? "설정됨" : "미설정",
+  VITE_FIREBASE_APP_ID: import.meta.env.VITE_FIREBASE_APP_ID ? "설정됨" : "미설정"
+});
+
 // Firebase의 공식 구성 객체 타입과 동일하게 구성
-// (콘솔에서 확인한 최신 정보로 업데이트)
+// 환경변수가 있으면 환경변수 사용, 없으면 하드코딩 값 사용
 const config = {
-  apiKey: "AIzaSyCINDZ1I6iqCNkxLG73GEOFwOrPm52uxMQ",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyCINDZ1I6iqCNkxLG73GEOFwOrPm52uxMQ",
   authDomain: "createai-7facc.firebaseapp.com", 
-  projectId: "createai-7facc",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "createai-7facc",
   storageBucket: "createai-7facc.appspot.com",
   messagingSenderId: "980137173202",
-  appId: "1:980137173202:web:aef6cd9e1b3914ad7ac997",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:980137173202:web:aef6cd9e1b3914ad7ac997",
   measurementId: "G-2MZ24X4RDX"
 };
 

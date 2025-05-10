@@ -9,8 +9,15 @@ import { AlertCircle, CheckCircle2, ChevronRight, LogIn } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 // Firebase 구성 - 하드코딩 (테스트 전용)
+// 환경변수 디버깅을 위한 로그
+console.log("🔥 환경변수 확인:", {
+  VITE_FIREBASE_API_KEY: import.meta.env.VITE_FIREBASE_API_KEY,
+  VITE_FIREBASE_PROJECT_ID: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  VITE_FIREBASE_APP_ID: import.meta.env.VITE_FIREBASE_APP_ID
+});
+
+// 하드코딩 값 사용 (환경변수 미작동 시 대체용)
 const firebaseConfig = {
-  // 완전한 API 키를 사용 (확장자 누락 확인)
   apiKey: "AIzaSyCINDZ1I6iqCNkxLG73GEOFwOrPm52uxMQ",
   authDomain: "createai-7facc.firebaseapp.com",
   projectId: "createai-7facc",
