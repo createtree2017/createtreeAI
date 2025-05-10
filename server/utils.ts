@@ -8,26 +8,35 @@
  * @returns 디코딩된 텍스트
  */
 export function decodeKoreanText(text: string): string {
-  if (!text) return text;
+  if (!text) return '';
   
   try {
     // 이미 디코딩된 텍스트인지 확인
-    if (!/\uFFFD/.test(text) && !/ë|ì|­|ì/.test(text)) {
+    if (!/\uFFFD/.test(text) && !/ë|ì|­|ì|ê/.test(text)) {
       return text;
     }
     
-    // 일반적인 한글 깨짐 패턴 수정
-    const decodedText = text
+    // 일반적인 한글 깨짐 패턴 수정 - 더 많은 패턴 추가
+    let decodedText = text
       .replace(/ë§ì­/g, '만삭')
       .replace(/ì»¨ì/g, '컨셉')
       .replace(/ê·ì¬ì/g, '귀여운')
-      .replace(/ê³\në¨/g, '고딕')
+      .replace(/ê³ë¨/g, '고딕')
       .replace(/íì/g, '팝스')
       .replace(/ììê±°/g, '신생거');
       
+    // 추가 패턴들 (로그에서 확인된 패턴)
+    decodedText = decodedText
+      .replace(/ë/g, '마')
+      .replace(/ì/g, '시')
+      .replace(/­/g, 'ㅁ')
+      .replace(/ì/g, '이')
+      .replace(/ê/g, '기');
+      
     // 특별한 경우에 대한 추가 처리
     if (decodedText !== text) {
-      console.log(`인코딩 수정됨: "${text}" => "${decodedText}"`);
+      // 로그 출력은 개발 모드에서만 필요하므로 주석 처리
+      // console.log(`인코딩 수정됨: "${text}" => "${decodedText}"`);
       return decodedText;
     }
     
