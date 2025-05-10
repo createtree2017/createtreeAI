@@ -886,41 +886,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isOwner: true // 임시로 모든 사용자가 소유한 것처럼 표시
         }));
       } else if (filter === "music") {
-        // 음악 필터링
-        const musicItems = await storage.getMusicList();
-        // 임시: 로그인한 사용자의 음악으로 가정
-        // 현재 데이터베이스에 user_id가 없으므로 모든 사용자에게 동일한 항목 표시
-        const userMusicItems = musicItems.slice(0, 5); // 임시: 최근 5개만 표시
-        
-        console.log(`음악 필터링: 사용자=${username || '없음'}, 조회됨=${userMusicItems.length}개`);
-        
-        // 한글 디코딩 적용
-        galleryItems = userMusicItems.map(item => {
-          return {
-            ...item,
-            title: decodeKoreanText(item.title),
-            // 임시로 모든 항목이 현재 사용자의 것으로 표시
-            userId: userId,
-            isOwner: true
-          };
-        });
+        try {
+          // 음악 필터링 - 사용자 정보 로깅
+          console.log(`음악 필터링: 사용자=${username || '없음'}, ID=${userId || '없음'}`);
+  
+          // 모든 음악 항목 조회
+          const musicItems = await storage.getMusicList();
+          
+          // 각 음악 항목의 metadata를 확인하여 현재 사용자의 것인지 필터링
+          let userMusicItems = musicItems;
+          
+          if (userId) {
+            // 메타데이터에서 userId 필드 확인 (데이터베이스에 user_id 컬럼이 없는 경우 대체 방법)
+            userMusicItems = musicItems.filter(item => {
+              // 메타데이터에서 사용자 정보 추출
+              try {
+                if (item.metadata) {
+                  const metadata = typeof item.metadata === 'string' 
+                    ? JSON.parse(item.metadata) 
+                    : item.metadata;
+                    
+                  // 메타데이터에 userId가 현재 사용자와 일치하는지 확인
+                  if (metadata.userId && metadata.userId === userId) {
+                    return true;
+                  }
+                  
+                  // 메타데이터에 username이 현재 사용자와 일치하는지 확인 (대체 방법)
+                  if (metadata.username && username && metadata.username === username) {
+                    return true;
+                  }
+                }
+              } catch (error) {
+                console.error('메타데이터 파싱 오류:', error);
+              }
+              
+              // 사용자 정보가 없거나 일치하지 않는 경우, 필터링에서 제외
+              return false;
+            });
+            
+            // 필터링 결과가 없으면 최신 5개 항목 표시 (임시 조치)
+            if (userMusicItems.length === 0) {
+              console.log('사용자별 음악 필터링 결과 없음, 최신 5개 항목 표시');
+              userMusicItems = musicItems.slice(0, 5);
+            }
+          } else {
+            // 비로그인 사용자: 최신 5개 항목만 표시
+            userMusicItems = musicItems.slice(0, 5);
+          }
+          
+          console.log(`음악 필터링 결과: ${userMusicItems.length}개 항목`);
+          
+          // 한글 디코딩 적용 및 소유권 메타데이터 추가
+          galleryItems = userMusicItems.map(item => {
+            return {
+              ...item,
+              title: decodeKoreanText(item.title || '제목 없음'),
+              // 로그인한 사용자의 경우 소유권 표시
+              userId: userId || null,
+              isOwner: !!userId // 로그인한 경우에만 소유자로 표시
+            };
+          });
+        } catch (error) {
+          console.error('음악 필터링 오류:', error);
+          galleryItems = []; // 오류 발생 시 빈 배열 반환
+        }
       } else if (filter === "image") {
         try {
           // 이미지 탭에서 사용자별 필터링 구현
           console.log(`[이미지 탭] 사용자 ID: ${userId}, 이름: ${username || '없음'}`);
           
-          // 통합된 getPaginatedImageList 함수 사용
-          const imageResult = await storage.getPaginatedImageList(
-            1, // 첫 페이지
-            100, // 충분히 많은 수량 (하지만 너무 많으면 성능에 영향)
-            userId, // 사용자 ID
-            username // 사용자 이름 (필터링용)
-          );
+          // 기본적으로 모든 이미지 목록 가져오기
+          const allImages = await storage.getImageList();
+          console.log(`이미지 총 ${allImages.length}개 로드됨, 사용자별 필터링 시작`);
           
-          // 결과 필터링 없이 바로 사용
-          let filteredImages = imageResult.images;
+          // 사용자별 필터링 - 메타데이터 기반 필터링 (실제 DB 컬럼이 없는 경우 대체 방법)
+          let filteredImages = allImages;
           
-          console.log(`[갤러리 API] 이미지 탭: ${filteredImages.length}개 이미지 로드됨`);
+          if (userId) {
+            // 메타데이터에서 userId 필드 확인
+            filteredImages = allImages.filter(image => {
+              try {
+                if (image.metadata) {
+                  const metadata = typeof image.metadata === 'string' 
+                    ? JSON.parse(image.metadata) 
+                    : image.metadata;
+                  
+                  // 메타데이터에 userId가 있고 현재 사용자와 일치하는지 확인
+                  if (metadata.userId && metadata.userId === userId) {
+                    return true;
+                  }
+                  
+                  // 메타데이터에 username이 있고 현재 사용자와 일치하는지 확인
+                  if (metadata.username && username && metadata.username === username) {
+                    return true;
+                  }
+                }
+              } catch (error) {
+                console.error('이미지 메타데이터 파싱 오류:', error);
+              }
+              
+              // 사용자 정보가 없거나 일치하지 않는 경우 필터링에서 제외
+              return false;
+            });
+            
+            // 필터링 결과가 없으면 최신 8개 이미지 표시 (임시 조치)
+            if (filteredImages.length === 0) {
+              console.log('사용자별 이미지 필터링 결과 없음, 최신 8개 항목 표시');
+              filteredImages = allImages.slice(0, 8);
+            }
+          } else {
+            // 비로그인 사용자: 최신 8개 이미지만 표시
+            filteredImages = allImages.slice(0, 8);
+          }
+          
+          console.log(`[갤러리 API] 이미지 탭: ${filteredImages.length}개 이미지 필터링됨`);
           
           // 결과가 없는 경우 메시지 준비
           if (filteredImages.length === 0) {

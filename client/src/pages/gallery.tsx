@@ -55,10 +55,34 @@ export default function Gallery() {
     console.log('현재 사용자:', user ? `ID: ${user.id}, 이름: ${user.username || 'Unknown'}` : 'Not logged in');
   }, [filteredItems, user]);
   
-  // 사용자가 로그인한 경우에만 isOwner = true인 항목 필터링
+  // 로깅을 통한 디버깅 지원
+  console.log('갤러리 페이지 필터링 시작', {
+    activeFilter,
+    userId: user?.id,
+    username: user?.username || '로그인 안됨',
+    totalItems: filteredItems.length
+  });
+  
+  // 사용자가 로그인한 경우 isOwner 속성이 있거나 userId가 사용자의 ID와 일치하는 항목만 필터링
   const userOwnedItems = user 
-    ? filteredItems.filter((item: GalleryItem) => item.isOwner === true)
+    ? filteredItems.filter((item: GalleryItem) => {
+        // isOwner 속성이 명시적으로 설정된 경우 해당 값 사용
+        if (item.isOwner === true) {
+          return true;
+        }
+        
+        // userId가 존재하고 현재 사용자의 ID와 일치하는 경우
+        if (item.userId && item.userId === user.id) {
+          return true;
+        }
+        
+        // 필터링에서 제외
+        return false;
+      })
     : filteredItems;
+    
+  console.log(`사용자별 필터링 결과: ${userOwnedItems.length}/${filteredItems.length} 항목 표시됨`);
+  
   
   const totalPages = Math.ceil(userOwnedItems.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
