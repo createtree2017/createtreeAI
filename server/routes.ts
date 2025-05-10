@@ -882,42 +882,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // 이미지 탭에서 사용자별 필터링 구현
           console.log(`[이미지 탭] 사용자 ${username || '없음'}`);
           
-          // 현재 로그인한 사용자의 이미지만 필터링
-          let query = db.select({
-            id: images.id,
-            title: images.title,
-            transformedUrl: images.transformedUrl,
-            createdAt: images.createdAt,
-            style: images.style
-            // userId 필드 제거: user_id 컬럼이 데이터베이스에 없음
-          })
-          .from(images)
-          .orderBy(desc(images.createdAt))
-          .limit(500); // 더 많이 가져와서 필터링하기
+          // 통합된 getPaginatedImageList 함수 사용
+          const imageResult = await storage.getPaginatedImageList(
+            1, // 첫 페이지
+            500, // 충분히 많은 수량
+            userId, // 사용자 ID
+            username // 사용자 이름 (필터링용)
+          );
           
-          const allImages = await query;
+          // 결과 필터링 없이 바로 사용
+          let filteredImages = imageResult.images;
           
-          console.log(`전체 이미지 ${allImages.length}개 로드됨`);
-          
-          // 각 사용자별로 볼 수 있는 이미지를 분리해서 보여주기 위한 로직
-          let filteredImages = allImages;
-          
-          if (username) {
-            console.log(`사용자 이름 '${username}'으로 이미지 분리 적용`);
-            
-            // 순번으로 구분하여 이미지 분배 (간단한 해시 함수처럼 사용)
-            // 이 방식은 기존 이미지에 대해 각 사용자별로 다른 이미지를 보여줍니다
-            const usernameSum = username.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
-            console.log(`사용자 이름 해시값: ${usernameSum}`);
-            
-            // 사용자 이름 해시값을 기반으로 일부 이미지만 표시
-            filteredImages = allImages.filter((img, index) => {
-              // 3가지 패턴으로 분류하여 사용자별로 다른 이미지 보여주기
-              // 0, 1, 2로 나누어 각 사용자가 다른 모듈러스에 속하도록 분배
-              return (index + usernameSum) % 3 === 0;
-            });
-            
-            console.log(`분배 필터링 후 ${filteredImages.length}개 이미지 남음`);
+          console.log(`[갤러리 API] 이미지 탭: ${filteredImages.length}개 이미지 로드됨`);
             
             // 필터링 후 결과가 너무 적으면 결과를 복제해서 더 많이 표시
             if (filteredImages.length < 10) {
