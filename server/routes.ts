@@ -981,46 +981,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.error("음악 조회 오류:", musicError);
           }
           
-          // 이미지 항목 (사용자별 이미지 표시)
+          // 이미지 항목 (통합된 사용자별 필터링)
           try {
-            console.log(`이미지 항목 로딩 - 사용자: ${username || '없음'}`);
+            console.log(`[갤러리 API] 전체 컨텐츠: 사용자 ${username || '없음'}`);
             
-            // 더 많은 이미지를 가져와서 필터링
-            let query = db.select({
-              id: images.id,
-              title: images.title,
-              transformedUrl: images.transformedUrl,
-              createdAt: images.createdAt,
-              style: images.style
-              // userId 필드 제거: user_id 컬럼이 데이터베이스에 없음
-            })
-            .from(images)
-            .orderBy(desc(images.createdAt))
-            .limit(50); // 필터링 전에 더 많이 가져옴
+            // 통합된 getPaginatedImageList 함수 사용
+            const imageResult = await storage.getPaginatedImageList(
+              1, // 첫 페이지
+              10, // 최대 10개만 표시
+              userId, // 사용자 ID
+              username // 사용자 이름 (필터링용)
+            );
             
-            const allImages = await query;
+            // 결과 바로 사용
+            let filteredImages = imageResult.images;
             
-            // 사용자 이름으로 제목 필터링 (임시 방법)
-            let filteredImages = allImages;
-            if (username) {
-              console.log(`사용자 이름 '${username}'으로 이미지 필터링 적용`);
-              filteredImages = allImages.filter(img => {
-                // 이미지 제목에 사용자 이름이 포함되어 있는지 확인 (대소문자 무시)
-                const titleLower = img.title.toLowerCase();
-                const usernameLower = username.toLowerCase();
-                return titleLower.includes(usernameLower);
-              });
-              console.log(`필터링 후 ${filteredImages.length}개 이미지 남음`);
-              
-              // 필터링 후 결과가 너무 적으면 최근 항목 일부만 표시
-              if (filteredImages.length < 3) {
-                console.log("사용자 필터링 결과가 너무 적어 최근 10개 이미지만 표시합니다");
-                filteredImages = allImages.slice(0, 10);
-              }
-            }
-            
-            // 최대 10개만 표시
-            filteredImages = filteredImages.slice(0, 10);
+            console.log(`[갤러리 API] 전체 탭: ${filteredImages.length}개 이미지 로드됨`);
             
             if (filteredImages.length > 0) {
               // 이미지를 갤러리 형식으로 변환
