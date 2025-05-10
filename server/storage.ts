@@ -208,6 +208,8 @@ export const storage = {
     style: string,
     originalPath: string,
     transformedUrl: string,
+    userId?: number | null,
+    username?: string | null,
     variantId?: string | null,
     aspectRatio?: string | null
   ) {
@@ -226,7 +228,7 @@ export const storage = {
     if (aspectRatio) metadata.aspectRatio = aspectRatio;
     
     try {
-      console.log(`[Storage] 새 이미지 저장 시작: "${title}", 스타일: ${style}`);
+      console.log(`[Storage] 새 이미지 저장 시작: "${title}", 스타일: ${style}, 사용자: ${username || '없음'}, 사용자ID: ${userId || '없음'}`);
       
       const [savedImage] = await db
         .insert(images)
@@ -236,10 +238,13 @@ export const storage = {
           originalUrl: originalPath,
           transformedUrl,
           metadata: JSON.stringify(metadata),
+          userId: userId || undefined,
+          username: username || undefined,
+          originalFilename,
         })
         .returning();
       
-      console.log(`[Storage] 이미지 저장 완료: ID ${savedImage.id}, 타이틀: "${savedImage.title}"`);
+      console.log(`[Storage] 이미지 저장 완료: ID ${savedImage.id}, 타이틀: "${savedImage.title}", 사용자: ${username || '없음'}`);
       return savedImage;
     } catch (error) {
       console.error(`[Storage] 이미지 저장 중 오류 발생:`, error);
@@ -289,32 +294,53 @@ export const storage = {
   },
   
   // 데이터베이스 수준에서 페이지네이션을 적용한 이미지 목록 조회
-  async getPaginatedImageList(page: number = 1, limit: number = 10) {
+  async getPaginatedImageList(page: number = 1, limit: number = 10, userId?: number | null) {
     try {
-      console.log(`[Storage] getPaginatedImageList 호출됨: page=${page}, limit=${limit}, ${new Date().toISOString()}`);
+      console.log(`[Storage] getPaginatedImageList 호출됨: page=${page}, limit=${limit}, userId=${userId || '없음'}, ${new Date().toISOString()}`);
       
-      // 전체 이미지 카운트를 위한 쿼리
-      const countResult = await db.select({ count: count() }).from(images);
+      // 현재 사용자의 이미지만 필터링할 조건 설정
+      let whereCondition = undefined;
+      if (userId) {
+        console.log(`[Storage] 사용자 ID ${userId}로 이미지 필터링 적용`);
+        whereCondition = eq(images.userId, userId);
+      }
+      
+      // 사용자 필터링이 적용된 이미지 카운트를 위한 쿼리
+      const countQuery = db.select({ count: count() }).from(images);
+      if (whereCondition) {
+        countQuery.where(whereCondition);
+      }
+      const countResult = await countQuery;
       const total = countResult[0].count;
       
-      console.log(`[Storage] 이미지 총 개수: ${total}`);
+      console.log(`[Storage] 해당 조건의 이미지 총 개수: ${total}`);
       
-      // 명시적으로 필요한 필드만 선택하여 userId 참조 제거 (스키마 업데이트 전까지)
-      const results = await db.select({
+      // 기본 쿼리 구성
+      let query = db.select({
         id: images.id,
         title: images.title,
         style: images.style,
         originalUrl: images.originalUrl,
         transformedUrl: images.transformedUrl,
         createdAt: images.createdAt,
-        metadata: images.metadata
+        metadata: images.metadata,
+        userId: images.userId,
+        username: images.username
       })
-      .from(images)
-      .orderBy(desc(images.createdAt))
-      .limit(limit)
-      .offset((page - 1) * limit);
+      .from(images);
       
-      console.log(`[Storage] 페이지네이션 이미지 조회 결과: ${results.length}개 (page=${page}, limit=${limit})`);
+      // 사용자 ID 필터링 적용
+      if (whereCondition) {
+        query = query.where(whereCondition);
+      }
+      
+      // 정렬 및 페이지네이션 적용
+      const results = await query
+        .orderBy(desc(images.createdAt))
+        .limit(limit)
+        .offset((page - 1) * limit);
+      
+      console.log(`[Storage] 페이지네이션 이미지 조회 결과: ${results.length}개 (page=${page}, limit=${limit}, userId=${userId || '없음'})`);
       
       return {
         images: results || [],

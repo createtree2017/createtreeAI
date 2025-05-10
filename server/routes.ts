@@ -531,13 +531,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let dbSavedImage;
       
       try {
-        // 모든 이미지 요청은 데이터베이스에 저장 (관리자 조회용)
-        // 사용자 이미지 포함해서 모두 데이터베이스에 저장
+        // 현재 로그인한 사용자 정보 가져오기
+        const user = req.user;
+        const userId = user?.id;
+        const username = user?.username;
+        
+        // 사용자 정보 로그 출력
+        if (userId && username) {
+          console.log(`이미지 변환 요청: 로그인 사용자 ${username} (ID: ${userId})`);
+        } else {
+          console.log('이미지 변환 요청: 로그인 없음 (익명 사용자)');
+        }
+        
+        // 모든 이미지 요청은 데이터베이스에 저장 (사용자 정보 포함)
         dbSavedImage = await storage.saveImageTransformation(
           req.file.originalname,
           style,
           filePath,
           transformedImageUrl,
+          userId || null,
+          username || null,
           variantId // Store which variant was used, if any
         );
         
@@ -605,12 +618,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Expires', '0');
       res.setHeader('Surrogate-Control', 'no-store');
       
+      // 현재 로그인한 사용자 정보 확인
+      const user = req.user;
+      const userId = user?.id;
+      
       // 페이지네이션 처리를 위한 파라미터 추출
       const page = req.query.page ? parseInt(req.query.page as string) : 1;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
       
+      // 사용자 ID로 이미지 필터링 여부 설정
+      const filterByUser = req.query.filterByUser === 'true';
+      
+      if (user && filterByUser) {
+        console.log(`[이미지 탭] 사용자 ${user.username}`);
+      } else {
+        console.log(`[이미지 탭] 사용자 필터링 없음 (전체 이미지 표시)`);
+      }
+      
       // 데이터베이스 수준에서 페이지네이션 적용하여 데이터 가져오기
-      const result = await storage.getPaginatedImageList(page, limit);
+      // 로그인 상태이고 사용자 필터링이 활성화된 경우에만 사용자 ID로 필터링
+      const result = await storage.getPaginatedImageList(
+        page, 
+        limit, 
+        (user && filterByUser) ? userId : null
+      );
+      
+      // 전체 이미지 수 로그 출력
+      console.log(`전체 이미지 ${result.pagination.total}개 로드됨`);
       
       // 결과 반환
       return res.json(result);
@@ -778,8 +812,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const usernameFilter = req.query.username as string | undefined;
       let galleryItems = [];
       
-      // 사용자 이름 확인 (URL 파라미터 또는 현재 로그인 세션)
+      // 현재 로그인한 사용자 정보 가져오기
+      const userId = req.user?.id;
       const username = usernameFilter || req.user?.username;
+      
+      // 로그에 사용자 정보 출력
+      console.log(`이미지 항목 로딩 - 사용자: ${username}`);
       
       // 일시적 해결책: 한글 인코딩 수정을 위한 유틸리티 함수 import
       const { decodeKoreanInObject, decodeKoreanText } = await import('./utils');
@@ -822,27 +860,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }));
       } else if (filter === "image") {
         try {
-          // 이미지 탭에서도 사용자별 필터링 구현
-          // URL 파라미터나 로그인 세션에서 사용자 이름 획득
-          
-          // 로그인한 사용자에게는 모든 이미지를 보여주도록 수정
+          // 이미지 탭에서 사용자별 필터링 구현
           console.log(`[이미지 탭] 사용자 ${username || '없음'}`);
           
-          // 모든 이미지 쿼리를 위한 기본 쿼리 설정
-          const allImages = await db.select({
+          // 현재 로그인한 사용자의 이미지만 필터링
+          let query = db.select({
             id: images.id,
             title: images.title,
             transformedUrl: images.transformedUrl,
             createdAt: images.createdAt,
-            style: images.style
+            style: images.style,
+            userId: images.userId
           })
           .from(images)
           .orderBy(desc(images.createdAt))
-          .limit(100); // 충분한 수의 이미지 가져오기
+          .limit(100);
+          
+          // 사용자 ID로 필터링 적용
+          if (userId) {
+            query = query.where(eq(images.userId, userId));
+          }
+          
+          const allImages = await query;
           
           console.log(`전체 이미지 ${allImages.length}개 로드됨`);
           
-          // 필터링된 이미지가 있으면 사용
+          // 필터링된 이미지 변환
           galleryItems = allImages.map(item => ({
             id: item.id,
             title: decodeKoreanText(item.title),
@@ -921,17 +964,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           try {
             console.log(`이미지 항목 로딩 - 사용자: ${username || '없음'}`);
             
-            // 모든 이미지를 로드 (갤러리에서는 최신 이미지 6개만)
-            const allImages = await db.select({
+            // 현재 로그인한 사용자의 이미지만 필터링하여 로드
+            let query = db.select({
               id: images.id,
               title: images.title,
               transformedUrl: images.transformedUrl,
               createdAt: images.createdAt,
-              style: images.style
+              style: images.style,
+              userId: images.userId
             })
             .from(images)
             .orderBy(desc(images.createdAt))
             .limit(10);
+            
+            // 사용자 ID로 필터링 적용
+            if (userId) {
+              query = query.where(eq(images.userId, userId));
+            }
+            
+            const allImages = await query;
             
             if (allImages.length > 0) {
               // 이미지를 갤러리 형식으로 변환
