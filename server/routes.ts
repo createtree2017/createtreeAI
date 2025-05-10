@@ -1002,7 +1002,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // 이미지를 갤러리 형식으로 변환
               const formattedImageItems = filteredImages.map(item => ({
                 id: item.id,
-                title: decodeKoreanInObject(item.title),
+                title: decodeKoreanText(item.title || ''),
                 type: "image" as const,
                 url: item.transformedUrl,
                 thumbnailUrl: item.transformedUrl,
