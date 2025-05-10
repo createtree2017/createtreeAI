@@ -245,15 +245,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 쿠키 파서 미들웨어 등록
   app.use(cookieParser());
   
-  // 세션 미들웨어 등록
+  // 세션 미들웨어 등록 (인덱스에서 제거하고 여기로 통합)
   app.use(session({
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    secret: process.env.SESSION_SECRET || 'maternity-ai-session-secret',
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: false, 
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 24 * 60 * 60 * 1000 // 24시간
+      maxAge: 24 * 60 * 60 * 1000, // 24시간
+      sameSite: 'lax' // CSRF 보호와 iframe 호환성 위해 'lax' 사용
     }
   }));
   

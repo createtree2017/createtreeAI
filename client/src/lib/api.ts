@@ -113,12 +113,30 @@ export const getGalleryItems = async (filter?: string) => {
   // URL 형식 수정 - 필터 파라미터를 URL에 직접 추가
   let url = '/api/gallery';
   
+  // URL 파라미터 생성을 위한 준비
+  const params = new URLSearchParams();
+  
   // 필터가 존재하고 'all'이 아닌 경우에만 쿼리 스트링 추가
   if (filter && filter !== 'all') {
-    url = `/api/gallery?filter=${filter}`;
+    params.append('filter', filter);
+  }
+  
+  // 타임스탬프 추가(캐시 방지)
+  params.append('_t', Date.now().toString());
+  
+  // 파라미터 문자열이 존재하면 URL에 추가
+  const queryString = params.toString();
+  if (queryString) {
+    url = `${url}?${queryString}`;
   }
 
-  console.log(`갤러리 데이터 요청: ${url}`);
+  console.log(`갤러리 데이터 요청: ${url} - ${new Date().toISOString()}`);
+  
+  // Debug: 쿠키와 로컬 스토리지 확인
+  const cookieExists = document.cookie.length > 0;
+  const localStorageItemCount = Object.keys(localStorage).length;
+  
+  console.log(`인증 상태 디버깅 - 쿠키 존재: ${cookieExists ? 'Yes' : 'No'}, 로컬 스토리지 항목: ${localStorageItemCount}개`);
   
   // 직접 fetch API 사용 (자격 증명 포함)
   const response = await fetch(url, {

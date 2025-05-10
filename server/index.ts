@@ -8,16 +8,8 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// 세션 설정 추가
-app.use(session({
-  secret: 'maternity-ai-session-secret',
-  resave: false,
-  saveUninitialized: true,
-  cookie: { 
-    secure: false, // 개발 환경에서는 false, 프로덕션에서는 true로 설정
-    maxAge: 24 * 60 * 60 * 1000 // 24시간
-  }
-}));
+// 세션 설정은 routes.ts에서 처리
+// 참고: 이전에 이 위치에 있던 세션 설정은 routes.ts의 설정과 충돌을 일으켜 제거됨
 
 app.use((req, res, next) => {
   const start = Date.now();
