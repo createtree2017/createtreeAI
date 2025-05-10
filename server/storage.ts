@@ -147,14 +147,41 @@ export const storage = {
         console.log(`[음악 샘플 ${idx+1}] ID: ${item.id}, 제목: "${item.title}", 스타일: ${item.style}, 아기이름: ${item.babyName}`);
       });
       
-      // 사용자 ID 또는 사용자명이 제공된 경우, 제목 패턴으로만 필터링 (metadata 없음)
+      // 사용자 ID 또는 사용자명이 제공된 경우, 제목 패턴으로만 필터링
       let filteredResults = results;
-      if (username) { // userId는 metadata가 없어 사용 불가
+      if (username) {
+        console.log(`[음악 필터링] 상세 디버깅: 로그인된 사용자=${username}, ID=${userId}`);
+        
+        // userId가 제공된 경우 음악 테이블에 userId 컬럼이 있는지 확인
+        let hasMusicUserId = false;
+        try {
+          // 실험적 코드: 첫 번째 아이템의 속성으로 userId 존재하는지 확인
+          if (results.length > 0 && 'userId' in results[0]) {
+            hasMusicUserId = true;
+            console.log(`[음악 필터링] 음악 테이블에 userId 컬럼 확인됨`);
+          }
+        } catch (error) {
+          console.log(`[음악 필터링] 음악 테이블 구조 확인 중 오류: ${error.message}`);
+        }
+        
         filteredResults = results.filter(item => {
           let isMatch = false;
           let matchReason = "불일치";
           
-          // 제목 기반 매칭 (metadata 없으므로 유일한 필터링 방법)
+          // 특별 케이스 1: 모든 항목을 보여주는 글로벌 설정 (admin이 추가한 항목)
+          // 메타데이터가 없거나 userId가 -1인 항목은 모든 사용자에게 표시
+          try {
+            // @ts-ignore: userId 속성이 런타임에 존재할 수 있음
+            if (hasMusicUserId && item.userId === -1) {
+              isMatch = true;
+              matchReason = `공유 음악 (userId=-1): 모든 사용자에게 표시됨`;
+              return isMatch;
+            }
+          } catch (error) {
+            // userId 필드 접근 오류 무시
+          }
+          
+          // 제목 기반 매칭 (metadata 또는 userId가 없을 경우 사용)
           if (item.title) {
             // 사용자명 포함 패턴 확인
             const pattern1 = `[${username}]`; 
