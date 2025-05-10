@@ -114,6 +114,22 @@ export default function FirebaseTestPage() {
       
       // 팝업 로그인 시도
       log('Google 로그인 팝업 시도...');
+      
+      // 도메인 확인 먼저 수행
+      const currentDomain = window.location.hostname;
+      log(`도메인 확인: ${currentDomain}`);
+      
+      // 개발 도메인인지 확인
+      if (currentDomain.includes('replit.dev')) {
+        const warningMsg = `
+          ⚠️ 개발 도메인(${currentDomain})에서 테스트 중입니다.
+          이 도메인이 Firebase 콘솔에 등록되어 있지 않으면 인증이 실패합니다.
+          Firebase 콘솔 > Authentication > Settings > Authorized domains에
+          "${window.location.hostname}"를 추가해 주세요.
+        `;
+        log(warningMsg);
+      }
+      
       const result = await signInWithPopup(auth, provider);
       
       log('Google 로그인 성공!');
@@ -132,7 +148,11 @@ export default function FirebaseTestPage() {
       console.error('Google 로그인 오류:', error);
       
       if (error.code === 'auth/unauthorized-domain') {
-        log(`현재 도메인 '${window.location.origin}'이 Firebase에 등록되지 않았습니다.`);
+        log(`⛔ 현재 도메인 '${window.location.origin}'이 Firebase에 등록되지 않았습니다.`);
+        setError(`이 도메인(${window.location.hostname})이 Firebase 콘솔에 등록되어 있지 않습니다. 
+                Firebase 콘솔 > Authentication > Settings > Authorized domains에 
+                "${window.location.hostname}"를 추가한 후 다시 시도해 주세요.`);
+        return;
       }
       
       if (error.code === 'auth/invalid-api-key') {
@@ -196,6 +216,24 @@ export default function FirebaseTestPage() {
             <CardDescription>아래 버튼을 클릭하여 Google 로그인을 테스트하세요</CardDescription>
           </CardHeader>
           <CardContent>
+            {window.location.hostname.includes('replit.dev') && (
+              <Alert className="mb-4 border-yellow-500 text-yellow-800 dark:text-yellow-300 bg-yellow-50 dark:bg-yellow-950/30">
+                <AlertCircle className="h-4 w-4 text-yellow-500" />
+                <AlertTitle>도메인 확인 필요</AlertTitle>
+                <AlertDescription className="text-xs">
+                  현재 개발 도메인(<code className="text-xs bg-yellow-100 dark:bg-yellow-900/30 px-1 py-0.5 rounded">{window.location.hostname}</code>)에서 테스트 중입니다.
+                  Firebase Authentication에서 이 도메인을 인증된 도메인 목록에 추가해야 합니다.
+                </AlertDescription>
+                <div className="mt-2 text-xs text-muted-foreground">
+                  <ol className="list-decimal list-inside space-y-1">
+                    <li>Firebase 콘솔로 이동</li>
+                    <li>Authentication &gt; Settings &gt; Authorized domains</li>
+                    <li><code className="bg-muted px-1 py-0.5 rounded">{window.location.hostname}</code> 도메인 추가</li>
+                  </ol>
+                </div>
+              </Alert>
+            )}
+            
             {user ? (
               <div className="bg-muted p-4 rounded-lg">
                 <div className="flex items-center gap-3 mb-3">
@@ -225,7 +263,7 @@ export default function FirebaseTestPage() {
                 </div>
               </div>
             ) : (
-              <div className="flex justify-center">
+              <div className="flex flex-col items-center gap-4">
                 <Button 
                   onClick={handleGoogleLogin} 
                   disabled={loading || !initStatus.app || !initStatus.auth || !initStatus.provider}
@@ -238,6 +276,12 @@ export default function FirebaseTestPage() {
                   )}
                   Google로 로그인
                 </Button>
+                
+                <div className="text-xs text-muted-foreground text-center max-w-md">
+                  테스트 서버에서는 Firebase가 도메인 검증을 하기 때문에, 
+                  <br />개발 도메인({window.location.hostname})이 Firebase에 등록되어 있지 않으면 
+                  <br />로그인이 실패할 수 있습니다.
+                </div>
               </div>
             )}
             
