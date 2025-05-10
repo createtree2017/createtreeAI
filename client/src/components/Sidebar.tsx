@@ -295,10 +295,10 @@ export default function Sidebar({ collapsed = false }) {
         )}
         <button 
           onClick={() => {
-            // 단순화된 로그아웃 처리 - 직접 API 호출
+            // 단순화된 로그아웃 처리 - 직접 API 호출 (인증 정보 포함)
             fetch("/api/auth/logout", {
               method: "POST",
-              credentials: "include"
+              credentials: 'include' // 쿠키 전송을 위해 필수
             }).then(() => {
               // 로컬 스토리지 토큰 삭제
               localStorage.removeItem("accessToken");

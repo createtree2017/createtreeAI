@@ -158,8 +158,8 @@ export function useAuth() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(serverData),
-        credentials: "include", // 쿠키 포함 (중요!)
+        credentials: "include", // 쿠키 전송을 위해 필수
+        body: JSON.stringify(serverData)
       });
 
       if (!response.ok) {
