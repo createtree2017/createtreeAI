@@ -905,6 +905,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // 최대 20개로 제한
             filteredImages = filteredImages.slice(0, 20);
           }
+          }
           
           // 필터링된 이미지 변환
           galleryItems = filteredImages.map(item => ({
