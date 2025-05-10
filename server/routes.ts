@@ -889,16 +889,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // 음악 필터링
         const musicItems = await storage.getMusicList();
         // 임시: 로그인한 사용자의 음악으로 가정
-        // 실제 사용자 데이터가 있으면 아래 주석 해제
-        // const userMusicItems = musicItems.filter(item => item.userId === userId);
+        // 현재 데이터베이스에 user_id가 없으므로 모든 사용자에게 동일한 항목 표시
         const userMusicItems = musicItems.slice(0, 5); // 임시: 최근 5개만 표시
         
+        console.log(`음악 필터링: 사용자=${username || '없음'}, 조회됨=${userMusicItems.length}개`);
+        
         // 한글 디코딩 적용
-        galleryItems = userMusicItems.map(item => ({
-          ...item,
-          title: decodeKoreanText(item.title)
-          // userId 필드 임시 제거 - 데이터베이스 스키마 업데이트 전까지
-        }));
+        galleryItems = userMusicItems.map(item => {
+          return {
+            ...item,
+            title: decodeKoreanText(item.title),
+            // 임시로 모든 항목이 현재 사용자의 것으로 표시
+            userId: userId,
+            isOwner: true
+          };
+        });
       } else if (filter === "image") {
         try {
           // 이미지 탭에서 사용자별 필터링 구현
