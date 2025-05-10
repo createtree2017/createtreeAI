@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/useToast";
 import { User } from "@shared/schema";
 // Firebase 가져오기 - 기존 초기화된 인스턴스를 사용
 import { auth as firebaseAuth, googleProvider } from "@/lib/firebase"; 
-import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider } from "firebase/auth";
 
 type LoginCredentials = {
   username: string;
@@ -217,7 +217,7 @@ export function useAuth() {
     },
   });
 
-  // Google 로그인 함수 - 완전히 재작성된 버전
+  // Google 로그인 함수 - 리디렉션 방식으로 변경
   const loginWithGoogle = useMutation({
     mutationFn: async () => {
       try {
@@ -230,57 +230,59 @@ export function useAuth() {
           throw new Error("Firebase Auth가 초기화되지 않았습니다. 페이지를 새로고침 후 다시 시도해 주세요.");
         }
         
-        console.log("[Google 로그인] 팝업 창으로 로그인 시도");
+        // 이미 리디렉션 결과가 있는지 확인
+        const redirectResult = await getRedirectResult(firebaseAuth);
         
-        // 팝업 방식으로 로그인 시도
-        const result = await signInWithPopup(firebaseAuth, googleProvider);
-        
-        // 성공 메시지
-        console.log("[Google 로그인] 성공!");
-        
-        // 사용자 정보 추출
-        const firebaseUser = result.user;
-        if (!firebaseUser || !firebaseUser.email) {
-          throw new Error("Google 계정 정보를 가져올 수 없습니다");
+        // 리디렉션 결과가 있으면 처리
+        if (redirectResult && redirectResult.user) {
+          console.log("[Google 로그인] 리디렉션 결과 처리 중");
+          const firebaseUser = redirectResult.user;
+          
+          // 디버깅을 위한 사용자 정보 로깅 (민감한 정보는 마스킹)
+          console.log("[Google 로그인] 사용자 정보:", {
+            displayName: firebaseUser.displayName,
+            email: firebaseUser.email,
+            uid: firebaseUser.uid.substring(0, 5) + "...",
+            isEmailVerified: firebaseUser.emailVerified
+          });
+          
+          // 서버에 전송할 사용자 데이터 준비
+          const userData = {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email || "",
+            displayName: firebaseUser.displayName || "",
+            photoURL: firebaseUser.photoURL || "",
+            phoneNumber: firebaseUser.phoneNumber || ""
+          };
+          
+          // 서버로 Firebase 사용자 정보 전송
+          console.log("[Google 로그인] 서버에 인증 정보 전송 중");
+          const response = await fetch("/api/auth/firebase-login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user: userData }),
+            credentials: "include"
+          });
+          
+          // 서버 응답 확인
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error("[Google 로그인] 서버 인증 실패:", errorText);
+            throw new Error(`서버 인증 실패: ${response.status} ${errorText}`);
+          }
+          
+          // 성공 응답 처리
+          const data = await response.json();
+          console.log("[Google 로그인] 서버 인증 성공:", data);
+          return data;
+        } else {
+          console.log("[Google 로그인] 리디렉션 방식으로 로그인 시도");
+          // 리디렉션 방식으로 로그인 시도 - 로그인 후 현재 페이지로 돌아옴
+          await signInWithRedirect(firebaseAuth, googleProvider);
+          
+          // 이 부분은 리디렉션 전에 실행됨 - 리디렉션 후에는 페이지가 새로고침됨
+          return { user: null, message: "리디렉션 중..." };
         }
-        
-        // 디버깅을 위한 사용자 정보 로깅 (민감한 정보는 마스킹)
-        console.log("[Google 로그인] 사용자 정보:", {
-          displayName: firebaseUser.displayName,
-          email: firebaseUser.email,
-          uid: firebaseUser.uid.substring(0, 5) + "...",
-          isEmailVerified: firebaseUser.emailVerified
-        });
-        
-        // 서버에 전송할 사용자 데이터 준비
-        const userData = {
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName || "",
-          photoURL: firebaseUser.photoURL || "",
-          phoneNumber: firebaseUser.phoneNumber || ""
-        };
-        
-        // 서버로 Firebase 사용자 정보 전송
-        console.log("[Google 로그인] 서버에 인증 정보 전송 중");
-        const response = await fetch("/api/auth/firebase-login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ user: userData }),
-          credentials: "include"
-        });
-        
-        // 서버 응답 확인
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("[Google 로그인] 서버 인증 실패:", errorText);
-          throw new Error(`서버 인증 실패: ${response.status} ${errorText}`);
-        }
-        
-        // 성공 응답 처리
-        const data = await response.json();
-        console.log("[Google 로그인] 서버 인증 성공:", data);
-        return data;
       
       } catch (error: any) {
         // 오류 로깅
@@ -291,10 +293,8 @@ export function useAuth() {
           switch(error.code) {
             case 'auth/popup-closed-by-user':
               throw new Error("로그인 창이 사용자에 의해 닫혔습니다");
-            case 'auth/cancelled-popup-request':
-              throw new Error("다중 팝업 요청이 취소되었습니다");
             case 'auth/popup-blocked':
-              throw new Error("팝업이 브라우저에 의해 차단되었습니다. 팝업 차단을 해제해주세요");
+              throw new Error("팝업이 브라우저에 의해 차단되었습니다. 리디렉션 방식으로 다시 시도합니다.");
             case 'auth/api-key-not-valid':
             case 'auth/invalid-api-key':
               throw new Error("Firebase API 키가 유효하지 않습니다. 관리자에게 문의해주세요");

@@ -343,6 +343,13 @@ function App() {
     metaViewport.content = 'width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1';
     document.head.appendChild(metaViewport);
     
+    // 브라우저 콘솔에 환경변수 정보 출력 (디버깅용)
+    console.log("🔥 환경변수 확인:", {
+      VITE_FIREBASE_API_KEY: import.meta.env.VITE_FIREBASE_API_KEY,
+      VITE_FIREBASE_PROJECT_ID: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+      VITE_FIREBASE_APP_ID: import.meta.env.VITE_FIREBASE_APP_ID
+    });
+    
     return () => {
       document.head.removeChild(metaViewport);
     };
