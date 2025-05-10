@@ -8,13 +8,13 @@ import { users, eq } from "../../shared/schema";
 
 /**
  * Firebase 사용자 정보 타입 정의
- * 주의: 필드 이름이 데이터베이스 컬럼과 일치해야 함 (photoURL → photoUrl)
+ * 주의: 필드 이름이 데이터베이스 컬럼과 일치해야 함
  */
 export interface FirebaseUserData {
   uid: string;
   email: string;
   displayName?: string;
-  photoUrl?: string; // photoURL에서 photoUrl로 변경 (데이터베이스 컬럼과 일치)
+  // photoUrl 필드는 데이터베이스에 존재하지 않아 제거
   phoneNumber?: string;
 }
 

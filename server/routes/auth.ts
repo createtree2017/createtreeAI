@@ -282,7 +282,7 @@ router.post("/firebase-login", async (req, res) => {
       uid: firebaseUser.uid,
       email: firebaseUser.email,
       displayName: firebaseUser.displayName,
-      photoUrl: firebaseUser.photoURL, // Firebase는 photoURL, 우리 DB는 photoUrl 사용
+      // photoUrl 필드는 데이터베이스에 존재하지 않아 제거
       phoneNumber: firebaseUser.phoneNumber
     };
 
