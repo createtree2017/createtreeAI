@@ -10,7 +10,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 // Firebase 구성 - 하드코딩 (테스트 전용)
 const firebaseConfig = {
-  apiKey: "AIzaSyCINDZ1I6iqCNkxLG73GEOFwOrPm52uxM",
+  // 완전한 API 키를 사용 (확장자 누락 확인)
+  apiKey: "AIzaSyCINDZ1I6iqCNkxLG73GEOFwOrPm52uxMQ",
   authDomain: "createai-7facc.firebaseapp.com",
   projectId: "createai-7facc",
   storageBucket: "createai-7facc.appspot.com",

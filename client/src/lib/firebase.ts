@@ -20,7 +20,7 @@ console.log("[Firebase Config] 현재 환경:", {
 // Firebase의 공식 구성 객체 타입과 동일하게 구성
 // (콘솔에서 확인한 최신 정보로 업데이트)
 const config = {
-  apiKey: "AIzaSyCINDZ1I6iqCNkxLG73GEOFwOrPm52uxM",
+  apiKey: "AIzaSyCINDZ1I6iqCNkxLG73GEOFwOrPm52uxMQ",
   authDomain: "createai-7facc.firebaseapp.com", 
   projectId: "createai-7facc",
   storageBucket: "createai-7facc.appspot.com",
