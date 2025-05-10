@@ -8,19 +8,32 @@ import { getAuth, GoogleAuthProvider } from "firebase/auth";
 /**
  * Firebase 설정 정보 로깅
  */
-console.log("Firebase 구성 정보:", {
-  환경: window.location.hostname,
-  API키설정여부: import.meta.env.VITE_FIREBASE_API_KEY ? "설정됨" : "미설정"
+// 환경변수 디버깅 로그
+console.log("🔥 Firebase 초기화 환경변수:", {
+  VITE_FIREBASE_API_KEY: import.meta.env.VITE_FIREBASE_API_KEY
+    ? "설정됨"
+    : "미설정",
+  VITE_FIREBASE_PROJECT_ID: import.meta.env.VITE_FIREBASE_PROJECT_ID
+    ? "설정됨"
+    : "미설정",
+  VITE_FIREBASE_APP_ID: import.meta.env.VITE_FIREBASE_APP_ID
+    ? "설정됨"
+    : "미설정",
 });
+
+// API 키 확인
+if (!import.meta.env.VITE_FIREBASE_API_KEY) {
+  throw new Error("❗ Firebase API 키가 설정되지 않았습니다.");
+}
 
 // Firebase 구성 설정
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyCINDZ1I6iqCNkxLG73GEOFwOrPm52uxMQ",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: "createai-7facc.firebaseapp.com", 
   projectId: "createai-7facc",
   storageBucket: "createai-7facc.appspot.com",
   messagingSenderId: "980137173202",
-  appId: "1:980137173202:web:aef6cd9e1b3914ad7ac997",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
   measurementId: "G-2MZ24X4RDX"
 };
 

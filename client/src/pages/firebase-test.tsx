@@ -18,14 +18,14 @@ console.log("🔥 환경변수 확인:", {
 
 // Firebase 앱 초기화 로직 - 직접 구성
 export default function FirebaseTestPage() {
-  // 환경변수에서 설정 불러오기
+  // 환경변수에서 설정 불러오기 (반드시 환경변수만 사용)
   const [firebaseConfig, setFirebaseConfig] = useState({
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyCINDZ1I6iqCNkxLG73GEOFwOrPm52uxMQ", // 환경변수에 설정된 API 키 사용
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY, // 백업 키 제거, 환경변수만 사용
     authDomain: "createai-7facc.firebaseapp.com",
     projectId: "createai-7facc",
     storageBucket: "createai-7facc.appspot.com",
     messagingSenderId: "980137173202",
-    appId: "1:980137173202:web:aef6cd9e1b3914ad7ac997",
+    appId: import.meta.env.VITE_FIREBASE_APP_ID,
     measurementId: "G-2MZ24X4RDX"
   });
   
