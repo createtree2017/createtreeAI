@@ -327,32 +327,61 @@ export const storage = {
       // 모든 이미지 가져오기
       const allImages = await query.execute();
       
-      // 사용자 이름 기준으로 해시 필터링 적용
+      // 사용자 ID 또는 이름 기준으로 필터링 적용
       let results = allImages;
       
-      if (username) {
-        console.log(`[Storage] 사용자 '${username}'에 대한 해시 기반 필터링 적용`);
+      if (userId || username) {
+        console.log(`[Storage] 사용자 필터링 적용 - ID: ${userId || '없음'}, 이름: ${username || '없음'}`);
         
-        // 사용자 이름을 기반으로 한 해시값 계산
-        const usernameSum = username.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
-        console.log(`[Storage] 사용자 이름 해시값: ${usernameSum}`);
-        
-        // 해시값을 기반으로 이미지 필터링
-        results = allImages.filter((img, index) => {
-          // 사용자별로 다른 모듈러스 패턴 적용 (3가지 패턴)
-          return (index + usernameSum) % 3 === 0;
+        // 사용자 메타데이터 기반 필터링 - userId와 username 모두 활용
+        results = allImages.filter(image => {
+          if (!image.metadata) return false;
+          
+          try {
+            const metadata = JSON.parse(image.metadata);
+            
+            // 첫 번째 조건: metadata에 userId가 있고 파라미터 userId와 일치
+            if (userId && metadata.userId && metadata.userId === userId) {
+              return true;
+            }
+            
+            // 두 번째 조건: metadata에 username이 있고 파라미터 username과 일치
+            if (username && metadata.username && metadata.username === username) {
+              return true;
+            }
+            
+            // 세 번째 조건: 메타데이터에 username이 없지만 제목에 username이 포함된 경우
+            if (username && image.title && image.title.includes(`[${username}]`)) {
+              return true;
+            }
+            
+            return false;
+          } catch (e) {
+            // 메타데이터 파싱 오류 시 false 반환
+            return false;
+          }
         });
         
-        console.log(`[Storage] 해시 필터링 후 ${results.length}개 이미지 남음`);
+        console.log(`[Storage] 사용자 기반 필터링 후 ${results.length}개 이미지 남음`);
         
-        // 필터링 결과가 너무 적을 경우 복제하여 표시
-        if (results.length < 10) {
-          console.log("[Storage] 필터링된 이미지가 너무 적어 결과를 복제합니다");
-          const originalLength = results.length;
-          // 최소 10개는 보여주기 위해 필요한 만큼 복제
-          for (let i = 0; i < Math.min(2, Math.ceil(10/originalLength)); i++) {
-            results = [...results, ...results];
-          }
+        // 필터링 결과가 너무 적을 경우 임시 대안으로 해시 기반 필터링 적용
+        if (results.length < 5 && username) {
+          console.log(`[Storage] 사용자 필터링 결과가 너무 적어 해시 기반 대체 필터링 적용`);
+          
+          // 사용자 이름을 기반으로 한 해시값 계산
+          const usernameSum = username.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+          console.log(`[Storage] 대체 필터링 - 사용자 이름 해시값: ${usernameSum}`);
+          
+          // 해시값을 기반으로 이미지 필터링
+          const hashResults = allImages.filter((img, index) => {
+            // 사용자별로 다른 모듈러스 패턴 적용 (3가지 패턴)
+            return (index + usernameSum) % 3 === 0;
+          });
+          
+          console.log(`[Storage] 해시 필터링으로 ${hashResults.length}개 이미지 추가 선택`);
+          
+          // 기존 결과와 해시 필터링 결과를 합침
+          results = [...results, ...hashResults.filter(img => !results.some(r => r.id === img.id))];
         }
       }
       
