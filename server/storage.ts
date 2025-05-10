@@ -124,8 +124,8 @@ export const storage = {
     try {
       console.log(`[Storage] getMusicList 호출됨: 사용자=${username || '없음'}, ID=${userId || '없음'}`);
       
-      // 기본 쿼리: 모든 음악 항목 가져오기 (생성 시간 역순, 명시적 필드 선택)
-      // user_id 컬럼이 존재하지 않는 오류 수정 - db.query 대신 db.select 사용
+      // 기본 쿼리: 모든 음악 항목 가져오기 (생성 시간 역순, 실제 DB에 존재하는 필드만 선택)
+      // 중요: 실제 DB에는 metadata, user_id 컬럼이 존재하지 않음 - migration 필요
       const results = await db.select({
         id: music.id,
         title: music.title,
@@ -133,9 +133,8 @@ export const storage = {
         style: music.style,
         url: music.url,
         duration: music.duration,
-        createdAt: music.createdAt,
-        metadata: music.metadata
-        // user_id 컬럼도 존재한다면 필요 시 추가할 수 있음
+        createdAt: music.createdAt
+        // metadata와 user_id 컬럼은 실제 DB에 존재하지 않아 선택 불가
       })
       .from(music)
       .orderBy(desc(music.createdAt));
@@ -145,80 +144,43 @@ export const storage = {
       // 데이터 샘플 로깅 (디버깅)
       const sampleItems = results.slice(0, Math.min(3, results.length));
       sampleItems.forEach((item, idx) => {
-        let metadataLog = '없음';
-        if (item.metadata) {
-          try {
-            const metadata = typeof item.metadata === 'string' 
-              ? JSON.parse(item.metadata) 
-              : item.metadata;
-            metadataLog = JSON.stringify(metadata);
-          } catch (error) {
-            metadataLog = `파싱 오류: ${error instanceof Error ? error.message : String(error)}`;
-          }
-        }
-        console.log(`[음악 샘플 ${idx+1}] ID: ${item.id}, 제목: "${item.title}", 메타데이터: ${metadataLog}`);
+        console.log(`[음악 샘플 ${idx+1}] ID: ${item.id}, 제목: "${item.title}", 스타일: ${item.style}, 아기이름: ${item.babyName}`);
       });
       
-      // 사용자 ID 또는 사용자명이 제공된 경우, 메타데이터로 필터링
+      // 사용자 ID 또는 사용자명이 제공된 경우, 제목 패턴으로만 필터링 (metadata 없음)
       let filteredResults = results;
-      if (userId || username) {
+      if (username) { // userId는 metadata가 없어 사용 불가
         filteredResults = results.filter(item => {
           let isMatch = false;
           let matchReason = "불일치";
           
-          // 메타데이터 필터링
-          try {
-            if (item.metadata) {
-              const metadata = typeof item.metadata === 'string' 
-                ? JSON.parse(item.metadata) 
-                : item.metadata;
-              
-              // 1. userId 비교 (문자열로 변환)
-              if (userId && metadata && metadata.userId) {
-                const metadataUserIdStr = String(metadata.userId);
-                const currentUserIdStr = String(userId);
-                
-                if (metadataUserIdStr === currentUserIdStr) {
-                  isMatch = true;
-                  matchReason = `메타데이터 userId 일치: ${metadataUserIdStr}`;
-                }
-              }
-              
-              // 2. username 비교
-              if (!isMatch && username && metadata && metadata.username) {
-                if (metadata.username === username) {
-                  isMatch = true;
-                  matchReason = `메타데이터 username 일치: ${metadata.username}`;
-                }
-              }
+          // 제목 기반 매칭 (metadata 없으므로 유일한 필터링 방법)
+          if (item.title) {
+            // 사용자명 포함 패턴 확인
+            const pattern1 = `[${username}]`; 
+            const pattern2 = `${username}의`;
+            const pattern3 = ` by ${username}`;
+            const pattern4 = `(${username})`;
+            
+            if (item.title.includes(pattern1) || 
+                item.title.includes(pattern2) || 
+                item.title.includes(pattern3) ||
+                item.title.includes(pattern4)) {
+              isMatch = true;
+              matchReason = `제목에 사용자명 포함: ${item.title}`;
             }
             
-            // 3. 제목 기반 매칭 (백업)
-            if (!isMatch && item.title && username) {
-              // 사용자명 포함 패턴 확인
-              const pattern1 = `[${username}]`; 
-              const pattern2 = `${username}의`;
-              const pattern3 = ` by ${username}`;
-              
-              if (item.title.includes(pattern1) || 
-                  item.title.includes(pattern2) || 
-                  item.title.includes(pattern3)) {
-                isMatch = true;
-                matchReason = `제목에 사용자명 포함: ${item.title}`;
-              }
+            // 아기 이름이 사용자명과 일치하는 경우도 포함
+            if (!isMatch && item.babyName && item.babyName === username) {
+              isMatch = true;
+              matchReason = `아기 이름이 사용자명과 일치: ${item.babyName}`;
             }
-            
-            // 디버깅을 위해 일부 항목만 로깅
-            if (isMatch || item.id % 5 === 0) {
-              console.log(`[음악 필터링] ID: ${item.id}, 일치: ${isMatch}, 이유: ${matchReason}`);
-            }
-            
-            return isMatch;
-          } catch (error) {
-            console.error(`[음악 ID ${item.id}] 메타데이터 파싱 오류:`, 
-              error instanceof Error ? error.message : String(error));
-            return false;
           }
+          
+          // 디버깅을 위해 항목 로깅
+          console.log(`[음악 필터링] ID: ${item.id}, 일치: ${isMatch}, 이유: ${matchReason}`);
+          
+          return isMatch;
         });
         
         console.log(`[Storage] 사용자 필터링 후 음악 항목 ${filteredResults.length}개 남음`);
