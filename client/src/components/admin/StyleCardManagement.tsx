@@ -60,6 +60,7 @@ export default function StyleCardManagement() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include", // 쿠키 전송을 위해 필수
         body: JSON.stringify(formData),
       });
       
@@ -96,6 +97,7 @@ export default function StyleCardManagement() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include", // 쿠키 전송을 위해 필수
         body: JSON.stringify(data),
       });
       
@@ -129,6 +131,7 @@ export default function StyleCardManagement() {
     mutationFn: async (id: number) => {
       const response = await fetch(`/api/admin/style-cards/${id}`, {
         method: "DELETE",
+        credentials: "include", // 쿠키 전송을 위해 필수
       });
       
       if (!response.ok) {
