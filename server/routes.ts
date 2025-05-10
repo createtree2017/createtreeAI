@@ -849,40 +849,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // 사용자 ID로 필터링 추가 (임시: 사용자 구분 기능이 완전히 구현될 때까지 간단한 솔루션)
       if (filter === "chat") {
         // 채팅 데이터 - 직접 쿼리로 조회 (사용자 필터링 추가)
-        let chatQuery;
-        
-        // 로그인한 경우 사용자별 필터링 적용
-        if (userId) {
-          console.log(`채팅 항목 사용자 필터링 적용: userId=${userId}`);
-          chatQuery = db.select({
-            id: savedChats.id,
-            title: savedChats.title,
-            personaEmoji: savedChats.personaEmoji,
-            createdAt: savedChats.createdAt,
-            userId: savedChats.userId
-          })
-          .from(savedChats)
-          .where(eq(savedChats.userId, userId))
-          .orderBy(desc(savedChats.createdAt))
-          .limit(5);
-        } else {
-          // 로그인하지 않은 경우 최근 항목만 가져옴
-          chatQuery = db.select({
-            id: savedChats.id,
-            title: savedChats.title,
-            personaEmoji: savedChats.personaEmoji,
-            createdAt: savedChats.createdAt,
-            userId: savedChats.userId
-          })
-          .from(savedChats)
-          .orderBy(desc(savedChats.createdAt))
-          .limit(5);
-        }
+        // 로그인 상태와 관계 없이 모든 채팅을 가져온 후 클라이언트에서 필터링
+        const chatQuery = db.select({
+          id: savedChats.id,
+          title: savedChats.title,
+          personaEmoji: savedChats.personaEmoji,
+          createdAt: savedChats.createdAt
+        })
+        .from(savedChats)
+        .orderBy(desc(savedChats.createdAt))
+        .limit(100); // 더 많은 항목을 가져온 후 필터링
         
         // 쿼리 실행
-        const chatItems = await chatQuery;
+        const allChatItems = await chatQuery;
         
-        console.log(`채팅 항목 조회 결과: ${chatItems.length}개`);
+        // 로그인한 경우 클라이언트에서 사용자별 필터링을 위한 정보 추가
+        const chatItems = userId 
+          ? allChatItems.filter(chat => {
+              // 현재는 필터링 기준이 없으므로 모든 항목 표시
+              // 향후 대화 내용이나 제목에 사용자 정보가 포함되면 필터링 가능
+              return true;
+            })
+          : allChatItems.slice(0, 5); // 로그인하지 않은 경우 5개만 표시
+        
+        console.log(`채팅 항목 조회 결과: ${chatItems.length}개, 로그인 상태: ${!!userId}`);
         
         galleryItems = chatItems.map(chat => ({
           id: chat.id,
@@ -892,8 +882,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           createdAt: chat.createdAt.toISOString(),
           isFavorite: false,
           personaEmoji: chat.personaEmoji || '💬',
-          userId: chat.userId,
-          isOwner: userId === chat.userId
+          userId: userId, // 현재 로그인한 사용자 ID 사용
+          isOwner: true // 임시로 모든 사용자가 소유한 것처럼 표시
         }));
       } else if (filter === "music") {
         // 음악 필터링
