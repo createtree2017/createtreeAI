@@ -5,7 +5,9 @@ import { useToast } from "@/hooks/useToast";
 import { User } from "@shared/schema";
 import { auth, googleProvider } from "@/lib/firebase";
 import { 
-  signInWithPopup, 
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
   User as FirebaseUser,
   Auth,
@@ -250,11 +252,29 @@ export function useAuth() {
         console.log(`도메인 확인: '${currentDomain}'가 Firebase 인증에 등록되어 있어야 합니다.`);
         console.log("승인된 도메인은 Firebase 콘솔 > 인증 > 설정 > 승인된 도메인에서 확인할 수 있습니다.");
         
-        // Redirect 방식으로 변경 (팝업 대신)
+        // 리디렉션 방식으로 로그인
         try {
+          console.log("Google 로그인 리디렉션 방식 시도 중...");
+          
+          // 리디렉션 결과가 있는지 먼저 확인
           const auth2 = getAuth();
-          console.log("로그인 방식 변경: Redirect 방식 시도");
-          const result = await signInWithPopup(auth2, googleProvider);
+          const redirectResult = await getRedirectResult(auth2);
+          
+          // 리디렉션 완료 후 돌아온 경우
+          if (redirectResult && redirectResult.user) {
+            console.log("🎉 Google 리디렉션 로그인 성공!");
+            const firebaseUser = redirectResult.user;
+          }
+          // 첫 시도인 경우 리디렉션 시작
+          else {
+            console.log("Google 로그인 리디렉션 시작...");
+            await signInWithRedirect(auth, googleProvider);
+            return {}; // 리디렉션 중이므로 여기서 종료
+          }
+          
+          // 아래 코드는 팝업 방식을 백업으로 유지
+          console.log("리디렉션 실패, 팝업 방식으로 시도...");
+          const result = await signInWithPopup(auth, googleProvider);
           
           console.log("Google 로그인 성공!");
           
