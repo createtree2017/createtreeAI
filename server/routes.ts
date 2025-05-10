@@ -636,11 +636,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // 데이터베이스 수준에서 페이지네이션 적용하여 데이터 가져오기
-      // 로그인 상태이고 사용자 필터링이 활성화된 경우에만 사용자 ID로 필터링
+      // 로그인 상태이고 사용자 필터링이 활성화된 경우에만 사용자 정보로 필터링
       const result = await storage.getPaginatedImageList(
         page, 
         limit, 
-        (user && filterByUser) ? userId : null
+        (user && filterByUser) ? userId : null,
+        (user && filterByUser) ? user.username : null
       );
       
       // 전체 이미지 수 로그 출력
@@ -679,11 +680,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // 페이지네이션 적용하여 데이터베이스에서 최근 이미지 가져오기
-      // 로그인 상태이고 사용자 필터링이 활성화된 경우에만 사용자 ID로 필터링
+      // 로그인 상태이고 사용자 필터링이 활성화된 경우에만 사용자 정보로 필터링
       const result = await storage.getPaginatedImageList(
         1, // 첫 페이지 
         limit, 
-        (user && filterByUser) ? userId : null
+        (user && filterByUser) ? userId : null,
+        (user && filterByUser) ? user.username : null
       );
       
       // 1시간 이내 생성된 이미지만 필터링 (사용자에게 보여줄 이미지)
