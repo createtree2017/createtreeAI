@@ -3127,9 +3127,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Replicate API 테스트 요청 수신됨");
       const result = await testReplicateAPI();
       return res.json(result);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Replicate API 테스트 엔드포인트 오류:", error);
-      return res.status(500).json({ error: error.message || "알 수 없는 오류" });
+      const errorMessage = error instanceof Error ? error.message : "알 수 없는 오류";
+      return res.status(500).json({ error: errorMessage });
     }
   });
 
