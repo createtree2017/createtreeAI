@@ -7,6 +7,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { useAuthContext } from "@/lib/AuthProvider";
 import { Loader2 } from "lucide-react";
+import { FcGoogle } from "react-icons/fc";
+import { Separator } from "@/components/ui/separator";
 
 // 로그인 폼 검증 스키마
 const loginSchema = z.object({

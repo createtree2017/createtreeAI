@@ -3,6 +3,12 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/useToast";
 import { User } from "@shared/schema";
+import { auth, googleProvider } from "@/lib/firebase";
+import { 
+  signInWithPopup, 
+  GoogleAuthProvider,
+  User as FirebaseUser
+} from "firebase/auth";
 
 type LoginCredentials = {
   username: string;
@@ -214,6 +220,82 @@ export function useAuth() {
     },
   });
 
+  // Google 로그인 함수
+  const loginWithGoogle = useMutation({
+    mutationFn: async () => {
+      try {
+        // Firebase Google 로그인 - 팝업 방식
+        const result = await signInWithPopup(auth, googleProvider);
+        
+        // Google 계정 정보 확인
+        const credential = GoogleAuthProvider.credentialFromResult(result);
+        const token = credential?.accessToken;
+        const firebaseUser = result.user;
+        
+        if (!firebaseUser || !firebaseUser.email) {
+          throw new Error("Google 로그인에 실패했습니다.");
+        }
+        
+        console.log("Firebase 로그인 성공:", firebaseUser.displayName);
+        
+        // 서버로 Firebase 사용자 정보 전송
+        const response = await fetch("/api/auth/firebase-login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ user: firebaseUser.toJSON() }),
+          credentials: "include", // 쿠키 포함
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "서버 로그인에 실패했습니다.");
+        }
+        
+        const data = await response.json();
+        return data;
+      } catch (error: any) {
+        // Firebase 인증 에러 처리
+        if (error.code === 'auth/popup-closed-by-user') {
+          throw new Error("로그인 창이 사용자에 의해 닫혔습니다.");
+        }
+        if (error.code === 'auth/cancelled-popup-request') {
+          throw new Error("다중 팝업 요청이 취소되었습니다.");
+        }
+        
+        console.error("Google 로그인 오류:", error);
+        throw error;
+      }
+    },
+    onSuccess: (data) => {
+      // 사용자 정보 캐시 업데이트
+      queryClient.setQueryData(["/api/auth/me"], data.user);
+      
+      toast({
+        title: "Google 로그인 성공",
+        description: "환영합니다!",
+        variant: "default",
+      });
+      
+      // 현재 페이지가 로그인/회원가입 페이지인 경우만 홈 페이지로 리디렉션
+      const currentPath = window.location.pathname;
+      if (currentPath === '/login' || currentPath === '/register' || currentPath === '/auth') {
+        // 홈 페이지로 리디렉션 (1초 지연)
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 1000);
+      }
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Google 로그인 실패",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     user,
     isLoading,
@@ -221,8 +303,10 @@ export function useAuth() {
     login: login.mutate,
     register: register.mutate,
     logout: logout.mutate,
+    loginWithGoogle: loginWithGoogle.mutate,
     isLoginLoading: login.isPending,
     isRegisterLoading: register.isPending,
     isLogoutLoading: logout.isPending,
+    isGoogleLoginLoading: loginWithGoogle.isPending,
   };
 }
