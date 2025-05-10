@@ -238,7 +238,7 @@ export const storage = {
           originalUrl: originalPath,
           transformedUrl,
           metadata: JSON.stringify(metadata),
-          user_id: userId || undefined, // 데이터베이스 컬럼명은 user_id, 타입스크립트에서는 userId로 접근
+          userId: userId || undefined, // TypeScript에서의 필드명 userId 사용
           username: username || undefined,
           originalFilename,
         })
