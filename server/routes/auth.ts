@@ -20,6 +20,7 @@ import {
   authenticateJWT,
   checkRole
 } from "../services/auth";
+import { FirebaseUserData, handleFirebaseAuth } from "../services/firebase-auth";
 
 const router = Router();
 
@@ -259,6 +260,59 @@ router.get("/admin-check", (req, res) => {
   }
   
   return res.json({ isAdmin: true });
+});
+
+// Firebase 로그인 API
+router.post("/firebase-login", async (req, res) => {
+  try {
+    const { user: firebaseUser } = req.body;
+
+    if (!firebaseUser || !firebaseUser.uid || !firebaseUser.email) {
+      return res.status(400).json({ message: "유효하지 않은 Firebase 사용자 정보입니다." });
+    }
+
+    console.log("[Firebase Auth] 로그인 요청:", { 
+      uid: firebaseUser.uid, 
+      email: firebaseUser.email,
+      displayName: firebaseUser.displayName 
+    });
+
+    // Firebase 인증 처리
+    const userData: FirebaseUserData = {
+      uid: firebaseUser.uid,
+      email: firebaseUser.email,
+      displayName: firebaseUser.displayName,
+      photoURL: firebaseUser.photoURL,
+      phoneNumber: firebaseUser.phoneNumber
+    };
+
+    // 사용자 조회 또는 생성
+    const user = await handleFirebaseAuth(userData);
+
+    if (!user) {
+      return res.status(500).json({ message: "사용자 처리 중 오류가 발생했습니다." });
+    }
+
+    // 사용자 로그인 처리 (세션에 저장)
+    // Passport를 통한 로그인
+    req.login(user, async (loginErr) => {
+      if (loginErr) {
+        console.error("[Firebase Auth] 로그인 오류:", loginErr);
+        return res.status(500).json({ message: "로그인 처리 중 오류가 발생했습니다." });
+      }
+
+      console.log("[Firebase Auth] 로그인 성공:", user.id);
+
+      // 응답
+      return res.status(200).json({
+        user: sanitizeUser(user),
+        message: "Firebase 로그인 성공"
+      });
+    });
+  } catch (error) {
+    console.error("[Firebase Auth] 오류:", error);
+    return res.status(500).json({ message: "서버 오류가 발생했습니다." });
+  }
 });
 
 export default router;
