@@ -287,7 +287,12 @@ export const storage = {
     // Create a title with user information for proper filtering
     let title;
     if (username) {
+      // 사용자 이름을 제목에 명확하게 포함하여 필터링 용이성 증가
       title = `[${username}] ${style.charAt(0).toUpperCase() + style.slice(1)} ${nameWithoutExt}`;
+      // 한글 사용자 이름이라면 "사용자명의" 형식도 추가
+      if (/[가-힣]/.test(username)) {
+        title = `${username}의 ${style.charAt(0).toUpperCase() + style.slice(1)} ${nameWithoutExt}`;
+      }
     } else {
       title = `${style.charAt(0).toUpperCase() + style.slice(1)} ${nameWithoutExt}`;
     }
@@ -297,7 +302,8 @@ export const storage = {
     if (variantId) metadata.variantId = variantId;
     if (aspectRatio) metadata.aspectRatio = aspectRatio;
     if (username) metadata.username = username;
-    if (userId) metadata.userId = userId;
+    // 사용자 ID는 항상 문자열로 저장하여 일관성 유지
+    if (userId) metadata.userId = userId.toString();
     
     try {
       console.log(`[Storage] 새 이미지 저장 시작: "${title}", 스타일: ${style}, 사용자: ${username || '없음'}, 사용자ID: ${userId || '없음'}`);
@@ -405,19 +411,36 @@ export const storage = {
           try {
             const metadata = JSON.parse(image.metadata);
             
-            // 첫 번째 조건: metadata에 userId가 있고 파라미터 userId와 일치
-            if (userId && metadata.userId && metadata.userId === userId) {
-              return true;
+            // 디버깅 로그 추가
+            console.log(`[이미지 필터링 분석] ID=${image.id}, 제목="${image.title}", 메타데이터:`, metadata);
+            
+            // 첫 번째 조건: metadata에 userId가 있고 파라미터 userId와 일치 (문자열/숫자 타입 불일치 해결)
+            if (userId && metadata.userId) {
+              // 문자열과 숫자 비교를 위해 문자열로 변환하거나 정수로 변환
+              const metadataUserId = typeof metadata.userId === 'string' ? parseInt(metadata.userId) : metadata.userId;
+              if (metadataUserId === userId) {
+                console.log(`[이미지 필터링] 사용자 ID 일치: ${metadataUserId} === ${userId}`);
+                return true;
+              }
             }
             
             // 두 번째 조건: metadata에 username이 있고 파라미터 username과 일치
             if (username && metadata.username && metadata.username === username) {
+              console.log(`[이미지 필터링] 사용자명 일치: ${metadata.username} === ${username}`);
               return true;
             }
             
             // 세 번째 조건: 메타데이터에 username이 없지만 제목에 username이 포함된 경우
-            if (username && image.title && image.title.includes(`[${username}]`)) {
-              return true;
+            if (username && image.title) {
+              // 다양한 형식으로 제목에 사용자명이 포함될 수 있음
+              const titleIncludes = image.title.includes(`[${username}]`) || 
+                                  image.title.includes(`(${username})`) ||
+                                  image.title.includes(`${username}의`);
+              
+              if (titleIncludes) {
+                console.log(`[이미지 필터링] 제목에 사용자명 포함: "${image.title}" 에 "${username}" 포함됨`);
+                return true;
+              }
             }
             
             return false;
