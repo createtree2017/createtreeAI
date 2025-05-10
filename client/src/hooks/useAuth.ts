@@ -9,7 +9,8 @@ import {
   GoogleAuthProvider,
   User as FirebaseUser,
   Auth,
-  AuthProvider
+  AuthProvider,
+  getAuth
 } from "firebase/auth";
 
 type LoginCredentials = {
@@ -227,10 +228,11 @@ export function useAuth() {
     mutationFn: async () => {
       try {
         console.log("Google 로그인 시작...");
-        console.log("Firebase 환경 변수 확인:", {
-          apiKeyExists: !!import.meta.env.VITE_FIREBASE_API_KEY,
-          projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-          appId: import.meta.env.VITE_FIREBASE_APP_ID
+        
+        // Firebase 설정 정보 확인
+        console.log("Firebase 설정 정보:", {
+          apiKey: "스크린샷에서 확인한 API 키 사용 중",
+          authDomain: "createai-7facc.firebaseapp.com"
         });
         
         // Firebase 초기화 여부 확인
@@ -243,12 +245,18 @@ export function useAuth() {
         console.log("현재 도메인:", window.location.origin);
         console.log("Firebase Google 로그인 팝업 시도...");
         
-        // 오류 예방: Firebase 인증 시도 전 코드 실행 확인
+        // 현재 위치가 Firebase에 등록된 도메인인지 확인
+        const currentDomain = window.location.origin;
+        console.log(`도메인 확인: '${currentDomain}'가 Firebase 인증에 등록되어 있어야 합니다.`);
+        console.log("승인된 도메인은 Firebase 콘솔 > 인증 > 설정 > 승인된 도메인에서 확인할 수 있습니다.");
+        
+        // Redirect 방식으로 변경 (팝업 대신)
         try {
-          // Firebase Google 로그인 - 팝업 방식
-          const result = await signInWithPopup(auth, googleProvider);
+          const auth2 = getAuth();
+          console.log("로그인 방식 변경: Redirect 방식 시도");
+          const result = await signInWithPopup(auth2, googleProvider);
           
-          console.log("Firebase 팝업 로그인 성공!");
+          console.log("Google 로그인 성공!");
           
           // Google 계정 정보 확인
           const credential = GoogleAuthProvider.credentialFromResult(result);
@@ -298,17 +306,33 @@ export function useAuth() {
           const data = await response.json();
           console.log("서버 인증 성공 응답:", data);
           return data;
-        } catch (popupError: any) {
-          console.error("Firebase 팝업 오류:", popupError);
-          console.error("오류 코드:", popupError.code);
-          console.error("오류 메시지:", popupError.message);
-          throw popupError;
+        } catch (authError: any) {
+          console.error("🔴 Firebase 인증 오류:", authError);
+          console.error("🔴 오류 코드:", authError.code);
+          console.error("🔴 오류 메시지:", authError.message);
+          console.error("🔴 오류 상세:", JSON.stringify(authError, null, 2));
+          
+          // API 키 오류인 경우 더 자세한 문제 진단
+          if (authError.code === 'auth/invalid-api-key') {
+            console.error("🔴 API 키 문제 진단:");
+            console.error("  1. API 키가 정확한지 확인 필요");
+            console.error("  2. Firebase 프로젝트에서 웹 API 키가 활성화되어 있는지 확인 필요");
+            console.error("  3. Firebase 프로젝트에서 Google 로그인 제공업체가 활성화되어 있는지 확인 필요");
+          }
+          
+          // 승인되지 않은 도메인 문제인 경우
+          if (authError.code === 'auth/unauthorized-domain') {
+            console.error("🔴 도메인 승인 문제 진단:");
+            console.error(`  현재 도메인 '${window.location.origin}'이 Firebase에 등록되어 있지 않습니다.`);
+            console.error("  Firebase 콘솔 > 인증 > 설정 > 승인된 도메인에 추가해주세요.");
+          }
+          
+          throw authError;
         }
       } catch (error: any) {
         // 모든 오류 상세 출력
         console.error("Google 로그인 최종 오류:", error);
         console.error("오류 유형:", typeof error);
-        console.error("오류 JSON:", JSON.stringify(error, null, 2));
         
         // Firebase 인증 에러 처리
         if (error.code) {
@@ -321,10 +345,10 @@ export function useAuth() {
               throw new Error("팝업이 브라우저에 의해 차단되었습니다. 팝업 차단을 해제해주세요.");
             case 'auth/api-key-not-valid':
             case 'auth/invalid-api-key':
-              throw new Error("Firebase API 키가 유효하지 않습니다. Firebase 설정을 확인해주세요.");
+              throw new Error("Firebase API 키가 유효하지 않습니다. 관리자에게 문의해주세요.");
             case 'auth/unauthorized-domain':
             case 'auth/domain-not-authorized':
-              throw new Error(`현재 도메인(${window.location.origin})이 Firebase에 등록되지 않았습니다. Firebase 콘솔에서 승인된 도메인 목록에 추가해주세요.`);
+              throw new Error(`현재 사이트(${window.location.origin})에서는 Google 로그인이 지원되지 않습니다. 관리자에게 문의해주세요.`);
             default:
               throw new Error(`Google 로그인 실패: [${error.code}] ${error.message}`);
           }
