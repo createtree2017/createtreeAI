@@ -1307,8 +1307,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // 결과 반환 전 처리 시간 계산 및 메타데이터 추가
       const processingTime = Date.now() - startTime;
       
+      // 메타데이터 분석을 위한 샘플 데이터 로깅
+      if (galleryItems.length > 0) {
+        const sampleItem = galleryItems[0];
+        console.log(`
+[갤러리 항목 샘플 분석]
+- ID: ${sampleItem.id}
+- 타입: ${sampleItem.type || 'unknown'}
+- 제목: ${sampleItem.title || 'no title'}
+- 메타데이터: ${typeof sampleItem.metadata === 'string' ? sampleItem.metadata : JSON.stringify(sampleItem.metadata || {})}
+- 사용자 ID: ${sampleItem.userId || 'none'}
+- 소유자 여부: ${sampleItem.isOwner ? 'true' : 'false'}
+        `);
+      }
+      
+      // 필터 유형별 결과 개수 표시
+      const imageCount = galleryItems.filter(item => item.type === 'image' || !item.type).length;
+      const musicCount = galleryItems.filter(item => item.type === 'music').length;
+      const chatCount = galleryItems.filter(item => item.type === 'chat').length;
+      const favoriteCount = galleryItems.filter(item => item.isFavorite).length;
+
       // 디버깅 정보 추가
-      console.log(`갤러리 API 응답 준비 완료 - ${galleryItems.length}개 항목, 처리 시간: ${processingTime}ms`);
+      console.log(`갤러리 API 응답 준비 완료 - 총 ${galleryItems.length}개 항목 (이미지: ${imageCount}, 음악: ${musicCount}, 채팅: ${chatCount}, 즐겨찾기: ${favoriteCount}), 처리 시간: ${processingTime}ms`);
       
       // 응답에 메타데이터 포함
       return res.json({

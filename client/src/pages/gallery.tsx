@@ -66,6 +66,9 @@ export default function Gallery() {
   // 사용자가 로그인한 경우 isOwner 속성이 있거나 userId가 사용자의 ID와 일치하는 항목만 필터링
   const userOwnedItems = user 
     ? filteredItems.filter((item: GalleryItem) => {
+        // 아이템 소유권 디버깅 로그
+        console.log(`항목 확인: ID=${item.id}, 타입=${item.type}, isOwner=${item.isOwner || false}, 항목 userId=${item.userId || 'none'}, 현재 userId=${user.id}`);
+        
         // isOwner 속성이 명시적으로 설정된 경우 해당 값 사용
         if (item.isOwner === true) {
           return true;
@@ -82,6 +85,20 @@ export default function Gallery() {
     : filteredItems;
     
   console.log(`사용자별 필터링 결과: ${userOwnedItems.length}/${filteredItems.length} 항목 표시됨`);
+  
+  // 개별 항목의 상세 디버깅 정보 (첫 번째 항목)
+  if (filteredItems.length > 0) {
+    const firstItem = filteredItems[0];
+    console.log('첫 번째 갤러리 항목 세부 정보:', {
+      id: firstItem.id,
+      type: firstItem.type,
+      title: firstItem.title,
+      isOwner: firstItem.isOwner || false,
+      userId: firstItem.userId,
+      currentUserId: user?.id || 'not logged in',
+      isFavorite: firstItem.isFavorite
+    });
+  }
   
   
   const totalPages = Math.ceil(userOwnedItems.length / itemsPerPage);
