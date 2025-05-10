@@ -67,6 +67,7 @@ import {
   like
 } from "../shared/schema";
 import { db } from "../db";
+import { or } from "drizzle-orm";
 
 // Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), "uploads");
@@ -830,8 +831,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             title: images.title,
             transformedUrl: images.transformedUrl,
             createdAt: images.createdAt,
-            originalFilename: images.originalFilename,
-            username: images.username
+            userId: images.userId
           })
           .from(images)
           .orderBy(desc(images.createdAt));
@@ -840,17 +840,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (username) {
             console.log(`[이미지 탭] 사용자 ${username}의 이미지만 필터링합니다.`);
             
-            // 두 가지 방식으로 필터링: 1) 이미지의 username 필드, 2) 원본 파일명이나 제목에 사용자 이름 포함
+            // 제목에 사용자 이름이 포함된 경우만 필터링 (간단한 접근법)
             const userImages = await imageQuery
-              .where(
-                or(
-                  // username 필드가 정확히 일치하는 경우 (로그인 연동 이미지)
-                  eq(images.username, username),
-                  // 대안: 파일명이나 제목에 사용자 이름이 포함된 경우 (이전 방식으로부터 호환성 유지)
-                  like(images.title, `%${username}%`),
-                  like(images.originalFilename || '', `%${username}%`)
-                )
-              )
+              .where(like(images.title, `%${username}%`))
               .limit(20);
             
             if (userImages.length > 0) {
@@ -862,8 +854,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 url: item.transformedUrl,
                 thumbnailUrl: item.transformedUrl,
                 createdAt: item.createdAt.toISOString(),
-                isFavorite: false,
-                username: item.username || ""
+                isFavorite: false
               }));
               
               console.log(`사용자 ${username}의 이미지 ${galleryItems.length}개 찾음`);
@@ -948,8 +939,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               title: images.title,
               transformedUrl: images.transformedUrl,
               createdAt: images.createdAt,
-              originalFilename: images.originalFilename,
-              username: images.username
+              userId: images.userId
             })
             .from(images)
             .orderBy(desc(images.createdAt));
@@ -958,17 +948,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (username) {
               console.log(`사용자 ${username}의 이미지만 필터링합니다.`);
               
-              // 두 가지 방식으로 필터링: 1) 이미지의 username 필드, 2) 원본 파일명이나 제목에 사용자 이름 포함
+              // 제목에 사용자 이름이 포함된 경우만 필터링 (간단한 접근법)
               const userImages = await imageQuery
-                .where(
-                  or(
-                    // username 필드가 정확히 일치하는 경우 (로그인 연동 이미지)
-                    eq(images.username, username),
-                    // 대안: 파일명이나 제목에 사용자 이름이 포함된 경우 (이전 방식으로부터 호환성 유지)
-                    like(images.title, `%${username}%`),
-                    like(images.originalFilename || '', `%${username}%`)
-                  )
-                )
+                .where(like(images.title, `%${username}%`))
                 .limit(6);
               
               if (userImages.length > 0) {
@@ -980,8 +962,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   url: item.transformedUrl,
                   thumbnailUrl: item.transformedUrl,
                   createdAt: item.createdAt.toISOString(),
-                  isFavorite: false,
-                  username: item.username || ""
+                  isFavorite: false
                 }));
                 
                 processedItems = [...processedItems, ...formattedImageItems];

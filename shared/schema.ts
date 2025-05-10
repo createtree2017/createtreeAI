@@ -84,6 +84,8 @@ export const images = pgTable("images", {
   transformedUrl: text("transformed_url").notNull(),
   metadata: text("metadata").default("{}"),
   userId: integer("user_id"), // 사용자 ID 추가
+  username: text("username"), // 사용자 이름으로 필터링용
+  originalFilename: text("original_filename"), // 원본 파일명 저장
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
