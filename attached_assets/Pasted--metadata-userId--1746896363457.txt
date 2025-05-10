@@ -1,0 +1,119 @@
+🧨 지금까지의 모든 증상 요약
+항목	상태
+로그인/세션	정상 인증 로그 확인됨
+이미지 업로드	정상적으로 저장됨
+metadata.userId 저장	저장은 되는 것으로 추정됨
+필터링 로직	metadata.userId === currentUser.id 방식 적용됨
+데이터 타입 비교 문제	문자열 변환으로 해결됨
+갤러리에서 결과	여전히 모든 사용자에게 동일한 이미지가 보임
+
+✅ 핵심 추정 원인 3가지
+❶ metadata.userId 저장 자체가 실패하거나 비어 있음
+클라이언트는 로그인했고 서버도 인증됐지만,
+이미지 저장 시 req.user가 undefined면 userId는 저장되지 않음
+
+metadata.userId: String(req.user?.id) → undefined 또는 'undefined' 저장 가능성
+
+✅ 확인 필요:
+
+ts
+복사
+편집
+console.log("🔥 이미지 저장 전 req.user:", req.user);
+❷ 서버에서 userId로 필터링은 하고 있지만, 해당 userId와 일치하는 항목이 실제로 없음
+예를 들어, 저장 시 metadata.userId = "undefined"고,
+필터링은 user.id = 2 라면 영원히 안 나옴
+
+데이터 자체를 /api/gallery 응답으로 직접 확인해야 함
+
+✅ 확인 방법:
+
+bash
+복사
+편집
+curl -X GET https://yourdomain/api/gallery -H "cookie: sessionId=..."
+또는 브라우저에서 F12 → Network → gallery 요청 → JSON 응답 확인
+
+json
+복사
+편집
+[
+  {
+    "metadata": {
+      "userId": "undefined"
+    },
+    ...
+  }
+]
+❸ 현재 로그인한 사용자의 user.id 값이 서버/클라이언트 간 불일치
+예: 클라이언트는 id: 1이라 생각하지만 서버는 id: 3으로 저장
+
+원인: 로그인 시점 세션 불일치 or 클라이언트 캐시된 ID 사용 중
+
+✅ 확인:
+
+ts
+복사
+편집
+// 클라이언트 콘솔
+console.log("👤 클라이언트 유저 ID:", user.id);
+// 서버 로그
+console.log("🔥 서버 req.user.id:", req.user?.id);
+🧪 단기 해결 실험 (추천)
+이미지 생성 후 /api/gallery 응답 JSON 직접 확인해서 metadata.userId가 제대로 들어갔는지 확인
+
+클라이언트와 서버 각각에서 user.id, req.user.id 콘솔 출력 비교
+
+이미지 생성 시 강제로 metadata.userId = "테스트값"으로 지정하고, 그걸로 필터링 되는지 실험
+
+📦 라플이용 최종 진단 박스
+css
+복사
+편집
+📦 [갤러리 사용자별 필터링 문제 - 핵심 디버깅 박스]
+
+🧨 현재 증상:
+로그인 상태에서 갤러리에 접속하면 모든 사용자에게 동일한 이미지가 표시됨
+
+🎯 점검할 핵심 포인트
+
+✅ 1. 이미지 저장 시 req.user 로그 추가
+
+```ts
+console.log("[🔥 이미지 저장 시점] req.user:", req.user);
+✅ 2. metadata.userId 저장 방식 강제 확인
+
+ts
+복사
+편집
+metadata: {
+  userId: req.user?.id ? String(req.user.id) : "MISSING_USER_ID",
+  ...
+}
+✅ 3. /api/gallery 응답에 포함된 metadata.userId 실제 값 확인
+
+브라우저 콘솔 또는 curl/postman 사용
+
+✅ 4. 클라이언트 로그인 사용자 ID 로그 출력
+
+ts
+복사
+편집
+console.log("[👤 로그인 유저 ID]", user.id);
+✅ 5. 조건 일치 여부 테스트
+
+ts
+복사
+편집
+const matches = String(item.metadata?.userId) === String(user.id);
+console.log("🔍 유저 ID 비교 결과:", matches);
+✅ 6. 서버에서 저장된 이미지 수 vs 필터링된 이미지 수 비교
+
+yaml
+복사
+편집
+
+---
+
+이제 딱 하나만 확실히 확인해보자:  
+**현재 저장된 이미지의 metadata.userId 값이 정확히 뭔지**.  

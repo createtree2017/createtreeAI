@@ -1075,46 +1075,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // 사용자별 필터링 - 메타데이터 기반 필터링 (실제 DB 컬럼이 없는 경우 대체 방법)
           let filteredImages = allImages;
           
+          // 이미지 목록 전체 메타데이터 분석 (디버깅용)
+          console.log(`이미지 목록 메타데이터 분석 시작 - 총 ${allImages.length}개 항목`);
+          for (let i = 0; i < Math.min(allImages.length, 5); i++) {
+            const img = allImages[i];
+            let metadataInfo = "없음";
+            
+            if (img.metadata) {
+              try {
+                const metadata = typeof img.metadata === 'string' 
+                  ? JSON.parse(img.metadata) 
+                  : img.metadata;
+                metadataInfo = JSON.stringify(metadata);
+              } catch (e) {
+                metadataInfo = `파싱 오류: ${e.message}`;
+              }
+            }
+            
+            console.log(`[이미지 ${i+1}/${allImages.length}] ID: ${img.id}, 제목: "${img.title}", 메타데이터: ${metadataInfo}`);
+          }
+          
           if (userId) {
-            // 메타데이터에서 userId 필드 확인
+            console.log(`로그인 사용자(${username}, ID: ${userId})의 이미지 필터링 시작`);
+            
+            // ✅ 개선된 필터링: 메타데이터 유무와 관계없이 제목에 사용자명이 포함되어 있어도 매칭
             filteredImages = allImages.filter(image => {
+              let isMatch = false;
+              let matchReason = "불일치";
+              
+              // 1. 메타데이터 기반 필터링 시도
               try {
                 if (image.metadata) {
                   const metadata = typeof image.metadata === 'string' 
                     ? JSON.parse(image.metadata) 
                     : image.metadata;
                   
-                  // 메타데이터에 userId가 있고 현재 사용자와 일치하는지 확인 (문자열 변환 후 비교)
-                  if (metadata.userId) {
+                  // 메타데이터에 userId가 있고 현재 사용자와 일치하는지 확인
+                  if (metadata && metadata.userId) {
                     // 문자열로 변환하여 비교 (타입 불일치 해결)
                     const metadataUserIdStr = metadata.userId.toString();
                     const currentUserIdStr = userId.toString();
                     
-                    console.log(`[이미지 필터링] 비교: metadata.userId=${metadataUserIdStr}(${typeof metadata.userId}), 현재 userId=${currentUserIdStr}(${typeof userId})`);
-                    
                     if (metadataUserIdStr === currentUserIdStr) {
-                      console.log(`[이미지 필터링] 일치 항목 발견: metadata.userId=${metadataUserIdStr}, 현재 userId=${currentUserIdStr}`);
-                      return true;
+                      isMatch = true;
+                      matchReason = `메타데이터 userId 일치: ${metadataUserIdStr}`;
                     }
                   }
                   
                   // 메타데이터에 username이 있고 현재 사용자와 일치하는지 확인
-                  if (metadata.username && username && metadata.username === username) {
-                    return true;
+                  if (!isMatch && metadata && metadata.username && username) {
+                    if (metadata.username === username) {
+                      isMatch = true;
+                      matchReason = `메타데이터 username 일치: ${metadata.username}`;
+                    }
                   }
                 }
               } catch (error) {
-                console.error('이미지 메타데이터 파싱 오류:', error);
+                console.error(`이미지 ${image.id} 메타데이터 파싱 오류:`, error);
               }
               
-              // 사용자 정보가 없거나 일치하지 않는 경우 필터링에서 제외
-              return false;
+              // 2. 제목 기반 매칭 (메타데이터가 없거나 파싱 실패한 경우 대체 전략)
+              if (!isMatch && image.title && username) {
+                // 사용자 이름이 제목에 포함되어 있는지 확인 (3가지 패턴)
+                const pattern1 = `[${username}]`; // "[사용자명]" 패턴
+                const pattern2 = `${username}의`; // "사용자명의" 패턴
+                const pattern3 = ` by ${username}`; // " by 사용자명" 패턴
+                
+                if (image.title.includes(pattern1) || 
+                    image.title.includes(pattern2) || 
+                    image.title.includes(pattern3)) {
+                  isMatch = true;
+                  matchReason = `제목에 사용자명 포함: ${image.title}`;
+                }
+              }
+              
+              // 3. 관리자는 모든 이미지 접근 가능 (선택적)
+              // 주의: 일반 사용자는 자신의 이미지만 봐야 하므로 주석 처리
+              /*
+              if (!isMatch && user && user.memberType && 
+                  (user.memberType === 'admin' || user.memberType === 'superadmin')) {
+                isMatch = true;
+                matchReason = `관리자 권한으로 모든 항목 접근 가능`;
+              }
+              */
+              
+              // 디버깅 로그 (상세 결과는 샘플로만 출력)
+              if (isMatch || image.id % 10 === 0) {
+                console.log(`[이미지 필터링] ID: ${image.id}, 일치: ${isMatch}, 이유: ${matchReason}`);
+              }
+              
+              return isMatch;
             });
             
-            // 필터링 결과가 없으면 빈 배열 반환 (사용자 소유의 콘텐츠만 표시)
+            // 필터링 결과 요약
+            console.log(`[이미지 필터링 결과] 총 ${allImages.length}개 중 ${filteredImages.length}개 항목 일치`);
+            
+            // 필터링 결과가 없으면 빈 배열 유지 (사용자 소유의 콘텐츠만 표시)
             if (filteredImages.length === 0) {
-              console.log('사용자별 이미지 필터링 결과 없음. 로그인 사용자에게는 빈 갤러리 표시');
-              filteredImages = []; // 자신의 콘텐츠만 볼 수 있도록 수정
+              console.log('사용자별 이미지 필터링 결과 없음. 빈 갤러리 표시');
             }
           } else {
             // 비로그인 사용자: 빈 배열 반환 (로그인 필요 메시지 표시용)
