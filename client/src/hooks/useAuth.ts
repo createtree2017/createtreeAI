@@ -3,15 +3,9 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/useToast";
 import { User } from "@shared/schema";
-import { auth, googleProvider } from "@/lib/firebase";
 import { 
   signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
   GoogleAuthProvider,
-  User as FirebaseUser,
-  Auth,
-  AuthProvider,
   getAuth
 } from "firebase/auth";
 
@@ -225,156 +219,95 @@ export function useAuth() {
     },
   });
 
-  // Google 로그인 함수
+  // Google 로그인 함수 - 완전히 재작성된 버전
   const loginWithGoogle = useMutation({
     mutationFn: async () => {
       try {
-        console.log("Google 로그인 시작...");
+        console.log("[Google 로그인] 시작");
         
-        // Firebase 설정 정보 확인
-        console.log("Firebase 설정 정보:", {
-          apiKey: "스크린샷에서 확인한 API 키 사용 중",
-          authDomain: "createai-7facc.firebaseapp.com"
+        // 새로운 Firebase Auth 인스턴스와 제공업체 생성
+        const authInstance = getAuth();
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        
+        console.log("[Google 로그인] 팝업 창으로 로그인 시도");
+        
+        // 팝업 방식으로 로그인 시도
+        const result = await signInWithPopup(authInstance, provider);
+        
+        // 성공 메시지
+        console.log("[Google 로그인] 성공!");
+        
+        // 사용자 정보 추출
+        const firebaseUser = result.user;
+        if (!firebaseUser || !firebaseUser.email) {
+          throw new Error("Google 계정 정보를 가져올 수 없습니다");
+        }
+        
+        // 디버깅을 위한 사용자 정보 로깅 (민감한 정보는 마스킹)
+        console.log("[Google 로그인] 사용자 정보:", {
+          displayName: firebaseUser.displayName,
+          email: firebaseUser.email,
+          uid: firebaseUser.uid.substring(0, 5) + "...",
+          isEmailVerified: firebaseUser.emailVerified
         });
         
-        // Firebase 초기화 여부 확인
-        if (!auth || !googleProvider) {
-          console.error("Firebase가 초기화되지 않았습니다.");
-          throw new Error("Firebase 설정이 올바르지 않습니다.");
+        // 서버에 전송할 사용자 데이터 준비
+        const userData = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: firebaseUser.displayName || "",
+          photoURL: firebaseUser.photoURL || "",
+          phoneNumber: firebaseUser.phoneNumber || ""
+        };
+        
+        // 서버로 Firebase 사용자 정보 전송
+        console.log("[Google 로그인] 서버에 인증 정보 전송 중");
+        const response = await fetch("/api/auth/firebase-login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user: userData }),
+          credentials: "include"
+        });
+        
+        // 서버 응답 확인
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("[Google 로그인] 서버 인증 실패:", errorText);
+          throw new Error(`서버 인증 실패: ${response.status} ${errorText}`);
         }
         
-        console.log("Firebase 초기화 확인 완료");
-        console.log("현재 도메인:", window.location.origin);
-        console.log("Firebase Google 로그인 팝업 시도...");
-        
-        // 현재 위치가 Firebase에 등록된 도메인인지 확인
-        const currentDomain = window.location.origin;
-        console.log(`도메인 확인: '${currentDomain}'가 Firebase 인증에 등록되어 있어야 합니다.`);
-        console.log("승인된 도메인은 Firebase 콘솔 > 인증 > 설정 > 승인된 도메인에서 확인할 수 있습니다.");
-        
-        // 리디렉션 방식으로 로그인
-        try {
-          console.log("Google 로그인 리디렉션 방식 시도 중...");
-          
-          // 리디렉션 결과가 있는지 먼저 확인
-          const auth2 = getAuth();
-          const redirectResult = await getRedirectResult(auth2);
-          
-          // 리디렉션 완료 후 돌아온 경우
-          if (redirectResult && redirectResult.user) {
-            console.log("🎉 Google 리디렉션 로그인 성공!");
-            const firebaseUser = redirectResult.user;
-          }
-          // 첫 시도인 경우 리디렉션 시작
-          else {
-            console.log("Google 로그인 리디렉션 시작...");
-            await signInWithRedirect(auth, googleProvider);
-            return {}; // 리디렉션 중이므로 여기서 종료
-          }
-          
-          // 아래 코드는 팝업 방식을 백업으로 유지
-          console.log("리디렉션 실패, 팝업 방식으로 시도...");
-          const result = await signInWithPopup(auth, googleProvider);
-          
-          console.log("Google 로그인 성공!");
-          
-          // Google 계정 정보 확인
-          const credential = GoogleAuthProvider.credentialFromResult(result);
-          const token = credential?.accessToken;
-          const firebaseUser = result.user;
-          
-          if (!firebaseUser || !firebaseUser.email) {
-            throw new Error("Google 로그인에 실패했습니다.");
-          }
-          
-          console.log("Firebase 사용자 정보:", {
-            displayName: firebaseUser.displayName,
-            email: firebaseUser.email,
-            uid: firebaseUser.uid.substring(0, 8) + "...", // 보안을 위한 부분 표시
-            photoURL: firebaseUser.photoURL ? "있음" : "없음",
-            phoneNumber: firebaseUser.phoneNumber ? "있음" : "없음",
-            emailVerified: firebaseUser.emailVerified
-          });
-          
-          const userData = {
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-            displayName: firebaseUser.displayName,
-            photoURL: firebaseUser.photoURL,
-            phoneNumber: firebaseUser.phoneNumber
-          };
-          
-          // 서버로 Firebase 사용자 정보 전송
-          console.log("서버에 Firebase 사용자 정보 전송 시작...");
-          const response = await fetch("/api/auth/firebase-login", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ user: userData }),
-            credentials: "include", // 쿠키 포함
-          });
-          
-          console.log("서버 응답 상태:", response.status);
-          
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error("서버 인증 실패 응답:", errorText);
-            throw new Error(`서버 인증 실패: ${response.status} ${errorText}`);
-          }
-          
-          const data = await response.json();
-          console.log("서버 인증 성공 응답:", data);
-          return data;
-        } catch (authError: any) {
-          console.error("🔴 Firebase 인증 오류:", authError);
-          console.error("🔴 오류 코드:", authError.code);
-          console.error("🔴 오류 메시지:", authError.message);
-          console.error("🔴 오류 상세:", JSON.stringify(authError, null, 2));
-          
-          // API 키 오류인 경우 더 자세한 문제 진단
-          if (authError.code === 'auth/invalid-api-key') {
-            console.error("🔴 API 키 문제 진단:");
-            console.error("  1. API 키가 정확한지 확인 필요");
-            console.error("  2. Firebase 프로젝트에서 웹 API 키가 활성화되어 있는지 확인 필요");
-            console.error("  3. Firebase 프로젝트에서 Google 로그인 제공업체가 활성화되어 있는지 확인 필요");
-          }
-          
-          // 승인되지 않은 도메인 문제인 경우
-          if (authError.code === 'auth/unauthorized-domain') {
-            console.error("🔴 도메인 승인 문제 진단:");
-            console.error(`  현재 도메인 '${window.location.origin}'이 Firebase에 등록되어 있지 않습니다.`);
-            console.error("  Firebase 콘솔 > 인증 > 설정 > 승인된 도메인에 추가해주세요.");
-          }
-          
-          throw authError;
-        }
+        // 성공 응답 처리
+        const data = await response.json();
+        console.log("[Google 로그인] 서버 인증 성공:", data);
+        return data;
+      
       } catch (error: any) {
-        // 모든 오류 상세 출력
-        console.error("Google 로그인 최종 오류:", error);
-        console.error("오류 유형:", typeof error);
+        // 오류 로깅
+        console.error("[Google 로그인] 오류 발생:", error);
         
         // Firebase 인증 에러 처리
         if (error.code) {
           switch(error.code) {
             case 'auth/popup-closed-by-user':
-              throw new Error("로그인 창이 사용자에 의해 닫혔습니다.");
+              throw new Error("로그인 창이 사용자에 의해 닫혔습니다");
             case 'auth/cancelled-popup-request':
-              throw new Error("다중 팝업 요청이 취소되었습니다.");
+              throw new Error("다중 팝업 요청이 취소되었습니다");
             case 'auth/popup-blocked':
-              throw new Error("팝업이 브라우저에 의해 차단되었습니다. 팝업 차단을 해제해주세요.");
+              throw new Error("팝업이 브라우저에 의해 차단되었습니다. 팝업 차단을 해제해주세요");
             case 'auth/api-key-not-valid':
             case 'auth/invalid-api-key':
-              throw new Error("Firebase API 키가 유효하지 않습니다. 관리자에게 문의해주세요.");
+              throw new Error("Firebase API 키가 유효하지 않습니다. 관리자에게 문의해주세요");
             case 'auth/unauthorized-domain':
             case 'auth/domain-not-authorized':
-              throw new Error(`현재 사이트(${window.location.origin})에서는 Google 로그인이 지원되지 않습니다. 관리자에게 문의해주세요.`);
+              throw new Error(`현재 사이트(${window.location.origin})에서는 Google 로그인이 지원되지 않습니다. 관리자에게 문의해주세요`);
             default:
               throw new Error(`Google 로그인 실패: [${error.code}] ${error.message}`);
           }
         }
         
-        throw new Error(`Google 로그인 실패: ${error.message || '알 수 없는 오류가 발생했습니다'}`);
+        // 기본 오류 메시지
+        throw new Error(error.message || "Google 로그인 중 오류가 발생했습니다");
       }
     },
     onSuccess: (data) => {

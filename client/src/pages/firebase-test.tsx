@@ -1,223 +1,255 @@
-import React, { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { initializeApp, FirebaseApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup, Auth } from "firebase/auth";
-import { AlertCircle, CheckCircle, XCircle } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useEffect, useState } from 'react';
+import { getAuth, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { initializeApp } from 'firebase/app';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { AlertCircle, CheckCircle2, ChevronRight, LogIn } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-const FirebaseTestPage: React.FC = () => {
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+// Firebase 구성 - 하드코딩 (테스트 전용)
+const firebaseConfig = {
+  apiKey: "AIzaSyCINDZ1I6iqCNkxLG73GEOFwOrPm52uxM",
+  authDomain: "createai-7facc.firebaseapp.com",
+  projectId: "createai-7facc",
+  storageBucket: "createai-7facc.appspot.com",
+  messagingSenderId: "980137173202",
+  appId: "1:980137173202:web:aef6cd9e1b3914ad7ac997"
+};
+
+// Firebase 앱 초기화 로직을 이 파일에 직접 포함 (테스트 전용)
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+
+export default function FirebaseTestPage() {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [firebaseApp, setFirebaseApp] = useState<FirebaseApp | null>(null);
-  const [auth, setAuth] = useState<Auth | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-  const [testLog, setTestLog] = useState<string[]>([]);
+  const [logs, setLogs] = useState<string[]>([]);
 
-  // Firebase 구성 객체 - 스크린샷에서 확인한 정확한 값으로 설정
-  const firebaseConfig = {
-    apiKey: "AIzaSyCINDZ1I6iqCNkxLG73GEOFwOrPm52uxM",
-    authDomain: "createai-7facc.firebaseapp.com", 
-    projectId: "createai-7facc",
-    storageBucket: "createai-7facc.appspot.com",
-    messagingSenderId: "980137173202",
-    appId: "1:980137173202:web:aef6cd9e1b3914ad7ac997",
-    measurementId: "G-2MZ24X4RDX"
-  };
-
-  // 로그 추가 함수
+  // 로그 함수
   const log = (message: string) => {
-    setTestLog(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+    setLogs(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
   };
 
-  // 페이지 로드 시 Firebase 초기화 시도 
-  useEffect(() => {
-    log("Firebase 테스트 페이지 로드됨");
-    log(`현재 도메인: ${window.location.origin}`);
+  // 상태 초기화 함수
+  const resetState = () => {
+    setUser(null);
+    setError(null);
+    setLogs([]);
+  };
+
+  // Firebase 로그인 함수
+  const handleGoogleLogin = async () => {
+    resetState();
+    setLoading(true);
     
-    // Firebase 초기화 시도
     try {
-      setStatus('loading');
-      log("Firebase 초기화 시작...");
+      log('Google 로그인 시작...');
+      log(`현재 도메인: ${window.location.origin}`);
+      log('Firebase 초기화 확인 완료');
       
-      const app = initializeApp(firebaseConfig);
-      setFirebaseApp(app);
-      log("Firebase 앱 초기화 성공!");
+      // 팝업 로그인 시도
+      log('Google 로그인 팝업 시도...');
+      const result = await signInWithPopup(auth, provider);
       
-      const authInstance = getAuth(app);
-      setAuth(authInstance);
-      log("Firebase Auth 서비스 초기화 성공!");
+      log('Google 로그인 성공!');
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      const token = credential?.accessToken;
+      const userData = result.user;
       
-      setStatus('success');
-      setMessage("Firebase가 성공적으로 초기화되었습니다!");
-    } catch (err: any) {
-      setStatus('error');
-      setError(err.message || "Firebase 초기화 실패");
-      log(`Firebase 초기화 실패: ${err.message}`);
+      // 사용자 정보 기록 (민감 정보 제외)
+      log(`로그인 사용자: ${userData.displayName} (${userData.email})`);
+      
+      // 상태 업데이트
+      setUser(userData);
+      setError(null);
+    } catch (error: any) {
+      log(`오류 발생: ${error.code} - ${error.message}`);
+      console.error('Google 로그인 오류:', error);
+      
+      if (error.code === 'auth/unauthorized-domain') {
+        log(`현재 도메인 '${window.location.origin}'이 Firebase에 등록되지 않았습니다.`);
+      }
+      
+      if (error.code === 'auth/invalid-api-key') {
+        log('Firebase API 키가 유효하지 않습니다.');
+      }
+      
+      setError(error.message || '로그인 중 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  // Firebase 정보 확인
+  useEffect(() => {
+    log('Firebase 테스트 페이지 로드됨');
+    log(`현재 URL: ${window.location.href}`);
+    log(`Firebase 프로젝트: ${firebaseConfig.projectId}`);
+    
+    // 현재 인증 상태 확인
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        log(`이미 인증된 사용자: ${user.displayName}`);
+        setUser(user);
+      } else {
+        log('인증된 사용자 없음');
+      }
+    });
+    
+    return () => unsubscribe();
   }, []);
 
-  // Google 로그인 테스트
-  const testGoogleSignIn = async () => {
-    if (!auth) {
-      log("Auth 서비스가 초기화되지 않았습니다");
-      return;
-    }
-    
-    log("Google 로그인 시도...");
-    setStatus('loading');
-    
-    try {
-      const provider = new GoogleAuthProvider();
-      log("Google 제공자 초기화 성공");
-      
-      provider.setCustomParameters({
-        prompt: 'select_account',
-      });
-      
-      log("Google 팝업 시작...");
-      const result = await signInWithPopup(auth, provider);
-      log("Google 로그인 성공!");
-      
-      // Google 계정 정보 확인
-      const user = result.user;
-      log(`사용자 정보: ${user.displayName} (${user.email})`);
-      
-      setStatus('success');
-      setMessage(`${user.displayName || user.email}님으로 로그인 성공!`);
-    } catch (err: any) {
-      setStatus('error');
-      setError(err.message);
-      log(`Google 로그인 오류: ${err.message}`);
-      
-      // Firebase 인증 에러 처리
-      if (err.code) {
-        log(`오류 코드: ${err.code}`);
-        switch(err.code) {
-          case 'auth/popup-closed-by-user':
-            setError("로그인 창이 사용자에 의해 닫혔습니다.");
-            break;
-          case 'auth/cancelled-popup-request':
-            setError("다중 팝업 요청이 취소되었습니다.");
-            break;
-          case 'auth/popup-blocked':
-            setError("팝업이 브라우저에 의해 차단되었습니다. 팝업 차단을 해제해주세요.");
-            break;
-          case 'auth/api-key-not-valid':
-          case 'auth/invalid-api-key':
-            setError("Firebase API 키가 유효하지 않습니다. Firebase 설정을 확인해주세요.");
-            break;
-          case 'auth/unauthorized-domain':
-          case 'auth/domain-not-authorized':
-            setError(`현재 도메인(${window.location.origin})이 Firebase에 등록되지 않았습니다. Firebase 콘솔에서 승인된 도메인 목록에 추가해주세요.`);
-            break;
-        }
-      }
-    }
-  };
-
   return (
-    <div className="container mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold text-center mb-8">Firebase 설정 테스트</h1>
+    <div className="container max-w-3xl py-10">
+      <h1 className="text-3xl font-bold mb-2">Firebase 인증 테스트</h1>
+      <p className="text-muted-foreground mb-6">
+        이 페이지는 Firebase Google 로그인 기능을 격리된 환경에서 테스트합니다.
+      </p>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid gap-6">
+        {/* 설정 정보 카드 */}
         <Card>
           <CardHeader>
             <CardTitle>Firebase 설정 정보</CardTitle>
-            <CardDescription>
-              현재 사용 중인 Firebase 구성 정보입니다.
-            </CardDescription>
+            <CardDescription>현재 사용 중인 Firebase 구성 정보</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div>
-                <p className="font-semibold">API 키:</p>
-                <code className="text-sm bg-gray-100 p-1 rounded">
-                  {firebaseConfig.apiKey.substring(0, 6)}...
-                </code>
+            <div className="grid gap-2">
+              <div className="flex justify-between">
+                <span className="font-medium">프로젝트 ID:</span>
+                <span>{firebaseConfig.projectId}</span>
               </div>
-              <div>
-                <p className="font-semibold">프로젝트 ID:</p>
-                <code className="text-sm bg-gray-100 p-1 rounded">
-                  {firebaseConfig.projectId}
-                </code>
+              <div className="flex justify-between">
+                <span className="font-medium">Auth 도메인:</span>
+                <span>{firebaseConfig.authDomain}</span>
               </div>
-              <div>
-                <p className="font-semibold">Auth 도메인:</p>
-                <code className="text-sm bg-gray-100 p-1 rounded">
-                  {firebaseConfig.authDomain}
-                </code>
+              <div className="flex justify-between">
+                <span className="font-medium">API 키:</span>
+                <span>{firebaseConfig.apiKey.substring(0, 10)}...</span>
               </div>
-              <div>
-                <p className="font-semibold">현재 도메인:</p>
-                <code className="text-sm bg-gray-100 p-1 rounded">
-                  {window.location.origin}
-                </code>
+              <div className="flex justify-between">
+                <span className="font-medium">현재 도메인:</span>
+                <span>{window.location.origin}</span>
               </div>
             </div>
           </CardContent>
-          <CardFooter>
-            <div className="w-full">
-              {status === 'success' && (
-                <Alert className="bg-green-50 text-green-800 border-green-200">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <AlertTitle>성공</AlertTitle>
-                  <AlertDescription>{message}</AlertDescription>
-                </Alert>
-              )}
-              
-              {status === 'error' && (
-                <Alert className="bg-red-50 text-red-800 border-red-200">
-                  <XCircle className="h-4 w-4 text-red-600" />
-                  <AlertTitle>오류</AlertTitle>
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-              
-              {status === 'loading' && (
-                <Alert className="bg-blue-50 text-blue-800 border-blue-200">
-                  <AlertCircle className="h-4 w-4 text-blue-600" />
-                  <AlertTitle>로딩 중</AlertTitle>
-                  <AlertDescription>
-                    Firebase 서비스에 연결 중입니다...
-                  </AlertDescription>
-                </Alert>
-              )}
-            </div>
-          </CardFooter>
         </Card>
         
+        {/* 로그인 테스트 카드 */}
         <Card>
           <CardHeader>
-            <CardTitle>Authentication 테스트</CardTitle>
-            <CardDescription>
-              Firebase 인증 기능을 테스트합니다.
-            </CardDescription>
+            <CardTitle>Google 로그인 테스트</CardTitle>
+            <CardDescription>아래 버튼을 클릭하여 Google 로그인을 테스트하세요</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <Button 
-                onClick={testGoogleSignIn} 
-                disabled={!auth || status === 'loading'}
-                className="w-full"
-              >
-                {status === 'loading' ? "로딩 중..." : "Google 로그인 테스트"}
-              </Button>
-              
-              <div className="mt-4">
-                <p className="font-semibold mb-2">로그:</p>
-                <div className="bg-gray-100 p-2 rounded h-64 overflow-y-auto text-xs">
-                  {testLog.map((log, index) => (
-                    <div key={index} className="mb-1">{log}</div>
-                  ))}
+            {user ? (
+              <div className="bg-muted p-4 rounded-lg">
+                <div className="flex items-center gap-3 mb-3">
+                  {user.photoURL && (
+                    <img 
+                      src={user.photoURL} 
+                      alt={user.displayName} 
+                      className="w-10 h-10 rounded-full"
+                    />
+                  )}
+                  <div>
+                    <div className="font-medium">{user.displayName}</div>
+                    <div className="text-sm text-muted-foreground">{user.email}</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="font-medium">이메일 확인:</span>
+                    <Badge className="ml-2" variant={user.emailVerified ? "default" : "outline"}>
+                      {user.emailVerified ? "확인됨" : "미확인"}
+                    </Badge>
+                  </div>
+                  <div>
+                    <span className="font-medium">UID:</span>
+                    <span className="ml-2 text-muted-foreground">{user.uid.substring(0, 8)}...</span>
+                  </div>
                 </div>
               </div>
+            ) : (
+              <div className="flex justify-center">
+                <Button 
+                  onClick={handleGoogleLogin} 
+                  disabled={loading}
+                  className="flex items-center gap-2"
+                >
+                  {loading ? (
+                    <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full" />
+                  ) : (
+                    <LogIn size={16} />
+                  )}
+                  Google로 로그인
+                </Button>
+              </div>
+            )}
+            
+            {error && (
+              <Alert variant="destructive" className="mt-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>오류 발생</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+          {user && (
+            <CardFooter>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  auth.signOut();
+                  setUser(null);
+                  log('로그아웃 완료');
+                }}
+              >
+                로그아웃
+              </Button>
+            </CardFooter>
+          )}
+        </Card>
+        
+        {/* 로그 카드 */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>실행 로그</CardTitle>
+              <CardDescription>Firebase 연동 과정 로그</CardDescription>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setLogs([])}
+            >
+              로그 지우기
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="bg-muted p-3 rounded-lg text-sm max-h-[300px] overflow-auto">
+              {logs.length > 0 ? (
+                <div className="grid gap-1.5">
+                  {logs.map((log, index) => (
+                    <div key={index} className="flex gap-2">
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-xs font-mono">{log}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-muted-foreground py-6">
+                  로그가 없습니다. 로그인을 시도하면 여기에 로그가 표시됩니다.
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
       </div>
     </div>
   );
-};
-
-export default FirebaseTestPage;
+}
