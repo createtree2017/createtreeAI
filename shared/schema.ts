@@ -17,7 +17,7 @@ export const users = pgTable("users", {
   lastLogin: timestamp("last_login"),
   // Firebase 연동 필드 추가
   firebaseUid: varchar("firebase_uid", { length: 128 }).unique(),  // Firebase 고유 ID
-  photoUrl: text("photo_url"),  // 프로필 사진 URL (소셜 로그인 시)
+  // photoUrl: text("photo_url"),  // 프로필 사진 URL (주의: 실제 데이터베이스에 이 컬럼이 없음)
   phoneNumber: varchar("phone_number", { length: 20 }),  // 전화번호
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -361,7 +361,7 @@ export const userMilestones = pgTable("user_milestones", {
   milestoneId: text("milestone_id").references(() => milestones.milestoneId).notNull(),
   completedAt: timestamp("completed_at").defaultNow().notNull(),
   notes: text("notes"), // Optional user notes about this milestone
-  photoUrl: text("photo_url"), // Optional photo URL associated with this milestone
+  // photoUrl: text("photo_url"), // (주의: 실제 데이터베이스에 이 컬럼이 없음)
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
