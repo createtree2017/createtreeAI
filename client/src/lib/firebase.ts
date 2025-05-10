@@ -9,22 +9,33 @@ import { FirebaseApp } from "firebase/app";
  * 환경 변수와 하드코딩된 Firebase 프로젝트 정보를 사용합니다.
  */
 
-// Firebase 구성 객체 (환경 변수 우선 사용)
+// Firebase API 키 직접 사용 (테스트 용도로만!)
+// 참고: 실제 운영에서는 환경 변수를 사용해야 합니다.
+const apiKey = "AIzaSyCINDZ1I6iqCNkxLG73GEOFfwOrPm52uxM";
+
+// Firebase 구성 객체 (직접 값 할당)
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  apiKey: apiKey,
   authDomain: "createai-7facc.firebaseapp.com", 
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "createai-7facc",
-  storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID || "createai-7facc"}.firebasestorage.app`,
+  projectId: "createai-7facc",
+  storageBucket: "createai-7facc.firebasestorage.app",
   messagingSenderId: "980137173202",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:980137173202:web:aef6cd9e1b3914ad7ac997",
+  appId: "1:98013717302:web:aef6cd9e1b3914ad7ac997",
   measurementId: "G-2MZ24X4RDX"
 };
 
-// 환경 변수 디버깅
-console.log("Firebase 환경 변수:", {
-  VITE_FIREBASE_API_KEY: import.meta.env.VITE_FIREBASE_API_KEY ? "설정됨" : "설정되지 않음",
-  VITE_FIREBASE_PROJECT_ID: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  VITE_FIREBASE_APP_ID: import.meta.env.VITE_FIREBASE_APP_ID
+// 환경 변수 디버깅 (더 자세한 정보)
+const apiKeyStatus = import.meta.env.VITE_FIREBASE_API_KEY ? 
+  `설정됨 (길이: ${import.meta.env.VITE_FIREBASE_API_KEY.length})` : 
+  "설정되지 않음";
+
+// 더 상세한 정보 로깅
+console.log("Firebase 환경 변수 상태:", {
+  VITE_FIREBASE_API_KEY: apiKeyStatus,
+  VITE_FIREBASE_API_KEY_예시: "AIzaSy로 시작하는 문자열이어야 함",
+  API_키_실제값_앞부분: import.meta.env.VITE_FIREBASE_API_KEY ? 
+    import.meta.env.VITE_FIREBASE_API_KEY.substring(0, 6) + "..." : 
+    "없음",
 });
 
 console.log("Firebase 구성:", { 
