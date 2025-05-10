@@ -238,7 +238,7 @@ export const storage = {
           originalUrl: originalPath,
           transformedUrl,
           metadata: JSON.stringify(metadata),
-          userId: userId || undefined, // 수정: 스키마 필드명과 일치하도록 userId 사용
+          user_id: userId || undefined, // 데이터베이스 컬럼명은 user_id, 타입스크립트에서는 userId로 접근
           username: username || undefined,
           originalFilename,
         })
@@ -302,7 +302,7 @@ export const storage = {
       let whereCondition = undefined;
       if (userId) {
         console.log(`[Storage] 사용자 ID ${userId}로 이미지 필터링 적용`);
-        whereCondition = eq(images.userId, userId); // 수정: userId를 사용 (스키마에 맞추어)
+        whereCondition = eq(images.user_id, userId); // 데이터베이스 컬럼명은 user_id
       }
       
       // 사용자 필터링이 적용된 이미지 카운트를 위한 쿼리
