@@ -66,7 +66,10 @@ auth.languageCode = 'ko'; // 한국어 설정
 // Google 로그인 제공업체 초기화
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
-  prompt: 'select_account'
+  prompt: 'select_account',
+  login_hint: '',  // 사용자가 항상 계정을 선택하도록 함
+  access_type: 'offline',  // 오프라인 액세스 요청 (리프레시 토큰 발급)
+  hl: 'ko'  // UI 언어를 한국어로 설정
 });
 
 // Firebase 서비스 내보내기

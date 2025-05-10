@@ -276,12 +276,50 @@ export function useAuth() {
           console.log("[Google 로그인] 서버 인증 성공:", data);
           return data;
         } else {
-          console.log("[Google 로그인] 리디렉션 방식으로 로그인 시도");
-          // 리디렉션 방식으로 로그인 시도 - 로그인 후 현재 페이지로 돌아옴
-          await signInWithRedirect(firebaseAuth, googleProvider);
+          console.log("[Google 로그인] 팝업 방식으로 로그인 시도");
+          // 팝업 방식으로 로그인 시도
+          const result = await signInWithPopup(firebaseAuth, googleProvider);
           
-          // 이 부분은 리디렉션 전에 실행됨 - 리디렉션 후에는 페이지가 새로고침됨
-          return { user: null, message: "리디렉션 중..." };
+          // 성공하면 사용자 정보 가져오기
+          const firebaseUser = result.user;
+          
+          // 디버깅을 위한 사용자 정보 로깅 (민감한 정보는 마스킹)
+          console.log("[Google 로그인] 사용자 정보:", {
+            displayName: firebaseUser.displayName,
+            email: firebaseUser.email,
+            uid: firebaseUser.uid.substring(0, 5) + "...",
+            isEmailVerified: firebaseUser.emailVerified
+          });
+          
+          // 서버에 전송할 사용자 데이터 준비
+          const userData = {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email || "",
+            displayName: firebaseUser.displayName || "",
+            photoURL: firebaseUser.photoURL || "",
+            phoneNumber: firebaseUser.phoneNumber || ""
+          };
+          
+          // 서버로 Firebase 사용자 정보 전송
+          console.log("[Google 로그인] 서버에 인증 정보 전송 중");
+          const response = await fetch("/api/auth/firebase-login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user: userData }),
+            credentials: "include"
+          });
+          
+          // 서버 응답 확인
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error("[Google 로그인] 서버 인증 실패:", errorText);
+            throw new Error(`서버 인증 실패: ${response.status} ${errorText}`);
+          }
+          
+          // 성공 응답 처리
+          const data = await response.json();
+          console.log("[Google 로그인] 서버 인증 성공:", data);
+          return data;
         }
       
       } catch (error: any) {

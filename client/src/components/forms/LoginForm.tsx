@@ -60,9 +60,9 @@ const LoginForm: React.FC = () => {
       console.log("현재 도메인이 승인됨:", allowedDomains.some(domain => 
         window.location.origin.includes(domain)));
       
-      // Replit 도메인인 경우 알림 표시
+      // 도메인 체크 (내부 확인용)
       if (currentDomain.includes("replit") || currentDomain.includes("kirk.replit.dev")) {
-        alert(`⚠️ 주의: 현재 Replit 개발 도메인(${currentDomain})이 Firebase 콘솔의 승인된 도메인 목록에 등록되어 있지 않습니다. 관리자가 Firebase 콘솔에서 승인된 도메인 목록에 '${currentDomain}'을 추가해야 합니다.`);
+        console.log(`현재 도메인(${currentDomain})으로 Firebase 로그인을 시도합니다.`);
       }
       
       // Google 로그인 시작
