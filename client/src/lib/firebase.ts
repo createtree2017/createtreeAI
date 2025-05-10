@@ -13,14 +13,14 @@ import { FirebaseApp } from "firebase/app";
 // 참고: 실제 운영에서는 환경 변수를 사용해야 합니다.
 const apiKey = "AIzaSyCINDZ1I6iqCNkxLG73GEOFfwOrPm52uxM";
 
-// Firebase 구성 객체 (직접 값 할당)
+// Firebase 구성 객체 (Firebase 콘솔에서 표시된 값 사용)
 const firebaseConfig = {
-  apiKey: apiKey,
+  apiKey: "AIzaSyCINDZ1I6iqCNkxLG73GEOFwOrPm52uxM",
   authDomain: "createai-7facc.firebaseapp.com", 
   projectId: "createai-7facc",
   storageBucket: "createai-7facc.firebasestorage.app",
   messagingSenderId: "980137173202",
-  appId: "1:98013717302:web:aef6cd9e1b3914ad7ac997",
+  appId: "1:980137173202:web:aef6cd9e1b3914ad7ac997",
   measurementId: "G-2MZ24X4RDX"
 };
 
