@@ -364,24 +364,14 @@ export const storage = {
         
         console.log(`[Storage] 사용자 기반 필터링 후 ${results.length}개 이미지 남음`);
         
-        // 필터링 결과가 너무 적을 경우 임시 대안으로 해시 기반 필터링 적용
-        if (results.length < 5 && username) {
-          console.log(`[Storage] 사용자 필터링 결과가 너무 적어 해시 기반 대체 필터링 적용`);
-          
-          // 사용자 이름을 기반으로 한 해시값 계산
-          const usernameSum = username.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
-          console.log(`[Storage] 대체 필터링 - 사용자 이름 해시값: ${usernameSum}`);
-          
-          // 해시값을 기반으로 이미지 필터링
-          const hashResults = allImages.filter((img, index) => {
-            // 사용자별로 다른 모듈러스 패턴 적용 (3가지 패턴)
-            return (index + usernameSum) % 3 === 0;
-          });
-          
-          console.log(`[Storage] 해시 필터링으로 ${hashResults.length}개 이미지 추가 선택`);
-          
-          // 기존 결과와 해시 필터링 결과를 합침
-          results = [...results, ...hashResults.filter(img => !results.some(r => r.id === img.id))];
+        // 필터링 결과가 너무 적을 경우에만 모든 이미지를 보여주는 대신,
+        // 로그인한 사용자의 이미지만 보여주도록 유지
+        // 해시 기반 필터링 방식은 더 이상 사용하지 않음
+        console.log(`[Storage] 사용자 ID ${userId}를 위한 ${results.length}개 이미지 필터링 완료`);
+        
+        // 개발 모드에서 빈 결과 확인용 메시지
+        if (results.length === 0) {
+          console.log(`[Storage] 경고: 사용자 ${username}(ID:${userId})의 이미지가 없습니다.`);
         }
       }
       

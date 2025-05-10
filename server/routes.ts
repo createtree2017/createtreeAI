@@ -936,7 +936,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               thumbnailUrl: item.transformedUrl,
               createdAt: item.createdAt.toISOString(),
               isFavorite: false,
-              userId: metaUserId // 메타데이터에서 추출한 사용자 ID 추가
+              userId: metaUserId, // 메타데이터에서 추출한 사용자 ID 추가
+              isOwner: userId === metaUserId // 현재 로그인한 사용자가 소유자인지 여부
             };
           });
           
@@ -1005,7 +1006,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 url: item.url,
                 duration: item.duration,
                 createdAt: item.createdAt.toISOString(),
-                isFavorite: false
+                isFavorite: false,
+                userId: null, // TODO: 음악에도 사용자 ID 필드 추가 필요
+                isOwner: userId ? true : false // 현재는 모든 음악이 현재 사용자의 것으로 간주
               };
             });
             
