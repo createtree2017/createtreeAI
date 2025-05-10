@@ -21,12 +21,11 @@ export default function FirebaseTestPage() {
   // 환경변수에서 설정 불러오기 (반드시 환경변수만 사용)
   const [firebaseConfig, setFirebaseConfig] = useState({
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY, // 백업 키 제거, 환경변수만 사용
-    authDomain: "createai-7facc.firebaseapp.com",
-    projectId: "createai-7facc",
-    storageBucket: "createai-7facc.appspot.com",
-    messagingSenderId: "980137173202",
-    appId: import.meta.env.VITE_FIREBASE_APP_ID,
-    measurementId: "G-2MZ24X4RDX"
+    authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
+    messagingSenderId: "527763789648",
+    appId: import.meta.env.VITE_FIREBASE_APP_ID
   });
   
   const [user, setUser] = useState<any>(null);

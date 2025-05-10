@@ -48,9 +48,10 @@ const LoginForm: React.FC = () => {
       // Firebase 승인 도메인 확인
       const allowedDomains = [
         "localhost",
-        "createai-7facc.firebaseapp.com",
-        "createai-7facc.web.app",
-        "code-craft-ctcreatetree.replit.app"
+        "createtreeai.firebaseapp.com",
+        "createtreeai.web.app",
+        "code-craft-ctcreatetree.replit.app",
+        "d0d77b78-7584-4870-90de-7e90bf483a1c-00-2fox4esnjilty.kirk.replit.dev"
       ];
       
       // 현재 Replit 도메인 추출
