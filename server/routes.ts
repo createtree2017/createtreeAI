@@ -545,27 +545,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let dbSavedImage;
       
       try {
-        // 현재 로그인한 사용자 정보 가져오기
-        const user = req.user;
-        const userId = user?.id;
-        const username = user?.username;
+        // 현재 로그인한 사용자 정보 가져오기 (명시적인 타입 캐스팅 추가)
+        let userId: number | null = null;
+        let username: string | null = null;
         
-        // 사용자 정보 로그 출력
-        if (userId && username) {
-          console.log(`이미지 변환 요청: 로그인 사용자 ${username} (ID: ${userId})`);
+        // 인증된 사용자인 경우 사용자 정보 추출
+        if (req.isAuthenticated && req.isAuthenticated()) {
+          const user = req.user as any;
+          if (user) {
+            userId = user.id || null;
+            username = user.username || user.email || null;
+            console.log(`이미지 변환 요청: 로그인 사용자 ${username} (ID: ${userId})`);
+          }
         } else {
           console.log('이미지 변환 요청: 로그인 없음 (익명 사용자)');
         }
         
-        // 모든 이미지 요청은 데이터베이스에 저장 (사용자 정보 포함)
+        // ✅ 로깅 강화 - 디버깅 목적
+        console.log(`[이미지 저장] 사용자 정보가 메타데이터에 저장됩니다: userId=${userId}, username=${username}`);
+        
+        // 모든 이미지 요청은 데이터베이스에 저장 (메타데이터에 사용자 정보 명시적 포함)
         dbSavedImage = await storage.saveImageTransformation(
           req.file.originalname,
           style,
           filePath,
           transformedImageUrl,
-          userId || null,
-          username || null,
-          variantId // Store which variant was used, if any
+          userId,  // 명시적으로 userId 전달 (null 허용)
+          username,  // 명시적으로 username 전달 (null 허용)
+          variantId,  // 어떤 변형이 사용되었는지 저장 (A/B 테스트용)
+          selectedAspectRatio  // 선택된 비율 정보
         );
         
         if (isAdmin || isVariantTest) {
@@ -591,7 +599,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             createdAt: new Date().toISOString(),
             isTemporary: true, // 클라이언트에서 임시 여부 식별을 위한 플래그
             dbImageId: dbSavedImage.id, // 실제 DB에 저장된 ID (필요시 사용)
-            aspectRatio: selectedAspectRatio // 사용된 비율 정보 추가
+            aspectRatio: selectedAspectRatio, // 사용된 비율 정보 추가
+            
+            // ✅ 중요: 사용자 정보 추가 (클라이언트에서 소유권 확인용)
+            userId: userId,
+            username: username,
+            isOwner: !!userId, // 로그인한 사용자의 소유물임을 표시
+            metadata: JSON.stringify({
+              userId: userId,
+              username: username,
+              createdAt: new Date().toISOString()
+            })
           };
           
           // 세션에 임시 이미지 정보 저장 (다운로드 처리를 위해)
