@@ -23,7 +23,7 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const LoginForm: React.FC = () => {
-  const { login, isLoginLoading } = useAuthContext();
+  const { login, loginWithGoogle, isLoginLoading, isGoogleLoginLoading } = useAuthContext();
 
   // React Hook Form 설정
   const form = useForm<LoginFormValues>({
@@ -37,6 +37,11 @@ const LoginForm: React.FC = () => {
   // 로그인 폼 제출 핸들러
   const onSubmit = (values: LoginFormValues) => {
     login(values);
+  };
+  
+  // Google 로그인 핸들러
+  const handleGoogleLogin = () => {
+    loginWithGoogle();
   };
 
   return (
@@ -76,6 +81,41 @@ const LoginForm: React.FC = () => {
             </>
           ) : (
             "로그인"
+          )}
+        </Button>
+        
+        {/* 소셜 로그인 섹션 */}
+        <div className="my-4">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <Separator />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-background px-2 text-xs text-muted-foreground">
+                또는 소셜 계정으로 로그인
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Google 로그인 버튼 */}
+        <Button 
+          type="button" 
+          variant="outline" 
+          className="w-full"
+          onClick={handleGoogleLogin}
+          disabled={isGoogleLoginLoading}
+        >
+          {isGoogleLoginLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              구글 로그인 중...
+            </>
+          ) : (
+            <>
+              <FcGoogle className="mr-2 h-4 w-4" />
+              Google 계정으로 로그인
+            </>
           )}
         </Button>
         

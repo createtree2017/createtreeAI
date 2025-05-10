@@ -20,9 +20,11 @@ interface AuthContextType {
     hospitalId?: string;
   }) => void;
   logout: () => void;
+  loginWithGoogle: () => void;
   isLoginLoading: boolean;
   isRegisterLoading: boolean;
   isLogoutLoading: boolean;
+  isGoogleLoginLoading: boolean;
 }
 
 // Auth Context 생성
@@ -36,9 +38,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     login,
     register,
     logout,
+    loginWithGoogle,
     isLoginLoading,
     isRegisterLoading,
     isLogoutLoading,
+    isGoogleLoginLoading,
   } = useAuth();
 
   // 모든 인증 로직은 useAuth 훅에서 처리됨
@@ -50,9 +54,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         register,
         logout,
+        loginWithGoogle,
         isLoginLoading,
         isRegisterLoading,
         isLogoutLoading,
+        isGoogleLoginLoading,
       }}
     >
       {isLoading ? (

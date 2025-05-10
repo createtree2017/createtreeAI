@@ -51,7 +51,7 @@ router.post("/register", async (req, res) => {
     }
 
     // 비밀번호 해싱
-    const hashedPassword = await hashPassword(validatedData.password);
+    const hashedPassword = await hashPassword(validatedData.password || "");
 
     try {
       // 사용자 생성 - createdAt과 updatedAt을 SQL 레벨에서 DEFAULT(current_timestamp)로 처리
