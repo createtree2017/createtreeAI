@@ -94,10 +94,49 @@ export const storage = {
     return savedMusic;
   },
   
-  async getMusicList() {
-    return db.query.music.findMany({
-      orderBy: [desc(music.createdAt)],
-    });
+  async getMusicList(userId?: number | null, username?: string | null) {
+    try {
+      console.log(`[Storage] getMusicList 호출됨: 사용자=${username || '없음'}, ID=${userId || '없음'}`);
+      
+      // 기본 쿼리: 모든 음악 항목 가져오기 (생성 시간 역순)
+      const results = await db.query.music.findMany({
+        orderBy: [desc(music.createdAt)]
+      });
+      
+      console.log(`[Storage] 음악 항목 ${results.length}개 로드됨`);
+      
+      // 메타데이터 처리 및 반환
+      return results.map(item => {
+        // 메타데이터 필드가 있으면 파싱
+        try {
+          if (item.metadata && typeof item.metadata === 'string') {
+            const metadata = JSON.parse(item.metadata);
+            
+            // 메타데이터에 사용자 정보 추가 (없을 경우)
+            if (userId && !metadata.userId) {
+              metadata.userId = userId;
+            }
+            if (username && !metadata.username) {
+              metadata.username = username;
+            }
+            
+            // 메타데이터를 포함한 항목 반환
+            return {
+              ...item,
+              metadata: JSON.stringify(metadata)
+            };
+          }
+        } catch (error) {
+          console.error('음악 메타데이터 파싱 오류:', error);
+        }
+        
+        // 메타데이터 없는 경우, 그대로 반환
+        return item;
+      });
+    } catch (error) {
+      console.error('[Storage] 음악 목록 조회 오류:', error);
+      return []; // 오류 발생 시 빈 배열 반환
+    }
   },
   
   // Image related functions

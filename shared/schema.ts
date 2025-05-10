@@ -76,6 +76,7 @@ export const music = pgTable("music", {
   url: text("url").notNull(),
   duration: integer("duration").notNull().default(60),
   userId: integer("user_id"), // 사용자 ID 추가
+  metadata: text("metadata").default("{}"), // 메타데이터 필드 추가
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

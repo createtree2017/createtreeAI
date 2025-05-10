@@ -890,8 +890,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // 음악 필터링 - 사용자 정보 로깅
           console.log(`음악 필터링: 사용자=${username || '없음'}, ID=${userId || '없음'}`);
   
-          // 모든 음악 항목 조회
-          const musicItems = await storage.getMusicList();
+          // 사용자 정보를 포함한 음악 항목 조회
+          const musicItems = await storage.getMusicList(userId, username);
           
           // 각 음악 항목의 metadata를 확인하여 현재 사용자의 것인지 필터링
           let userMusicItems = musicItems;
