@@ -124,46 +124,99 @@ export const storage = {
     try {
       console.log(`[Storage] getMusicList 호출됨: 사용자=${username || '없음'}, ID=${userId || '없음'}`);
       
-      // 기본 쿼리: 모든 음악 항목 가져오기 (생성 시간 역순)
-      // 주의: 실제 DB에는 user_id 컬럼이 없으므로 metadata를 통해 필터링해야 함
-      const results = await db.query.music.findMany({
-        orderBy: [desc(music.createdAt)]
-      });
+      // 기본 쿼리: 모든 음악 항목 가져오기 (생성 시간 역순, 명시적 필드 선택)
+      // user_id 컬럼이 존재하지 않는 오류 수정 - db.query 대신 db.select 사용
+      const results = await db.select({
+        id: music.id,
+        title: music.title,
+        babyName: music.babyName,
+        style: music.style,
+        url: music.url,
+        duration: music.duration,
+        createdAt: music.createdAt,
+        metadata: music.metadata
+        // user_id 컬럼도 존재한다면 필요 시 추가할 수 있음
+      })
+      .from(music)
+      .orderBy(desc(music.createdAt));
       
       console.log(`[Storage] 음악 항목 ${results.length}개 로드됨`);
+      
+      // 데이터 샘플 로깅 (디버깅)
+      const sampleItems = results.slice(0, Math.min(3, results.length));
+      sampleItems.forEach((item, idx) => {
+        let metadataLog = '없음';
+        if (item.metadata) {
+          try {
+            const metadata = typeof item.metadata === 'string' 
+              ? JSON.parse(item.metadata) 
+              : item.metadata;
+            metadataLog = JSON.stringify(metadata);
+          } catch (error) {
+            metadataLog = `파싱 오류: ${error instanceof Error ? error.message : String(error)}`;
+          }
+        }
+        console.log(`[음악 샘플 ${idx+1}] ID: ${item.id}, 제목: "${item.title}", 메타데이터: ${metadataLog}`);
+      });
       
       // 사용자 ID 또는 사용자명이 제공된 경우, 메타데이터로 필터링
       let filteredResults = results;
       if (userId || username) {
         filteredResults = results.filter(item => {
+          let isMatch = false;
+          let matchReason = "불일치";
+          
+          // 메타데이터 필터링
           try {
-            if (!item.metadata) return false;
-            
-            const metadata = typeof item.metadata === 'string' 
-              ? JSON.parse(item.metadata) 
-              : item.metadata;
-            
-            // userId 비교 (문자열로 변환해서 비교)
-            if (userId && metadata.userId) {
-              const metadataUserId = typeof metadata.userId === 'string' 
-                ? parseInt(metadata.userId) 
-                : metadata.userId;
+            if (item.metadata) {
+              const metadata = typeof item.metadata === 'string' 
+                ? JSON.parse(item.metadata) 
+                : item.metadata;
               
-              if (metadataUserId === userId) {
-                console.log(`[Storage] 음악 항목 일치: ID=${item.id}, userId=${metadata.userId}`);
-                return true;
+              // 1. userId 비교 (문자열로 변환)
+              if (userId && metadata && metadata.userId) {
+                const metadataUserIdStr = String(metadata.userId);
+                const currentUserIdStr = String(userId);
+                
+                if (metadataUserIdStr === currentUserIdStr) {
+                  isMatch = true;
+                  matchReason = `메타데이터 userId 일치: ${metadataUserIdStr}`;
+                }
+              }
+              
+              // 2. username 비교
+              if (!isMatch && username && metadata && metadata.username) {
+                if (metadata.username === username) {
+                  isMatch = true;
+                  matchReason = `메타데이터 username 일치: ${metadata.username}`;
+                }
               }
             }
             
-            // username 비교
-            if (username && metadata.username && metadata.username === username) {
-              console.log(`[Storage] 음악 항목 일치: ID=${item.id}, username=${metadata.username}`);
-              return true;
+            // 3. 제목 기반 매칭 (백업)
+            if (!isMatch && item.title && username) {
+              // 사용자명 포함 패턴 확인
+              const pattern1 = `[${username}]`; 
+              const pattern2 = `${username}의`;
+              const pattern3 = ` by ${username}`;
+              
+              if (item.title.includes(pattern1) || 
+                  item.title.includes(pattern2) || 
+                  item.title.includes(pattern3)) {
+                isMatch = true;
+                matchReason = `제목에 사용자명 포함: ${item.title}`;
+              }
             }
             
-            return false;
-          } catch (err) {
-            console.error(`[Storage] 메타데이터 파싱 오류:`, err);
+            // 디버깅을 위해 일부 항목만 로깅
+            if (isMatch || item.id % 5 === 0) {
+              console.log(`[음악 필터링] ID: ${item.id}, 일치: ${isMatch}, 이유: ${matchReason}`);
+            }
+            
+            return isMatch;
+          } catch (error) {
+            console.error(`[음악 ID ${item.id}] 메타데이터 파싱 오류:`, 
+              error instanceof Error ? error.message : String(error));
             return false;
           }
         });
