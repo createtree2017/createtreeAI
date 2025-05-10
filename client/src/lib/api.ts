@@ -116,6 +116,28 @@ export const getGalleryItems = async (filter?: string) => {
   if (filter && filter !== 'all') {
     url = `/api/gallery?filter=${filter}`;
   }
+
+  // 현재 로그인한 사용자 정보 획득 시도
+  try {
+    // 사용자 정보 직접 요청
+    const userResponse = await fetch('/api/auth/me', {
+      method: 'GET',
+      credentials: 'include'
+    });
+    
+    if (userResponse.ok) {
+      const userData = await userResponse.json();
+      console.log("직접 요청으로 가져온 사용자 정보:", userData);
+      
+      // 사용자 이름 파라미터 추가
+      if (userData && userData.username) {
+        url += url.includes('?') ? `&username=${userData.username}` : `?username=${userData.username}`;
+      }
+    }
+  } catch (userError) {
+    console.error("사용자 정보 가져오기 실패:", userError);
+    // 사용자 정보 가져오기 실패시에도 계속 진행 (미인증 상태로 처리)
+  }
   
   // 직접 fetch API 사용
   const response = await fetch(url, {
