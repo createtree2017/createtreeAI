@@ -84,6 +84,14 @@ export async function handleFirebaseAuth(firebaseUser: FirebaseUserData) {
     user = updatedUser;
   }
   
-  // 5. 세션 생성을 위해 필요한 정보만 반환
+  // 5. 디버깅 정보 추가
+  console.log(`[Firebase Auth 처리 완료] 
+  - 사용자 ID: ${user.id}
+  - 이메일: ${user.email}
+  - 사용자명: ${user.username}
+  - 회원 유형: ${user.memberType}
+  - Firebase UID: ${user.firebaseUid}`);
+  
+  // 세션 생성을 위해 필요한 정보만 반환
   return user;
 }

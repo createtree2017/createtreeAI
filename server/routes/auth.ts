@@ -232,11 +232,24 @@ router.post("/logout", (req, res) => {
 // 현재 로그인한 사용자 정보 조회 API
 router.get("/me", (req, res) => {
   try {
+    // 인증 상태 디버깅
+    console.log(`
+===================================================
+[인증 상태 확인]
+- 요청 경로: ${req.path}
+- isAuthenticated 함수 존재 여부: ${!!req.isAuthenticated}
+- 인증 상태: ${req.isAuthenticated ? req.isAuthenticated() : 'undefined'}
+- 세션 존재 여부: ${!!req.session}
+- 사용자 정보 존재 여부: ${!!req.user}
+===================================================
+    `);
+
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "로그인이 필요합니다." });
     }
     
     // 이미 인증된 사용자 정보가 req.user에 있음
+    console.log(`인증된 사용자 정보: ID=${req.user.id}, 이름=${req.user.username || req.user.email || '알 수 없음'}`);
     return res.json(req.user);
   } catch (error) {
     console.error("사용자 정보 조회 오류:", error);
@@ -302,6 +315,7 @@ router.post("/firebase-login", async (req, res) => {
       }
 
       console.log("[Firebase Auth] 로그인 성공:", user.id);
+      console.log("[Firebase Auth] 세션 및 인증 상태: isAuthenticated=", req.isAuthenticated());
 
       // 응답
       return res.status(200).json({

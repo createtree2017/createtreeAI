@@ -26,6 +26,16 @@ type RegisterData = {
 export function useAuth() {
   const { toast } = useToast();
 
+  // 인증 상태 디버깅 로그
+  console.log(`
+===============================================================
+[인증 상태 확인] - 클라이언트
+- 현재 경로: ${window.location.pathname}
+- 쿠키 존재: ${document.cookie ? 'Yes' : 'No'}
+- 로컬 스토리지 항목: ${Object.keys(localStorage).length}개
+===============================================================
+  `);
+  
   // 현재 로그인한 사용자 정보 가져오기 (세션 기반)
   const { 
     data: user, 
@@ -36,13 +46,22 @@ export function useAuth() {
     queryKey: ["/api/auth/me"],
     queryFn: async (): Promise<User | null> => {
       try {
+        console.log("[인증 API 호출] /api/auth/me 요청 시작");
+        
         // 세션 쿠키와 함께 요청
         const response = await fetch("/api/auth/me", {
           credentials: "include", // 쿠키 포함 (중요!)
         });
 
+        console.log(`[인증 API 응답] 상태 코드: ${response.status}, 헤더:`, 
+          Object.fromEntries([...response.headers.entries()].filter(([key]) => 
+            ['content-type', 'set-cookie', 'date'].includes(key)
+          ))
+        );
+
         if (!response.ok) {
           if (response.status === 401) {
+            console.log("[인증 API 응답] 로그인되지 않음 (401)");
             return null; // 로그인 되지 않음
           }
           throw new Error("사용자 정보를 가져오는데 실패했습니다.");
@@ -51,10 +70,10 @@ export function useAuth() {
         const userData = await response.json();
         // 디버깅을 위해 사용자 정보 로깅 (비밀번호는 제외)
         const { password, ...userInfo } = userData;
-        console.log("직접 요청으로 가져온 사용자 정보:", userInfo);
+        console.log("[인증 API 성공] 사용자 정보:", userInfo);
         return userData;
       } catch (error) {
-        console.error("사용자 정보 조회 오류:", error);
+        console.error("[인증 API 오류] 사용자 정보 조회 실패:", error);
         return null;
       }
     },
