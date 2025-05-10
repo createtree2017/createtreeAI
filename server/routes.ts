@@ -447,6 +447,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Image transformation endpoints
   app.post("/api/image/transform", upload.single("image"), async (req, res) => {
     try {
+      // 🔥 디버깅 로그 추가: 이미지 변환 요청 도착 시 사용자 정보 확인
+      console.log("🔥 transformImage 요청 도착");
+      console.log("🔥 req.user 상태:", req.user);
+      console.log("🔥 req.session 상태:", req.session ? {
+        id: req.session.id,
+        authenticated: req.isAuthenticated(),
+        passport: req.session['passport']
+      } : 'No session');
+      
       if (!req.file) {
         return res.status(400).json({ error: "No image file uploaded" });
       }
@@ -873,6 +882,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = req.user;
       const userId = user ? user.id : null;
       const username = user ? user.username : null;
+      
+      // 🧪 갤러리 API 응답 샘플 로깅 (첫 3개 항목)
+      const sampleItems = await db.select({
+        id: images.id,
+        title: images.title,
+        metadata: images.metadata
+      })
+      .from(images)
+      .limit(3);
+      
+      console.log("🧪 /api/gallery 응답 샘플:", JSON.stringify(sampleItems, null, 2));
       
       // 갤러리 API 호출 시 사용자 인증 상태 및 정보 상세 로깅 (디버깅용)
       // 세션 디버깅

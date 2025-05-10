@@ -384,8 +384,23 @@ export const storage = {
     if (variantId) metadata.variantId = variantId;
     if (aspectRatio) metadata.aspectRatio = aspectRatio;
     if (username) metadata.username = username;
+    
     // 사용자 ID는 항상 문자열로 저장하여 일관성 유지
-    if (userId) metadata.userId = userId.toString();
+    if (userId) {
+      metadata.userId = userId.toString();
+    } else {
+      // 특별 케이스: userId가 없는 경우 공유 이미지로 설정 (-1)
+      metadata.userId = "-1"; // 글로벌 공유 이미지 표시용
+    }
+    
+    // 🔍 중요: 메타데이터 저장 전 최종 확인 로그
+    console.log(`🔍 이미지 저장 메타데이터 구조:`, {
+      title: title,
+      style: style,
+      metadata: metadata,
+      userId: userId,
+      username: username
+    });
     
     try {
       console.log(`[Storage] 새 이미지 저장 시작: "${title}", 스타일: ${style}, 사용자: ${username || '없음'}, 사용자ID: ${userId || '없음'}`);
