@@ -895,7 +895,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // 사용자 ID로 필터링 적용
           if (userId) {
-            query = query.where(eq(images.user_id, userId)); // 데이터베이스 컬럼명은 user_id
+            query = query.where(eq(images.userId, userId)); // userId는 TypeScript의 필드명
           }
           
           const allImages = await query;
@@ -996,7 +996,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             // 사용자 ID로 필터링 적용
             if (userId) {
-              query = query.where(eq(images.user_id, userId)); // 데이터베이스 컬럼명은 user_id
+              query = query.where(eq(images.userId, userId)); // userId는 TypeScript의 필드명
             }
             
             const allImages = await query;
