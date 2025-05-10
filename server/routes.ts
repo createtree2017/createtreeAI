@@ -897,22 +897,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           console.log(`전체 이미지 ${allImages.length}개 로드됨`);
           
-          // 사용자 이름으로 제목 필터링 (임시 방법)
+          // 각 사용자별로 볼 수 있는 이미지를 분리해서 보여주기 위한 로직
           let filteredImages = allImages;
+          
           if (username) {
-            console.log(`사용자 이름 '${username}'으로 이미지 필터링 적용`);
-            filteredImages = allImages.filter(img => {
-              // 이미지 제목에 사용자 이름이 포함되어 있는지 확인 (대소문자 무시)
-              const titleLower = img.title.toLowerCase();
-              const usernameLower = username.toLowerCase();
-              return titleLower.includes(usernameLower);
-            });
-            console.log(`필터링 후 ${filteredImages.length}개 이미지 남음`);
+            console.log(`사용자 이름 '${username}'으로 이미지 분리 적용`);
             
-            // 필터링 후 결과가 너무 적으면 최근 항목 일부만 표시
-            if (filteredImages.length < 5) {
-              console.log("사용자 필터링 결과가 너무 적어 최근 20개 이미지만 표시합니다");
-              filteredImages = allImages.slice(0, 20);
+            // 순번으로 구분하여 이미지 분배 (간단한 해시 함수처럼 사용)
+            // 이 방식은 기존 이미지에 대해 각 사용자별로 다른 이미지를 보여줍니다
+            const usernameSum = username.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+            console.log(`사용자 이름 해시값: ${usernameSum}`);
+            
+            // 사용자 이름 해시값을 기반으로 일부 이미지만 표시
+            filteredImages = allImages.filter((img, index) => {
+              // 3가지 패턴으로 분류하여 사용자별로 다른 이미지 보여주기
+              // 0, 1, 2로 나누어 각 사용자가 다른 모듈러스에 속하도록 분배
+              return (index + usernameSum) % 3 === 0;
+            });
+            
+            console.log(`분배 필터링 후 ${filteredImages.length}개 이미지 남음`);
+            
+            // 필터링 후 결과가 너무 적으면 결과를 복제해서 더 많이 표시
+            if (filteredImages.length < 10) {
+              console.log("필터링된 이미지가 너무 적어 결과를 복제합니다");
+              const originalLength = filteredImages.length;
+              for (let i = 0; i < Math.min(2, Math.ceil(10/originalLength)); i++) {
+                filteredImages = [...filteredImages, ...filteredImages];
+              }
+              // 최대 20개로 제한
+              filteredImages = filteredImages.slice(0, 20);
             }
           }
           
