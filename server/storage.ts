@@ -505,12 +505,27 @@ export const storage = {
             
             // 1. userId 비교 (문자열로 변환)
             if (userId && metadata && metadata.userId) {
+              // 디버깅용 상세 로깅 - 모든 항목에 적용 (중요도가 높아서)
+              console.log(`🧪 필터 비교 [이미지 ID=${item.id}]:`, {
+                metadataUserId: metadata.userId,
+                currentUserId: userId,
+                metadataUserIdStr: String(metadata.userId),
+                currentUserIdStr: String(userId),
+                match: String(metadata.userId) === String(userId)
+              });
+              
               const metadataUserIdStr = String(metadata.userId);
               const currentUserIdStr = String(userId);
               
+              // 일반적인 ID 일치 확인
               if (metadataUserIdStr === currentUserIdStr) {
                 isMatch = true;
                 matchReason = `메타데이터 userId 일치: ${metadataUserIdStr}`;
+              }
+              // 특별 케이스: metadata.userId가 "-1"이면 공유 이미지로 간주하고 모든 사용자에게 표시
+              else if (metadataUserIdStr === "-1") {
+                isMatch = true;
+                matchReason = `공유 이미지 (userId=-1): 모든 사용자에게 표시됨`;
               }
             }
             
