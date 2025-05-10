@@ -8,12 +8,13 @@ import { users, eq } from "../../shared/schema";
 
 /**
  * Firebase 사용자 정보 타입 정의
+ * 주의: 필드 이름이 데이터베이스 컬럼과 일치해야 함 (photoURL → photoUrl)
  */
 export interface FirebaseUserData {
   uid: string;
   email: string;
   displayName?: string;
-  photoURL?: string;
+  photoUrl?: string; // photoURL에서 photoUrl로 변경 (데이터베이스 컬럼과 일치)
   phoneNumber?: string;
 }
 
@@ -40,7 +41,7 @@ export async function handleFirebaseAuth(firebaseUser: FirebaseUserData) {
       firebaseUid: firebaseUser.uid,
       emailVerified: true, // Firebase 인증은 이메일이 이미 검증됨
       memberType: 'general', // 기본 회원 타입
-      photoUrl: firebaseUser.photoURL || null, // photoURL -> photoUrl로 매핑
+      photoUrl: firebaseUser.photoUrl || null, // Firebase에서 가져온 프로필 사진 URL
       phoneNumber: firebaseUser.phoneNumber || null,
       lastLogin: new Date(),
       createdAt: new Date(),
@@ -58,7 +59,7 @@ export async function handleFirebaseAuth(firebaseUser: FirebaseUserData) {
       .set({
         firebaseUid: firebaseUser.uid,
         emailVerified: true,
-        photoUrl: user.photoUrl || firebaseUser.photoURL,
+        photoUrl: user.photoUrl || firebaseUser.photoUrl,
         lastLogin: new Date(),
         updatedAt: new Date()
       })

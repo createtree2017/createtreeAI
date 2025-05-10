@@ -282,7 +282,7 @@ router.post("/firebase-login", async (req, res) => {
       uid: firebaseUser.uid,
       email: firebaseUser.email,
       displayName: firebaseUser.displayName,
-      photoURL: firebaseUser.photoURL, // 인터페이스는 photoURL을 사용하지만 DB는 photoUrl을 사용
+      photoUrl: firebaseUser.photoURL, // Firebase는 photoURL, 우리 DB는 photoUrl 사용
       phoneNumber: firebaseUser.phoneNumber
     };
 
