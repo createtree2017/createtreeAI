@@ -102,19 +102,19 @@ const LoginForm: React.FC = () => {
         <Button 
           type="button" 
           variant="outline" 
-          className="w-full"
+          className="w-full flex items-center justify-center"
           onClick={handleGoogleLogin}
           disabled={isGoogleLoginLoading}
         >
           {isGoogleLoginLoading ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              구글 로그인 중...
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              <span>구글 로그인 중...</span>
             </>
           ) : (
             <>
-              <FcGoogle className="mr-2 h-4 w-4" />
-              Google 계정으로 로그인
+              <FcGoogle className="mr-2 h-5 w-5" />
+              <span>Google 계정으로 로그인</span>
             </>
           )}
         </Button>

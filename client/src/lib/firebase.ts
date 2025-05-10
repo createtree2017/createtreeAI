@@ -10,11 +10,13 @@ import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
 // Firebase 구성 객체
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: "AIzaSyCINDZ1I6iqCNkxLG73GEOFfwOrPm52uxM",
+  authDomain: "createai-7facc.firebaseapp.com",
+  projectId: "createai-7facc",
+  storageBucket: "createai-7facc.firebasestorage.app",
+  messagingSenderId: "980137173202",
+  appId: "1:980137173202:web:aef6cd9e1b3914ad7ac997",
+  measurementId: "G-2MZ24X4RDX"
 };
 
 // Firebase 초기화
