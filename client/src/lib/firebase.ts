@@ -8,10 +8,10 @@ import { getAuth, GoogleAuthProvider } from "firebase/auth";
  * 직접 제공된 Firebase 프로젝트 정보를 사용합니다.
  */
 
-// Firebase 구성 객체 (직접 제공된 값)
+// Firebase 구성 객체 (환경 변수와 하드코딩된 값 혼합)
 const firebaseConfig = {
-  apiKey: "AIzaSyCINDZ1I6iqCNkxLG73GEOFfwOrPm52uxM",
-  authDomain: "createai-7facc.firebaseapp.com",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyCINDZ1I6iqCNkxLG73GEOFfwOrPm52uxM",
+  authDomain: "createai-7facc.firebaseapp.com", 
   projectId: "createai-7facc",
   storageBucket: "createai-7facc.firebasestorage.app",
   messagingSenderId: "980137173202",
