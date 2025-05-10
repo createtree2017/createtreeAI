@@ -219,13 +219,20 @@ export const storage = {
       path.extname(originalFilename)
     );
     
-    // Create a title
-    const title = `${style.charAt(0).toUpperCase() + style.slice(1)} ${nameWithoutExt}`;
+    // Create a title with user information for proper filtering
+    let title;
+    if (username) {
+      title = `[${username}] ${style.charAt(0).toUpperCase() + style.slice(1)} ${nameWithoutExt}`;
+    } else {
+      title = `${style.charAt(0).toUpperCase() + style.slice(1)} ${nameWithoutExt}`;
+    }
     
     // Include the variant ID and aspectRatio if they exist
     const metadata: Record<string, any> = {};
     if (variantId) metadata.variantId = variantId;
     if (aspectRatio) metadata.aspectRatio = aspectRatio;
+    if (username) metadata.username = username;
+    if (userId) metadata.userId = userId;
     
     try {
       console.log(`[Storage] 새 이미지 저장 시작: "${title}", 스타일: ${style}, 사용자: ${username || '없음'}, 사용자ID: ${userId || '없음'}`);
@@ -238,9 +245,8 @@ export const storage = {
           originalUrl: originalPath,
           transformedUrl,
           metadata: JSON.stringify(metadata),
-          // userId 필드 제거: user_id 컬럼이 데이터베이스에 없음
-          username: username || undefined,
-          originalFilename,
+          // 필드 이름은 데이터베이스 컬럼과 일치해야 합니다.
+          // 실제 DB에 없는 username, originalFilename 필드는 제거
         })
         .returning();
       
@@ -323,9 +329,8 @@ export const storage = {
         originalUrl: images.originalUrl,
         transformedUrl: images.transformedUrl,
         createdAt: images.createdAt,
-        metadata: images.metadata,
-        username: images.username
-        // userId 필드 제거: user_id 컬럼이 데이터베이스에 없음
+        metadata: images.metadata
+        // username, userId 필드 제거: 데이터베이스 컬럼이 없음
       })
       .from(images);
       
