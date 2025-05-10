@@ -302,7 +302,7 @@ export const storage = {
       let whereCondition = undefined;
       if (userId) {
         console.log(`[Storage] 사용자 ID ${userId}로 이미지 필터링 적용`);
-        whereCondition = eq(images.user_id, userId); // userId -> user_id로 수정
+        whereCondition = eq(images.userId, userId); // 수정: userId를 사용 (스키마에 맞추어)
       }
       
       // 사용자 필터링이 적용된 이미지 카운트를 위한 쿼리
