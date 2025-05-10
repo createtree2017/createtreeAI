@@ -9,6 +9,7 @@ import Music from "@/pages/music";
 import Image from "@/pages/image";
 import Chat from "@/pages/chat";
 import Gallery from "@/pages/gallery-simplified";
+import Profile from "@/pages/profile";
 import Admin from "@/pages/admin";
 import Milestones from "@/pages/milestones";
 import AuthPage from "@/pages/auth";
@@ -258,6 +259,14 @@ function Router() {
         <ProtectedRoute>
           <Layout>
             <Milestones />
+          </Layout>
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/profile">
+        <ProtectedRoute>
+          <Layout>
+            <Profile />
           </Layout>
         </ProtectedRoute>
       </Route>
