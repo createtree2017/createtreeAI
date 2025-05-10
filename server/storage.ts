@@ -506,6 +506,23 @@ export const storage = {
       // 모든 이미지 가져오기
       const allImages = await query.execute();
       
+      // 데이터 샘플 로깅 (디버깅)
+      const sampleItems = allImages.slice(0, Math.min(3, allImages.length));
+      sampleItems.forEach((item, idx) => {
+        let metadataLog = '없음';
+        if (item.metadata) {
+          try {
+            const metadata = typeof item.metadata === 'string' 
+              ? JSON.parse(item.metadata) 
+              : item.metadata;
+            metadataLog = JSON.stringify(metadata);
+          } catch (error) {
+            metadataLog = `파싱 오류: ${error instanceof Error ? error.message : String(error)}`;
+          }
+        }
+        console.log(`[이미지 샘플 ${idx+1}] ID: ${item.id}, 제목: "${item.title}", 메타데이터: ${metadataLog}`);
+      });
+      
       // 사용자 ID 또는 이름 기준으로 필터링 적용
       let results = allImages;
       
@@ -513,49 +530,59 @@ export const storage = {
         console.log(`[Storage] 사용자 필터링 적용 - ID: ${userId || '없음'}, 이름: ${username || '없음'}`);
         
         // 사용자 메타데이터 기반 필터링 - userId와 username 모두 활용
-        results = allImages.filter(image => {
-          if (!image.metadata) return false;
+        results = allImages.filter(item => {
+          let isMatch = false;
+          let matchReason = "불일치";
           
           try {
-            const metadata = JSON.parse(image.metadata);
+            if (!item.metadata) return false;
             
-            // 메타데이터 분석 디버깅 로그 (샘플 5개 이미지만 출력)
-            if (image.id % 20 === 0) { // 간격을 두고 샘플 이미지만 로깅하여 로그 양 제한
-              console.log(`[이미지 필터링 분석] ID=${image.id}, 제목="${image.title}", 메타데이터:`, metadata);
-            }
+            const metadata = typeof item.metadata === 'string' 
+              ? JSON.parse(item.metadata) 
+              : item.metadata;
             
-            // 첫 번째 조건: metadata에 userId가 있고 파라미터 userId와 일치 (문자열/숫자 타입 불일치 해결)
-            if (userId && metadata.userId) {
-              // 문자열과 숫자 비교를 위해 문자열로 변환해서 비교
-              const userIdStr = userId.toString();
-              const metadataUserIdStr = metadata.userId.toString();
+            // 1. userId 비교 (문자열로 변환)
+            if (userId && metadata && metadata.userId) {
+              const metadataUserIdStr = String(metadata.userId);
+              const currentUserIdStr = String(userId);
               
-              if (userIdStr === metadataUserIdStr) {
-                console.log(`[이미지 필터링] 사용자 ID 일치: ${metadata.userId} === ${userId}`);
-                return true;
+              if (metadataUserIdStr === currentUserIdStr) {
+                isMatch = true;
+                matchReason = `메타데이터 userId 일치: ${metadataUserIdStr}`;
               }
             }
             
-            // 두 번째 조건: metadata에 username이 있고 파라미터 username과 일치
-            if (username && metadata.username && metadata.username === username) {
-              console.log(`[이미지 필터링] 사용자명 일치: ${metadata.username} === ${username}`);
-              return true;
-            }
-            
-            // 세 번째 조건: 메타데이터에 username이 없지만 제목에 username이 포함된 경우
-            if (username && image.title) {
-              // 다양한 형식으로 제목에 사용자명이 포함될 수 있음
-              const titleIncludes = image.title.includes(`[${username}]`) || 
-                                  image.title.includes(`(${username})`) ||
-                                  image.title.includes(`${username}의`);
-              
-              if (titleIncludes) {
-                console.log(`[이미지 필터링] 제목에 사용자명 포함: "${image.title}" 에 "${username}" 포함됨`);
-                return true;
+            // 2. username 비교
+            if (!isMatch && username && metadata && metadata.username) {
+              if (metadata.username === username) {
+                isMatch = true;
+                matchReason = `메타데이터 username 일치: ${metadata.username}`;
               }
             }
             
-            return false;
+            // 3. 제목 기반 매칭 (백업)
+            if (!isMatch && item.title && username) {
+              // 사용자명 포함 패턴 확인
+              const pattern1 = `[${username}]`; 
+              const pattern2 = `${username}의`;
+              const pattern3 = ` by ${username}`;
+              const pattern4 = `(${username})`;
+              
+              if (item.title.includes(pattern1) || 
+                  item.title.includes(pattern2) || 
+                  item.title.includes(pattern3) ||
+                  item.title.includes(pattern4)) {
+                isMatch = true;
+                matchReason = `제목에 사용자명 포함: ${item.title}`;
+              }
+            }
+            
+            // 디버깅을 위해 일부 항목만 로깅
+            if (isMatch || item.id % 10 === 0) {
+              console.log(`[이미지 필터링] ID: ${item.id}, 일치: ${isMatch}, 이유: ${matchReason}`);
+            }
+            
+            return isMatch;
           } catch (e) {
             // 메타데이터 파싱 오류 시 false 반환
             return false;
