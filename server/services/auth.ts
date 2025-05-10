@@ -17,15 +17,25 @@ const REFRESH_TOKEN_EXPIRES_IN = 14 * 24 * 60 * 60 * 1000; // 리프레시 토�
 const SALT_ROUNDS = 10;
 
 // 비밀번호 해싱 함수
-export async function hashPassword(password: string): Promise<string> {
+export async function hashPassword(password: string | null): Promise<string> {
+  // null이나 빈 문자열인 경우 임의의 문자열로 해시 (Firebase 인증 등에서 사용)
+  if (!password) {
+    // Firebase 사용자는 로컬 비밀번호로 로그인할 수 없게 임의의 강력한 해시 생성
+    const randomString = randomBytes(32).toString('hex');
+    return bcrypt.hash(randomString, SALT_ROUNDS);
+  }
   return bcrypt.hash(password, SALT_ROUNDS);
 }
 
 // 비밀번호 검증 함수
 export async function verifyPassword(
-  password: string,
-  hashedPassword: string
+  password: string | null,
+  hashedPassword: string | null
 ): Promise<boolean> {
+  // 비밀번호나 해시가 없으면 인증 실패
+  if (!password || !hashedPassword) {
+    return false;
+  }
   return bcrypt.compare(password, hashedPassword);
 }
 
@@ -67,7 +77,7 @@ export function initPassport() {
         usernameField: "username",
         passwordField: "password",
       },
-      async (username, password, done) => {
+      async (username: string, password: string, done: any) => {
         try {
           // 사용자 찾기
           const user = await db.query.users.findFirst({
