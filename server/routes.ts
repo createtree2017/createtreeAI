@@ -351,6 +351,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         validatedData.duration
       );
       
+      // 디버깅 목적으로 로그 추가
+      console.log(`[음악 생성] 메타데이터에 사용자 정보 저장: userId=${userId}, username=${username}`);
+      
       // Save to database with user information
       const savedMusic = await storage.saveMusicGeneration(
         validatedData.babyName,
@@ -360,6 +363,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId,
         username
       );
+      
+      // 저장된 음악의 사용자 정보 확인
+      console.log(`[음악 생성 완료] ID=${savedMusic.id}, 저장된 userId=${savedMusic.userId}, 메타데이터=${savedMusic.metadata}`);
       
       return res.status(201).json(savedMusic);
     } catch (error) {
@@ -862,14 +868,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // 요청 시작 시간 기록 (성능 측정용)
       const startTime = Date.now();
       
-      // 로그인 체크 - 갤러리는 로그인 없이도 조회 가능하게 변경
-      // 로그인한 경우 사용자별 필터링, 로그인하지 않은 경우 모든 갤러리 항목 표시
+      // 로그인 체크
       const user = req.user;
       const userId = user ? user.id : null;
       const username = user ? user.username : null;
       
-      // 로그인 상태 로깅
-      console.log(`갤러리 API 요청 - 로그인 상태: ${!!user}, 사용자 ID: ${userId}, 사용자명: ${username || '없음'}`);
+      // 갤러리 API 호출 시 사용자 인증 상태 및 정보 상세 로깅 (디버깅용)
+      console.log(`
+===============================================================
+[갤러리 API 호출]
+- 로그인 상태: ${!!user}
+- 사용자 ID: ${userId || '없음'} 
+- 사용자명: ${username || '없음'}
+- 쿼리 파라미터: ${JSON.stringify(req.query)}
+- 현재 필터: ${req.query.filter || '전체'}
+===============================================================
+      `);
       
       // 필터링 옵션
       const filter = req.query.filter as string | undefined;
