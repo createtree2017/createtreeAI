@@ -895,7 +895,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // 사용자 ID로 필터링 적용
           if (userId) {
-            query = query.where(eq(images.userId, userId));
+            query = query.where(eq(images.user_id, userId)); // userId -> user_id 수정
           }
           
           const allImages = await query;
