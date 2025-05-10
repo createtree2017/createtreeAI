@@ -825,48 +825,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // 이미지 탭에서도 사용자별 필터링 구현
           // URL 파라미터나 로그인 세션에서 사용자 이름 획득
           
-          // 이제 모든 이미지 쿼리를 위한 기본 쿼리 설정
-          const imageQuery = db.select({
+          // 로그인한 사용자에게는 모든 이미지를 보여주도록 수정
+          console.log(`[이미지 탭] 사용자 ${username || '없음'}`);
+          
+          // 모든 이미지 쿼리를 위한 기본 쿼리 설정
+          const allImages = await db.select({
             id: images.id,
             title: images.title,
             transformedUrl: images.transformedUrl,
-            createdAt: images.createdAt
+            createdAt: images.createdAt,
+            style: images.style
           })
           .from(images)
-          .orderBy(desc(images.createdAt));
+          .orderBy(desc(images.createdAt))
+          .limit(100); // 충분한 수의 이미지 가져오기
           
-          // 사용자 이름이 있는 경우 그 사용자의 이미지만 필터링
-          if (username) {
-            console.log(`[이미지 탭] 사용자 ${username}의 이미지만 필터링합니다.`);
-            
-            // 제목에 사용자 이름이 포함된 경우만 필터링 (간단한 접근법)
-            const userImages = await imageQuery
-              .where(like(images.title, `%${username}%`))
-              .limit(20);
-            
-            if (userImages.length > 0) {
-              // 필터링된 이미지가 있으면 사용
-              galleryItems = userImages.map(item => ({
-                id: item.id,
-                title: decodeKoreanText(item.title),
-                type: "image" as const,
-                url: item.transformedUrl,
-                thumbnailUrl: item.transformedUrl,
-                createdAt: item.createdAt.toISOString(),
-                isFavorite: false
-              }));
-              
-              console.log(`사용자 ${username}의 이미지 ${galleryItems.length}개 찾음`);
-            } else {
-              // 필터링 결과가 없으면 비어있는 배열 반환 (더 이상 임의 이미지 표시 안함)
-              console.log(`사용자 ${username}의 이미지가 없습니다.`);
-              galleryItems = [];
-            }
-          } else {
-            // 로그인하지 않은 경우 빈 배열 반환 (익명 사용자에게는 이미지 미표시)
-            console.log("로그인하지 않음 - 빈 이미지 배열 반환");
-            galleryItems = [];
-          }
+          console.log(`전체 이미지 ${allImages.length}개 로드됨`);
+          
+          // 필터링된 이미지가 있으면 사용
+          galleryItems = allImages.map(item => ({
+            id: item.id,
+            title: decodeKoreanText(item.title),
+            type: "image" as const,
+            url: item.transformedUrl,
+            thumbnailUrl: item.transformedUrl,
+            createdAt: item.createdAt.toISOString(),
+            isFavorite: false
+          }));
+          
+          console.log(`갤러리에 표시할 이미지 ${galleryItems.length}개 준비됨`);
         } catch (imageError) {
           console.error("이미지 데이터 조회 중 오류:", imageError);
           galleryItems = [];
@@ -930,48 +917,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.error("음악 조회 오류:", musicError);
           }
           
-          // 이미지 항목 (개인별 - 사용자 이름으로 필터링)
+          // 이미지 항목 (모든 이미지 표시로 변경)
           try {
-            // 이미지 탭과 동일한 방식으로 사용자별 이미지 필터링 구현
-            const imageQuery = db.select({
+            console.log(`이미지 항목 로딩 - 사용자: ${username || '없음'}`);
+            
+            // 모든 이미지를 로드 (갤러리에서는 최신 이미지 6개만)
+            const allImages = await db.select({
               id: images.id,
               title: images.title,
               transformedUrl: images.transformedUrl,
-              createdAt: images.createdAt
+              createdAt: images.createdAt,
+              style: images.style
             })
             .from(images)
-            .orderBy(desc(images.createdAt));
+            .orderBy(desc(images.createdAt))
+            .limit(10);
             
-            // 사용자 이름이 있는 경우 그 사용자의 이미지만 필터링
-            if (username) {
-              console.log(`사용자 ${username}의 이미지만 필터링합니다.`);
+            if (allImages.length > 0) {
+              // 이미지를 갤러리 형식으로 변환
+              const formattedImageItems = allImages.map(item => ({
+                id: item.id,
+                title: decodeKoreanInObject(item.title),
+                type: "image" as const,
+                url: item.transformedUrl,
+                thumbnailUrl: item.transformedUrl,
+                createdAt: item.createdAt.toISOString(),
+                isFavorite: false
+              }));
               
-              // 제목에 사용자 이름이 포함된 경우만 필터링 (간단한 접근법)
-              const userImages = await imageQuery
-                .where(like(images.title, `%${username}%`))
-                .limit(6);
-              
-              if (userImages.length > 0) {
-                // 필터링된 이미지가 있으면 사용
-                const formattedImageItems = userImages.map(item => ({
-                  id: item.id,
-                  title: decodeKoreanInObject(item.title),
-                  type: "image" as const,
-                  url: item.transformedUrl,
-                  thumbnailUrl: item.transformedUrl,
-                  createdAt: item.createdAt.toISOString(),
-                  isFavorite: false
-                }));
-                
-                processedItems = [...processedItems, ...formattedImageItems];
-                console.log(`사용자 ${username}의 이미지 ${formattedImageItems.length}개를 갤러리에 추가했습니다.`);
-              } else {
-                // 필터링 결과가 없으면 로그만 출력 (빈 배열 유지)
-                console.log(`사용자 ${username}의 이미지가 없습니다.`);
-              }
+              processedItems = [...processedItems, ...formattedImageItems];
+              console.log(`갤러리에 이미지 ${formattedImageItems.length}개 추가됨`);
             } else {
-              // 로그인하지 않은 경우 빈 이미지 배열 반환
-              console.log("로그인하지 않음 - 빈 이미지 배열 반환");
+              console.log("이미지가 없습니다");
             }
           } catch (imageError) {
             console.error("이미지 조회 오류:", imageError);
