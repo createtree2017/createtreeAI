@@ -17,6 +17,7 @@ import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
 import TestPage from "@/pages/test";
 import TestFirebase from "@/pages/test-firebase";
+import FirebaseTestPage from "@/pages/firebase-test";
 import HospitalsPage from "@/pages/super/HospitalsPage";
 import UsersPage from "@/pages/super/UsersPage";
 import BottomNavigation from "@/components/BottomNavigation";
@@ -207,6 +208,9 @@ function Router() {
       </Route>
       <Route path="/test-firebase">
         <TestFirebase />
+      </Route>
+      <Route path="/firebase-test">
+        <FirebaseTestPage />
       </Route>
       <Route path="/unauthorized">
         <div className="min-h-screen flex flex-col items-center justify-center p-4">

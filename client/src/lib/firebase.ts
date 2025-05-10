@@ -7,12 +7,21 @@ import { getAuth, GoogleAuthProvider } from "firebase/auth";
  * 주의: API 키는 민감한 정보이므로 실제 서비스에서는 환경 변수로 관리해야 합니다.
  */
 
+// 현재 브라우저 환경 정보 출력 (디버깅용)
+console.log(`[Firebase] 브라우저 환경:`, {
+  userAgent: navigator.userAgent,
+  language: navigator.language,
+  origin: window.location.origin,
+  hostname: window.location.hostname,
+  secure: window.location.protocol === 'https:'
+});
+
 // Firebase 구성 객체 - 스크린샷에서 확인한 정확한 값으로 설정
 const firebaseConfig = {
   apiKey: "AIzaSyCINDZ1I6iqCNkxLG73GEOFwOrPm52uxM",
   authDomain: "createai-7facc.firebaseapp.com", 
   projectId: "createai-7facc",
-  storageBucket: "createai-7facc.appspot.com", // 수정된 부분: 올바른 형식으로 변경
+  storageBucket: "createai-7facc.appspot.com", // 올바른 storage bucket 형식
   messagingSenderId: "980137173202",
   appId: "1:980137173202:web:aef6cd9e1b3914ad7ac997",
   measurementId: "G-2MZ24X4RDX"

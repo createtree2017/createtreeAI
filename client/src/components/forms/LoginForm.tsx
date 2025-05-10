@@ -42,11 +42,26 @@ const LoginForm: React.FC = () => {
   // Google 로그인 핸들러
   const handleGoogleLogin = () => {
     try {
-      console.log("Google 로그인 시작");
+      console.log("Google 로그인 버튼 클릭됨");
+      console.log("현재 도메인:", window.location.origin);
+      
+      // Firebase 승인 도메인 확인
+      const allowedDomains = [
+        "localhost",
+        "createai-7facc.firebaseapp.com",
+        "createai-7facc.web.app",
+        "code-craft-ctcreatetree.replit.app"
+      ];
+      
+      console.log("승인 도메인 목록:", allowedDomains);
+      console.log("현재 도메인이 승인됨:", allowedDomains.some(domain => 
+        window.location.origin.includes(domain)));
+      
+      // Google 로그인 시작
       loginWithGoogle();
     } catch (error) {
       console.error("Google 로그인 버튼 오류:", error);
-      alert("Google 로그인을 시작할 수 없습니다. Firebase 설정을 확인해 주세요.");
+      alert("Google 로그인을 시작할 수 없습니다. 브라우저 콘솔에서 상세 오류를 확인해주세요.");
     }
   };
 
