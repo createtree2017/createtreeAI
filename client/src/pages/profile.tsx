@@ -27,10 +27,19 @@ export default function Profile() {
   const itemsPerPage = 6; // 한 페이지당 6개 항목
   const [activeTab, setActiveTab] = useState("gallery");
 
-  // 갤러리 항목 조회 - 이미지 필터 적용
-  const { data: items, isLoading } = useQuery({
-    queryKey: ["/api/gallery", "image", user?.username],
-    queryFn: () => getGalleryItems("image"),
+  // 갤러리 항목 조회 - 사용자의 모든 항목 조회
+  const { data: items, isLoading, error } = useQuery({
+    queryKey: ["/api/gallery", user?.username],
+    queryFn: async () => {
+      try {
+        // 사용자 정보가 있으면 이미지 필터를 적용하여 사용자 관련 항목을 가져옴
+        return await getGalleryItems();
+      } catch (err) {
+        console.error('갤러리 데이터 가져오기 실패:', err);
+        return [];
+      }
+    },
+    enabled: !!user // 사용자가 로그인된 경우에만 쿼리 활성화
   });
 
   // 페이지네이션 처리

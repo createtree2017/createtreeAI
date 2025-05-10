@@ -781,21 +781,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // 사용자 ID로 필터링 추가 (임시: 사용자 구분 기능이 완전히 구현될 때까지 간단한 솔루션)
       if (filter === "chat") {
-        // 채팅 데이터
-        const chatItems = await storage.getSavedChats();
-        // 임시: 로그인한 사용자의 채팅으로 가정
-        // 실제 사용자 데이터가 있으면 아래 주석 해제
-        // const userChatItems = chatItems.filter(chat => chat.userId === userId);
-        const userChatItems = chatItems.slice(0, 5); // 임시: 최근 5개 항목만 표시
+        // 채팅 데이터 - 직접 쿼리로 조회
+        const chatItems = await db.select({
+          id: savedChats.id,
+          title: savedChats.title,
+          personaEmoji: savedChats.personaEmoji,
+          createdAt: savedChats.createdAt
+        })
+        .from(savedChats)
+        .orderBy(desc(savedChats.createdAt))
+        .limit(5);
         
-        galleryItems = userChatItems.map(chat => ({
+        galleryItems = chatItems.map(chat => ({
           id: chat.id,
           title: decodeKoreanText(chat.title || '저장된 대화'),
           type: "chat" as const,
           url: `/chat?id=${chat.id}`,
           createdAt: chat.createdAt.toISOString(),
-          isFavorite: false
-          // userId 필드 임시 제거 - 데이터베이스 스키마 업데이트 전까지
+          isFavorite: false,
+          personaEmoji: chat.personaEmoji || '💬'
         }));
       } else if (filter === "music") {
         // 음악 필터링
