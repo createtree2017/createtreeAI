@@ -1,11 +1,12 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, Auth, AuthProvider } from "firebase/auth";
+import { FirebaseApp } from "firebase/app";
 
 /**
  * Firebase 설정
  * 
  * 애플리케이션에서 Firebase 서비스를 사용하기 위한 설정 파일입니다.
- * 직접 제공된 Firebase 프로젝트 정보를 사용합니다.
+ * 환경 변수와 하드코딩된 Firebase 프로젝트 정보를 사용합니다.
  */
 
 // Firebase 구성 객체 (환경 변수와 하드코딩된 값 혼합)
@@ -22,9 +23,9 @@ const firebaseConfig = {
 console.log("Firebase 구성:", { ...firebaseConfig, apiKey: "사용 중" });
 
 // Firebase 초기화 - 오류 처리 추가
-let app;
-let auth;
-let googleProvider;
+let app: FirebaseApp;
+let auth: Auth;
+let googleProvider: GoogleAuthProvider;
 
 try {
   // Firebase 초기화
@@ -49,13 +50,15 @@ try {
   console.error("Firebase 초기화 오류:", error);
   
   // 임시 대체 객체 생성 (오류 방지용)
-  app = {} as any;
+  app = {} as unknown as FirebaseApp;
   auth = {
     onAuthStateChanged: () => {},
     signOut: async () => {},
     languageCode: 'ko'
-  } as any;
-  googleProvider = {} as any;
+  } as unknown as Auth;
+  googleProvider = {
+    setCustomParameters: () => {}
+  } as unknown as GoogleAuthProvider;
 }
 
 export { app, auth, googleProvider };

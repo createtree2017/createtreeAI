@@ -9,6 +9,7 @@ import {
   GoogleAuthProvider,
   User as FirebaseUser,
   Auth,
+  AuthProvider
 } from "firebase/auth";
 
 type LoginCredentials = {
@@ -234,7 +235,7 @@ export function useAuth() {
         console.log("Firebase Google 로그인 시도...");
         
         // Firebase Google 로그인 - 팝업 방식
-        const result = await signInWithPopup(auth as Auth, googleProvider);
+        const result = await signInWithPopup(auth, googleProvider);
         
         // Google 계정 정보 확인
         const credential = GoogleAuthProvider.credentialFromResult(result);
