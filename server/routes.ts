@@ -891,19 +891,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
           })
           .from(images)
           .orderBy(desc(images.createdAt))
-          .limit(100);
-          
-          // 사용자 ID로 필터링 적용 (임시 비활성화: user_id 컬럼이 데이터베이스에 없음)
-          // if (userId) {
-          //   query = query.where(eq(images.userId, userId));
-          // }
+          .limit(500); // 더 많이 가져와서 필터링하기
           
           const allImages = await query;
           
           console.log(`전체 이미지 ${allImages.length}개 로드됨`);
           
+          // 사용자 이름으로 제목 필터링 (임시 방법)
+          let filteredImages = allImages;
+          if (username) {
+            console.log(`사용자 이름 '${username}'으로 이미지 필터링 적용`);
+            filteredImages = allImages.filter(img => {
+              // 이미지 제목에 사용자 이름이 포함되어 있는지 확인 (대소문자 무시)
+              const titleLower = img.title.toLowerCase();
+              const usernameLower = username.toLowerCase();
+              return titleLower.includes(usernameLower);
+            });
+            console.log(`필터링 후 ${filteredImages.length}개 이미지 남음`);
+            
+            // 필터링 후 결과가 너무 적으면 최근 항목 일부만 표시
+            if (filteredImages.length < 5) {
+              console.log("사용자 필터링 결과가 너무 적어 최근 20개 이미지만 표시합니다");
+              filteredImages = allImages.slice(0, 20);
+            }
+          }
+          
           // 필터링된 이미지 변환
-          galleryItems = allImages.map(item => ({
+          galleryItems = filteredImages.map(item => ({
             id: item.id,
             title: decodeKoreanText(item.title),
             type: "image" as const,
@@ -977,11 +991,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.error("음악 조회 오류:", musicError);
           }
           
-          // 이미지 항목 (모든 이미지 표시로 변경)
+          // 이미지 항목 (사용자별 이미지 표시)
           try {
             console.log(`이미지 항목 로딩 - 사용자: ${username || '없음'}`);
             
-            // 현재 로그인한 사용자의 이미지만 필터링하여 로드
+            // 더 많은 이미지를 가져와서 필터링
             let query = db.select({
               id: images.id,
               title: images.title,
@@ -992,18 +1006,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
             })
             .from(images)
             .orderBy(desc(images.createdAt))
-            .limit(10);
-            
-            // 사용자 ID로 필터링 적용 (임시 비활성화: user_id 컬럼이 데이터베이스에 없음)
-            // if (userId) {
-            //   query = query.where(eq(images.userId, userId));
-            // }
+            .limit(50); // 필터링 전에 더 많이 가져옴
             
             const allImages = await query;
             
-            if (allImages.length > 0) {
+            // 사용자 이름으로 제목 필터링 (임시 방법)
+            let filteredImages = allImages;
+            if (username) {
+              console.log(`사용자 이름 '${username}'으로 이미지 필터링 적용`);
+              filteredImages = allImages.filter(img => {
+                // 이미지 제목에 사용자 이름이 포함되어 있는지 확인 (대소문자 무시)
+                const titleLower = img.title.toLowerCase();
+                const usernameLower = username.toLowerCase();
+                return titleLower.includes(usernameLower);
+              });
+              console.log(`필터링 후 ${filteredImages.length}개 이미지 남음`);
+              
+              // 필터링 후 결과가 너무 적으면 최근 항목 일부만 표시
+              if (filteredImages.length < 3) {
+                console.log("사용자 필터링 결과가 너무 적어 최근 10개 이미지만 표시합니다");
+                filteredImages = allImages.slice(0, 10);
+              }
+            }
+            
+            // 최대 10개만 표시
+            filteredImages = filteredImages.slice(0, 10);
+            
+            if (filteredImages.length > 0) {
               // 이미지를 갤러리 형식으로 변환
-              const formattedImageItems = allImages.map(item => ({
+              const formattedImageItems = filteredImages.map(item => ({
                 id: item.id,
                 title: decodeKoreanInObject(item.title),
                 type: "image" as const,
