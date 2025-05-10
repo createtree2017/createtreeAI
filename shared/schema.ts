@@ -83,10 +83,12 @@ export const images = pgTable("images", {
   originalUrl: text("original_url").notNull(),
   transformedUrl: text("transformed_url").notNull(),
   metadata: text("metadata").default("{}"),
-  userId: integer("user_id"), // 사용자 ID 추가
-  username: text("username"), // 사용자 이름으로 필터링용
-  originalFilename: text("original_filename"), // 원본 파일명 저장
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  // 실제 데이터베이스 컬럼과 일치하도록 추가된 필드
+  isComposite: boolean("is_composite"),
+  templateId: integer("template_id"),
+  compositeMask: text("composite_mask"),
+  facePositions: jsonb("face_positions"),
 });
 
 // Chat messages table
