@@ -886,8 +886,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             title: images.title,
             transformedUrl: images.transformedUrl,
             createdAt: images.createdAt,
-            style: images.style,
-            userId: images.userId
+            style: images.style
+            // userId 필드 제거: user_id 컬럼이 데이터베이스에 없음
           })
           .from(images)
           .orderBy(desc(images.createdAt))
@@ -987,8 +987,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               title: images.title,
               transformedUrl: images.transformedUrl,
               createdAt: images.createdAt,
-              style: images.style,
-              userId: images.userId
+              style: images.style
+              // userId 필드 제거: user_id 컬럼이 데이터베이스에 없음
             })
             .from(images)
             .orderBy(desc(images.createdAt))

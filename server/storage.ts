@@ -238,7 +238,7 @@ export const storage = {
           originalUrl: originalPath,
           transformedUrl,
           metadata: JSON.stringify(metadata),
-          userId: userId || undefined, // TypeScript에서의 필드명 userId 사용
+          // userId 필드 제거: user_id 컬럼이 데이터베이스에 없음
           username: username || undefined,
           originalFilename,
         })
@@ -324,8 +324,8 @@ export const storage = {
         transformedUrl: images.transformedUrl,
         createdAt: images.createdAt,
         metadata: images.metadata,
-        userId: images.userId,
         username: images.username
+        // userId 필드 제거: user_id 컬럼이 데이터베이스에 없음
       })
       .from(images);
       
