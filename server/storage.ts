@@ -238,7 +238,7 @@ export const storage = {
           originalUrl: originalPath,
           transformedUrl,
           metadata: JSON.stringify(metadata),
-          user_id: userId || undefined, // 필드명 수정: userId -> user_id
+          userId: userId || undefined, // 수정: 스키마 필드명과 일치하도록 userId 사용
           username: username || undefined,
           originalFilename,
         })
