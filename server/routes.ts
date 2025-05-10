@@ -997,10 +997,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // 채팅 항목 (공유 - 모든 사용자 채팅)
           try {
-            const chatItems = await storage.getSavedChats();
-            const recentChatItems = chatItems.slice(0, 3);
+            // 직접 쿼리를 사용하여 savedChats에서 데이터 조회
+            const chatItems = await db.select({
+              id: savedChats.id,
+              title: savedChats.title,
+              personaEmoji: savedChats.personaEmoji,
+              createdAt: savedChats.createdAt
+            })
+            .from(savedChats)
+            .orderBy(desc(savedChats.createdAt))
+            .limit(3);
             
-            const formattedChatItems = recentChatItems.map(chat => ({
+            const formattedChatItems = chatItems.map(chat => ({
               id: chat.id,
               title: decodeKoreanInObject(chat.title || '저장된 대화'),
               type: "chat" as const,
