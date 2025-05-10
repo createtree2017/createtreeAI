@@ -1000,15 +1000,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             if (filteredImages.length > 0) {
               // 이미지를 갤러리 형식으로 변환
-              const formattedImageItems = filteredImages.map(item => ({
-                id: item.id,
-                title: decodeKoreanText(item.title || ''),
-                type: "image" as const,
-                url: item.transformedUrl,
-                thumbnailUrl: item.transformedUrl,
-                createdAt: item.createdAt.toISOString(),
-                isFavorite: false
-              }));
+              const formattedImageItems = filteredImages.map(item => {
+                // 한글 디코딩 더 강화하여 적용
+                const decodedTitle = decodeKoreanText(item.title || '');
+                console.log(`디코딩 전: ${item.title}, 디코딩 후: ${decodedTitle}`);
+                return {
+                  id: item.id,
+                  title: decodedTitle,
+                  type: "image" as const,
+                  url: item.transformedUrl,
+                  thumbnailUrl: item.transformedUrl,
+                  createdAt: item.createdAt.toISOString(),
+                  isFavorite: false
+                };
+              });
               
               processedItems = [...processedItems, ...formattedImageItems];
               console.log(`갤러리에 이미지 ${formattedImageItems.length}개 추가됨`);
