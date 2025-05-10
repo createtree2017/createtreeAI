@@ -8,6 +8,16 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// CORS 설정 추가 - 세션 쿠키 전달을 위한 credentials 설정 필수
+import cors from 'cors';
+app.use(cors({
+  // 프로덕션에서는 정확한 도메인으로 제한해야 함
+  origin: true, // 개발 환경에서는 요청 Origin을 그대로 허용
+  credentials: true, // 쿠키 전송을 위해 필수
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
 // 세션 설정은 routes.ts에서 처리
 // 참고: 이전에 이 위치에 있던 세션 설정은 routes.ts의 설정과 충돌을 일으켜 제거됨
 

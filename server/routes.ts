@@ -1590,10 +1590,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { type, id } = req.params;
       const parsedId = parseInt(id);
       
-      // CORS 헤더 추가
-      res.header('Access-Control-Allow-Origin', '*');
-      res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-      res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Origin, X-Requested-With');
+      // 개별 CORS 헤더 제거 - index.ts의 전역 CORS 설정 사용
+      // 이 부분은 제거됨 - cors 미들웨어가 모든 응답에 자동으로 적용됨
       
       if (type !== "music" && type !== "image") {
         return res.status(400).json({ error: "Invalid media type" });
@@ -1733,10 +1731,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("미디어 공유 요청 수신:", req.body);
       const validatedData = mediaShareSchema.parse(req.body);
       
-      // CORS 헤더 추가
-      res.header('Access-Control-Allow-Origin', '*');
-      res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
-      res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Origin, X-Requested-With');
+      // 개별 CORS 헤더 제거 - index.ts의 전역 CORS 설정 사용
+      // 이 부분은 제거됨 - cors 미들웨어가 모든 응답에 자동으로 적용됨
       
       try {
         // 임시 이미지 처리 (ID가 -1인 경우)
