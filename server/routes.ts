@@ -246,15 +246,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(cookieParser());
   
   // 세션 미들웨어 등록 (인덱스에서 제거하고 여기로 통합)
+  // 쿠키 설정 - 개발 환경에서는 secure 옵션 비활성화 (Replit 환경에서 http로 실행되므로)
+  const isProduction = process.env.NODE_ENV === 'production';
+  const isHttps = process.env.PROTOCOL === 'https' || isProduction;
+  
+  console.log(`세션 설정: 프로덕션 모드=${isProduction}, HTTPS=${isHttps}`);
+  
   app.use(session({
     secret: process.env.SESSION_SECRET || 'maternity-ai-session-secret',
     resave: false,
     saveUninitialized: false, 
     cookie: {
       httpOnly: true,
-      secure: true, // iframe과 크로스 도메인 요청을 위해 true로 설정
+      secure: isHttps, // HTTPS 연결인 경우에만 secure 활성화
       maxAge: 24 * 60 * 60 * 1000, // 24시간
-      sameSite: 'none' // iframe 임베드 지원을 위해 'none'으로 설정
+      sameSite: isHttps ? 'none' : 'lax' // HTTPS에서만 'none' 사용, 아니면 'lax'
     }
   }));
   

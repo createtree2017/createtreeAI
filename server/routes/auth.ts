@@ -153,28 +153,50 @@ router.post("/register", async (req, res) => {
 
 // 로그인 API (세션 기반)
 router.post("/login", (req, res, next) => {
+  // 로그인 요청 데이터 디버깅
+  console.log('로그인 요청 - 사용자명:', req.body.username);
+  
   passport.authenticate("local", (err: any, user: any, info: any) => {
     try {
       if (err) {
+        console.error('로그인 인증 오류:', err);
         return next(err);
       }
       
       if (!user) {
-        return res.status(401).json({ message: info.message || "로그인 실패" });
+        console.log('로그인 실패 - 사용자 정보 없음, 이유:', info?.message);
+        return res.status(401).json({ message: info?.message || "로그인 실패" });
       }
+      
+      console.log('인증 성공 - 사용자:', user.username, '(ID:', user.id, ')');
       
       // req.login()을 사용하여 세션에 사용자 저장
       req.login(user, (loginErr) => {
         if (loginErr) {
+          console.error('req.login 호출 오류:', loginErr);
           return next(loginErr);
         }
         
-        // 응답 - 사용자 정보만 반환 (토큰 없음)
-        return res.json({
-          user: sanitizeUser(user)
+        // 세션 정보 확인 (디버깅용)
+        console.log('로그인 성공, 세션 정보:', req.session);
+        console.log('req.isAuthenticated():', req.isAuthenticated());
+        
+        // 응답 전에 세션이 저장되었는지 확인
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error('세션 저장 오류:', saveErr);
+            return next(saveErr);
+          }
+          
+          // 응답 - 사용자 정보만 반환 (토큰 없음)
+          console.log('세션 저장 완료, 응답 전송');
+          return res.json({
+            user: sanitizeUser(user)
+          });
         });
       });
     } catch (error) {
+      console.error('로그인 처리 중 예외 발생:', error);
       return next(error);
     }
   })(req, res, next);
@@ -208,6 +230,11 @@ router.post("/refresh-token", async (req, res) => {
 
 // 로그아웃 API (세션 기반)
 router.post("/logout", (req, res) => {
+  // 디버깅 정보 출력
+  console.log('로그아웃 요청: isAuthenticated=', req.isAuthenticated());
+  console.log('세션:', req.session);
+  console.log('쿠키:', req.cookies);
+  
   // req.logout() 사용하여 세션에서 사용자 정보 제거
   req.logout((err) => {
     if (err) {
@@ -221,9 +248,18 @@ router.post("/logout", (req, res) => {
         console.error("세션 파기 오류:", sessionErr);
       }
       
-      // 쿠키 삭제
-      res.clearCookie("connect.sid");
+      // 쿠키 삭제 - Replit 환경에서의 설정을 고려
+      const isProduction = process.env.NODE_ENV === 'production';
+      const isHttps = process.env.PROTOCOL === 'https' || isProduction;
       
+      res.clearCookie("connect.sid", {
+        httpOnly: true,
+        secure: isHttps,
+        sameSite: isHttps ? 'none' : 'lax',
+        path: '/'
+      });
+      
+      console.log('로그아웃 완료, 쿠키 삭제됨');
       return res.json({ message: "로그아웃 성공" });
     });
   });
