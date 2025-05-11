@@ -252,9 +252,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     saveUninitialized: false, 
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: true, // iframe과 크로스 도메인 요청을 위해 true로 설정
       maxAge: 24 * 60 * 60 * 1000, // 24시간
-      sameSite: 'lax' // CSRF 보호와 iframe 호환성 위해 'lax' 사용
+      sameSite: 'none' // iframe 임베드 지원을 위해 'none'으로 설정
     }
   }));
   
