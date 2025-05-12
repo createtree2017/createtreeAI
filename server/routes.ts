@@ -6,6 +6,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import 'express-session';
+import { authMiddleware } from "./common/middleware/auth";
 import { DevHistoryManager } from "./services/dev-history-manager";
 
 // Express session 타입 확장
@@ -421,8 +422,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Image transformation endpoints
-  app.post("/api/image/transform", upload.single("image"), async (req, res) => {
+  // Image transformation endpoints - 인증 필요
+  app.post("/api/image/transform", upload.single("image"), authMiddleware, async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file uploaded" });

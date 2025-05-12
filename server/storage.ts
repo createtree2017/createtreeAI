@@ -591,75 +591,54 @@ export const storage = {
         // userId를 문자열로 변환하여 일관성 유지
         const strUserId = String(userId);
         
-        // user_id 컬럼으로 직접 필터링 (DB 컬럼 추가 후)
         try {
-          console.log(`[Storage] user_id 컬럼으로 필터링 시도: ${strUserId}`);
+          console.log(`[Storage] 개선된 필터링 로직으로 이미지 조회 시작`);
           
-          // 우선 직접 user_id 컬럼으로 필터링 시도
-          const directFilteredImages = allImages.filter(img => 
-            img.userId === strUserId
-          );
-          
-          console.log(`[Storage] user_id 컬럼 필터링 결과: ${directFilteredImages.length}개 이미지`);
-          
-          // user_id 컬럼으로 필터링된 결과가 있으면 사용
-          if (directFilteredImages.length > 0) {
-            console.log(`[Storage] user_id 컬럼으로 필터링 성공`);
-            filteredImages = directFilteredImages;
-          } else {
-            // 이전 방식: 메타데이터에서 userId와 일치하는 이미지만 필터링 (하위 호환성 유지)
-            console.log(`[Storage] user_id 컬럼 필터링 실패, 메타데이터 필드로 대체 필터링`);
+          // 필터링 방식 개선: 여러 조건에 해당하는 이미지 포함
+          filteredImages = allImages.filter(img => {
+            // 1. user_id 컬럼으로 직접 필터링 - 완전 일치하는 경우
+            if (img.userId === strUserId) {
+              return true;
+            }
             
-            filteredImages = allImages.filter(img => {
-              if (!img.metadata) {
-                return false;
-              }
-              
+            // 2. metadata에서 userId로 필터링 - 하위 호환성
+            if (img.metadata) {
               try {
                 const metadata = typeof img.metadata === 'string' 
                   ? JSON.parse(img.metadata) 
                   : img.metadata;
                 
-                // 메타데이터의 userId 값 확인
-                const metadataUserId = metadata.userId;
-                
-                // 메타데이터에 userId가 없는 경우 (오래된 이미지)
-                if (!metadataUserId) {
-                  console.log(`[Storage] 이미지 ID ${img.id} 사용자 ID 없음 - 기본 공유 설정으로 간주`);
+                // metadata의 userId가 현재 사용자 ID와 일치하는 경우
+                if (metadata.userId && String(metadata.userId) === strUserId) {
                   return true;
                 }
                 
-                // 문자열 변환하여 비교
-                const strMetadataUserId = String(metadataUserId);
-                return strMetadataUserId === strUserId;
+                // 3. metadata에 isShared=true로 설정된 공유 이미지 - 모든 사용자에게 표시
+                if (metadata.isShared === true) {
+                  return true;
+                }
               } catch (error) {
                 console.log(`[Storage] 이미지 ID ${img.id} 메타데이터 파싱 오류:`, error);
-                return false;
               }
-            });
+            }
             
-            console.log(`[Storage] 메타데이터 필터링 결과: ${filteredImages.length}개 이미지`);
-          }
+            // 4. 메타데이터가 없거나 빈 객체인 경우 - 레거시 데이터 처리
+            if (!img.metadata || img.metadata === '{}') {
+              // 기본적으로 공유됨으로 처리 (레거시 데이터는 모두 표시)
+              return true;
+            }
+            
+            return false;
+          });
+          
+          console.log(`[Storage] 개선된 필터링 결과: ${filteredImages.length}개 이미지 (원본: ${allImages.length}개)`);
+          
         } catch (error) {
           console.error(`[Storage] 필터링 중 오류 발생:`, error);
           
-          // 에러 시 이전 방식으로 폴백 (하위 호환성 유지)
-          filteredImages = allImages.filter(img => {
-            if (!img.metadata) return false;
-            
-            try {
-              const metadata = typeof img.metadata === 'string' 
-                ? JSON.parse(img.metadata) 
-                : img.metadata;
-              
-              const metadataUserId = metadata.userId;
-              if (!metadataUserId) return false;
-              
-              return String(metadataUserId) === strUserId;
-            } catch (error) {
-              return false;
-            }
-          });
+          // 오류 발생 시 전체 이미지 보여주기 (폴백)
+          console.log(`[Storage] 오류로 인해 모든 이미지를 표시합니다.`);
+          filteredImages = allImages;
         }
         
         console.log(`[Storage] 사용자 ID 필터링 결과: ${filteredImages.length}개 이미지 (원본: ${allImages.length}개)`);
@@ -914,25 +893,32 @@ export const storage = {
           title = metadata.displayTitle;
         }
         
-        // 사용자 ID를 메타데이터에서 가져옴 (숫자형으로 변환)
-        let metadataUserId = null;
-        if (metadata && metadata.userId) {
-          // 문자열이나 숫자 모두 허용하고 숫자로 변환
-          metadataUserId = typeof metadata.userId === 'string' ? 
-            Number(metadata.userId) : metadata.userId;
+        // 개선된 필터링 로직 (4가지 조건 중 하나라도 만족하면 표시)
+        let shouldInclude = false;
+        
+        // 1. user_id 컬럼으로 직접 필터링
+        if (userId && item.userId === String(userId)) {
+          shouldInclude = true;
+        } 
+        // 2. 메타데이터에서 userId로 필터링
+        else if (userId && metadata && metadata.userId && String(metadata.userId) === String(userId)) {
+          shouldInclude = true;
+        }
+        // 3. 공유 이미지 표시
+        else if (metadata && metadata.isShared === true) {
+          shouldInclude = true;
+        } 
+        // 4. userId가 -1인 글로벌 공유 이미지
+        else if (metadata && metadata.userId === -1) {
+          shouldInclude = true;
+        }
+        // 5. 메타데이터가 비어있거나 없는 레거시 이미지 (기본 공유)
+        else if (!item.metadata || item.metadata === '{}' || Object.keys(metadata).length === 0) {
+          shouldInclude = true;
         }
         
-        // 공유 이미지 여부 확인
-        const isShared = metadata && metadata.isShared === true;
-        
-        // 글로벌 공유 이미지 (userId: -1) 도 공유된 것으로 간주
-        const isGlobalShared = metadataUserId === -1;
-        
-        // 현재 사용자의 이미지
-        const isUserImage = userId && metadataUserId === userId;
-        
-        // 현재 사용자의 이미지이거나 공유된 이미지인 경우만 포함
-        if (isUserImage || isShared || isGlobalShared) {
+        // 포함된 이미지만 반환
+        if (shouldInclude) {
           return {
             id: item.id,
             title: title,
