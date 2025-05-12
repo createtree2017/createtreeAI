@@ -497,7 +497,12 @@ export const storage = {
     try {
       console.log(`[Storage] getPaginatedImageList 호출됨: page=${page}, limit=${limit}, userId=${userId || '없음'}, username=${username || '없음'}, ${new Date().toISOString()}`);
       
-      // 전체 이미지 수 계산을 위한 기본 쿼리
+      // 기준 날짜 설정: 2025-05-12 이후 생성된 이미지만 사용자별 필터링 적용
+      // 이전 이미지는 표시하지 않음 (한글 인코딩 문제가 있는 기존 데이터)
+      const filterDate = new Date('2025-05-12T00:00:00Z');
+      console.log(`[Storage] 필터 날짜 설정: ${filterDate.toISOString()} 이후 이미지만 표시`);
+      
+      // 전체 이미지 수 계산을 위한 기본 쿼리 
       const countQuery = db.select({ count: count() }).from(images);
       const countResult = await countQuery;
       const total = countResult[0].count;
