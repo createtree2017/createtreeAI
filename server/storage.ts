@@ -398,9 +398,13 @@ export const storage = {
       if (username) {
         metadata.displayName = username;
       }
+      
+      // 기본적으로 개인 이미지로 설정 (공유되지 않음)
+      metadata.isShared = false;
     } else {
-      // 특별 케이스: userId가 없는 경우 공유 이미지로 설정 (-1)
+      // 특별 케이스: userId가 없는 경우 공유 이미지로 설정 (-1과 isShared=true)
       metadata.userId = -1; // 글로벌 공유 이미지 표시용 (숫자 타입 유지)
+      metadata.isShared = true; // 공유 이미지로 표시
     }
     
     // 🔍 중요: 메타데이터 저장 전 최종 확인 로그
@@ -1071,6 +1075,61 @@ export const storage = {
     // and create a shareable link. For this example, we'll just create a simple URL.
     const baseUrl = process.env.BASE_URL || "https://mommelody.app";
     return `${baseUrl}/share/${type}/${id}`;
+  },
+  
+  async toggleImageSharing(id: number, userId?: number | null) {
+    try {
+      // 1. 이미지 검색
+      const image = await db.query.images.findFirst({
+        where: eq(images.id, id),
+      });
+      
+      if (!image) {
+        return { success: false, message: "이미지를 찾을 수 없습니다." };
+      }
+      
+      // 2. 메타데이터 파싱
+      const metadata = image.metadata 
+        ? (typeof image.metadata === 'string' 
+            ? JSON.parse(image.metadata) 
+            : image.metadata)
+        : {};
+      
+      // 3. 사용자 소유권 확인 (요청한 사용자가 이미지 소유자인지)
+      const metadataUserId = Number(metadata.userId || -1);
+      
+      // 관리자 또는 이미지 소유자만 공유 상태를 변경할 수 있음
+      if (userId && metadataUserId !== -1 && userId !== metadataUserId) {
+        return { 
+          success: false, 
+          message: "이 이미지의 공유 상태를 변경할 권한이 없습니다."
+        };
+      }
+      
+      // 4. 현재 공유 상태 확인 및 토글
+      const currentSharedState = metadata.isShared === true;
+      metadata.isShared = !currentSharedState;
+      
+      // 5. 변경된 메타데이터 저장
+      await db
+        .update(images)
+        .set({ 
+          metadata: JSON.stringify(metadata),
+          updatedAt: new Date()
+        })
+        .where(eq(images.id, id));
+      
+      return { 
+        success: true, 
+        isShared: metadata.isShared,
+        message: metadata.isShared
+          ? "이미지가 공유되었습니다."
+          : "이미지 공유가 해제되었습니다."
+      };
+    } catch (error) {
+      console.error(`이미지 공유 상태 변경 중 오류 발생 (ID:${id}):`, error);
+      return { success: false, message: "서버 오류가 발생했습니다." };
+    }
   },
   
   // Saved chat functions
