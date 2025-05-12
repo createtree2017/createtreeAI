@@ -237,6 +237,7 @@ import authRoutes from "./routes/auth";
 import { initPassport } from "./services/auth";
 import cookieParser from "cookie-parser";
 import session from "express-session";
+import { placeholderRouter } from './routes/placeholder';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // 쿠키 파서 미들웨어 등록
@@ -261,6 +262,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // 인증 라우트 등록
   app.use("/api/auth", authRoutes);
+  
+  // 플레이스홀더 이미지 라우트 등록
+  app.use("/api/placeholder", placeholderRouter);
   
   // 슈퍼관리자 라우트 등록
   app.use("/api/super", superAdminRoutes);
