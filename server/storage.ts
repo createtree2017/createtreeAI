@@ -860,7 +860,7 @@ export const storage = {
       .from(images)
       .where(gt(images.createdAt, filterDate))
       .orderBy(desc(images.createdAt))
-      .limit(10);
+      .limit(6);
       
       const recentImages = await recentImagesQuery.execute();
       console.log(`[최근 이미지 API] 데이터베이스에서 ${recentImages.length}개 이미지 조회됨`);
