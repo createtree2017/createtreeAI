@@ -591,15 +591,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (error) {
         console.error("이미지 저장 중 오류:", error);
         // 오류 발생 시 기본 응답 객체 생성
+        // 이미지 저장에 실패하더라도 사용자에게 친숙한 제목 유지
+        // 원래 파일명에서 확장자를 제외한 이름 사용
+        const nameWithoutExt = path.basename(req.file.originalname, path.extname(req.file.originalname));
         savedImage = {
           id: -1,
-          title: `오류: ${style} 이미지`,
+          title: `${style} ${nameWithoutExt}`, // "오류:" 접두사 제거
           style,
           originalUrl: filePath,
           transformedUrl: transformedImageUrl,
           createdAt: new Date().toISOString(),
           isTemporary: true,
-          aspectRatio: selectedAspectRatio // 선택된 비율 정보 추가
+          aspectRatio: selectedAspectRatio, // 선택된 비율 정보 추가
+          // 디버깅 정보 추가 (클라이언트에서는 표시되지 않음)
+          debug: { errorOccurred: true, errorTime: new Date().toISOString() }
         };
       }
       
