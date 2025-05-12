@@ -559,15 +559,69 @@ export const storage = {
         console.log(`[이미지 샘플 ${idx+1}] ID: ${item.id}, 제목: "${item.title}", 메타데이터: ${metadataLog}`);
       });
       
-      // 모든 필터링 비활성화 - 모든 이미지 표시
-      console.log(`[Storage] 모든 필터링 비활성화 - 전체 이미지 표시 중`);
+      // 사용자 ID 기반 필터링 (userId가 제공된 경우)
+      let filteredImages = allImages;
+      if (userId) {
+        console.log(`[Storage] 사용자 ID ${userId}로 이미지 필터링 시작`);
+        
+        // 메타데이터에서 userId와 일치하는 이미지만 필터링
+        filteredImages = allImages.filter(img => {
+          if (!img.metadata) return false;
+          
+          try {
+            const metadata = typeof img.metadata === 'string' 
+              ? JSON.parse(img.metadata) 
+              : img.metadata;
+            
+            // userId를 비교할 때 문자열과 숫자 모두 처리
+            const metadataUserId = metadata.userId;
+            if (!metadataUserId) return false;
+            
+            const numUserId = typeof metadataUserId === 'string' 
+              ? parseInt(metadataUserId, 10) 
+              : metadataUserId;
+            
+            return numUserId === userId;
+          } catch (error) {
+            return false;
+          }
+        });
+        
+        console.log(`[Storage] 사용자 ID 필터링 결과: ${filteredImages.length}개 이미지 (원본: ${allImages.length}개)`);
+        
+        // 필터링 결과가 너무 적으면 공유 이미지도 포함
+        if (filteredImages.length < 3) {
+          console.log(`[Storage] 사용자의 이미지가 부족하여 공유 이미지도 포함`);
+          
+          const sharedImages = allImages.filter(img => {
+            if (!img.metadata) return false;
+            
+            try {
+              const metadata = typeof img.metadata === 'string' 
+                ? JSON.parse(img.metadata) 
+                : img.metadata;
+              
+              return metadata.isShared === true;
+            } catch (error) {
+              return false;
+            }
+          });
+          
+          // 중복 방지를 위해 Set 사용
+          const combinedImagesSet = new Set([...filteredImages, ...sharedImages]);
+          filteredImages = Array.from(combinedImagesSet);
+          
+          console.log(`[Storage] 사용자 + 공유 이미지 필터링 결과: ${filteredImages.length}개 이미지`);
+        }
+      } else {
+        console.log(`[Storage] 로그인 사용자 없음 - 모든 이미지 표시`);
+      }
       
       // 로그인 사용자 정보 로깅
       console.log(`[Storage] 로그인 사용자: ID=${userId || '없음'}, 이름=${username || '없음'}`);
-      console.log(`[Storage] 필터링 없이 모든 이미지 준비완료 (필터링 없음)`);
       
       // 페이지네이션 적용
-      const resultsPaginated = allImages.slice((page - 1) * limit, page * limit);
+      const resultsPaginated = filteredImages.slice((page - 1) * limit, page * limit);
       console.log(`[Storage] 페이지네이션 이미지 조회 결과: ${resultsPaginated.length}개 (page=${page}, limit=${limit})`);
       
       // 결과 반환 변수 수정
