@@ -574,15 +574,16 @@ export const storage = {
               ? JSON.parse(img.metadata) 
               : img.metadata;
             
-            // userId를 비교할 때 문자열과 숫자 모두 처리
+            // userId를 비교할 때 모두 문자열로 변환하여 일관성 유지
             const metadataUserId = metadata.userId;
             if (!metadataUserId) return false;
             
-            const numUserId = typeof metadataUserId === 'string' 
-              ? parseInt(metadataUserId, 10) 
-              : metadataUserId;
+            // 양쪽 모두 문자열로 변환하여 비교 (타입 불일치 방지)
+            const strUserId = String(userId);
+            const strMetadataUserId = String(metadataUserId);
             
-            return numUserId === userId;
+            console.log(`[Storage] 사용자 ID 비교: ${strUserId} === ${strMetadataUserId}`);
+            return strMetadataUserId === strUserId;
           } catch (error) {
             return false;
           }
