@@ -441,7 +441,8 @@ export const storage = {
           transformedUrl,
           metadata: JSON.stringify(metadata),
           createdAt: now, // 현재 시간으로 명시적 설정
-          // 데이터베이스에 user_id 컬럼이 없으므로, metadata 필드에만 저장
+          // user_id 컬럼에 직접 저장 (DB 컬럼 추가 후)
+          userId: metadata.userId || null, // metadata에서 userId 값을 가져와 컬럼에도 저장
         })
         .returning();
       

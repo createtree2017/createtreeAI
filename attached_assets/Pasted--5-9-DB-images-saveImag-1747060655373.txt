@@ -1,0 +1,82 @@
+현상 요약 (5 월 9 일 이후)
+구간	증상	관찰된 로그·행동
+저장	만삭사진·가족사진·스티커 생성은 성공 메세지 뜨지만 DB images 테이블에 레코드가 안 생김	saveImageTransformation → savedImage.id = -1, 제목에 “오류:” 접두사
+조회	 • 메뉴 하단 “최근 추억”
+• 갤러리 → 전체보기/이미지 탭 
+둘 다 5 월 9 일 이후 이미지가 안 보임	getPaginatedImageList → [] (빈 배열)
+로그인 개편	 Firebase Google Auth 도입 후 user.id 값이 이메일로 변경	이전 코드는 숫자 ID 또는 닉네임(한글) 을 가정
+
+근본 원인 추적
+레이어	원인
+DB 스키마	 images.user_id 컬럼 없음 → ① INSERT 실패 시 id –1 리턴
+② 조회 시 WHERE user_id = ? 조건이 항상 false
+메타데이터 전략 미완료	메타데이터(JSON)에 "userId": "email@..." 저장하도록 일부 수정했지만
+조회 로직은 여전히 user_id 컬럼을 우선 시도
+타이틀 오류 프리픽스	try/catch 에서 DB INSERT 실패 시 “오류:” + style 로 가짜 오브젝트 반환 → 화면에 뜨는 “오류:만삭사진…”
+세션‑less 호출	생성 요청 시 req.user 가 undefined → userId = "-1" 로 저장되는 케이스 다수
+
+빠른 복구 플랜 (Hot‑fix)
+목표  : 새 이미지가 즉시 저장되고 2 개의 뷰에서 모두 보이도록
+
+DB 컬럼 추가 (권장)
+
+sql
+복사
+편집
+ALTER TABLE images ADD COLUMN user_id varchar(128);
+CREATE INDEX idx_images_user ON images(user_id);
+기존 SELECT / INSERT 수정 최소화
+
+metadata 전면 사용 (컬럼 미추가 시)
+
+saveImageTransformation
+
+ts
+복사
+편집
+metadata.userId = req.user?.id ?? "guest";
+await db.insert(images).values({ ... , metadata: JSON.stringify(metadata) });
+getPaginatedImageList
+
+ts
+복사
+편집
+const rows = await db.select().from(images)
+  .where(sql`metadata->>'userId' = ${userId}`)
+  .orderBy(desc(images.created_at));
+에러‑프리픽스 제거
+
+routes.ts catch 블록에서
+
+ts
+복사
+편집
+logger.error(err) // 남기고
+return res.status(500).json({ error: "transform_failed" });
+프런트에서 error === "transform_failed" 시 토스트 알림
+
+세션 확인 미들웨어
+
+이미지 생성 라우트 앞에
+
+ts
+복사
+편집
+if (!req.user) return res.status(401).json({ error:"login_required" });
+비로그인(guest)도 허용하려면 userId = "guest" 로 통일
+
+구조적 재발 방지 (2차 설계 반영)
+체크리스트	설명
+User ID 일관성	DB users.id varchar(e-mail) 로 확정, 모든 테이블 FK 타입 통일
+Drizzle migration 자동화	스키마 수정 시 npm run db:push 로 테스트 → CI fail 없으면 PR merge
+E2E 테스트 추가	vitest + supertest 로 “로그인 → 이미지 생성 → DB 존재 → 갤러리 조회” 시나리오
+메타데이터 vs 컬럼 전략 명시	빠른 조회·필터링이 필요하면 컬럼, 그 외 추가 정보는 metadata JSON
+
+바로 할 일
+images.user_id 컬럼 추가 (권장) 또는 조회 로직을 metadata 기준으로 완전히 변경
+
+saveImageTransformation & getPaginatedImageList 두 함수만 우선 패치 → 새 이미지가 갤러리·최근추억에 뜨는지 확인
+
+타이틀 오류 접두사 제거 후 프런트 토스트 처리
+
+캔버스 §4 데이터 & 인프라 테이블에 “images.user_id 컬럼 추가” 항목을 넣어 두면 좋겠습니다.

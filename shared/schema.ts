@@ -94,8 +94,8 @@ export const images = pgTable("images", {
   templateId: integer("template_id"),
   compositeMask: text("composite_mask"),
   facePositions: jsonb("face_positions"),
-  // 사용자 ID 필드 추가
-  userId: integer("user_id"),
+  // 사용자 ID 필드 (varchar로 변경: email 또는 firebase uid 저장 용도)
+  userId: varchar("user_id", { length: 128 }),
 });
 
 // Chat messages table
