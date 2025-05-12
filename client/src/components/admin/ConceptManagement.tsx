@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,13 +42,15 @@ export default function ConceptManagement() {
 
   // 컨셉 카테고리 조회
   const { data: categories = [], isLoading: isCategoriesLoading } = useQuery<ConceptCategory[]>({
-    queryKey: ['/api/concept-categories'],
+    queryKey: ['/api/admin/concept-categories'],
+    queryFn: getQueryFn(),
     enabled: true
   });
 
   // 컨셉 목록 조회
   const { data: concepts = [], isLoading: isConceptsLoading } = useQuery<Concept[]>({
-    queryKey: ['/api/concepts'],
+    queryKey: ['/api/admin/concepts'],
+    queryFn: getQueryFn(),
     enabled: true
   });
 

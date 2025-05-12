@@ -21,6 +21,7 @@ import BannerManagement from "@/components/admin/BannerManagement";
 import StyleCardManagement from "@/components/admin/StyleCardManagement";
 import CategoryManagement from "@/components/admin/CategoryManagement";
 import ConceptManagement from "@/components/admin/ConceptManagement";
+import { getQueryFn } from '@/lib/queryClient';
 import { 
   getLanguages, 
   uploadTranslations,
@@ -2369,11 +2370,13 @@ function ConceptManager() {
   // Fetch concepts
   const { data: concepts, isLoading, error } = useQuery({
     queryKey: ["/api/admin/concepts"],
+    queryFn: getQueryFn()
   });
   
   // Fetch concept categories for select dropdown
   const { data: categories } = useQuery({
     queryKey: ["/api/admin/concept-categories"],
+    queryFn: getQueryFn()
   });
   
   // Handler for editing a concept
