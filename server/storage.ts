@@ -534,7 +534,7 @@ export const storage = {
   },
   
   // 데이터베이스 수준에서 페이지네이션을 적용한 이미지 목록 조회
-  async getPaginatedImageList(page: number = 1, limit: number = 10, userId?: number | null, username?: string | null) {
+  async getPaginatedImageList(page: number = 1, limit: number = 6, userId?: number | null, username?: string | null) {
     try {
       console.log(`[Storage] getPaginatedImageList 호출됨: page=${page}, limit=${limit}, userId=${userId || '없음'}, username=${username || '없음'}, ${new Date().toISOString()}`);
       
@@ -594,27 +594,22 @@ export const storage = {
         try {
           console.log(`[Storage] 개선된 필터링 로직으로 이미지 조회 시작`);
           
-          // 필터링 방식 개선: 여러 조건에 해당하는 이미지 포함
+          // 필터링 방식 수정: 오직 현재 사용자의 이미지만 표시 (레거시 데이터 제외)
           filteredImages = allImages.filter(img => {
-            // 1. user_id 컬럼으로 직접 필터링 - 완전 일치하는 경우
+            // 1. user_id 컬럼으로 직접 필터링 - 현재 사용자와 완전 일치하는 경우만
             if (img.userId === strUserId) {
               return true;
             }
             
-            // 2. metadata에서 userId로 필터링 - 하위 호환성
+            // 2. metadata에서 userId로 필터링 - 현재 사용자와 일치하는 경우만
             if (img.metadata) {
               try {
                 const metadata = typeof img.metadata === 'string' 
                   ? JSON.parse(img.metadata) 
                   : img.metadata;
                 
-                // metadata의 userId가 현재 사용자 ID와 일치하는 경우
+                // metadata의 userId가 현재 사용자 ID와 일치하는 경우만 포함
                 if (metadata.userId && String(metadata.userId) === strUserId) {
-                  return true;
-                }
-                
-                // 3. metadata에 isShared=true로 설정된 공유 이미지 - 모든 사용자에게 표시
-                if (metadata.isShared === true) {
                   return true;
                 }
               } catch (error) {
@@ -622,12 +617,7 @@ export const storage = {
               }
             }
             
-            // 4. 메타데이터가 없거나 빈 객체인 경우 - 레거시 데이터 처리
-            if (!img.metadata || img.metadata === '{}') {
-              // 기본적으로 공유됨으로 처리 (레거시 데이터는 모두 표시)
-              return true;
-            }
-            
+            // 레거시 데이터와 다른 사용자 데이터는 모두 제외
             return false;
           });
           
@@ -893,29 +883,18 @@ export const storage = {
           title = metadata.displayTitle;
         }
         
-        // 개선된 필터링 로직 (4가지 조건 중 하나라도 만족하면 표시)
+        // 엄격한 필터링 로직: 오직 현재 사용자 이미지만 표시 (레거시 데이터 제외)
         let shouldInclude = false;
         
-        // 1. user_id 컬럼으로 직접 필터링
+        // 1. user_id 컬럼으로 직접 필터링 - 현재 사용자와 일치하는 경우만
         if (userId && item.userId === String(userId)) {
           shouldInclude = true;
         } 
-        // 2. 메타데이터에서 userId로 필터링
+        // 2. 메타데이터에서 userId로 필터링 - 현재 사용자와 일치하는 경우만
         else if (userId && metadata && metadata.userId && String(metadata.userId) === String(userId)) {
           shouldInclude = true;
         }
-        // 3. 공유 이미지 표시
-        else if (metadata && metadata.isShared === true) {
-          shouldInclude = true;
-        } 
-        // 4. userId가 -1인 글로벌 공유 이미지
-        else if (metadata && metadata.userId === -1) {
-          shouldInclude = true;
-        }
-        // 5. 메타데이터가 비어있거나 없는 레거시 이미지 (기본 공유)
-        else if (!item.metadata || item.metadata === '{}' || Object.keys(metadata).length === 0) {
-          shouldInclude = true;
-        }
+        // 다른 사용자 이미지와 레거시 데이터는 표시하지 않음
         
         // 포함된 이미지만 반환
         if (shouldInclude) {
