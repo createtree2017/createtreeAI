@@ -19,6 +19,7 @@ import TestPage from "@/pages/test";
 import TestFirebase from "@/pages/test-firebase";
 import FirebaseTestPage from "@/pages/firebase-test";
 import TestAuthPage from "@/pages/test-auth-page"; 
+import TestLoginPage from "@/pages/test-login"; 
 import HospitalsPage from "@/pages/super/HospitalsPage";
 import UsersPage from "@/pages/super/UsersPage";
 import BottomNavigation from "@/components/BottomNavigation";
@@ -215,6 +216,20 @@ function Router() {
       </Route>
       <Route path="/test-auth">
         <TestAuthPage />
+      </Route>
+      <Route path="/test-login">
+        {/* 새로 만든 간단한 테스트 로그인 페이지 */}
+        <Layout>
+          {/* 동적 임포트 대신 직접 import 사용 */}
+          {(() => {
+            const TestLoginPage = React.lazy(() => import("@/pages/test-login"));
+            return (
+              <React.Suspense fallback={<div>Loading...</div>}>
+                <TestLoginPage />
+              </React.Suspense>
+            );
+          })()}
+        </Layout>
       </Route>
       <Route path="/unauthorized">
         <div className="min-h-screen flex flex-col items-center justify-center p-4">
