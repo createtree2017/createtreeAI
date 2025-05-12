@@ -297,7 +297,10 @@ export default function Gallery() {
                 ) : (
                   <div 
                     className="relative cursor-pointer"
-                    onClick={() => handleItemAction(item, item.type === "music" ? "play" : "view")}
+                    onClick={() => {
+                      console.log("이미지 클릭:", item);
+                      setSelectedImageId(item.id);
+                    }}
                   >
                     <img
                       src={item.thumbnailUrl || item.url || "https://placehold.co/300x200/e2e8f0/1e293b?text=이미지+준비중"}
@@ -306,6 +309,7 @@ export default function Gallery() {
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
                         target.src = "https://placehold.co/300x200/e2e8f0/1e293b?text=이미지+준비중";
+                        console.error("이미지 로드 실패:", item.url);
                       }}
                     />
                     
@@ -358,12 +362,16 @@ export default function Gallery() {
                       variant="ghost"
                       size="sm"
                       className="flex-1"
-                      onClick={() =>
-                        handleItemAction(
-                          item,
-                          item.type === "music" ? "play" : "view"
-                        )
-                      }
+                      onClick={() => {
+                        console.log("보기/재생 버튼 클릭:", item);
+                        if (item.type === "image") {
+                          // 이미지는 모달로 직접 표시
+                          setSelectedImageId(item.id);
+                        } else {
+                          // 음악이나 채팅은 기존 함수 사용
+                          handleItemAction(item, item.type === "music" ? "play" : "view");
+                        }
+                      }}
                     >
                       {item.type === "music" ? (
                         <>

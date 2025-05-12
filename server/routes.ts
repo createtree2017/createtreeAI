@@ -956,8 +956,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               title: decodeKoreanText(item.title),
               type: "image" as const,
               url: imageUrl, // 이미지 상세 뷰를 위한 URL
-              viewUrl: `/api/view-image/${item.id}`, // 이미지 보기 API 엔드포인트
-              thumbnailUrl: imageUrl, // 썸네일에도 변환된 이미지 사용
+              viewUrl: `/api/image/${item.id}`, // 이미지 보기 API 엔드포인트 (수정됨)
+              thumbnailUrl: item.transformedUrl, // 항상 변환된 이미지만 사용하도록 수정
               createdAt: item.createdAt.toISOString(),
               isFavorite: false
             };

@@ -113,10 +113,15 @@ export default function ImageDetailModal({ imageId, onClose }: ImageDetailModalP
                 alt={imageDetail.title}
                 className="w-full object-contain max-h-[400px]"
                 onError={(e) => {
+                  console.error("이미지 로드 실패:", imageDetail.transformedUrl);
                   const target = e.target as HTMLImageElement;
                   target.src = "https://placehold.co/600x400/e2e8f0/1e293b?text=이미지+로드+실패";
                 }}
               />
+              {/* 디버깅용 텍스트 */}
+              <div className="mt-2 text-xs text-neutral-dark">
+                이미지 경로: {imageDetail.transformedUrl}
+              </div>
             </div>
 
             {imageDetail.description && (
