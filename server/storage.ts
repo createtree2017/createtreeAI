@@ -391,19 +391,19 @@ export const storage = {
     
     // 사용자 정보는 일관된 방식으로 저장
     if (userId) {
-      // 이메일 기반 ID 사용 - 항상 숫자 형태로 저장 (문자열 변환 없음)
-      metadata.userId = userId;
+      // userId를 항상 문자열로 저장하여 일관성 유지
+      metadata.userId = String(userId);
       
       // 표시 이름은 별도로 저장 (이메일 또는 닉네임)
       if (username) {
-        metadata.displayName = username;
+        metadata.username = username; // username으로 저장 (displayName 대신)
       }
       
       // 기본적으로 개인 이미지로 설정 (공유되지 않음)
       metadata.isShared = false;
     } else {
       // 특별 케이스: userId가 없는 경우 공유 이미지로 설정 (-1과 isShared=true)
-      metadata.userId = -1; // 글로벌 공유 이미지 표시용 (숫자 타입 유지)
+      metadata.userId = "-1"; // 글로벌 공유 이미지 표시용 (문자열로 저장)
       metadata.isShared = true; // 공유 이미지로 표시
     }
     
@@ -427,7 +427,7 @@ export const storage = {
           originalUrl: originalPath,
           transformedUrl,
           metadata: JSON.stringify(metadata),
-          userId: userId, // userId 필드 추가 (DB 컬럼과 일치)
+          // 데이터베이스에 user_id 컬럼이 없으므로, metadata 필드에만 저장
           // 필드 이름은 데이터베이스 컬럼과 일치해야 합니다.
           // 실제 DB에 없는 username, originalFilename 필드는 제거
         })
