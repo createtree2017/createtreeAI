@@ -44,11 +44,14 @@ export default function ImageDetailModal({ imageId, onClose }: ImageDetailModalP
     if (!imageId) return;
 
     const loadImageDetail = async () => {
+      console.log(`이미지 상세 정보 로드 시작: ID ${imageId}`);
       setIsLoading(true);
       setError(null);
       
       try {
+        console.log(`API 호출: getImageDetail(${imageId})`);
         const data = await getImageDetail(imageId);
+        console.log("이미지 상세 정보 로드 성공:", data);
         setImageDetail(data);
       } catch (err) {
         console.error("이미지 상세 정보 로드 오류:", err);

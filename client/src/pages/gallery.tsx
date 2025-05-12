@@ -209,6 +209,7 @@ export default function Gallery() {
         setLocation(`/music?id=${item.id}`);
       } else if (item.type === 'image') {
         // 이미지는 모달로 표시
+        console.log(`이미지 ${item.id} 모달 열기`);
         setSelectedImageId(item.id);
       }
     } else if (action === 'share') {

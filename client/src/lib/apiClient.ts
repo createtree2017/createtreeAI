@@ -200,7 +200,10 @@ export const api = {
   },
   
   // 이미지 상세 정보 조회 API
-  getImageDetail: (imageId: number) => getApi(`/api/view-image/${imageId}`),
+  getImageDetail: (imageId: number) => {
+    console.log(`API 클라이언트: 이미지 상세 정보 조회 요청 (ID: ${imageId})`);
+    return getApi(`/api/image/${imageId}`);
+  },
   generateMusic: (data: any) => postApi('/api/music/generate', data),
   getMusicList: (filter = '') => getApi(`/api/music${filter ? `?filter=${filter}` : ''}`),
   shareMedia: (mediaId: string, mediaType: string) => postApi('/api/share', { mediaId, mediaType }),
