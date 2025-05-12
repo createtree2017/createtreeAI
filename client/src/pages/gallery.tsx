@@ -64,32 +64,43 @@ export default function Gallery() {
     totalItems: filteredItems.length
   });
   
-  // 사용자가 로그인한 경우 isOwner 속성이 있거나 userId가 사용자의 ID와 일치하는 항목만 필터링
-  const userOwnedItems = user 
-    ? filteredItems.filter((item: GalleryItem) => {
-        // 아이템 소유권 디버깅 로그
-        console.log(`항목 확인: ID=${item.id}, 타입=${item.type}, isOwner=${item.isOwner || false}, 항목 userId=${item.userId || 'none'}, 현재 userId=${user.id}`);
-        
-        // isOwner 속성이 명시적으로 설정된 경우 해당 값 사용
-        if (item.isOwner === true) {
-          return true;
-        }
-        
-        // userId가 존재하고 현재 사용자의 ID와 일치하는 경우
-        if (item.userId && item.userId === user.id) {
-          return true;
-        }
-        
-        // 필터링에서 제외
-        return false;
-      })
-    : filteredItems;
+  // "shared" 필터가 활성화된 경우 공유된 이미지만 표시
+  let displayItems = filteredItems;
+  
+  if (activeFilter === "shared") {
+    // 이미지 중에서 공유된 항목만 필터링 (모든 사용자의 공유 이미지)
+    displayItems = filteredItems.filter((item: GalleryItem) => 
+      item.type === 'image' && item.isShared === true
+    );
+    console.log('공유된 이미지 필터링:', displayItems.length);
+  } else {
+    // 일반 필터: 사용자가 로그인한 경우 자신의 항목만 표시
+    displayItems = user 
+      ? filteredItems.filter((item: GalleryItem) => {
+          // 아이템 소유권 디버깅 로그
+          console.log(`항목 확인: ID=${item.id}, 타입=${item.type}, isOwner=${item.isOwner || false}, 항목 userId=${item.userId || 'none'}, 현재 userId=${user.id}`);
+          
+          // isOwner 속성이 명시적으로 설정된 경우 해당 값 사용
+          if (item.isOwner === true) {
+            return true;
+          }
+          
+          // userId가 존재하고 현재 사용자의 ID와 일치하는 경우
+          if (item.userId && item.userId === user.id) {
+            return true;
+          }
+          
+          // 필터링에서 제외
+          return false;
+        })
+      : filteredItems;
+  }
     
-  console.log(`사용자별 필터링 결과: ${userOwnedItems.length}/${filteredItems.length} 항목 표시됨`);
+  console.log(`필터링 결과: ${displayItems.length}/${filteredItems.length} 항목 표시됨. 필터: ${activeFilter}`);
   
   // 개별 항목의 상세 디버깅 정보 (첫 번째 항목)
-  if (filteredItems.length > 0) {
-    const firstItem = filteredItems[0];
+  if (displayItems.length > 0) {
+    const firstItem = displayItems[0];
     console.log('첫 번째 갤러리 항목 세부 정보:', {
       id: firstItem.id,
       type: firstItem.type,
@@ -97,14 +108,15 @@ export default function Gallery() {
       isOwner: firstItem.isOwner || false,
       userId: firstItem.userId,
       currentUserId: user?.id || 'not logged in',
-      isFavorite: firstItem.isFavorite
+      isFavorite: firstItem.isFavorite,
+      isShared: firstItem.isShared || false
     });
   }
   
   
-  const totalPages = Math.ceil(userOwnedItems.length / itemsPerPage);
+  const totalPages = Math.ceil(displayItems.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedItems = userOwnedItems.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedItems = displayItems.slice(startIndex, startIndex + itemsPerPage);
   
   // Toggle favorite mutation
   const { mutate: toggleFavoriteMutation } = useMutation({
@@ -248,7 +260,7 @@ export default function Gallery() {
           <div className="bg-neutral-lightest h-56 rounded-lg animate-pulse"></div>
           <div className="bg-neutral-lightest h-56 rounded-lg animate-pulse"></div>
         </div>
-      ) : userOwnedItems.length > 0 ? (
+      ) : displayItems.length > 0 ? (
         <>
           <div className="grid grid-cols-2 gap-3">
             {paginatedItems.map((item: GalleryItem) => (
