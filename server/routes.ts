@@ -1289,8 +1289,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       } else if (filter === "image") {
         try {
-          // 이미지 탭에서 사용자별 필터링 구현
-          console.log(`[이미지 탭] 사용자 ID: ${userId}, 이름: ${username || '없음'}`);
+          // 이미지 탭 - 사용자별 필터링 비활성화 
+          console.log(`[이미지 탭] 사용자 ID: ${userId}, 이름: ${username || '없음'}, 모든 이미지 표시 모드`);
           
           // 기본적으로 모든 이미지 목록 가져오기
           const allImages = await storage.getImageList();
@@ -1319,10 +1319,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.log(`[이미지 ${i+1}/${allImages.length}] ID: ${img.id}, 제목: "${img.title}", 메타데이터: ${metadataInfo}`);
           }
           
-          if (userId) {
-            console.log(`로그인 사용자(${username}, ID: ${userId})의 이미지 필터링 시작`);
+          // 필터링 비활성화 - 모든 사용자에게 모든 이미지 표시
+          console.log(`[이미지 탭] ✅ 필터링 완전 비활성화 - 모든 이미지 표시 (총 ${allImages.length}개)`);
+          
+          if (false) { // 필터링 로직 비활성화 (동작하지 않음)
+            console.log(`(비활성화됨) 사용자(${username}, ID: ${userId})의 이미지 필터링 시작`);
             
-            // ✅ 개선된 필터링: 메타데이터 유무와 관계없이 제목에 사용자명이 포함되어 있어도 매칭
+            // 필터링 코드는 현재 실행되지 않음 (false 조건)
             filteredImages = allImages.filter(image => {
               let isMatch = false;
               let matchReason = "불일치";
