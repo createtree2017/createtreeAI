@@ -532,12 +532,9 @@ export const storage = {
       
       if (userId || username) {
         // 사용자 정보와 권한 로그
-        // 직접 관리자 판단 로직 적용 (req 객체를 사용하지 않음)
-        const memberTypeAdmin = false; // 요청 객체를 사용하지 않고 userId, username으로만 판단
+        console.log(`[Storage] 이미지 필터링 - userId: ${userId}, username: ${username}`);
         
         const isAdmin = Boolean(
-          // 관리자 타입 체크
-          memberTypeAdmin ||
           // 관리자 아이디 체크
           (userId && userId === 999) ||
           // 관리자 이름 체크
