@@ -50,7 +50,7 @@ router.get('/:id', async (req, res) => {
     const response = {
       id: image.id,
       title: image.title,
-      description: image.description || '',
+      description: '', // 빈 문자열로 기본 설정
       style: image.style,
       originalUrl: image.originalUrl,
       transformedUrl: image.transformedUrl,

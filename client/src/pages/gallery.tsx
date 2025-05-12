@@ -294,7 +294,10 @@ export default function Gallery() {
                     </div>
                   </div>
                 ) : (
-                  <div className="relative">
+                  <div 
+                    className="relative cursor-pointer"
+                    onClick={() => handleItemAction(item, item.type === "music" ? "play" : "view")}
+                  >
                     <img
                       src={item.thumbnailUrl || item.url || "https://placehold.co/300x200/e2e8f0/1e293b?text=이미지+준비중"}
                       alt={item.title}

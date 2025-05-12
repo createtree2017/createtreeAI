@@ -314,6 +314,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         originalUrl: image.originalUrl,
         transformedUrl: image.transformedUrl,
         createdAt: image.createdAt,
+        description: '', // 빈 문자열로 기본 설정
         metadata
       };
       
