@@ -532,10 +532,8 @@ export const storage = {
       
       if (userId || username) {
         // 사용자 정보와 권한 로그
-        // 요청 객체에서 관리자 정보 체크
-        const memberTypeAdmin = req?.user?.memberType === 'admin' || 
-                              req?.user?.memberType === 'superadmin' || 
-                              req?.user?.memberType === 'hospitaladmin';
+        // 직접 관리자 판단 로직 적용 (req 객체를 사용하지 않음)
+        const memberTypeAdmin = false; // 요청 객체를 사용하지 않고 userId, username으로만 판단
         
         const isAdmin = Boolean(
           // 관리자 타입 체크
