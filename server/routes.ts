@@ -252,7 +252,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   console.log(`세션 설정: 프로덕션 모드=${isProduction}, HTTPS=${isHttps}`);
   
-  app.use(session({
+  // 세션 옵션 타입 지정
+  const sameSiteOption: 'none' | 'lax' | 'strict' = isHttps ? 'none' : 'lax';
+  
+  const sessionOptions = {
     secret: process.env.SESSION_SECRET || 'maternity-ai-session-secret',
     resave: true, // 세션 변경 여부와 관계없이 항상 저장 (true로 변경)
     saveUninitialized: true, // 초기화되지 않은 세션도 저장 (true로 변경)
@@ -261,10 +264,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       httpOnly: true,
       secure: isHttps, // HTTPS 연결인 경우에만 secure 활성화
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7일로 연장
-      sameSite: isHttps ? 'none' : 'lax', // HTTPS에서만 'none' 사용, 아니면 'lax'
+      sameSite: sameSiteOption, // 타입 지정된 sameSite 옵션 사용
       path: '/' // 모든 경로에서 쿠키 접근 가능
     }
-  }));
+  };
+  
+  // 변경된 세션 설정 로깅
+  console.log(`[세션 설정] 상세 정보:`, {
+    secret: sessionOptions.secret.substring(0, 3) + '...',
+    resave: sessionOptions.resave,
+    saveUninitialized: sessionOptions.saveUninitialized,
+    cookieOptions: {
+      maxAge: sessionOptions.cookie.maxAge / (24 * 60 * 60 * 1000) + '일',
+      secure: sessionOptions.cookie.secure,
+      sameSite: sessionOptions.cookie.sameSite
+    }
+  });
+  
+  app.use(session(sessionOptions));
   
   // 세션 디버깅 및 관리 미들웨어 (모든 요청에 쿠키 헤더를 다시 보내지 않도록 수정)
   app.use((req: any, res, next) => {

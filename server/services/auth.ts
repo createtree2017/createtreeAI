@@ -8,6 +8,17 @@ import { users, roles, userRoles, refreshTokens } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import { randomBytes } from "crypto";
 
+// TypeScript에서 Session 타입 확장 (패스포트 타입 오류 수정)
+import 'express-session';
+
+declare module 'express-session' {
+  interface SessionData {
+    passport: {
+      user: number;
+    };
+  }
+}
+
 // JWT 설정
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"; // 실제 환경에서는 환경 변수로 관리
 const JWT_EXPIRES_IN = "30m"; // Access 토큰 유효 시간
@@ -48,29 +59,59 @@ export function sanitizeUser(user: any) {
 
 // Passport 초기화 및 설정
 export function initPassport() {
-  // Serialize user to session
+
+  // Serialize user to session - 사용자 ID를 세션에 저장
   passport.serializeUser((user: any, done) => {
-    console.log('[serializeUser] user.id:', user.id);
-    done(null, user.id);
+    if (!user || typeof user.id === 'undefined') {
+      console.error('[serializeUser] 오류: 유효하지 않은 사용자 객체', user);
+      return done(new Error('유효하지 않은 사용자 객체'), null);
+    }
+
+    // 항상 숫자 타입으로 저장 (일관성 보장)
+    const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+
+    if (isNaN(userId)) {
+      console.error('[serializeUser] 오류: 유효하지 않은 사용자 ID 타입', user.id);
+      return done(new Error('유효하지 않은 사용자 ID 형식'), null);
+    }
+
+    console.log(`[serializeUser] 세션에 사용자 ID 저장: ${userId} (타입: ${typeof userId})`);
+    done(null, userId);
   });
 
-  // Deserialize user from session
-  passport.deserializeUser(async (id: number, done) => {
-    console.log('[deserializeUser] sessionId -> user.id:', id);
+  // Deserialize user from session - 세션에 저장된 ID로 사용자 정보 조회
+  passport.deserializeUser(async (id: any, done) => {
+    // ID 타입 검증 및 변환
+    let userId = id;
+    if (typeof id === 'string') {
+      userId = parseInt(id, 10);
+      if (isNaN(userId)) {
+        console.error('[deserializeUser] 오류: 유효하지 않은 ID 문자열:', id);
+        return done(new Error('유효하지 않은 사용자 ID 형식'), null);
+      }
+    }
+
+    console.log(`[deserializeUser] 세션 ID로 사용자 조회 시작: ${userId} (타입: ${typeof userId})`);
+    
     try {
+      // 사용자 정보 조회
       const user = await db.query.users.findFirst({
-        where: eq(users.id, id),
+        where: eq(users.id, userId),
       });
 
       if (!user) {
-        console.log('[deserializeUser] 사용자를 찾을 수 없음:', id);
-        return done(new Error("사용자를 찾을 수 없습니다."), null);
+        console.log(`[deserializeUser] 사용자를 찾을 수 없음: ${userId}`);
+        return done(null, null); // null 반환하여 로그인 필요 상태로 설정
       }
 
-      console.log('[deserializeUser] 사용자 찾음:', user.id, user.username);
-      done(null, sanitizeUser(user));
+      // 민감한 정보 제거 후 사용자 객체 반환
+      const sanitizedUser = sanitizeUser(user);
+      console.log(`[deserializeUser] 사용자 조회 성공: ${user.username} (ID: ${user.id})`);
+      
+      // 세션에 사용자 정보 등록
+      done(null, sanitizedUser);
     } catch (error) {
-      console.error('[deserializeUser] 오류:', error);
+      console.error('[deserializeUser] 데이터베이스 조회 오류:', error);
       done(error, null);
     }
   });
