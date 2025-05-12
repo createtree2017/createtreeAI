@@ -32,8 +32,7 @@ const memberTypeOptions = [
 
 // 수정 폼 검증 스키마
 const userEditSchema = z.object({
-  email: z.string().email({ message: "유효한 이메일 주소를 입력해주세요." }).optional().or(z.literal("")),
-  fullName: z.string().min(2, { message: "이름은 최소 2자 이상이어야 합니다." }).optional().or(z.literal("")),
+  username: z.string().min(2, { message: "닉네임은 최소 2자 이상이어야 합니다." }),
   phoneNumber: z.string().min(10, { message: "유효한 전화번호를 입력해주세요." }).optional().or(z.literal("")),
   memberType: z.string(),
   hospitalId: z.string().optional().or(z.literal("")),
@@ -111,8 +110,7 @@ const UserEditDialog: React.FC<UserEditDialogProps> = ({
   } = useForm<UserEditFormValues>({
     resolver: zodResolver(userEditSchema),
     defaultValues: {
-      email: "",
-      fullName: "",
+      username: "",
       phoneNumber: "",
       memberType: "general",
       hospitalId: "",
@@ -132,8 +130,7 @@ const UserEditDialog: React.FC<UserEditDialogProps> = ({
   useEffect(() => {
     if (userData) {
       reset({
-        email: userData.email || "",
-        fullName: userData.fullName || "",
+        username: userData.username || "",
         phoneNumber: userData.phoneNumber || "",
         memberType: userData.memberType || "general",
         hospitalId: userData.hospitalId ? String(userData.hospitalId) : "",
@@ -212,48 +209,38 @@ const UserEditDialog: React.FC<UserEditDialogProps> = ({
         ) : userData ? (
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">사용자명 (변경불가)</Label>
+              <Label htmlFor="email">ID (이메일)</Label>
               <Input
-                id="username"
-                value={userData.username}
+                id="email"
+                value={userData.email}
                 disabled
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="fullName">이름</Label>
-              <Controller
-                name="fullName"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    id="fullName"
-                    placeholder="이름을 입력하세요"
-                    {...field}
-                  />
-                )}
+              <Label htmlFor="fullName">이름 (변경불가)</Label>
+              <Input
+                id="fullName"
+                value={userData.fullName}
+                disabled
               />
-              {errors.fullName && (
-                <p className="text-sm text-destructive">{errors.fullName.message}</p>
-              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">이메일</Label>
+              <Label htmlFor="username">닉네임</Label>
               <Controller
-                name="email"
+                name="username"
                 control={control}
                 render={({ field }) => (
                   <Input
-                    id="email"
-                    type="email"
-                    placeholder="이메일을 입력하세요"
+                    id="username"
+                    placeholder="닉네임을 입력하세요"
                     {...field}
                   />
                 )}
               />
-              {errors.email && (
-                <p className="text-sm text-destructive">{errors.email.message}</p>
+              {errors.username && (
+                <p className="text-sm text-destructive">{errors.username.message}</p>
               )}
             </div>
 
