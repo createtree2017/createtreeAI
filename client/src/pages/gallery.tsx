@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { getGalleryItems, toggleFavorite } from "@/lib/api";
+import { getGalleryItems, toggleFavorite, toggleImageSharing } from "@/lib/api";
 import { queryClient } from "@/lib/queryClient";
-import { Music, PaintbrushVertical, Heart, Play, Eye, Share2, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Music, PaintbrushVertical, Heart, Play, Eye, Share2, MessageCircle, ChevronLeft, ChevronRight, Globe, Share } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -17,6 +17,7 @@ interface GalleryItem {
   duration?: number;
   createdAt: string;
   isFavorite: boolean;
+  isShared?: boolean;   // 이미지가 공유되었는지 여부
   userId?: number;      // 항목 소유자의 사용자 ID
   isOwner?: boolean;    // 현재 로그인한 사용자가 소유자인지 여부
 }
@@ -118,6 +119,25 @@ export default function Gallery() {
     onError: (error) => {
       toast({
         title: "즐겨찾기 업데이트 오류",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // 이미지 공유 토글 mutation
+  const { mutate: toggleImageSharingMutation } = useMutation({
+    mutationFn: (imageId: number) => toggleImageSharing(imageId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/gallery"] });
+      toast({
+        title: data.isShared ? "이미지 공유됨" : "이미지 공유 해제됨",
+        description: data.isShared ? "다른 사용자들이 이미지를 볼 수 있습니다." : "다른 사용자들이 이미지를 볼 수 없습니다.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "이미지 공유 상태 변경 실패",
         description: error.message,
         variant: "destructive",
       });
