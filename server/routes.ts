@@ -884,10 +884,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // 요청 시작 시간 기록 (성능 측정용)
       const startTime = Date.now();
       
-      // 로그인 체크
+      // 로그인 체크 및 디버깅 로그 추가
       const user = req.user;
       const userId = user ? user.id : null;
       const username = user ? user.username : null;
+      const queryFilter = req.query.filter as string || 'all';
+      
+      // 디버깅 로그 추가
+      console.log('[갤러리 호출] req.user.id:', userId);
+      console.log('[갤러리 호출] req.query.filter:', queryFilter);
       
       // 🧪 갤러리 API 응답 샘플 로깅 (첫 3개 항목)
       const sampleItems = await db.select({
@@ -1456,6 +1461,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 디버깅 정보 추가
       console.log(`갤러리 API 응답 준비 완료 - 총 ${galleryItems.length}개 항목 (이미지: ${imageCount}, 음악: ${musicCount}, 채팅: ${chatCount}, 즐겨찾기: ${favoriteCount}), 처리 시간: ${processingTime}ms`);
+      
+      // 사용자별 필터링 관련 디버깅 로그 추가
+      console.log('[갤러리 응답] items.length:', galleryItems.length);
+      console.log('[갤러리 응답] userId:', userId);
+      console.log('[갤러리 응답] filter:', filter || 'all');
       
       // 응답에 메타데이터 포함
       return res.json({
