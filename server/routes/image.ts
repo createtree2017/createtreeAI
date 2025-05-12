@@ -46,6 +46,13 @@ router.get('/:id', async (req, res) => {
       metadata = image.metadata;
     }
     
+    // Ensure transformedUrl contains the complete URL
+    const transformedUrl = image.transformedUrl.startsWith('http') 
+      ? image.transformedUrl 
+      : (image.transformedUrl.startsWith('/') 
+          ? `${req.protocol}://${req.get('host')}${image.transformedUrl}` 
+          : `${req.protocol}://${req.get('host')}/${image.transformedUrl}`);
+
     // 응답 객체 형식화
     const response = {
       id: image.id,
@@ -53,10 +60,17 @@ router.get('/:id', async (req, res) => {
       description: '', // 빈 문자열로 기본 설정
       style: image.style,
       originalUrl: image.originalUrl,
-      transformedUrl: image.transformedUrl,
+      transformedUrl: transformedUrl,
       createdAt: image.createdAt,
       metadata
     };
+    
+    console.log('이미지 상세 정보 API 응답 (이미지 라우터):', {
+      id: image.id,
+      title: image.title,
+      transformedUrl,
+      originalUrl: image.originalUrl
+    });
     
     res.json(response);
   } catch (error) {
