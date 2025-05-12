@@ -422,6 +422,16 @@ export const storage = {
       // 현재 날짜 정보를 설정하여 최신 이미지가 명확하게 표시되도록 함
       const now = new Date();
       
+      // 이미지 정보 더 자세히 로깅
+      console.log(`[Storage] 이미지 데이터: 
+        - 제목: ${title}
+        - 스타일: ${style}
+        - 원본 경로: ${originalPath}
+        - 변환 URL: ${transformedUrl.substring(0, 50)}...
+        - 메타데이터: ${JSON.stringify(metadata)}
+        - 생성일: ${now.toISOString()}
+      `);
+      
       const [savedImage] = await db
         .insert(images)
         .values({
@@ -436,6 +446,16 @@ export const storage = {
         .returning();
       
       console.log(`[Storage] 이미지 저장 완료: ID ${savedImage.id}, 타이틀: "${savedImage.title}", 사용자: ${username || '없음'}, 생성일: ${now.toISOString()}`);
+      
+      // 저장 성공 확인을 위한 추가 로그
+      console.log(`[Storage] 저장된 이미지 확인:
+        - ID: ${savedImage.id}
+        - 제목: ${savedImage.title}
+        - 스타일: ${savedImage.style}
+        - 변환 URL: ${savedImage.transformedUrl.substring(0, 50)}...
+        - 메타데이터: ${savedImage.metadata || "없음"}
+      `);
+      
       return savedImage;
     } catch (error) {
       console.error(`[Storage] 이미지 저장 중 오류 발생:`, error);

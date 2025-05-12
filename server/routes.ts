@@ -536,14 +536,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const userId = user?.id;
         const username = user?.username;
         
-        // 사용자 정보 로그 출력
+        // 요청 정보 자세히 로깅
+        console.log(`[이미지 변환] 요청 시작 - 시간: ${new Date().toISOString()}`);
+        console.log(`[이미지 변환] 파일: ${req.file.originalname}, 스타일: ${style}`);
+        console.log(`[이미지 변환] 요청 헤더: admin=${req.query.admin}, x-admin-request=${req.headers['x-admin-request']}`);
+        console.log(`[이미지 변환] 세션 존재 여부: ${!!req.session}`);
+        
+        // 사용자 정보 로그 출력 (확장)
         if (userId && username) {
-          console.log(`이미지 변환 요청: 로그인 사용자 ${username} (ID: ${userId})`);
+          console.log(`[이미지 변환] 로그인 사용자 ${username} (ID: ${userId})`);
         } else {
-          console.log('이미지 변환 요청: 로그인 없음 (익명 사용자)');
+          console.log('[이미지 변환] 로그인 없음 (익명 사용자)');
+          // 로그인하지 않은 사용자의 경우 임시 정보 사용
+          console.log('[이미지 변환] 익명 사용자용 기본 메타데이터를 사용합니다');
         }
         
         // 모든 이미지 요청은 데이터베이스에 저장 (사용자 정보 포함)
+        console.log(`[이미지 변환] 이미지 저장 시작: ${style} ${req.file.originalname}`);
+        
         dbSavedImage = await storage.saveImageTransformation(
           req.file.originalname,
           style,
@@ -553,6 +563,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           username || null,
           variantId // Store which variant was used, if any
         );
+        
+        console.log(`[이미지 변환] 이미지 저장 성공: ID=${dbSavedImage.id}, 제목=${dbSavedImage.title}`);
         
         if (isAdmin || isVariantTest) {
           // 관리자 패널이나 A/B 테스트 요청은 DB 이미지 직접 반환
@@ -580,32 +592,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
             aspectRatio: selectedAspectRatio // 사용된 비율 정보 추가
           };
           
-          // 세션에 임시 이미지 정보 저장 (다운로드 처리를 위해)
-          if (req.session) {
-            req.session.tempImage = savedImage;
-            console.log("임시 이미지 정보를 세션에 저장했습니다:", savedImage.title);
-          } else {
-            console.warn("세션 객체가 없어 임시 이미지를 저장할 수 없습니다.");
+          // 개선된 세션 처리: 세션에 임시 이미지 정보 저장 (다운로드 처리를 위해)
+          try {
+            if (req.session) {
+              req.session.tempImage = savedImage;
+              
+              // 세션 저장 명시적 호출
+              req.session.save((err) => {
+                if (err) {
+                  console.error("[이미지 변환] 세션 저장 중 오류:", err);
+                } else {
+                  console.log(`[이미지 변환] 임시 이미지 정보가 세션(${req.sessionID})에 저장되었습니다. 제목: ${savedImage.title}`);
+                  console.log(`[이미지 변환] 이미지 ID: ${dbSavedImage.id}, 임시 경로: ${savedImage.transformedUrl}`);
+                }
+              });
+            } else {
+              console.warn("[이미지 변환] 세션 객체가 없어 임시 이미지를 저장할 수 없습니다.");
+            }
+          } catch (sessionError) {
+            console.error("[이미지 변환] 세션 저장 접근 중 오류:", sessionError);
           }
         }
       } catch (error) {
-        console.error("이미지 저장 중 오류:", error);
-        // 오류 발생 시 기본 응답 객체 생성
-        // 이미지 저장에 실패하더라도 사용자에게 친숙한 제목 유지
-        // 원래 파일명에서 확장자를 제외한 이름 사용
-        const nameWithoutExt = path.basename(req.file.originalname, path.extname(req.file.originalname));
-        savedImage = {
-          id: -1,
-          title: `${style} ${nameWithoutExt}`, // "오류:" 접두사 제거
-          style,
-          originalUrl: filePath,
-          transformedUrl: transformedImageUrl,
-          createdAt: new Date().toISOString(),
-          isTemporary: true,
-          aspectRatio: selectedAspectRatio, // 선택된 비율 정보 추가
-          // 디버깅 정보 추가 (클라이언트에서는 표시되지 않음)
-          debug: { errorOccurred: true, errorTime: new Date().toISOString() }
-        };
+        console.error("[이미지 변환] 이미지 저장 중 오류:", error);
+        
+        // 오류 내용 상세히 로깅
+        console.error("[이미지 변환] 오류 세부 정보:", {
+          message: error.message || "알 수 없는 오류",
+          stack: error.stack,
+          time: new Date().toISOString(),
+          requestInfo: {
+            file: req.file?.originalname || "파일 없음",
+            style: style || "스타일 없음",
+            hasSession: !!req.session,
+            user: req.user ? `${req.user.username} (ID: ${req.user.id})` : "로그인 없음"
+          }
+        });
+        
+        try {
+          // 원래 파일명에서 확장자를 제외한 이름 사용
+          const nameWithoutExt = path.basename(req.file.originalname, path.extname(req.file.originalname));
+          
+          // 이미지 저장에 실패하더라도 사용자에게 친숙한 제목 유지
+          console.log("[이미지 변환] 오류 발생 시에도 친숙한 제목으로 응답 생성");
+          
+          // 이미지 URL 변환 상태에 따라 다르게 처리
+          const imgUrl = transformedImageUrl.includes("placehold.co") 
+            ? transformedImageUrl  // 이미 에러 이미지인 경우 그대로 사용
+            : `/api/placeholder?style=${encodeURIComponent(style)}&text=${encodeURIComponent("이미지 처리 중 문제가 발생했습니다")}`;
+          
+          savedImage = {
+            id: -1,
+            title: `${style} ${nameWithoutExt}`, // "오류:" 접두사 제거
+            style,
+            originalUrl: filePath,
+            transformedUrl: imgUrl,
+            createdAt: new Date().toISOString(),
+            isTemporary: true,
+            aspectRatio: selectedAspectRatio, // 선택된 비율 정보 추가
+            // 디버깅 정보 추가 (클라이언트에서는 표시되지 않음)
+            debug: { 
+              errorOccurred: true, 
+              errorTime: new Date().toISOString(),
+              errorType: error.name || "UnknownError",
+              errorMessage: error.message || "알 수 없는 오류"
+            }
+          };
+          
+          console.log(`[이미지 변환] 오류 응답 객체 생성 완료: ${savedImage.title}`);
+        } catch (formatError) {
+          console.error("[이미지 변환] 오류 응답 생성 중 추가 오류:", formatError);
+          
+          // 완전 실패 시 최소한의 정보만 포함한 기본 응답
+          savedImage = {
+            id: -1,
+            title: `이미지 ${new Date().toLocaleTimeString()}`,
+            style: style || "기본",
+            originalUrl: "",
+            transformedUrl: "/api/placeholder?error=true",
+            createdAt: new Date().toISOString(),
+            isTemporary: true
+          };
+        }
       }
       
       return res.status(201).json(savedImage);
