@@ -674,31 +674,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const filterByUser = req.query.filterByUser !== 'false';
       
       if (user && filterByUser) {
-        console.log(`[최근 이미지 API] 사용자 ${user.username}의 이미지만 필터링`);
+        console.log(`[최근 이미지 API] 사용자 ${user.username} (ID: ${userId})의 이미지만 필터링`);
       } else {
         console.log(`[최근 이미지 API] 사용자 필터링 없음 (전체 이미지 표시)`);
       }
+      
+      // 여러 개의 이미지를 얻기 위해 제한을 높임
+      const dbLimit = Math.max(30, limit * 3); // 최소 30개 또는 요청한 limit의 3배
+      
+      console.log(`[최근 이미지 API] 데이터베이스에서 ${dbLimit}개의 이미지를 가져오는 중...`);
       
       // 페이지네이션 적용하여 데이터베이스에서 최근 이미지 가져오기
       // 로그인 상태이고 사용자 필터링이 활성화된 경우에만 사용자 정보로 필터링
       const result = await storage.getPaginatedImageList(
         1, // 첫 페이지 
-        limit, 
+        dbLimit, 
         (user && filterByUser) ? userId : null,
         (user && filterByUser) ? user.username : null
       );
       
-      // 1시간 이내 생성된 이미지만 필터링 (사용자에게 보여줄 이미지)
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000); // 1시간 전 타임스탬프
+      // 필터링 조건 완화: 최근 24시간 내의 이미지도 포함 (1시간→24시간)
+      const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24시간 전 타임스탬프
       
       const recentImages = result.images
         .filter(img => {
-          // createdAt이 1시간 이내인 이미지만 포함
+          // createdAt이 24시간 이내인 이미지 포함
           const createTime = new Date(img.createdAt);
-          return createTime > oneHourAgo;
-        });
+          return createTime > dayAgo;
+        })
+        .slice(0, limit); // 요청한 제한으로 결과 제한
       
-      console.log(`최근 이미지 API: 전체 ${result.images.length}개 중 1시간 이내 이미지 ${recentImages.length}개 반환`);
+      // 결과 개수가 부족하면 시간 제한 없이 최근 이미지 포함
+      if (recentImages.length < limit) {
+        console.log(`[최근 이미지 API] 24시간 이내 이미지가 ${recentImages.length}개로 부족합니다. 시간 제한 없이 최근 이미지를 포함합니다.`);
+        
+        // 이미 포함된 이미지 ID 집합
+        const existingIds = new Set(recentImages.map(img => img.id));
+        
+        // 시간 제한 없이 추가 이미지를 포함
+        const additionalImages = result.images
+          .filter(img => !existingIds.has(img.id)) // 중복 방지
+          .slice(0, limit - recentImages.length); // 남은 제한까지만 추가
+        
+        // 결합
+        recentImages.push(...additionalImages);
+      }
+      
+      console.log(`[최근 이미지 API] 전체 ${result.images.length}개 중 ${recentImages.length}개 이미지 반환 (사용자: ${userId || 'None'})`);
+      
+      // 디버깅: 각 이미지의 기본 정보를 로그로 출력
+      recentImages.forEach((img, index) => {
+        let metadataInfo = '없음';
+        if (img.metadata) {
+          try {
+            const metadata = typeof img.metadata === 'string' 
+              ? JSON.parse(img.metadata) 
+              : img.metadata;
+            metadataInfo = `userId: ${metadata.userId || '없음'}, isShared: ${metadata.isShared || false}`;
+          } catch (e) {}
+        }
+        
+        console.log(`[최근 이미지 ${index+1}/${recentImages.length}] ID: ${img.id}, 제목: ${img.title}, 생성일: ${new Date(img.createdAt).toISOString()}, 메타데이터: ${metadataInfo}`);
+      });
       
       return res.json(recentImages);
     } catch (error) {
@@ -976,43 +1013,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // 이미지 항목 (사용자별 이미지 표시)
           try {
-            console.log(`이미지 항목 로딩 - 사용자: ${username || '없음'}`);
+            console.log(`이미지 항목 로딩 - 사용자 ID: ${userId || '없음'}, 이름: ${username || '없음'}`);
             
-            // 더 많은 이미지를 가져와서 필터링
-            let query = db.select({
-              id: images.id,
-              title: images.title,
-              transformedUrl: images.transformedUrl,
-              createdAt: images.createdAt,
-              style: images.style
-              // userId 필드 제거: user_id 컬럼이 데이터베이스에 없음
-            })
-            .from(images)
-            .orderBy(desc(images.createdAt))
-            .limit(50); // 필터링 전에 더 많이 가져옴
+            // 개선된 getPaginatedImageList 함수 사용 (메타데이터 기반 필터링)
+            const result = await storage.getPaginatedImageList(
+              1, // 첫 페이지
+              30, // 최대 30개 가져오기
+              userId, // 사용자 ID
+              username // 사용자 이름
+            );
             
-            const allImages = await query;
+            // 필터링된 이미지 가져오기
+            let filteredImages = result.images;
             
-            // 사용자 이름으로 제목 필터링 (임시 방법)
-            let filteredImages = allImages;
-            if (username) {
-              console.log(`사용자 이름 '${username}'으로 이미지 필터링 적용`);
-              filteredImages = allImages.filter(img => {
-                // 이미지 제목에 사용자 이름이 포함되어 있는지 확인 (대소문자 무시)
-                const titleLower = img.title.toLowerCase();
-                const usernameLower = username.toLowerCase();
-                return titleLower.includes(usernameLower);
-              });
-              console.log(`필터링 후 ${filteredImages.length}개 이미지 남음`);
-              
-              // 필터링 후 결과가 너무 적으면 최근 항목 일부만 표시
-              if (filteredImages.length < 3) {
-                console.log("사용자 필터링 결과가 너무 적어 최근 10개 이미지만 표시합니다");
-                filteredImages = allImages.slice(0, 10);
+            console.log(`갤러리 API: 이미지 조회 결과 - ${filteredImages.length}개 이미지`);
+            
+            // 각 이미지의 기본 정보 로그
+            filteredImages.slice(0, 3).forEach((img, i) => {
+              let metadataInfo = "없음";
+              if (img.metadata) {
+                try {
+                  const metadata = typeof img.metadata === 'string' 
+                    ? JSON.parse(img.metadata) 
+                    : img.metadata;
+                  metadataInfo = `userId: ${metadata.userId || '없음'}, username: ${metadata.username || '없음'}`;
+                } catch (e) {}
               }
-            }
+              console.log(`갤러리 이미지 [${i+1}/3] ID: ${img.id}, 제목: ${img.title}, 메타데이터: ${metadataInfo}`);
+            });
             
-            // 최대 10개만 표시
+            // 최대 10개 이미지로 제한
             filteredImages = filteredImages.slice(0, 10);
             
             if (filteredImages.length > 0) {
