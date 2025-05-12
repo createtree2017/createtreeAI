@@ -1,0 +1,83 @@
+ReferenceError: req is not defined 오류는 앞서 getPaginatedImageList 내부에서 req.user를 바로 참조하면서 생긴 문제입니다. 이 함수는 원래 req 객체를 인자로 받지 않으므로, req를 사용할 수 없죠.
+
+해결법 요약
+라우트에서 req.user를 함수 인자로 전달
+
+getPaginatedImageList 시그니처를 (user, page, limit) 형태로 변경
+
+내부에서 user.role 또는 user.memberType 을 이용해 필터링
+
+1. 라우트 수정
+diff
+복사
+편집
+// server/routes.ts (갤러리 엔드포인트)
+- router.get('/gallery', authMiddleware, async (req, res, next) => {
+-   const items = await storage.getPaginatedImageList(page, limit);
++ router.get('/gallery', authMiddleware, async (req, res, next) => {
++   // req.user 에는 deserializeUser로 채워진 사용자 객체
++   const user = req.user!;
++   const items = await storage.getPaginatedImageList(user, page, limit);
+    res.json(items);
+  });
+2. Storage 함수 시그니처 및 내부 로직 수정
+ts
+복사
+편집
+// server/storage.ts
+-import { Request } from 'express';
+-export async function getPaginatedImageList(req: Request, page: number, limit: number) {
++import { User } from '../common/types';
++// user: 로그인된 사용자 정보, page/limit: 페이징 옵션
++export async function getPaginatedImageList(
++  user: User,
++  page: number,
++  limit: number
++) {
+  // 1) 전체 이미지 로드
+  const all = await db.images.findMany({ skip: (page - 1) * limit, take: limit });
+
+  // 2) 관리자 권한 확인
+- if (user.role === 'admin' || user.memberType === 'membership') {
++  if (user.role === 'admin' || user.memberType === 'superadmin') {
+    console.log('[Storage] 관리자 접근, 전체 이미지 반환');
+    return all;
+  }
+
+  // 3) 일반 사용자 필터링
+  const userIdStr = String(user.id);
+  const filtered = all.filter(img => {
+    if (img.metadata?.userId) {
+      return String(img.metadata.userId) === userIdStr;
+    }
+    return img.title.includes(user.username);
+  });
+
+  console.log(`[Storage] 사용자(${user.id}) 필터링 결과:`, filtered.length);
+  return filtered;
+}
+req 제거: 더 이상 req를 인자로 받지 않고, user 객체만 전달받습니다.
+
+권한 검사: user.role 혹은 memberType으로 관리자 여부를 판단합니다.
+
+필터링: 메타데이터가 있을 때 우선 비교, 없으면 제목으로 대체 검증
+
+3. 타입 선언
+ts
+복사
+편집
+// src/types/express/index.d.ts
+import 'express';
+declare global {
+  namespace Express {
+    interface User {
+      id: number;
+      username: string;
+      role?: string;
+      memberType?: string;
+    }
+    interface Request {
+      user?: User;
+    }
+  }
+}

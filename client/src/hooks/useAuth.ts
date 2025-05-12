@@ -32,6 +32,7 @@ export function useAuth() {
 [인증 상태 확인] - 클라이언트
 - 현재 경로: ${window.location.pathname}
 - 쿠키 존재: ${document.cookie ? 'Yes' : 'No'}
+- 쿠키 내용: ${document.cookie}
 - 로컬 스토리지 항목: ${Object.keys(localStorage).length}개
 ===============================================================
   `);
@@ -108,6 +109,24 @@ export function useAuth() {
       
       // 사용자 정보 캐시 업데이트
       queryClient.setQueryData(["/api/auth/me"], data.user);
+      
+      // 디버깅: 로그인 후 세션 쿠키 확인
+      console.log("[로그인 성공] 현재 쿠키:", document.cookie);
+      
+      // 로그인 성공 후 세션 상태 검증을 위해 서버에 다시 요청
+      fetch("/api/auth/me", { 
+        credentials: "include" 
+      })
+      .then(res => {
+        console.log("[로그인 검증] 상태:", res.status);
+        return res.ok ? res.json() : null;
+      })
+      .then(userData => {
+        console.log("[로그인 검증] 사용자 데이터:", userData);
+      })
+      .catch(err => {
+        console.error("[로그인 검증] 오류:", err);
+      });
       
       toast({
         title: "로그인 성공",

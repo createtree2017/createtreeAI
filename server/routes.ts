@@ -257,8 +257,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   const sessionOptions = {
     secret: process.env.SESSION_SECRET || 'maternity-ai-session-secret',
-    resave: true, // 세션 변경 여부와 관계없이 항상 저장 (true로 변경)
-    saveUninitialized: true, // 초기화되지 않은 세션도 저장 (true로 변경)
+    resave: false, // 변경사항 있을 때만 저장
+    saveUninitialized: false, // 초기화된 세션만 저장
     name: 'connect.sid', // 세션 쿠키 이름 명시적 지정
     cookie: {
       httpOnly: true,
