@@ -20,6 +20,7 @@ import { getLanguage, loadTranslations, setLanguage, t } from "@/lib/i18n";
 import BannerManagement from "@/components/admin/BannerManagement";
 import StyleCardManagement from "@/components/admin/StyleCardManagement";
 import CategoryManagement from "@/components/admin/CategoryManagement";
+import ConceptManagement from "@/components/admin/ConceptManagement";
 import { 
   getLanguages, 
   uploadTranslations,
@@ -727,7 +728,7 @@ export default function AdminPage() {
               
               <TabsContent value="image-concepts">
                 <div className="mt-6">
-                  <ConceptManager />
+                  <ConceptManagement />
                 </div>
               </TabsContent>
               
