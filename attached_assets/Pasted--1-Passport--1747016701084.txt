@@ -1,0 +1,85 @@
+**📦 라플이에게 복사·붙여넣기용 지시서 (다음 단계)**
+아래 내용을 라플이에게 그대로 전달해 주세요.
+
+---
+
+### 1. Passport·세션 미들웨어 완전 검증
+
+1. `server/common/middleware/auth.ts` 에서 로그 추가
+
+```ts
+export function authMiddleware(req, res, next) {
+  console.log('[세션 검증] req.session:', req.session);
+  console.log('[사용자 정보] req.user:', req.user);
+  if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+  next();
+}
+```
+
+2. `server/index.ts` (또는 `app.ts`) 에서 미들웨어 순서 확인
+
+```ts
+app.use(passport.initialize());
+app.use(passport.session());
+app.use('/api/auth', authRoutes);
+app.use('/api/gallery', galleryRoutes);
+```
+
+3. `passport.serializeUser`, `deserializeUser` 안에도 디버깅 로그 추가
+
+```ts
+passport.serializeUser((user, done) => {
+  console.log('[serializeUser] user.id:', user.id);
+  done(null, user.id);
+});
+passport.deserializeUser((id, done) => {
+  console.log('[deserializeUser] sessionId -> user.id:', id);
+  User.findById(id).then(user => done(null, user));
+});
+```
+
+---
+
+### 2. 세션 지속성 테스트 자동화
+
+1. 통합 테스트 시나리오 작성 (e.g. Jest + Supertest)
+
+   ```ts
+   test('인증 후 세션 유지 테스트', async () => {
+     const loginRes = await request(app)
+       .post('/api/auth/login')
+       .send({ idToken: validGoogleIdToken });
+     const cookies = loginRes.headers['set-cookie'];
+
+     const meRes = await request(app)
+       .get('/api/auth/me')
+       .set('Cookie', cookies)
+       .expect(200);
+     expect(meRes.body.user).toHaveProperty('id');
+   });
+   ```
+2. CI 파이프라인에 통합 테스트 추가
+
+---
+
+### 3. 갤러리 API 인증·로그 확인
+
+1. `/api/gallery` 라우트에 디버깅 로그 추가
+
+```ts
+router.get('/', authMiddleware, async (req, res) => {
+  console.log('[갤러리 호출] 로그인 유저 ID:', req.user.id);
+  const items = await GalleryService.getItems(req.user.id, req.query.filter as string);
+  console.log('[갤러리 응답 항목 수]:', items.length);
+  res.json(items);
+});
+```
+
+2. 브라우저 Network 탭에서 요청 확인
+
+   * **Request Headers > Cookie** 에 `sessionId` 존재 여부
+   * **Response** 에서 `items.length > 0` 이면 정상
+
+---
+
+✅ 위 단계들을 차례대로 실행해 주시고, 각 단계 결과(로그, 테스트 통과 여부, 쿠키 전송 확인 등)를 공유해 주시면 다음 판단을 즉시 도와드리겠습니다.

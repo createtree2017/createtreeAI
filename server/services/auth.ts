@@ -50,22 +50,27 @@ export function sanitizeUser(user: any) {
 export function initPassport() {
   // Serialize user to session
   passport.serializeUser((user: any, done) => {
+    console.log('[serializeUser] user.id:', user.id);
     done(null, user.id);
   });
 
   // Deserialize user from session
   passport.deserializeUser(async (id: number, done) => {
+    console.log('[deserializeUser] sessionId -> user.id:', id);
     try {
       const user = await db.query.users.findFirst({
         where: eq(users.id, id),
       });
 
       if (!user) {
+        console.log('[deserializeUser] 사용자를 찾을 수 없음:', id);
         return done(new Error("사용자를 찾을 수 없습니다."), null);
       }
 
+      console.log('[deserializeUser] 사용자 찾음:', user.id, user.username);
       done(null, sanitizeUser(user));
     } catch (error) {
+      console.error('[deserializeUser] 오류:', error);
       done(error, null);
     }
   });
