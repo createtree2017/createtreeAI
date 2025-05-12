@@ -823,14 +823,13 @@ export const storage = {
   
   async getRecentItems(userId?: number | null) {
     try {
-      // 날짜 기준 생성
-      const currentDate = new Date();
-      // 24시간 이내 이미지만 조회
-      const oneHourAgo = new Date(currentDate.getTime() - (24 * 60 * 60 * 1000));
+      // 기준 날짜 설정: 2025-05-12 이후 생성된 이미지만 사용
+      // 한글 인코딩 문제가 있는 기존 데이터는 제외
+      const filterDate = new Date('2025-05-12T00:00:00Z');
       
-      console.log(`[최근 이미지 API] 최근 24시간 이내 이미지 검색: ${oneHourAgo.toISOString()}`);
+      console.log(`[최근 이미지 API] 필터 날짜 이후 이미지 검색: ${filterDate.toISOString()}`);
       
-      // 이미지 테이블에서 직접 최근 데이터 조회 (24시간 이내)
+      // 이미지 테이블에서 필터 날짜 이후 데이터 조회
       const recentImagesQuery = db.select({
         id: images.id,
         title: images.title,
@@ -840,7 +839,7 @@ export const storage = {
         metadata: images.metadata
       })
       .from(images)
-      .where(gt(images.createdAt, oneHourAgo))
+      .where(gt(images.createdAt, filterDate))
       .orderBy(desc(images.createdAt))
       .limit(10);
       
@@ -865,15 +864,25 @@ export const storage = {
           title = metadata.displayTitle;
         }
         
-        // 사용자 ID를 메타데이터에서 가져옴
-        let metadataUserId = metadata && metadata.userId ? Number(metadata.userId) : null;
+        // 사용자 ID를 메타데이터에서 가져옴 (숫자형으로 변환)
+        let metadataUserId = null;
+        if (metadata && metadata.userId) {
+          // 문자열이나 숫자 모두 허용하고 숫자로 변환
+          metadataUserId = typeof metadata.userId === 'string' ? 
+            Number(metadata.userId) : metadata.userId;
+        }
         
-        // 현재 사용자의 이미지만 반환 또는 글로벌 공유 이미지
+        // 공유 이미지 여부 확인
+        const isShared = metadata && metadata.isShared === true;
+        
+        // 글로벌 공유 이미지 (userId: -1) 도 공유된 것으로 간주
         const isGlobalShared = metadataUserId === -1;
+        
+        // 현재 사용자의 이미지
         const isUserImage = userId && metadataUserId === userId;
         
-        // 현재 사용자의 이미지이거나 글로벌 공유 이미지인 경우만 포함
-        if (isUserImage || isGlobalShared) {
+        // 현재 사용자의 이미지이거나 공유된 이미지인 경우만 포함
+        if (isUserImage || isShared || isGlobalShared) {
           return {
             id: item.id,
             title: title,
