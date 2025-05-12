@@ -41,7 +41,13 @@ export default function Gallery() {
   }, [activeFilter]);
 
   // 페이지네이션 처리
-  const filteredItems = items || [];
+  // API 응답 구조를 확인하고 배열인지 확인
+  let filteredItems = Array.isArray(items) ? items : [];
+  // items가 객체이고 items 속성이 있는 경우 (API 응답 형식이 { items: [] } 형태일 수 있음)
+  if (items && !Array.isArray(items) && items.items && Array.isArray(items.items)) {
+    filteredItems = items.items;
+  }
+  
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedItems = filteredItems.slice(startIndex, startIndex + itemsPerPage);
