@@ -265,7 +265,12 @@ export default function Image() {
 
   // Transform image mutation (일반 사용자 페이지에서는 isAdmin=false로 호출)
   const { mutate: transformImageMutation, isPending: isTransforming } = useMutation({
-    mutationFn: (data: FormData) => transformImage(data, false),
+    mutationFn: (data: FormData) => {
+      // 캐싱 방지를 위한 타임스탬프 추가
+      data.append('timestamp', Date.now().toString());
+      console.log(`[변환 요청] 스타일: ${selectedStyle}, 타임스탬프: ${Date.now()}, 관리자: false`);
+      return transformImage(data, false);
+    },
     onSuccess: async (data) => {
       setTransformedImage(data);
       
