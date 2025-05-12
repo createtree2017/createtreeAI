@@ -160,3 +160,8 @@ export const api = {
 
 // 기본 내보내기
 export default api;
+
+// downloadMedia 함수를 독립적으로 내보내기 (별도 함수로)
+export function downloadMedia(url: string, filename?: string) {
+  return api.downloadMedia(url, filename);
+}
