@@ -532,16 +532,29 @@ export const storage = {
       
       if (userId || username) {
         // 사용자 정보와 권한 로그
-        const isAdmin = Boolean(username && (
-          username === '관리자' || 
-          username.includes('admin') || 
-          username.includes('Admin') ||
-          username.includes('슈퍼') || 
-          username.includes('수퍼') ||
-          username.includes('병원관리')
-        ));
+        // 요청 객체에서 관리자 정보 체크
+        const memberTypeAdmin = req?.user?.memberType === 'admin' || 
+                              req?.user?.memberType === 'superadmin' || 
+                              req?.user?.memberType === 'hospitaladmin';
         
-        console.log(`[Storage] 사용자 필터링 적용 - ID: ${userId || '없음'}, 이름: ${username || '없음'}, 관리자 추정: ${isAdmin}`);
+        const isAdmin = Boolean(
+          // 관리자 타입 체크
+          memberTypeAdmin ||
+          // 관리자 아이디 체크
+          (userId && userId === 999) ||
+          // 관리자 이름 체크
+          (username && (
+            username === '관리자' || 
+            username === '테스트관리자' ||
+            username.includes('admin') || 
+            username.includes('Admin') ||
+            username.includes('슈퍼') || 
+            username.includes('수퍼') ||
+            username.includes('병원관리')
+          ))
+        );
+        
+        console.log(`[Storage] 사용자 필터링 적용 - ID: ${userId || '없음'}, 이름: ${username || '없음'}, 관리자: ${isAdmin}`);
         
         // 관리자인 경우 모든 콘텐츠 접근 허용
         if (isAdmin) {
