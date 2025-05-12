@@ -302,16 +302,19 @@ export default function Gallery() {
                       setSelectedImageId(item.id);
                     }}
                   >
-                    <img
-                      src={item.thumbnailUrl || item.url || "https://placehold.co/300x200/e2e8f0/1e293b?text=이미지+준비중"}
-                      alt={item.title}
-                      className="w-full h-32 object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = "https://placehold.co/300x200/e2e8f0/1e293b?text=이미지+준비중";
-                        console.error("이미지 로드 실패:", item.url);
-                      }}
-                    />
+                    <div className="aspect-square w-full overflow-hidden">
+                      <img
+                        src={item.thumbnailUrl || item.url || "https://placehold.co/400x400/e2e8f0/1e293b?text=이미지+준비중"}
+                        alt={item.title}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = "https://placehold.co/400x400/e2e8f0/1e293b?text=이미지+준비중";
+                          console.error("이미지 로드 실패:", item.url);
+                        }}
+                      />
+                    </div>
                     
                     {/* 타입 아이콘 */}
                     <div className="absolute top-2 left-2 bg-black bg-opacity-50 rounded-md p-1 z-10">
@@ -365,7 +368,7 @@ export default function Gallery() {
                       onClick={() => {
                         console.log("보기/재생 버튼 클릭:", item);
                         if (item.type === "image") {
-                          // 이미지는 모달로 직접 표시
+                          // 이미지는 항상 모달로 표시
                           setSelectedImageId(item.id);
                         } else {
                           // 음악이나 채팅은 기존 함수 사용
