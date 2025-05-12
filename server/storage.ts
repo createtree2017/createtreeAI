@@ -816,10 +816,79 @@ export const storage = {
     }
   },
   
-  async getRecentItems() {
-    // Get the most recent items (both music and images)
-    const allItems = await this.getAllItems();
-    return allItems.slice(0, 5); // Return only the 5 most recent items
+  async getRecentItems(userId?: number | null) {
+    try {
+      // 날짜 기준 생성
+      const currentDate = new Date();
+      // 24시간 이내 이미지만 조회
+      const oneHourAgo = new Date(currentDate.getTime() - (24 * 60 * 60 * 1000));
+      
+      console.log(`[최근 이미지 API] 최근 24시간 이내 이미지 검색: ${oneHourAgo.toISOString()}`);
+      
+      // 이미지 테이블에서 직접 최근 데이터 조회 (24시간 이내)
+      const recentImagesQuery = db.select({
+        id: images.id,
+        title: images.title,
+        style: images.style,
+        transformedUrl: images.transformedUrl,
+        createdAt: images.createdAt,
+        metadata: images.metadata
+      })
+      .from(images)
+      .where(images.createdAt > oneHourAgo)
+      .orderBy(desc(images.createdAt))
+      .limit(10);
+      
+      const recentImages = await recentImagesQuery.execute();
+      console.log(`[최근 이미지 API] 데이터베이스에서 ${recentImages.length}개 이미지 조회됨`);
+      
+      // 변환된 이미지 배열 생성
+      const transformedImages = recentImages.map(item => {
+        // 메타데이터 파싱
+        let metadata = {};
+        if (item.metadata) {
+          try {
+            metadata = typeof item.metadata === 'string' ? JSON.parse(item.metadata) : item.metadata;
+          } catch (e) {
+            console.error(`[최근 이미지 API] 메타데이터 파싱 오류:`, e);
+          }
+        }
+        
+        let title = item.title;
+        // 메타데이터에 displayTitle이 있으면 그것을 사용
+        if (metadata && metadata.displayTitle) {
+          title = metadata.displayTitle;
+        }
+        
+        // 사용자 ID를 메타데이터에서 가져옴
+        let metadataUserId = metadata && metadata.userId ? Number(metadata.userId) : null;
+        
+        // 현재 사용자의 이미지만 반환 또는 글로벌 공유 이미지
+        const isGlobalShared = metadataUserId === -1;
+        const isUserImage = userId && metadataUserId === userId;
+        
+        // 현재 사용자의 이미지이거나 글로벌 공유 이미지인 경우만 포함
+        if (isUserImage || isGlobalShared) {
+          return {
+            id: item.id,
+            title: title,
+            type: "image" as const,
+            url: item.transformedUrl,
+            thumbnailUrl: item.transformedUrl,
+            createdAt: item.createdAt.toISOString(),
+            isFavorite: false,
+            isRecent: true
+          };
+        }
+        return null;
+      }).filter(Boolean);
+      
+      console.log(`[최근 이미지 API] ${transformedImages.length}개 이미지 결과 반환`);
+      return transformedImages;
+    } catch (error) {
+      console.error("[최근 이미지 API] 오류 발생:", error);
+      return []; // 오류 발생 시 빈 배열 반환
+    }
   },
   
   async getFavoriteItems(username?: string) {

@@ -820,43 +820,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // 현재 로그인한 사용자 정보 확인
       const user = req.user;
       const userId = user?.id;
+      const username = user?.username || user?.email;
       
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      // 조회 시작 시간 로깅
+      const requestTime = new Date();
+      console.log(`[최근 이미지 API] 요청 시작: ${requestTime.toISOString()}`);
       
-      // 사용자 ID로 이미지 필터링 여부 설정
-      const filterByUser = req.query.filterByUser !== 'false';
-      
-      if (user && filterByUser) {
-        console.log(`[최근 이미지 API] 사용자 ${user.username}의 이미지만 필터링`);
+      if (user) {
+        console.log(`[최근 이미지 API] 사용자: ${username} (ID: ${userId})`);
       } else {
-        console.log(`[최근 이미지 API] 사용자 필터링 없음 (전체 이미지 표시)`);
+        console.log(`[최근 이미지 API] 비로그인 사용자 요청`);
       }
       
-      // 페이지네이션 적용하여 데이터베이스에서 최근 이미지 가져오기
-      // 로그인 상태이고 사용자 필터링이 활성화된 경우에만 사용자 정보로 필터링
-      const result = await storage.getPaginatedImageList(
-        1, // 첫 페이지 
-        limit, 
-        (user && filterByUser) ? userId : null,
-        (user && filterByUser) ? user.username : null
-      );
+      // 새로 구현된 최근 이미지 조회 함수 사용
+      // 이 함수는 메타데이터의 userId 필드를 기반으로 사용자별 이미지 필터링 수행
+      // 2025-05-12 이후 생성된 이미지를 조회하도록 설정
+      const recentImages = await storage.getRecentItems(userId);
       
-      // 1시간 이내 생성된 이미지만 필터링 (사용자에게 보여줄 이미지)
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000); // 1시간 전 타임스탬프
-      
-      const recentImages = result.images
-        .filter(img => {
-          // createdAt이 1시간 이내인 이미지만 포함
-          const createTime = new Date(img.createdAt);
-          return createTime > oneHourAgo;
-        });
-      
-      console.log(`최근 이미지 API: 전체 ${result.images.length}개 중 1시간 이내 이미지 ${recentImages.length}개 반환`);
+      console.log(`[최근 이미지 API] 결과: 사용자 ${username}의 이미지 ${recentImages.length}개 반환`);
       
       return res.json(recentImages);
     } catch (error) {
-      console.error("Error fetching recent images:", error);
-      return res.status(500).json({ error: "Failed to fetch recent images" });
+      console.error("[최근 이미지 API] 오류:", error);
+      return res.status(500).json({ 
+        error: "최근 이미지를 불러오는 중 오류가 발생했습니다",
+        message: error instanceof Error ? error.message : "알 수 없는 오류"
+      });
     }
   });
 
