@@ -265,5 +265,9 @@ export async function saveChat(data: any) {
   return api.saveChat(data);
 }
 
+export async function getActiveAbTest() {
+  return api.getActiveAbTest();
+}
+
 // 기본 내보내기
 export default api;
