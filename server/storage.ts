@@ -1,5 +1,5 @@
 import { db } from "@db";
-import { music, images, chatMessages, favorites, savedChats, concepts, conceptCategories, eq, desc, and } from "@shared/schema";
+import { music, images, chatMessages, favorites, savedChats, concepts, conceptCategories, eq, desc, and, gt } from "@shared/schema";
 import { count, like } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
@@ -617,8 +617,8 @@ export const storage = {
                 isMatch = true;
                 matchReason = `공유 이미지 (userId=-1): 모든 사용자에게 표시됨`;
               }
-              // 특별 케이스 2: metadata.userId가 비어있거나 "null"이면 공유 이미지로 간주
-              else if (metadataUserIdStr === "" || metadataUserIdStr === "null" || metadataUserIdStr === "undefined") {
+              // 특별 케이스 2: metadata.userId가 null이거나 undefined면 공유 이미지로 간주
+              else if (metadata.userId === null || metadata.userId === undefined) {
                 isMatch = true;
                 matchReason = `공유 이미지 (userId 없음): 모든 사용자에게 표시됨`;
               }
@@ -840,7 +840,7 @@ export const storage = {
         metadata: images.metadata
       })
       .from(images)
-      .where(images.createdAt > oneHourAgo)
+      .where(gt(images.createdAt, oneHourAgo))
       .orderBy(desc(images.createdAt))
       .limit(10);
       

@@ -1486,6 +1486,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           try {
             console.log(`[갤러리 API] 전체 컨텐츠: 사용자 ID: ${userId}, 이름: ${username || '없음'}`);
             
+            // 기준 날짜 설정: 2025-05-12 이후 생성된 이미지만 사용
+            const filterDate = new Date('2025-05-12T00:00:00Z');
+            console.log(`[갤러리 API] 필터 날짜 설정: ${filterDate.toISOString()} 이후 이미지만 표시`);
+            
             // 통합된 getPaginatedImageList 함수 사용
             const imageResult = await storage.getPaginatedImageList(
               1, // 첫 페이지
@@ -1494,8 +1498,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               username // 사용자 이름 (필터링용)
             );
             
-            // 결과 바로 사용
-            let filteredImages = imageResult.images;
+            // 필터 날짜 이후 생성된 이미지만 필터링
+            let filteredImages = imageResult.images.filter(img => {
+              const createdAt = new Date(img.createdAt);
+              return createdAt >= filterDate;
+            });
             
             console.log(`[갤러리 API] 전체 탭: ${filteredImages.length}개 이미지 로드됨`);
             
