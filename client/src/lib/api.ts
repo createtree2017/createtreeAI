@@ -75,7 +75,7 @@ async function apiFetch<T>(url: string, options: RequestInit = {}): Promise<T> {
 }
 
 // API 기능 모음
-export const api: ApiInterface = {
+const api: ApiInterface = {
   // 테스트 로그인 API (개발용)
   async testLogin() {
     return apiFetch('/api/test-login', {
@@ -269,5 +269,5 @@ export async function getActiveAbTest() {
   return api.getActiveAbTest();
 }
 
-// 기본 내보내기
+// 기본 내보내기 (default export)
 export default api;
