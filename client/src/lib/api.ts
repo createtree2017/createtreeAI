@@ -4,6 +4,24 @@
 // 기본 URL (필요한 경우 환경에 맞게 설정)
 const baseURL = '';
 
+// API 인터페이스 정의
+interface ApiInterface {
+  testLogin(): Promise<any>;
+  login(username: string, password: string): Promise<any>;
+  logout(): Promise<any>;
+  getCurrentUser(): Promise<any>;
+  transformImage(formData: FormData): Promise<any>;
+  getGalleryItems(filter?: string): Promise<any[]>;
+  generateMusic(formData: any): Promise<any>;
+  getMusicList(filter?: string): Promise<any[]>;
+  shareMedia(mediaId: string, mediaType: string): Promise<any>;
+  downloadMedia(url: string, filename?: string): Promise<boolean>;
+  recordAbTestResult(data: { testId: string; selectedVariantId: string }): Promise<any>;
+  batchImportPersonas(data: any): Promise<any>;
+  saveChat(data: any): Promise<any>;
+  getActiveAbTest(): Promise<any>;
+}
+
 // 공통 fetch 헬퍼 함수
 async function apiFetch<T>(url: string, options: RequestInit = {}): Promise<T> {
   // 헤더 설정
@@ -57,7 +75,7 @@ async function apiFetch<T>(url: string, options: RequestInit = {}): Promise<T> {
 }
 
 // API 기능 모음
-export const api = {
+export const api: ApiInterface = {
   // 테스트 로그인 API (개발용)
   async testLogin() {
     return apiFetch('/api/test-login', {
@@ -119,6 +137,37 @@ export const api = {
     }
   },
   
+  // 음악 생성 API
+  async generateMusic(formData: any) {
+    return apiFetch('/api/music/generate', {
+      method: 'POST',
+      body: JSON.stringify(formData),
+    });
+  },
+  
+  // 음악 목록 조회 API
+  async getMusicList(filter?: string) {
+    let url = '/api/music';
+    if (filter) {
+      url += `?filter=${filter}`;
+    }
+    
+    try {
+      return await apiFetch(url);
+    } catch (error) {
+      console.error('음악 목록 조회 오류:', error);
+      return [];
+    }
+  },
+  
+  // 미디어 공유 API
+  async shareMedia(mediaId: string, mediaType: string) {
+    return apiFetch('/api/share', {
+      method: 'POST',
+      body: JSON.stringify({ mediaId, mediaType }),
+    });
+  },
+  
   // 미디어 다운로드 API
   async downloadMedia(url: string, filename?: string) {
     try {
@@ -156,12 +205,65 @@ export const api = {
       return false;
     }
   },
+  
+  // AB 테스트 결과 기록 API
+  async recordAbTestResult(data: { testId: string; selectedVariantId: string }) {
+    return apiFetch('/api/tests/record-result', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  
+  // 페르소나 일괄 가져오기 API
+  async batchImportPersonas(data: any) {
+    return apiFetch('/api/admin/personas/batch-import', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  
+  // 채팅 저장 API
+  async saveChat(data: any) {
+    return apiFetch('/api/chat/save', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  
+  // 활성 AB 테스트 조회 API
+  async getActiveAbTest() {
+    return apiFetch('/api/tests/active');
+  },
 };
 
-// 기본 내보내기
-export default api;
+// 각 함수 개별 내보내기 (호환성 유지)
+export async function generateMusic(formData: any) {
+  return api.generateMusic(formData);
+}
 
-// downloadMedia 함수를 독립적으로 내보내기 (별도 함수로)
+export async function getMusicList(filter?: string) {
+  return api.getMusicList(filter);
+}
+
+export async function shareMedia(mediaId: string, mediaType: string) {
+  return api.shareMedia(mediaId, mediaType);
+}
+
 export function downloadMedia(url: string, filename?: string) {
   return api.downloadMedia(url, filename);
 }
+
+export async function recordAbTestResult(data: { testId: string; selectedVariantId: string }) {
+  return api.recordAbTestResult(data);
+}
+
+export async function batchImportPersonas(data: any) {
+  return api.batchImportPersonas(data);
+}
+
+export async function saveChat(data: any) {
+  return api.saveChat(data);
+}
+
+// 기본 내보내기
+export default api;
