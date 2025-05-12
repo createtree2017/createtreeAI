@@ -201,6 +201,7 @@ export const api = {
   generateMusic: (data: any) => postApi('/api/music/generate', data),
   getMusicList: (filter = '') => getApi(`/api/music${filter ? `?filter=${filter}` : ''}`),
   shareMedia: (mediaId: string, mediaType: string) => postApi('/api/share', { mediaId, mediaType }),
+  toggleImageSharing: (imageId: number) => postApi(`/api/image/${imageId}/toggle-sharing`, {}),
   toggleFavorite: (itemId: number, type: string) => postApi('/api/gallery/favorite', { itemId, type }),
   
   // 채팅 관련

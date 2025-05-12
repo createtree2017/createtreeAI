@@ -20,6 +20,7 @@ export const getImageList = apiClient.getImageList;
 export const generateMusic = apiClient.generateMusic;
 export const getMusicList = apiClient.getMusicList;
 export const shareMedia = apiClient.shareMedia;
+export const toggleImageSharing = apiClient.toggleImageSharing;
 export const toggleFavorite = apiClient.toggleFavorite;
 export const sendChatMessage = apiClient.sendChatMessage;
 export const getChatHistory = apiClient.getChatHistory;

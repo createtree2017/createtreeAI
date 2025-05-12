@@ -1114,8 +1114,7 @@ export const storage = {
       await db
         .update(images)
         .set({ 
-          metadata: JSON.stringify(metadata),
-          updatedAt: new Date()
+          metadata: JSON.stringify(metadata)
         })
         .where(eq(images.id, id));
       

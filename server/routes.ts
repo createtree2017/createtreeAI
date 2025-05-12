@@ -848,6 +848,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+  
+  // 이미지 공유 상태 토글 API
+  app.post("/api/image/:id/toggle-sharing", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const imageId = parseInt(id);
+      if (isNaN(imageId)) {
+        return res.status(400).json({ error: "유효하지 않은 이미지 ID 형식입니다." });
+      }
+      
+      // 현재 로그인 사용자 확인
+      const user = req.user;
+      const userId = user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ error: "이미지 공유 상태를 변경하려면 로그인이 필요합니다." });
+      }
+      
+      console.log(`[이미지 공유 토글] 사용자 ${user.username || user.email} (ID: ${userId})가 이미지 ID ${imageId}의 공유 상태 변경 요청`);
+      
+      // 이미지 공유 상태 토글
+      const result = await storage.toggleImageSharing(imageId, userId);
+      
+      if (!result.success) {
+        return res.status(400).json({ error: result.message });
+      }
+      
+      console.log(`[이미지 공유 토글] 결과: ${result.message}`);
+      return res.json(result);
+    } catch (error) {
+      console.error("이미지 공유 상태 변경 오류:", error);
+      return res.status(500).json({ 
+        error: "이미지 공유 상태를 변경하는 중 오류가 발생했습니다.",
+        message: error instanceof Error ? error.message : "알 수 없는 오류"
+      });
+    }
+  });
 
   // Image generation endpoint (using OpenAI DALL-E)
   app.post("/api/generate-image", async (req, res) => {
