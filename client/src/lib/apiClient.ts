@@ -188,6 +188,11 @@ export const api = {
   // 갤러리 및 미디어
   getGalleryItems: (filter = '') => getApi(`/api/gallery${filter ? `?filter=${filter}` : ''}`),
   transformImage: (formData: FormData) => postApi('/api/image/transform', formData),
+  uploadThumbnail: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return postApi('/api/upload/thumbnail', formData);
+  },
   getImageList: (page = 1, pageSize = 20, filterByUser = true) => {
     const params: Record<string, any> = { page, pageSize };
     if (filterByUser === false) params.filterByUser = 'false';

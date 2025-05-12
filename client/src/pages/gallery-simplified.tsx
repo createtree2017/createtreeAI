@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { getGalleryItems, toggleFavorite } from "@/lib/api";
+import { api } from "@/lib/apiClient";
 import { queryClient } from "@/lib/queryClient";
 import { Music, PaintbrushVertical, Heart, Play, Eye, Share2, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { useLocation } from "wouter";
@@ -32,7 +32,7 @@ export default function Gallery() {
   // 갤러리 항목 조회
   const { data: items, isLoading } = useQuery({
     queryKey: ["/api/gallery", activeFilter],
-    queryFn: () => getGalleryItems(activeFilter !== "all" ? activeFilter : undefined),
+    queryFn: () => api.getGalleryItems(activeFilter !== "all" ? activeFilter : undefined),
   });
 
   // 필터 변경 시 페이지 초기화
@@ -48,7 +48,7 @@ export default function Gallery() {
 
   // 즐겨찾기 토글
   const { mutate: toggleFavoriteMutation } = useMutation({
-    mutationFn: ({ itemId, type }: { itemId: number; type: string }) => toggleFavorite(itemId, type),
+    mutationFn: ({ itemId, type }: { itemId: number; type: string }) => api.toggleFavorite(itemId, type),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/gallery"] });
       toast({
