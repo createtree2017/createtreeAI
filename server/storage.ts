@@ -506,6 +506,12 @@ export const storage = {
       const filterDate = new Date('2000-01-01T00:00:00Z'); // 오래된 날짜로 설정하여 모든 이미지 포함
       console.log(`[Storage] 날짜 필터링 비활성화: 모든 이미지 표시 (기준일: ${filterDate.toISOString()})`);
       
+      // 디버깅: 데이터베이스에서 조회된 이미지 샘플 몇 개 표시
+      console.log(`[Storage] 데이터베이스에서 조회된 이미지 샘플 (최대 5개):`);
+      allImages.slice(0, 5).forEach((img, idx) => {
+        console.log(`[이미지 ${idx+1}/5] ID: ${img.id}, 제목: "${img.title}", URL: ${img.transformedUrl?.substring(0, 30)}...`);
+      });
+      
       // 전체 이미지 수 계산을 위한 기본 쿼리 
       const countQuery = db.select({ count: count() }).from(images);
       const countResult = await countQuery;
@@ -546,152 +552,29 @@ export const storage = {
         console.log(`[이미지 샘플 ${idx+1}] ID: ${item.id}, 제목: "${item.title}", 메타데이터: ${metadataLog}`);
       });
       
-      // 사용자 ID 또는 이름 기준으로 필터링 적용
+      // *** 임시 해결책: 기존 필터링 로직 비활성화 - 모든 이미지 표시 ***
+      console.log(`[Storage] 모든 필터링 비활성화 - 모든 이미지 표시`);
+      
+      // 이미지 URL 디버깅
+      console.log(`[Storage] 이미지 URL 확인 (최대 3개 샘플):`);
+      allImages.slice(0, 3).forEach((img, idx) => {
+        // URL 확인
+        const urlSample = img.transformedUrl 
+          ? img.transformedUrl.substring(0, Math.min(50, img.transformedUrl.length)) + "..." 
+          : "URL 없음";
+        console.log(`[이미지 URL ${idx+1}/3] ID: ${img.id}, URL: ${urlSample}`);
+      });
+      
+      // 모든 사용자에게 모든 이미지 표시 (필터링 없음)
       let results = allImages;
       
+      console.log(`[Storage] 필터링 없이 ${results.length}개 이미지 준비 완료`);
+      
+      // 로그인 사용자 정보 기록
       if (userId || username) {
-        // 사용자 정보와 권한 로그
-        console.log(`[Storage] 이미지 필터링 - userId: ${userId}, username: ${username}`);
-        
-        const isAdmin = Boolean(
-          // 관리자 아이디 체크
-          (userId && userId === 999) ||
-          // 관리자 이름 체크
-          (username && (
-            username === '관리자' || 
-            username === '테스트관리자' ||
-            username.includes('admin') || 
-            username.includes('Admin') ||
-            username.includes('슈퍼') || 
-            username.includes('수퍼') ||
-            username.includes('병원관리')
-          ))
-        );
-        
-        console.log(`[Storage] 사용자 필터링 적용 - ID: ${userId || '없음'}, 이름: ${username || '없음'}, 관리자: ${isAdmin}`);
-        
-        // 관리자인 경우 모든 콘텐츠 접근 허용
-        if (isAdmin) {
-          console.log(`[Storage] 관리자 계정 감지: 모든 이미지 접근 권한 부여 (${username})`);
-          return {
-            images: results,
-            pagination: {
-              total: results.length,
-              page,
-              limit,
-              totalPages: Math.ceil(results.length / limit)
-            }
-          };
-        }
-        
-        // 일반 사용자: 메타데이터 기반 필터링 - 개선된 필터링 알고리즘 적용
-        results = allImages.filter(item => {
-          let isMatch = false;
-          let matchReason = "불일치";
-          
-          try {
-            if (!item.metadata) return false;
-            
-            const metadata = typeof item.metadata === 'string' 
-              ? JSON.parse(item.metadata) 
-              : item.metadata;
-            
-            // 공유 이미지 여부 확인
-            const isShared = metadata && metadata.isShared === true;
-            
-            // 1. userId 비교 (숫자로 통일) - 매우 중요한 부분
-            if (userId && metadata && metadata.userId !== undefined) {
-              // 디버깅용 상세 로깅 (샘플링)
-              if (item.id % 20 === 0) {
-                console.log(`[이미지 필터링 샘플] ID=${item.id}:`, {
-                  metadataUserId: metadata.userId,
-                  currentUserId: userId,
-                  isShared: isShared,
-                  createdAt: item.createdAt
-                });
-              }
-              
-              // 숫자 타입으로 통일하여 비교
-              const metadataUserIdNum = Number(metadata.userId);
-              const currentUserIdNum = Number(userId);
-              
-              // 1. 사용자 소유 이미지
-              if (metadataUserIdNum === currentUserIdNum) {
-                isMatch = true;
-                matchReason = `사용자 소유 이미지 (ID 일치): ${metadataUserIdNum}`;
-              } 
-              // 2. 공유 설정된 이미지 (metadata.isShared=true)
-              else if (isShared) {
-                isMatch = true;
-                matchReason = `공유 이미지 (isShared=true): 모든 사용자에게 표시됨`;
-              }
-              // 3. 글로벌 공유 이미지 (userId=-1)
-              else if (metadataUserIdNum === -1) {
-                isMatch = true;
-                matchReason = `글로벌 공유 이미지 (userId=-1): 모든 사용자에게 표시됨`;
-              }
-              // 4. 레거시 공유 이미지 (userId=null)
-              else if (metadata.userId === null || metadata.userId === undefined) {
-                isMatch = true;
-                matchReason = `레거시 공유 이미지 (userId 없음): 모든 사용자에게 표시됨`;
-              }
-            }
-            
-            // 2. username 비교
-            if (!isMatch && username && metadata && metadata.username) {
-              if (metadata.username === username) {
-                isMatch = true;
-                matchReason = `메타데이터 username 일치: ${metadata.username}`;
-              }
-            }
-            
-            // 3. 제목 기반 매칭 (백업)
-            if (!isMatch && item.title && username) {
-              // 사용자명 포함 패턴 확인
-              const pattern1 = `[${username}]`; 
-              const pattern2 = `${username}의`;
-              const pattern3 = ` by ${username}`;
-              const pattern4 = `(${username})`;
-              
-              if (item.title.includes(pattern1) || 
-                  item.title.includes(pattern2) || 
-                  item.title.includes(pattern3) ||
-                  item.title.includes(pattern4)) {
-                isMatch = true;
-                matchReason = `제목에 사용자명 포함: ${item.title}`;
-              }
-            }
-            
-            // 디버깅을 위해 일부 항목만 로깅
-            if (isMatch || item.id % 20 === 0) {
-              console.log(`[이미지 필터링] ID: ${item.id}, 일치: ${isMatch}, 이유: ${matchReason}`);
-            }
-            
-            return isMatch;
-          } catch (error) {
-            // 메타데이터 파싱 오류 시 false 반환
-            console.error(`[이미지 ID ${item.id}] 메타데이터 파싱 오류:`, 
-              error instanceof Error ? error.message : String(error));
-            return false;
-          }
-        });
-        
-        console.log(`[Storage] 사용자 기반 필터링 후 ${results.length}개 이미지 남음`);
-        
-        // 필터링 결과가 너무 적을 경우에만 모든 이미지를 보여주는 대신,
-        // 로그인한 사용자의 이미지만 보여주도록 유지
-        console.log(`[Storage] 사용자 ID ${userId}를 위한 ${results.length}개 이미지 필터링 완료`);
-        
-        // 이미지가 없는 사용자 처리 - 첫 페이지에서 모든 이미지 제공
-        if (results.length === 0 && page === 1) {
-          console.log(`[Storage] 경고: 사용자 ${username}(ID:${userId})의 이미지가 없습니다.`);
-          
-          // 필터링 없이 모든 이미지 제공 (테스트용)
-          console.log(`[Storage] 필터링 비활성화 - 모든 이미지 표시 모드`);
-          results = allImages.slice(0, limit);
-          
-          console.log(`[Storage] 모든 이미지 중 ${results.length}개 제공`);
-        }
+        console.log(`[Storage] 로그인 사용자: ID=${userId || '없음'}, 이름=${username || '없음'}`);
+      } else {
+        console.log(`[Storage] 익명 사용자 접근: 모든 이미지 표시`);
       }
       
       // 페이지네이션 적용
