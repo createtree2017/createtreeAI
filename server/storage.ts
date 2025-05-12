@@ -580,7 +580,7 @@ export const storage = {
           };
         }
         
-        // 일반 사용자: 메타데이터 기반 필터링 - userId와 username 모두 활용
+        // 일반 사용자: 메타데이터 기반 필터링 - 개선된 필터링 알고리즘 적용
         results = allImages.filter(item => {
           let isMatch = false;
           let matchReason = "불일치";
@@ -592,35 +592,44 @@ export const storage = {
               ? JSON.parse(item.metadata) 
               : item.metadata;
             
+            // 공유 이미지 여부 확인
+            const isShared = metadata && metadata.isShared === true;
+            
             // 1. userId 비교 (숫자로 통일) - 매우 중요한 부분
             if (userId && metadata && metadata.userId !== undefined) {
-              // 디버깅용 상세 로깅
-              console.log(`🧪 필터 비교 [이미지 ID=${item.id}]:`, {
-                metadataUserId: metadata.userId,
-                currentUserId: userId,
-                metadataType: typeof metadata.userId,
-                currentType: typeof userId,
-                match: Number(metadata.userId) === Number(userId)
-              });
+              // 디버깅용 상세 로깅 (샘플링)
+              if (item.id % 20 === 0) {
+                console.log(`[이미지 필터링 샘플] ID=${item.id}:`, {
+                  metadataUserId: metadata.userId,
+                  currentUserId: userId,
+                  isShared: isShared,
+                  createdAt: item.createdAt
+                });
+              }
               
               // 숫자 타입으로 통일하여 비교
               const metadataUserIdNum = Number(metadata.userId);
               const currentUserIdNum = Number(userId);
               
-              // 일반적인 ID 일치 확인 - 숫자 비교
+              // 1. 사용자 소유 이미지
               if (metadataUserIdNum === currentUserIdNum) {
                 isMatch = true;
-                matchReason = `메타데이터 userId 일치: ${metadataUserIdNum}`;
+                matchReason = `사용자 소유 이미지 (ID 일치): ${metadataUserIdNum}`;
+              } 
+              // 2. 공유 설정된 이미지 (metadata.isShared=true)
+              else if (isShared) {
+                isMatch = true;
+                matchReason = `공유 이미지 (isShared=true): 모든 사용자에게 표시됨`;
               }
-              // 특별 케이스 1: metadata.userId가 -1이면 공유 이미지로 간주
+              // 3. 글로벌 공유 이미지 (userId=-1)
               else if (metadataUserIdNum === -1) {
                 isMatch = true;
-                matchReason = `공유 이미지 (userId=-1): 모든 사용자에게 표시됨`;
+                matchReason = `글로벌 공유 이미지 (userId=-1): 모든 사용자에게 표시됨`;
               }
-              // 특별 케이스 2: metadata.userId가 null이거나 undefined면 공유 이미지로 간주
+              // 4. 레거시 공유 이미지 (userId=null)
               else if (metadata.userId === null || metadata.userId === undefined) {
                 isMatch = true;
-                matchReason = `공유 이미지 (userId 없음): 모든 사용자에게 표시됨`;
+                matchReason = `레거시 공유 이미지 (userId 없음): 모든 사용자에게 표시됨`;
               }
             }
             
@@ -669,11 +678,11 @@ export const storage = {
         // 로그인한 사용자의 이미지만 보여주도록 유지
         console.log(`[Storage] 사용자 ID ${userId}를 위한 ${results.length}개 이미지 필터링 완료`);
         
-        // 개발 모드에서 빈 결과 확인용 메시지
-        if (results.length === 0) {
+        // 이미지가 없는 사용자 처리 - 첫 페이지에만 공유 이미지 제공
+        if (results.length === 0 && page === 1) {
           console.log(`[Storage] 경고: 사용자 ${username}(ID:${userId})의 이미지가 없습니다.`);
           
-          // 매칭된 이미지가 없는 경우, 기본 공유 이미지 또는 특정 샘플 제공
+          // 공유 이미지 필터링 (isShared=true 속성 사용)
           results = allImages.filter(item => {
             if (!item.metadata) return false;
             
@@ -682,12 +691,16 @@ export const storage = {
                 ? JSON.parse(item.metadata) 
                 : item.metadata;
               
-              // 공유 이미지만 표시
-              return metadata.userId === "-1" || !metadata.userId;
+              // 공유 이미지 여부 확인 (isShared=true 또는 userId=-1)
+              return (
+                metadata.isShared === true || 
+                Number(metadata.userId) === -1 || 
+                metadata.userId === "-1"
+              );
             } catch (error) {
               return false;
             }
-          }).slice(0, 5); // 최대 5개만 표시
+          }).slice(0, limit); // 페이지 크기만큼만 표시
           
           console.log(`[Storage] 기본 공유 이미지 ${results.length}개 제공`);
         }
