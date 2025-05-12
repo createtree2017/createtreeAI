@@ -211,6 +211,9 @@ export const api = {
   
   // 테스트 및 관리자
   getActiveAbTest: () => getApi('/api/tests/active'),
+  getAbTests: () => getApi('/api/tests'),
+  getAbTest: (id: string) => getApi(`/api/tests/${id}`),
+  createAbTest: (data: any) => postApi('/api/tests', data),
   recordAbTestResult: (data: { testId: string; selectedVariantId: string }) => 
     postApi('/api/tests/record-result', data),
   

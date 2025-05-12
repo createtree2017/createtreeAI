@@ -32,6 +32,9 @@ export const downloadMedia = apiClient.downloadMedia;
 
 // 나머지 API 함수들
 export const getActiveAbTest = apiClient.getActiveAbTest;
+export const getAbTests = apiClient.getAbTests;
+export const getAbTest = apiClient.getAbTest;
+export const createAbTest = apiClient.createAbTest;
 export const recordAbTestResult = apiClient.recordAbTestResult;
 export const getPersonas = apiClient.getPersonas;
 export const createPersona = apiClient.createPersona; 
