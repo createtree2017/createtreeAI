@@ -895,16 +895,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           console.log(`[갤러리 API] 이미지 탭: ${filteredImages.length}개 이미지 로드됨`);
           
-          // 필터링 후 결과가 너무 적으면 결과를 복제해서 더 많이 표시
-          if (filteredImages.length < 10) {
-            console.log("필터링된 이미지가 너무 적어 결과를 복제합니다");
-            const originalLength = filteredImages.length;
-            for (let i = 0; i < Math.min(2, Math.ceil(10/originalLength)); i++) {
-              filteredImages = [...filteredImages, ...filteredImages];
-            }
-            // 최대 20개로 제한
-            filteredImages = filteredImages.slice(0, 20);
-          }
+          // 이미지 복제 코드 제거 - 중복 방지
+          // 결과가 적더라도 실제 이미지만 표시하도록 수정
+          console.log("사용자의 실제 이미지만 표시합니다");
           
           // 필터링된 이미지 변환
           galleryItems = filteredImages.map(item => ({
