@@ -22,7 +22,7 @@ interface GalleryItem {
   isOwner?: boolean;    // 현재 로그인한 사용자가 소유자인지 여부
 }
 
-type FilterType = "all" | "music" | "image" | "chat" | "favorite";
+type FilterType = "all" | "music" | "image" | "chat" | "favorite" | "shared";
 
 export default function Gallery() {
   const [, setLocation] = useLocation();
@@ -148,6 +148,30 @@ export default function Gallery() {
     setActiveFilter(filter);
   };
   
+  const handleToggleSharing = (item: GalleryItem) => {
+    // 이미지만 공유 가능
+    if (item.type !== 'image') {
+      toast({
+        title: "지원되지 않는 기능",
+        description: "이미지만 공유할 수 있습니다.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // 자신의 이미지만 공유/비공유 설정 가능
+    if (!item.isOwner) {
+      toast({
+        title: "권한 없음",
+        description: "자신의 이미지만 공유 설정을 변경할 수 있습니다.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    toggleImageSharingMutation(item.id);
+  };
+  
   const handleToggleFavorite = (item: GalleryItem) => {
     // 채팅은 즐겨찾기를 지원하지 않음
     if (item.type === 'chat') {
@@ -170,10 +194,16 @@ export default function Gallery() {
         setLocation(`/${item.type === 'music' ? 'music' : 'image'}?id=${item.id}`);
       }
     } else if (action === 'share') {
-      toast({
-        title: "공유 기능",
-        description: "준비 중입니다!",
-      });
+      if (item.type === 'image' && item.isOwner) {
+        // 본인 소유 이미지인 경우 공유 상태 토글
+        handleToggleSharing(item);
+      } else {
+        toast({
+          title: "공유 기능",
+          description: "자신의 이미지만 공유 설정을 변경할 수 있습니다.",
+          variant: "destructive"
+        });
+      }
     }
   };
   
@@ -183,6 +213,7 @@ export default function Gallery() {
     { type: "music", label: "노래" },
     { type: "chat", label: "채팅" },
     { type: "favorite", label: "즐겨찾기" },
+    { type: "shared", label: "공유된 이미지" },
   ];
   
   return (
@@ -249,6 +280,21 @@ export default function Gallery() {
                         target.src = "https://placehold.co/300x200/e2e8f0/1e293b?text=이미지+준비중";
                       }}
                     />
+                    
+                    {/* 타입 아이콘 */}
+                    <div className="absolute top-2 left-2 bg-black bg-opacity-50 rounded-md p-1 z-10">
+                      <PaintbrushVertical className="h-4 w-4 text-white" />
+                    </div>
+                    
+                    {/* 공유 상태 표시 */}
+                    {item.isShared && (
+                      <div className="absolute top-2 right-2 bg-primary bg-opacity-70 rounded-md px-2 py-1 z-10">
+                        <div className="flex items-center">
+                          <Globe className="h-3 w-3 text-white mr-1" />
+                          <span className="text-xs text-white font-medium">공유됨</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
                 <div className="p-3">
@@ -310,8 +356,25 @@ export default function Gallery() {
                       size="sm"
                       className="flex-1"
                       onClick={() => handleItemAction(item, "share")}
+                      disabled={item.type === 'image' && !item.isOwner}
                     >
-                      <Share2 className="mr-1 h-3 w-3" /> 공유
+                      {item.type === 'image' && item.isOwner ? (
+                        <>
+                          {item.isShared ? (
+                            <>
+                              <Globe className="mr-1 h-3 w-3 text-primary" /> 공유중
+                            </>
+                          ) : (
+                            <>
+                              <Share className="mr-1 h-3 w-3" /> 공유하기
+                            </>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <Share2 className="mr-1 h-3 w-3" /> 공유
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>
