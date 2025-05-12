@@ -531,9 +531,33 @@ export const storage = {
       let results = allImages;
       
       if (userId || username) {
-        console.log(`[Storage] 사용자 필터링 적용 - ID: ${userId || '없음'}, 이름: ${username || '없음'}`);
+        // 사용자 정보와 권한 로그
+        const isAdmin = Boolean(username && (
+          username === '관리자' || 
+          username.includes('admin') || 
+          username.includes('Admin') ||
+          username.includes('슈퍼') || 
+          username.includes('수퍼') ||
+          username.includes('병원관리')
+        ));
         
-        // 사용자 메타데이터 기반 필터링 - userId와 username 모두 활용
+        console.log(`[Storage] 사용자 필터링 적용 - ID: ${userId || '없음'}, 이름: ${username || '없음'}, 관리자 추정: ${isAdmin}`);
+        
+        // 관리자인 경우 모든 콘텐츠 접근 허용
+        if (isAdmin) {
+          console.log(`[Storage] 관리자 계정 감지: 모든 이미지 접근 권한 부여 (${username})`);
+          return {
+            images: results,
+            pagination: {
+              total: results.length,
+              page,
+              limit,
+              totalPages: Math.ceil(results.length / limit)
+            }
+          };
+        }
+        
+        // 일반 사용자: 메타데이터 기반 필터링 - userId와 username 모두 활용
         results = allImages.filter(item => {
           let isMatch = false;
           let matchReason = "불일치";
@@ -545,9 +569,9 @@ export const storage = {
               ? JSON.parse(item.metadata) 
               : item.metadata;
             
-            // 1. userId 비교 (문자열로 변환)
+            // 1. userId 비교 (문자열로 변환) - 매우 중요한 부분
             if (userId && metadata && metadata.userId) {
-              // 디버깅용 상세 로깅 - 모든 항목에 적용 (중요도가 높아서)
+              // 디버깅용 상세 로깅
               console.log(`🧪 필터 비교 [이미지 ID=${item.id}]:`, {
                 metadataUserId: metadata.userId,
                 currentUserId: userId,
@@ -556,18 +580,23 @@ export const storage = {
                 match: String(metadata.userId) === String(userId)
               });
               
-              const metadataUserIdStr = String(metadata.userId);
-              const currentUserIdStr = String(userId);
+              const metadataUserIdStr = String(metadata.userId).trim();
+              const currentUserIdStr = String(userId).trim();
               
               // 일반적인 ID 일치 확인
               if (metadataUserIdStr === currentUserIdStr) {
                 isMatch = true;
                 matchReason = `메타데이터 userId 일치: ${metadataUserIdStr}`;
               }
-              // 특별 케이스: metadata.userId가 "-1"이면 공유 이미지로 간주하고 모든 사용자에게 표시
+              // 특별 케이스 1: metadata.userId가 "-1"이면 공유 이미지로 간주
               else if (metadataUserIdStr === "-1") {
                 isMatch = true;
                 matchReason = `공유 이미지 (userId=-1): 모든 사용자에게 표시됨`;
+              }
+              // 특별 케이스 2: metadata.userId가 비어있거나 "null"이면 공유 이미지로 간주
+              else if (metadataUserIdStr === "" || metadataUserIdStr === "null" || metadataUserIdStr === "undefined") {
+                isMatch = true;
+                matchReason = `공유 이미지 (userId 없음): 모든 사용자에게 표시됨`;
               }
             }
             
@@ -597,7 +626,7 @@ export const storage = {
             }
             
             // 디버깅을 위해 일부 항목만 로깅
-            if (isMatch || item.id % 10 === 0) {
+            if (isMatch || item.id % 20 === 0) {
               console.log(`[이미지 필터링] ID: ${item.id}, 일치: ${isMatch}, 이유: ${matchReason}`);
             }
             
@@ -614,12 +643,29 @@ export const storage = {
         
         // 필터링 결과가 너무 적을 경우에만 모든 이미지를 보여주는 대신,
         // 로그인한 사용자의 이미지만 보여주도록 유지
-        // 해시 기반 필터링 방식은 더 이상 사용하지 않음
         console.log(`[Storage] 사용자 ID ${userId}를 위한 ${results.length}개 이미지 필터링 완료`);
         
         // 개발 모드에서 빈 결과 확인용 메시지
         if (results.length === 0) {
           console.log(`[Storage] 경고: 사용자 ${username}(ID:${userId})의 이미지가 없습니다.`);
+          
+          // 매칭된 이미지가 없는 경우, 기본 공유 이미지 또는 특정 샘플 제공
+          results = allImages.filter(item => {
+            if (!item.metadata) return false;
+            
+            try {
+              const metadata = typeof item.metadata === 'string' 
+                ? JSON.parse(item.metadata) 
+                : item.metadata;
+              
+              // 공유 이미지만 표시
+              return metadata.userId === "-1" || !metadata.userId;
+            } catch (error) {
+              return false;
+            }
+          }).slice(0, 5); // 최대 5개만 표시
+          
+          console.log(`[Storage] 기본 공유 이미지 ${results.length}개 제공`);
         }
       }
       

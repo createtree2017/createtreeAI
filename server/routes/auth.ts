@@ -151,6 +151,15 @@ router.post("/register", async (req, res) => {
   }
 });
 
+// TypeScript에서 Session 타입 확장
+declare module 'express-session' {
+  interface SessionData {
+    passport: {
+      user: number;
+    };
+  }
+}
+
 // 로그인 API (세션 기반)
 router.post("/login", (req, res, next) => {
   // 로그인 요청 데이터 디버깅
@@ -177,16 +186,23 @@ router.post("/login", (req, res, next) => {
           return next(loginErr);
         }
         
-        // 세션 정보 확인 (디버깅용)
-        console.log('로그인 성공, 세션 정보:', {
+        // 세션 정보 디버깅 로그
+        const sessionInfo = {
           id: req.session.id,
-          passport: req.session.passport,
-          cookie: req.session.cookie
-        });
+          passport: req.session.passport ? JSON.stringify(req.session.passport) : '없음',
+          cookie: req.session.cookie ? {
+            originalMaxAge: req.session.cookie.originalMaxAge,
+            expires: req.session.cookie.expires,
+            secure: req.session.cookie.secure,
+            httpOnly: req.session.cookie.httpOnly
+          } : '없음'
+        };
+        
+        console.log('로그인 성공, 세션 정보:', sessionInfo);
         console.log('req.isAuthenticated():', req.isAuthenticated());
         console.log('req.sessionID:', req.sessionID);
         
-        // 응답 전에 세션이 저장되었는지 확인
+        // 중요: 세션 강제 저장 - 항상 세션 저장 보장
         req.session.save((saveErr) => {
           if (saveErr) {
             console.error('세션 저장 오류:', saveErr);
@@ -204,7 +220,7 @@ router.post("/login", (req, res, next) => {
           res.cookie('connect.sid', req.sessionID, {
             httpOnly: true,
             secure: isHttps,
-            maxAge: 24 * 60 * 60 * 1000, // 24시간
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7일
             sameSite: isHttps ? 'none' : 'lax',
             path: '/'
           });

@@ -1032,49 +1032,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
           let userMusicItems = musicItems;
           
           if (userId) {
-            // 메타데이터에서 userId 필드 확인 (데이터베이스에 user_id 컬럼이 없는 경우 대체 방법)
-            userMusicItems = musicItems.filter(item => {
-              // 메타데이터에서 사용자 정보 추출
-              try {
-                if (item.metadata) {
-                  const metadata = typeof item.metadata === 'string' 
-                    ? JSON.parse(item.metadata) 
-                    : item.metadata;
+            // 관리자 여부 확인 - 콘텐츠 필터링에 사용됨
+            const isAdmin = Boolean(username && (
+              username === '관리자' || 
+              username.includes('admin') || 
+              username.includes('Admin') ||
+              username.includes('슈퍼') || 
+              username.includes('수퍼') ||
+              username.includes('병원관리')
+            ));
+            
+            console.log(`[음악 갤러리] 사용자 정보 - ID: ${userId}, 이름: ${username || '알 수 없음'}, 관리자 여부: ${isAdmin}`);
+            
+            // 관리자인 경우 모든 음악 콘텐츠 접근 허용
+            if (isAdmin) {
+              console.log(`[음악 갤러리] 관리자 계정 확인됨: 모든 음악 접근 권한 부여`);
+              // 모든 음악 항목 반환 (필터링 없음)
+              userMusicItems = musicItems;
+            } else {
+              // 일반 사용자: 메타데이터에서 userId 필드 확인 
+              userMusicItems = musicItems.filter(item => {
+                // 메타데이터에서 사용자 정보 추출
+                try {
+                  if (item.metadata) {
+                    const metadata = typeof item.metadata === 'string' 
+                      ? JSON.parse(item.metadata) 
+                      : item.metadata;
+                      
+                    // 디버깅 로그 추가
+                    console.log(`[음악 메타데이터 확인] ID: ${item.id}, 메타데이터:`, metadata);
                     
-                  // 메타데이터에 userId가 현재 사용자와 일치하는지 확인 (문자열 변환 후 비교)
-                  if (metadata.userId) {
-                    // 문자열로 변환하여 비교 (타입 불일치 해결)
-                    const metadataUserIdStr = metadata.userId.toString();
-                    const currentUserIdStr = userId.toString();
+                    // 메타데이터에 userId가 현재 사용자와 일치하는지 확인 (문자열 변환 후 비교)
+                    if (metadata.userId) {
+                      // 문자열로 변환하여 비교 (타입 불일치 해결)
+                      const metadataUserIdStr = String(metadata.userId).trim();
+                      const currentUserIdStr = String(userId).trim();
+                      
+                      if (metadataUserIdStr === currentUserIdStr) {
+                        console.log(`[음악 필터링] 일치 항목 발견: metadata.userId=${metadataUserIdStr}, 현재 userId=${currentUserIdStr}`);
+                        return true;
+                      }
+                      
+                      // 특별 케이스 1: metadata.userId가 "-1"이면 공유 음악으로 간주
+                      if (metadataUserIdStr === "-1") {
+                        console.log(`[음악 필터링] 공유 음악 발견: ${item.title}`);
+                        return true;
+                      }
+                      
+                      // 특별 케이스 2: metadata.userId가 비어있거나 "null"이면 공유 음악으로 간주
+                      if (metadataUserIdStr === "" || metadataUserIdStr === "null" || metadataUserIdStr === "undefined") {
+                        console.log(`[음악 필터링] 빈 userId 음악 발견: ${item.title}`);
+                        return true;
+                      }
+                    }
                     
-                    if (metadataUserIdStr === currentUserIdStr) {
-                      console.log(`[음악 필터링] 일치 항목 발견: metadata.userId=${metadataUserIdStr}, 현재 userId=${currentUserIdStr}`);
+                    // 메타데이터에 username이 현재 사용자와 일치하는지 확인 (대체 방법)
+                    if (metadata.username && username && metadata.username === username) {
+                      console.log(`[음악 필터링] 사용자명 일치 항목 발견: ${item.title}`);
                       return true;
                     }
+                    
+                    // 음악 제목에 사용자 이름이 포함되는지 확인 (백업 방법)
+                    if (item.title && username) {
+                      // 제목에 사용자명이 포함된 패턴 확인
+                      const pattern1 = `[${username}]`; 
+                      const pattern2 = `${username}의`;
+                      const pattern3 = ` by ${username}`;
+                      const pattern4 = `(${username})`;
+                      
+                      if (item.title.includes(pattern1) || 
+                          item.title.includes(pattern2) || 
+                          item.title.includes(pattern3) ||
+                          item.title.includes(pattern4)) {
+                        console.log(`[음악 필터링] 제목에 사용자명 포함: ${item.title}`);
+                        return true;
+                      }
+                    }
                   }
-                  
-                  // 메타데이터에 username이 현재 사용자와 일치하는지 확인 (대체 방법)
-                  if (metadata.username && username && metadata.username === username) {
-                    return true;
-                  }
+                } catch (error) {
+                  console.error('메타데이터 파싱 오류:', error);
                 }
-              } catch (error) {
-                console.error('메타데이터 파싱 오류:', error);
-              }
+                
+                // 사용자 정보가 없거나 일치하지 않는 경우, 필터링에서 제외
+                return false;
+              });
               
-              // 사용자 정보가 없거나 일치하지 않는 경우, 필터링에서 제외
-              return false;
-            });
-            
-            // 필터링 결과가 없으면 빈 배열 반환 (사용자 소유의 콘텐츠만 표시)
-            if (userMusicItems.length === 0) {
-              console.log('사용자별 음악 필터링 결과 없음. 로그인 사용자에게는 빈 갤러리 표시');
-              userMusicItems = []; // 자신의 콘텐츠만 볼 수 있도록 수정
+              // 필터링 결과가 없으면 기본 음악 몇 개 표시 (완전히 빈 결과는 방지)
+              if (userMusicItems.length === 0) {
+                console.log('사용자별 음악 필터링 결과 없음. 기본 음악 제공');
+                
+                // 공유 음악 찾기
+                const sharedMusicItems = musicItems.filter(item => {
+                  try {
+                    if (item.metadata) {
+                      const metadata = typeof item.metadata === 'string'
+                        ? JSON.parse(item.metadata)
+                        : item.metadata;
+                      
+                      // 공유 음악만 표시
+                      return metadata.userId === "-1" || !metadata.userId;
+                    }
+                    return false;
+                  } catch (error) {
+                    return false;
+                  }
+                });
+                
+                userMusicItems = sharedMusicItems.slice(0, 3); // 최대 3개 공유 음악 표시
+                console.log(`[음악 갤러리] 기본 공유 음악 ${userMusicItems.length}개 제공`);
+              }
             }
           } else {
-            // 비로그인 사용자: 빈 배열 반환 (로그인 필요 메시지 표시용)
-            console.log('비로그인 사용자에게 음악 갤러리 접근 제한');
-            userMusicItems = []; // 로그인이 필요한 기능으로 변경
+            // 비로그인 사용자: 샘플 음악 몇 개만 반환 (로그인 필요 메시지와 함께)
+            console.log('비로그인 사용자에게 제한된 음악 갤러리 제공');
+            
+            // 샘플 음악 최대 2개 제공
+            userMusicItems = musicItems.slice(0, 2);
           }
           
           console.log(`음악 필터링 결과: ${userMusicItems.length}개 항목`);
