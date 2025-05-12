@@ -569,7 +569,10 @@ export const storage = {
         
         // 메타데이터에서 userId와 일치하는 이미지만 필터링
         filteredImages = allImages.filter(img => {
-          if (!img.metadata) return false;
+          if (!img.metadata) {
+            console.log(`[Storage] 이미지 ID ${img.id} 메타데이터 없음, 건너뜀`);
+            return false;
+          }
           
           try {
             const metadata = typeof img.metadata === 'string' 
@@ -578,14 +581,25 @@ export const storage = {
             
             // userId를 비교할 때 모두 문자열로 변환하여 일관성 유지
             const metadataUserId = metadata.userId;
-            if (!metadataUserId) return false;
+            
+            // 메타데이터에 userId가 없는 경우 (오래된 이미지)
+            if (!metadataUserId) {
+              console.log(`[Storage] 이미지 ID ${img.id} 사용자 ID 없음 - 기본 공유 설정으로 간주`);
+              // 메타데이터에 userId가 없는 이미지는 공유 이미지로 간주 (이전 데이터 호환성)
+              return true;
+            }
             
             // 양쪽 모두 문자열로 변환하여 비교 (타입 불일치 방지)
             const strUserId = String(userId);
             const strMetadataUserId = String(metadataUserId);
             
             const isMatch = strMetadataUserId === strUserId;
-            console.log(`[Storage] 이미지 ID ${img.id} 사용자 ID 비교: ${strUserId} === ${strMetadataUserId}, 일치: ${isMatch}`);
+            
+            // 중요 이미지만 상세 로그 (로그 수 줄이기)
+            if (isMatch || Number(img.id) % 10 === 0) {
+              console.log(`[Storage] 이미지 ID ${img.id} 사용자 ID 비교: ${strUserId} === ${strMetadataUserId}, 일치: ${isMatch}`);
+            }
+            
             return isMatch;
           } catch (error) {
             console.log(`[Storage] 이미지 ID ${img.id} 메타데이터 파싱 오류:`, error);
@@ -600,25 +614,41 @@ export const storage = {
           console.log(`[Storage] 사용자의 이미지가 부족하여 공유 이미지도 포함`);
           
           const sharedImages = allImages.filter(img => {
-            if (!img.metadata) return false;
+            if (!img.metadata) {
+              // 메타데이터가 없는 오래된 이미지는 공유로 간주하지 않음
+              return false;
+            }
             
             try {
               const metadata = typeof img.metadata === 'string' 
                 ? JSON.parse(img.metadata) 
                 : img.metadata;
               
-              // 공유 이미지이면서 현재 사용자 이미지가 아닌 것만 필터링
+              // 1. 명시적으로 공유로 표시된 이미지 확인 (isShared = true)
               const isShared = metadata.isShared === true;
               
-              if (isShared && metadata.userId) {
+              // 2. 글로벌 공유 이미지 확인 (userId = -1)
+              const isGlobalShared = metadata.userId === "-1" || metadata.userId === -1;
+              
+              // 3. 사용자 ID가 현재 사용자와 다른지 확인 (중복 방지)
+              let isDifferentUser = true;
+              if (metadata.userId && userId) {
                 const strMetadataUserId = String(metadata.userId);
                 const strUserId = String(userId);
-                // 이미 필터링된 사용자 소유 이미지는 제외
-                return strMetadataUserId !== strUserId;
+                isDifferentUser = strMetadataUserId !== strUserId;
               }
               
-              return isShared;
+              // 4. 공유 이미지이면서 현재 사용자의 것이 아닌 이미지만 포함
+              const shouldInclude = (isShared || isGlobalShared) && isDifferentUser;
+              
+              // 포함되는 이미지는 로그로 확인
+              if (shouldInclude) {
+                console.log(`[Storage] 공유 이미지 포함: ID ${img.id}, 제목: "${img.title.substring(0, 20)}...", isShared: ${isShared}, isGlobal: ${isGlobalShared}`);
+              }
+              
+              return shouldInclude;
             } catch (error) {
+              console.log(`[Storage] 이미지 ID ${img.id} 메타데이터 파싱 오류:`, error);
               return false;
             }
           });

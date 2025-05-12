@@ -187,7 +187,14 @@ export const api = {
   
   // 갤러리 및 미디어
   getGalleryItems: (filter = '') => getApi(`/api/gallery${filter ? `?filter=${filter}` : ''}`),
-  transformImage: (formData: FormData) => postApi('/api/image/transform', formData),
+  transformImage: (formData: FormData, isAdmin: boolean = false) => {
+    // 관리자 요청인 경우 헤더 추가
+    const headers: Record<string, string> = {};
+    if (isAdmin) {
+      headers['X-Admin-Request'] = 'true';
+    }
+    return postApi('/api/image/transform', formData, { headers });
+  },
   uploadThumbnail: (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
