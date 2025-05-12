@@ -12,8 +12,8 @@ import { Separator } from "@/components/ui/separator";
 
 // 로그인 폼 검증 스키마
 const loginSchema = z.object({
-  username: z.string().min(3, {
-    message: "사용자명은 최소 3자 이상이어야 합니다.",
+  username: z.string().email({
+    message: "올바른 이메일 주소를 입력하세요.",
   }),
   password: z.string().min(6, {
     message: "비밀번호는 최소 6자 이상이어야 합니다.",
@@ -81,9 +81,9 @@ const LoginForm: React.FC = () => {
           name="username"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>사용자명</FormLabel>
+              <FormLabel>이메일</FormLabel>
               <FormControl>
-                <Input placeholder="사용자명 입력" {...field} disabled={isLoginLoading} />
+                <Input placeholder="이메일 주소 입력" type="email" {...field} disabled={isLoginLoading} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -157,9 +157,9 @@ const LoginForm: React.FC = () => {
             <button 
               type="button" 
               className="text-gray-500 hover:text-primary underline" 
-              onClick={() => alert("아이디 찾기 기능은 현재 개발 중입니다.")}
+              onClick={() => alert("이메일 주소 찾기 기능은 현재 개발 중입니다.")}
             >
-              아이디 찾기
+              이메일 찾기
             </button>
             <span className="text-gray-400">|</span>
             <button 

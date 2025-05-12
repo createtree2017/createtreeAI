@@ -136,28 +136,28 @@ export function initPassport() {
     }
   });
 
-  // 로컬 전략 설정 (username/password 인증)
+  // 로컬 전략 설정 (이메일/비밀번호 인증)
   passport.use(
     new LocalStrategy(
       {
-        usernameField: "username",
+        usernameField: "username", // form에서는 'username' 필드명 유지 (실제로는 이메일)
         passwordField: "password",
       },
       async (username: string, password: string, done: any) => {
         try {
-          // 사용자 찾기
+          // username 필드에 이메일이 들어오므로 이메일로 검색
           const user = await db.query.users.findFirst({
-            where: eq(users.username, username),
+            where: eq(users.email, username),
           });
 
           if (!user) {
-            return done(null, false, { message: "잘못된 사용자명 또는 비밀번호입니다." });
+            return done(null, false, { message: "잘못된 이메일 주소 또는 비밀번호입니다." });
           }
 
           // 비밀번호 검증
           const isPasswordValid = await verifyPassword(password, user.password);
           if (!isPasswordValid) {
-            return done(null, false, { message: "잘못된 사용자명 또는 비밀번호입니다." });
+            return done(null, false, { message: "잘못된 이메일 주소 또는 비밀번호입니다." });
           }
 
           // 사용자 권한 조회
