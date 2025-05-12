@@ -1083,4 +1083,26 @@ export const storage = {
       
     return { success: true };
   },
+  
+  // 특정 ID의 이미지 상세 정보 조회 함수
+  async getImageById(imageId: number) {
+    try {
+      console.log(`[Storage] 이미지 ID ${imageId}로 상세 정보 조회`);
+      
+      const result = await db.select().from(images).where(eq(images.id, imageId));
+      
+      if (result.length === 0) {
+        console.log(`[Storage] ID ${imageId}에 해당하는 이미지를 찾을 수 없음`);
+        return null;
+      }
+      
+      const image = result[0];
+      console.log(`[Storage] 이미지 조회 성공: "${image.title}" (ID: ${image.id})`);
+      
+      return image;
+    } catch (error) {
+      console.error(`[Storage] 이미지 ID ${imageId} 조회 중 오류:`, error);
+      return null;
+    }
+  },
 };
