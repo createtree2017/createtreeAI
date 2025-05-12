@@ -427,6 +427,7 @@ export const storage = {
           originalUrl: originalPath,
           transformedUrl,
           metadata: JSON.stringify(metadata),
+          userId: userId, // userId 필드 추가 (DB 컬럼과 일치)
           // 필드 이름은 데이터베이스 컬럼과 일치해야 합니다.
           // 실제 DB에 없는 username, originalFilename 필드는 제거
         })
