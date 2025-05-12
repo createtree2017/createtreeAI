@@ -317,14 +317,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         console.log("[테스트 로그인] 요청:", req.body);
         
-        // 테스트 사용자 정보
+        // 테스트 사용자 정보 (실제 User 스키마와 맞춰야 함)
         const testUser = {
           id: 999,
           username: "테스트관리자",
-          email: "test@example.com",
-          full_name: "테스트 관리자",
-          member_type: "superadmin",
-          created_at: new Date()
+          password: null,
+          email: "test@example.com", 
+          fullName: "테스트 관리자",
+          emailVerified: true,
+          memberType: "superadmin",
+          hospitalId: null,
+          promoCode: null,
+          lastLogin: new Date(),
+          firebaseUid: null,
+          createdAt: new Date(),
+          updatedAt: new Date()
         };
         
         // 세션에 사용자 정보 저장

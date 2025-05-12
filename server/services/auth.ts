@@ -93,8 +93,28 @@ export function initPassport() {
 
     console.log(`[deserializeUser] 세션 ID로 사용자 조회 시작: ${userId} (타입: ${typeof userId})`);
     
+    // 개발용 테스트 사용자 처리 (ID: 999)
+    if (process.env.NODE_ENV !== 'production' && userId === 999) {
+      console.log('[deserializeUser] 테스트 관리자 계정 인증 처리');
+      return done(null, {
+        id: 999,
+        username: "테스트관리자",
+        password: null,
+        email: "test@example.com", 
+        fullName: "테스트 관리자",
+        emailVerified: true,
+        memberType: "superadmin",
+        hospitalId: null,
+        promoCode: null,
+        lastLogin: new Date(),
+        firebaseUid: null,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+    }
+    
     try {
-      // 사용자 정보 조회
+      // 실제 사용자 정보 조회
       const user = await db.query.users.findFirst({
         where: eq(users.id, userId),
       });
