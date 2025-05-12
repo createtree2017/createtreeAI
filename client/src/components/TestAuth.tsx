@@ -25,8 +25,13 @@ export function TestAuth() {
     try {
       console.log('사용자 인증 상태 확인 중...');
       const userData = await api.getCurrentUser();
-      setUser(userData);
-      console.log('현재 사용자 정보:', userData);
+      if (userData) {
+        setUser(userData as User);
+        console.log('현재 사용자 정보:', userData);
+      } else {
+        console.log('인증된 사용자 없음');
+        setUser(null);
+      }
     } catch (error) {
       console.error('인증 상태 확인 오류:', error);
     }
@@ -40,12 +45,16 @@ export function TestAuth() {
       const response = await api.testLogin();
       
       console.log('테스트 로그인 성공:', response);
-      setUser(response.user);
-      
-      toast({
-        title: '테스트 로그인 성공',
-        description: `${response.user.username}님으로 로그인되었습니다.`,
-      });
+      // 응답 타입 안전하게 처리
+      if (response && typeof response === 'object' && 'user' in response && response.user) {
+        const userData = response.user as User;
+        setUser(userData);
+        
+        toast({
+          title: '테스트 로그인 성공',
+          description: `${userData.username}님으로 로그인되었습니다.`,
+        });
+      }
     } catch (error) {
       console.error('테스트 로그인 오류:', error);
       toast({

@@ -102,5 +102,20 @@ export const api = {
     });
   },
 
+  // 갤러리 아이템 조회 API
+  async getGalleryItems(filter?: string) {
+    let url = '/api/gallery';
+    if (filter) {
+      url += `?filter=${filter}`;
+    }
+    
+    try {
+      return await this.fetch(url);
+    } catch (error) {
+      console.error('갤러리 아이템 조회 오류:', error);
+      return [];
+    }
+  },
+
   // 기타 API 메서드들...
 };
