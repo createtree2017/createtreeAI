@@ -233,6 +233,8 @@ const conceptSchema = z.object({
 
 // 인증 라우트 가져오기
 import authRoutes from "./routes/auth";
+// 이미지 라우트 가져오기
+import imageRoutes from "./routes/image";
 // 인증 서비스 가져오기
 import { initPassport } from "./services/auth";
 import cookieParser from "cookie-parser";
@@ -278,6 +280,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // 개발 대화 기록을 관리하기 위한 인스턴스 생성
   const devHistoryManager = new DevHistoryManager();
+  
+  // 이미지 상세 정보 조회 API
+  app.get('/api/view-image/:id', async (req, res) => {
+    try {
+      const imageId = parseInt(req.params.id);
+      if (isNaN(imageId)) {
+        return res.status(400).json({ error: '유효하지 않은 이미지 ID입니다.' });
+      }
+      
+      const image = await storage.getImageById(imageId);
+      if (!image) {
+        return res.status(404).json({ error: '이미지를 찾을 수 없습니다.' });
+      }
+      
+      // 이미지 메타데이터가 문자열이면 JSON으로 파싱
+      let metadata = {};
+      if (image.metadata && typeof image.metadata === 'string') {
+        try {
+          metadata = JSON.parse(image.metadata);
+        } catch (err) {
+          console.error('메타데이터 파싱 오류:', err);
+        }
+      } else if (image.metadata) {
+        metadata = image.metadata;
+      }
+      
+      // 응답 객체 형식화
+      const response = {
+        id: image.id,
+        title: image.title,
+        style: image.style,
+        originalUrl: image.originalUrl,
+        transformedUrl: image.transformedUrl,
+        createdAt: image.createdAt,
+        metadata
+      };
+      
+      res.json(response);
+    } catch (error) {
+      console.error('이미지 상세 정보 조회 오류:', error);
+      res.status(500).json({ error: '이미지 상세 정보를 불러오는 중 오류가 발생했습니다.' });
+    }
+  });
   
   // Serve uploaded files from the uploads directory
   app.use('/uploads', (req, res, next) => {
