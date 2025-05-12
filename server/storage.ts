@@ -506,12 +506,6 @@ export const storage = {
       const filterDate = new Date('2000-01-01T00:00:00Z'); // 오래된 날짜로 설정하여 모든 이미지 포함
       console.log(`[Storage] 날짜 필터링 비활성화: 모든 이미지 표시 (기준일: ${filterDate.toISOString()})`);
       
-      // 디버깅: 데이터베이스에서 조회된 이미지 샘플 몇 개 표시
-      console.log(`[Storage] 데이터베이스에서 조회된 이미지 샘플 (최대 5개):`);
-      allImages.slice(0, 5).forEach((img, idx) => {
-        console.log(`[이미지 ${idx+1}/5] ID: ${img.id}, 제목: "${img.title}", URL: ${img.transformedUrl?.substring(0, 30)}...`);
-      });
-      
       // 전체 이미지 수 계산을 위한 기본 쿼리 
       const countQuery = db.select({ count: count() }).from(images);
       const countResult = await countQuery;
@@ -552,33 +546,19 @@ export const storage = {
         console.log(`[이미지 샘플 ${idx+1}] ID: ${item.id}, 제목: "${item.title}", 메타데이터: ${metadataLog}`);
       });
       
-      // *** 임시 해결책: 기존 필터링 로직 비활성화 - 모든 이미지 표시 ***
-      console.log(`[Storage] 모든 필터링 비활성화 - 모든 이미지 표시`);
+      // 모든 필터링 비활성화 - 모든 이미지 표시
+      console.log(`[Storage] 모든 필터링 비활성화 - 전체 이미지 표시 중`);
       
-      // 이미지 URL 디버깅
-      console.log(`[Storage] 이미지 URL 확인 (최대 3개 샘플):`);
-      allImages.slice(0, 3).forEach((img, idx) => {
-        // URL 확인
-        const urlSample = img.transformedUrl 
-          ? img.transformedUrl.substring(0, Math.min(50, img.transformedUrl.length)) + "..." 
-          : "URL 없음";
-        console.log(`[이미지 URL ${idx+1}/3] ID: ${img.id}, URL: ${urlSample}`);
-      });
-      
-      // 모든 사용자에게 모든 이미지 표시 (필터링 없음)
-      let results = allImages;
-      
-      console.log(`[Storage] 필터링 없이 ${results.length}개 이미지 준비 완료`);
-      
-      // 로그인 사용자 정보 기록
-      if (userId || username) {
-        console.log(`[Storage] 로그인 사용자: ID=${userId || '없음'}, 이름=${username || '없음'}`);
-      } else {
-        console.log(`[Storage] 익명 사용자 접근: 모든 이미지 표시`);
-      }
+      // 로그인 사용자 정보 로깅
+      console.log(`[Storage] 로그인 사용자: ID=${userId || '없음'}, 이름=${username || '없음'}`);
+      console.log(`[Storage] 필터링 없이 모든 이미지 준비완료 (필터링 없음)`);
       
       // 페이지네이션 적용
-      results = results.slice((page - 1) * limit, page * limit);
+      const resultsPaginated = allImages.slice((page - 1) * limit, page * limit);
+      console.log(`[Storage] 페이지네이션 이미지 조회 결과: ${resultsPaginated.length}개 (page=${page}, limit=${limit})`);
+      
+      // 결과 반환 변수 수정
+      let results = resultsPaginated;
       
       console.log(`[Storage] 페이지네이션 이미지 조회 결과: ${results.length}개 (page=${page}, limit=${limit}, userId=${userId || '없음'})`);
       
