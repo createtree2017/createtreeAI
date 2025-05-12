@@ -264,6 +264,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }));
   
+  // 세션 디버깅 미들웨어
+  app.use((req, res, next) => {
+    // 주기적으로 세션 ID 변경 여부 확인
+    if (req.session && req._sessLogInfo !== req.session.id) {
+      req._sessLogInfo = req.session.id;
+      console.log(`[세션 추적] 새 세션 ID: ${req.session.id}`);
+      console.log(`[세션 추적] 쿠키 정보: ${JSON.stringify(req.session.cookie)}`);
+      console.log(`[세션 추적] Passport 데이터: ${JSON.stringify(req.session.passport || '없음')}`);
+    }
+    next();
+  });
+  
   // Passport 초기화 및 미들웨어 등록
   const passport = initPassport();
   app.use(passport.initialize());

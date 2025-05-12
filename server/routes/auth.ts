@@ -273,10 +273,14 @@ router.get("/me", (req, res) => {
 ===================================================
 [인증 상태 확인]
 - 요청 경로: ${req.path}
+- 요청 헤더: ${JSON.stringify(req.headers['cookie'] || '(없음)')}
 - isAuthenticated 함수 존재 여부: ${!!req.isAuthenticated}
 - 인증 상태: ${req.isAuthenticated ? req.isAuthenticated() : 'undefined'}
 - 세션 존재 여부: ${!!req.session}
+- 세션 ID: ${req.session.id || '(없음)'}
+- 세션 쿠키 설정: ${JSON.stringify(req.session.cookie || {})}
 - 사용자 정보 존재 여부: ${!!req.user}
+- passport 세션 데이터: ${JSON.stringify(req.session.passport || '(없음)')}
 ===================================================
     `);
 
