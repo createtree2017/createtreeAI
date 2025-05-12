@@ -236,6 +236,12 @@ export default function Gallery() {
   
   return (
     <div className="p-5 animate-fadeIn">
+      {/* 이미지 상세 모달 */}
+      <ImageDetailModal 
+        imageId={selectedImageId} 
+        onClose={() => setSelectedImageId(null)} 
+      />
+      
       <div className="text-center mb-6">
         <h2 className="font-heading font-bold text-2xl mb-2">나의 갤러리</h2>
         <p className="text-neutral-dark">소중한 추억이 모두 모인 공간</p>
