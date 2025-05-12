@@ -198,6 +198,9 @@ export const api = {
     if (filterByUser === false) params.filterByUser = 'false';
     return getApi('/api/image/list', params);
   },
+  
+  // 이미지 상세 정보 조회 API
+  getImageDetail: (imageId: number) => getApi(`/api/view-image/${imageId}`),
   generateMusic: (data: any) => postApi('/api/music/generate', data),
   getMusicList: (filter = '') => getApi(`/api/music${filter ? `?filter=${filter}` : ''}`),
   shareMedia: (mediaId: string, mediaType: string) => postApi('/api/share', { mediaId, mediaType }),

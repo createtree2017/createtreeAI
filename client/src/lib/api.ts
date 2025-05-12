@@ -17,6 +17,7 @@ export const getGalleryItems = apiClient.getGalleryItems;
 export const transformImage = apiClient.transformImage;
 export const uploadThumbnail = apiClient.uploadThumbnail;
 export const getImageList = apiClient.getImageList;
+export const getImageDetail = apiClient.getImageDetail;
 export const generateMusic = apiClient.generateMusic;
 export const getMusicList = apiClient.getMusicList;
 export const shareMedia = apiClient.shareMedia;

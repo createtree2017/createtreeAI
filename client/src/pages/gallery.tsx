@@ -7,6 +7,7 @@ import { queryClient } from "@/lib/queryClient";
 import { Music, PaintbrushVertical, Heart, Play, Eye, Share2, MessageCircle, ChevronLeft, ChevronRight, Globe, Share } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import ImageDetailModal from "@/components/ImageDetailModal";
 
 interface GalleryItem {
   id: number;
@@ -31,6 +32,7 @@ export default function Gallery() {
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6; // 한 페이지당 6개 항목
+  const [selectedImageId, setSelectedImageId] = useState<number | null>(null);
 
   // 사용자 인증 상태에 따라 다른 쿼리키 사용
   const { data: items, isLoading, isError } = useQuery({
@@ -199,11 +201,15 @@ export default function Gallery() {
   
   const handleItemAction = (item: GalleryItem, action: 'view' | 'play' | 'share') => {
     if (action === 'view' || action === 'play') {
-      // 적절한 페이지로 이동
       if (item.type === 'chat') {
+        // 채팅은 채팅 페이지로 이동
         setLocation(`/chat?id=${item.id}`);
-      } else {
-        setLocation(`/${item.type === 'music' ? 'music' : 'image'}?id=${item.id}`);
+      } else if (item.type === 'music') {
+        // 음악은 음악 페이지로 이동
+        setLocation(`/music?id=${item.id}`);
+      } else if (item.type === 'image') {
+        // 이미지는 모달로 표시
+        setSelectedImageId(item.id);
       }
     } else if (action === 'share') {
       if (item.type === 'image' && item.isOwner) {
