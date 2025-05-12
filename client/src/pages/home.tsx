@@ -16,7 +16,6 @@ import {
   Zap,
   Palette
 } from "lucide-react";
-import { getGalleryItems } from "@/lib/api";
 
 // 스타일 카드 타입 정의
 interface StyleCard {
@@ -191,11 +190,9 @@ export default function Home() {
     },
   ];
 
-  // 최근 활동 가져오기
-  const { data: recentActivities, isLoading } = useQuery({
-    queryKey: ["/api/gallery", "recent"],
-    queryFn: () => getGalleryItems("recent"),
-  });
+  // 최근 활동 데이터 (임시) - API 연동 전 더미 데이터
+  const recentActivities: any[] = [];
+  const isLoading = false;
 
   return (
     <div className="pb-16 animate-fadeIn">

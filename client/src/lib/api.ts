@@ -1,5 +1,6 @@
 // API 호출을 위한 기본 설정
-export const api = {
+// 기본 export로 변경
+const api = {
   // API 기본 URL
   baseURL: '',
 
@@ -119,3 +120,8 @@ export const api = {
 
   // 기타 API 메서드들...
 };
+
+// 기본 export로 api 객체 내보내기
+export default api;
+// named export도 함께 제공
+export { api };
