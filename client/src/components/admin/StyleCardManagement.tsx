@@ -416,6 +416,11 @@ export default function StyleCardManagement() {
                         className="data-[state=checked]:bg-primary-lavender"
                       />
                     </div>
+                    {!styleCard.isActive && (
+                      <span className="inline-flex items-center bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded ml-2">
+                        비활성화됨
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
