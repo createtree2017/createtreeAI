@@ -501,12 +501,10 @@ export const storage = {
     try {
       console.log(`[Storage] getPaginatedImageList 호출됨: page=${page}, limit=${limit}, userId=${userId || '없음'}, username=${username || '없음'}, ${new Date().toISOString()}`);
       
-      // 기준 날짜 설정: 2025-05-12 (오늘 포함) 이후 생성된 이미지만 사용자별 필터링 적용
-      // 이전 이미지는 표시하지 않음 (한글 인코딩 문제가 있는 기존 데이터)
-      const today = new Date();
-      const filterDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      filterDate.setHours(0, 0, 0, 0); // 오늘 자정으로 설정
-      console.log(`[Storage] 필터 날짜 설정: ${filterDate.toISOString()} 이후 이미지만 표시`);
+      // 필터링 날짜 완전 비활성화 - 모든 이미지 표시
+      // 이전에는 인코딩 문제로 날짜 필터링을 했으나, 현재는 모든 이미지 표시
+      const filterDate = new Date('2000-01-01T00:00:00Z'); // 오래된 날짜로 설정하여 모든 이미지 포함
+      console.log(`[Storage] 날짜 필터링 비활성화: 모든 이미지 표시 (기준일: ${filterDate.toISOString()})`);
       
       // 전체 이미지 수 계산을 위한 기본 쿼리 
       const countQuery = db.select({ count: count() }).from(images);
@@ -684,31 +682,15 @@ export const storage = {
         // 로그인한 사용자의 이미지만 보여주도록 유지
         console.log(`[Storage] 사용자 ID ${userId}를 위한 ${results.length}개 이미지 필터링 완료`);
         
-        // 이미지가 없는 사용자 처리 - 첫 페이지에만 공유 이미지 제공
+        // 이미지가 없는 사용자 처리 - 첫 페이지에서 모든 이미지 제공
         if (results.length === 0 && page === 1) {
           console.log(`[Storage] 경고: 사용자 ${username}(ID:${userId})의 이미지가 없습니다.`);
           
-          // 공유 이미지 필터링 (isShared=true 속성 사용)
-          results = allImages.filter(item => {
-            if (!item.metadata) return false;
-            
-            try {
-              const metadata = typeof item.metadata === 'string' 
-                ? JSON.parse(item.metadata) 
-                : item.metadata;
-              
-              // 공유 이미지 여부 확인 (isShared=true 또는 userId=-1)
-              return (
-                metadata.isShared === true || 
-                Number(metadata.userId) === -1 || 
-                metadata.userId === "-1"
-              );
-            } catch (error) {
-              return false;
-            }
-          }).slice(0, limit); // 페이지 크기만큼만 표시
+          // 필터링 없이 모든 이미지 제공 (테스트용)
+          console.log(`[Storage] 필터링 비활성화 - 모든 이미지 표시 모드`);
+          results = allImages.slice(0, limit);
           
-          console.log(`[Storage] 기본 공유 이미지 ${results.length}개 제공`);
+          console.log(`[Storage] 모든 이미지 중 ${results.length}개 제공`);
         }
       }
       
