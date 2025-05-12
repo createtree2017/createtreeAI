@@ -311,6 +311,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 인증 라우트 등록
   app.use("/api/auth", authRoutes);
   
+  // 테스트용 인증 라우트 (개발 환경에서만 활성화)
+  if (process.env.NODE_ENV !== 'production') {
+    app.post("/api/test-login", async (req, res) => {
+      try {
+        console.log("[테스트 로그인] 요청:", req.body);
+        
+        // 테스트 사용자 정보
+        const testUser = {
+          id: 999,
+          username: "테스트관리자",
+          email: "test@example.com",
+          full_name: "테스트 관리자",
+          member_type: "superadmin",
+          created_at: new Date()
+        };
+        
+        // 세션에 사용자 정보 저장
+        req.login(testUser, (err) => {
+          if (err) {
+            console.error("[테스트 로그인] 세션 저장 오류:", err);
+            return res.status(500).json({ message: "세션 저장 오류" });
+          }
+          
+          // 세션 정보 확인
+          console.log("[테스트 로그인] 세션 정보:", {
+            id: req.session.id,
+            passport: req.session.passport ? JSON.stringify(req.session.passport) : '없음',
+            isAuthenticated: req.isAuthenticated()
+          });
+          
+          // 세션 강제 저장
+          req.session.save((saveErr) => {
+            if (saveErr) {
+              console.error("[테스트 로그인] 세션 저장 오류:", saveErr);
+              return res.status(500).json({ message: "세션 저장 오류" });
+            }
+            
+            console.log("[테스트 로그인] 성공 - 세션 저장 완료");
+            return res.json({ user: testUser, message: "테스트 로그인 성공" });
+          });
+        });
+      } catch (error) {
+        console.error("[테스트 로그인] 오류:", error);
+        res.status(500).json({ message: "로그인 처리 중 오류가 발생했습니다." });
+      }
+    });
+  }
+  
   // 슈퍼관리자 라우트 등록
   app.use("/api/super", superAdminRoutes);
   
