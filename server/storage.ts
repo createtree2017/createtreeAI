@@ -419,6 +419,9 @@ export const storage = {
     try {
       console.log(`[Storage] 새 이미지 저장 시작: "${title}", 스타일: ${style}, 사용자: ${username || '없음'}, 사용자ID: ${userId || '없음'}`);
       
+      // 현재 날짜 정보를 설정하여 최신 이미지가 명확하게 표시되도록 함
+      const now = new Date();
+      
       const [savedImage] = await db
         .insert(images)
         .values({
@@ -427,13 +430,12 @@ export const storage = {
           originalUrl: originalPath,
           transformedUrl,
           metadata: JSON.stringify(metadata),
+          createdAt: now, // 현재 시간으로 명시적 설정
           // 데이터베이스에 user_id 컬럼이 없으므로, metadata 필드에만 저장
-          // 필드 이름은 데이터베이스 컬럼과 일치해야 합니다.
-          // 실제 DB에 없는 username, originalFilename 필드는 제거
         })
         .returning();
       
-      console.log(`[Storage] 이미지 저장 완료: ID ${savedImage.id}, 타이틀: "${savedImage.title}", 사용자: ${username || '없음'}`);
+      console.log(`[Storage] 이미지 저장 완료: ID ${savedImage.id}, 타이틀: "${savedImage.title}", 사용자: ${username || '없음'}, 생성일: ${now.toISOString()}`);
       return savedImage;
     } catch (error) {
       console.error(`[Storage] 이미지 저장 중 오류 발생:`, error);
@@ -557,7 +559,7 @@ export const storage = {
             metadataLog = `파싱 오류: ${error instanceof Error ? error.message : String(error)}`;
           }
         }
-        console.log(`[이미지 샘플 ${idx+1}] ID: ${item.id}, 제목: "${item.title}", 메타데이터: ${metadataLog}`);
+        console.log(`[이미지 샘플 ${idx+1}] ID: ${item.id}, 제목: "${item.title}", 생성일: ${item.createdAt.toISOString()}, 메타데이터: ${metadataLog}`);
       });
       
       // 사용자 ID 기반 필터링 (userId가 제공된 경우)
@@ -582,9 +584,11 @@ export const storage = {
             const strUserId = String(userId);
             const strMetadataUserId = String(metadataUserId);
             
-            console.log(`[Storage] 사용자 ID 비교: ${strUserId} === ${strMetadataUserId}`);
-            return strMetadataUserId === strUserId;
+            const isMatch = strMetadataUserId === strUserId;
+            console.log(`[Storage] 이미지 ID ${img.id} 사용자 ID 비교: ${strUserId} === ${strMetadataUserId}, 일치: ${isMatch}`);
+            return isMatch;
           } catch (error) {
+            console.log(`[Storage] 이미지 ID ${img.id} 메타데이터 파싱 오류:`, error);
             return false;
           }
         });
@@ -603,15 +607,37 @@ export const storage = {
                 ? JSON.parse(img.metadata) 
                 : img.metadata;
               
-              return metadata.isShared === true;
+              // 공유 이미지이면서 현재 사용자 이미지가 아닌 것만 필터링
+              const isShared = metadata.isShared === true;
+              
+              if (isShared && metadata.userId) {
+                const strMetadataUserId = String(metadata.userId);
+                const strUserId = String(userId);
+                // 이미 필터링된 사용자 소유 이미지는 제외
+                return strMetadataUserId !== strUserId;
+              }
+              
+              return isShared;
             } catch (error) {
               return false;
             }
           });
           
+          console.log(`[Storage] 공유 이미지 필터링 결과: ${sharedImages.length}개 이미지`);
+          
           // 중복 방지를 위해 Set 사용
-          const combinedImagesSet = new Set([...filteredImages, ...sharedImages]);
-          filteredImages = Array.from(combinedImagesSet);
+          // 먼저 사용자 이미지를 추가, 그 다음 공유 이미지를 추가
+          const combinedImages = [...filteredImages];
+          
+          // 공유 이미지 중에서 이미 포함되지 않은 것만 추가
+          for (const sharedImage of sharedImages) {
+            const isDuplicate = combinedImages.some(img => img.id === sharedImage.id);
+            if (!isDuplicate) {
+              combinedImages.push(sharedImage);
+            }
+          }
+          
+          filteredImages = combinedImages;
           
           console.log(`[Storage] 사용자 + 공유 이미지 필터링 결과: ${filteredImages.length}개 이미지`);
         }
@@ -626,18 +652,23 @@ export const storage = {
       const resultsPaginated = filteredImages.slice((page - 1) * limit, page * limit);
       console.log(`[Storage] 페이지네이션 이미지 조회 결과: ${resultsPaginated.length}개 (page=${page}, limit=${limit})`);
       
-      // 결과 반환 변수 수정
-      let results = resultsPaginated;
+      // 이미지 정렬: 최신순으로 정렬
+      const sortedResults = resultsPaginated.sort((a, b) => {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
       
-      console.log(`[Storage] 페이지네이션 이미지 조회 결과: ${results.length}개 (page=${page}, limit=${limit}, userId=${userId || '없음'})`);
+      console.log(`[Storage] 페이지네이션 이미지 조회 결과: ${sortedResults.length}개 (page=${page}, limit=${limit}, userId=${userId || '없음'})`);
+      
+      // 필터링된 총 이미지 수 계산 (페이지네이션에 사용)
+      const filteredTotal = filteredImages.length;
       
       return {
-        images: results || [],
+        images: sortedResults || [],
         pagination: {
-          total,
+          total: filteredTotal, // 필터링된 총 개수로 변경
           page,
           limit,
-          totalPages: Math.ceil(total / limit)
+          totalPages: Math.ceil(filteredTotal / limit)
         }
       };
     } catch (error) {
