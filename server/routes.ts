@@ -895,27 +895,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           console.log(`[갤러리 API] 이미지 탭: ${filteredImages.length}개 이미지 로드됨`);
           
-          // 필터링 후 결과가 너무 적으면 결과를 복제해서 더 많이 표시
-          if (filteredImages.length < 10) {
-            console.log("필터링된 이미지가 너무 적어 결과를 복제합니다");
-            const originalLength = filteredImages.length;
-            for (let i = 0; i < Math.min(2, Math.ceil(10/originalLength)); i++) {
-              filteredImages = [...filteredImages, ...filteredImages];
-            }
-            // 최대 20개로 제한
-            filteredImages = filteredImages.slice(0, 20);
-          }
+          // 이미지가 적더라도 복제하지 않음 - 중복 표시 문제 해결
+          console.log(`이미지 복제 기능 제거: 실제 이미지만 표시 (${filteredImages.length}개)`);
+          // 복제 코드 제거
           
           // 필터링된 이미지 변환
-          galleryItems = filteredImages.map(item => ({
-            id: item.id,
-            title: decodeKoreanText(item.title),
-            type: "image" as const,
-            url: item.transformedUrl,
-            thumbnailUrl: item.transformedUrl,
-            createdAt: item.createdAt.toISOString(),
-            isFavorite: false
-          }));
+          galleryItems = filteredImages.map(item => {
+            // 변환된 이미지 URL을 사용하도록 수정
+            // 변환된 이미지가 없는 경우에만 원본 이미지 URL 사용
+            const imageUrl = item.transformedUrl || item.originalUrl;
+            
+            return {
+              id: item.id,
+              title: decodeKoreanText(item.title),
+              type: "image" as const,
+              url: imageUrl, // 이미지 상세 뷰를 위한 URL
+              viewUrl: `/api/view-image/${item.id}`, // 이미지 보기 API 엔드포인트
+              thumbnailUrl: imageUrl, // 썸네일에도 변환된 이미지 사용
+              createdAt: item.createdAt.toISOString(),
+              isFavorite: false
+            };
+          });
           
           console.log(`갤러리에 표시할 이미지 ${galleryItems.length}개 준비됨`);
         } catch (imageError) {
@@ -3129,6 +3129,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Replicate API 테스트 엔드포인트 오류:", error);
       return res.status(500).json({ error: error.message || "알 수 없는 오류" });
+    }
+  });
+
+  // 이미지 상세 보기 API 엔드포인트 추가
+  app.get("/api/view-image/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "로그인이 필요합니다." });
+      }
+
+      const imageId = parseInt(req.params.id);
+      if (isNaN(imageId)) {
+        return res.status(400).json({ error: "유효하지 않은 이미지 ID입니다." });
+      }
+
+      // 이미지 상세 정보 조회
+      const image = await storage.getImageById(imageId);
+      if (!image) {
+        return res.status(404).json({ error: "이미지를 찾을 수 없습니다." });
+      }
+
+      // 이미지 메타데이터 처리
+      let metadata = {};
+      if (image.metadata) {
+        try {
+          metadata = typeof image.metadata === 'string' 
+            ? JSON.parse(image.metadata) 
+            : image.metadata;
+        } catch (error) {
+          console.error("메타데이터 파싱 오류:", error);
+        }
+      }
+
+      // 권한 확인 (이미지 소유자 또는 공유 이미지만 볼 수 있음)
+      const userId = req.user?.id;
+      const isOwner = userId && metadata.userId === String(userId);
+      const isShared = metadata.isShared === true;
+
+      if (!isOwner && !isShared) {
+        return res.status(403).json({ error: "이 이미지를 볼 수 있는 권한이 없습니다." });
+      }
+
+      // 이미지 상세 정보 반환
+      // 실제 변환된 이미지 URL을 사용 (없으면 원본 URL)
+      const imageUrl = image.transformedUrl || image.originalUrl;
+      
+      res.json({
+        id: image.id,
+        title: image.title,
+        description: image.description || "",
+        originalUrl: image.originalUrl,
+        transformedUrl: imageUrl,
+        style: image.style,
+        createdAt: image.createdAt.toISOString(),
+        metadata
+      });
+      
+    } catch (error) {
+      console.error("이미지 상세 보기 API 오류:", error);
+      res.status(500).json({ error: "이미지 정보를 가져오는 중 오류가 발생했습니다." });
     }
   });
 
