@@ -254,25 +254,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.use(session({
     secret: process.env.SESSION_SECRET || 'maternity-ai-session-secret',
-    resave: false,
-    saveUninitialized: false, 
+    resave: true, // 세션 변경 여부와 관계없이 항상 저장 (true로 변경)
+    saveUninitialized: true, // 초기화되지 않은 세션도 저장 (true로 변경)
+    name: 'connect.sid', // 세션 쿠키 이름 명시적 지정
     cookie: {
       httpOnly: true,
       secure: isHttps, // HTTPS 연결인 경우에만 secure 활성화
-      maxAge: 24 * 60 * 60 * 1000, // 24시간
-      sameSite: isHttps ? 'none' : 'lax' // HTTPS에서만 'none' 사용, 아니면 'lax'
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7일로 연장
+      sameSite: isHttps ? 'none' : 'lax', // HTTPS에서만 'none' 사용, 아니면 'lax'
+      path: '/' // 모든 경로에서 쿠키 접근 가능
     }
   }));
   
-  // 세션 디버깅 미들웨어
-  app.use((req, res, next) => {
-    // 주기적으로 세션 ID 변경 여부 확인
-    if (req.session && req._sessLogInfo !== req.session.id) {
-      req._sessLogInfo = req.session.id;
-      console.log(`[세션 추적] 새 세션 ID: ${req.session.id}`);
-      console.log(`[세션 추적] 쿠키 정보: ${JSON.stringify(req.session.cookie)}`);
-      console.log(`[세션 추적] Passport 데이터: ${JSON.stringify(req.session.passport || '없음')}`);
+  // 세션 디버깅 및 관리 미들웨어 (모든 요청에 쿠키 헤더를 다시 보내지 않도록 수정)
+  app.use((req: any, res, next) => {
+    // 첫 번째 요청인 경우 또는 세션 ID 변경 시에만 추적
+    if (!req._sessTracked || req._sessTracked !== req.session.id) {
+      req._sessTracked = req.session.id;
+      
+      // 디버깅 정보 로깅
+      console.log(`[세션 추적] 세션 ID: ${req.session.id}`);
+      console.log(`[세션 추적] 로그인 상태: ${req.isAuthenticated ? req.isAuthenticated() : 'undefined'}`);
+      console.log(`[세션 추적] 쿠키 헤더: ${req.headers.cookie || '(없음)'}`);
+      
+      // 세션 정보가 있는 경우만 상세 로깅
+      if (req.session.passport) {
+        console.log(`[세션 추적] 인증된 사용자 ID: ${req.session.passport.user}`);
+      }
     }
+    
     next();
   });
   

@@ -178,8 +178,13 @@ router.post("/login", (req, res, next) => {
         }
         
         // 세션 정보 확인 (디버깅용)
-        console.log('로그인 성공, 세션 정보:', req.session);
+        console.log('로그인 성공, 세션 정보:', {
+          id: req.session.id,
+          passport: req.session.passport,
+          cookie: req.session.cookie
+        });
         console.log('req.isAuthenticated():', req.isAuthenticated());
+        console.log('req.sessionID:', req.sessionID);
         
         // 응답 전에 세션이 저장되었는지 확인
         req.session.save((saveErr) => {
@@ -190,6 +195,20 @@ router.post("/login", (req, res, next) => {
           
           // 응답 - 사용자 정보만 반환 (토큰 없음)
           console.log('세션 저장 완료, 응답 전송');
+          
+          // 세션 쿠키 설정 강화
+          const isProduction = process.env.NODE_ENV === 'production';
+          const isHttps = process.env.PROTOCOL === 'https' || isProduction;
+          
+          // 명시적으로 세션 쿠키 세팅 추가
+          res.cookie('connect.sid', req.sessionID, {
+            httpOnly: true,
+            secure: isHttps,
+            maxAge: 24 * 60 * 60 * 1000, // 24시간
+            sameSite: isHttps ? 'none' : 'lax',
+            path: '/'
+          });
+          
           return res.json({
             user: sanitizeUser(user)
           });
