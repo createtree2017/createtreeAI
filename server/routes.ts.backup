@@ -22,6 +22,12 @@ declare module 'express-session' {
       localFilePath?: string; // 로컬 파일 시스템 경로 추가
       aspectRatio?: string; // 이미지 종횡비 추가
       dbImageId?: number; // 실제 DB에 저장된 ID도 추가
+      
+      // 사용자 정보 필드 추가
+      userId?: number | null;
+      username?: string | null;
+      isOwner?: boolean;
+      metadata?: string; // JSON 문자열로 저장된 메타데이터
     };
   }
 }
@@ -59,15 +65,12 @@ import {
   insertBannerSchema,
   insertStyleCardSchema,
   insertServiceCategorySchema,
-  eq,
-  asc,
-  desc,
   and,
   sql,
   like
 } from "../shared/schema";
 import { db } from "../db";
-import { or } from "drizzle-orm";
+import { or, eq, desc, asc } from "drizzle-orm";
 
 // Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), "uploads");
@@ -242,17 +245,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 쿠키 파서 미들웨어 등록
   app.use(cookieParser());
   
-  // 세션 미들웨어 등록
-  app.use(session({
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
-    resave: false,
-    saveUninitialized: false,
+  // 세션 미들웨어 등록 (인덱스에서 제거하고 여기로 통합)
+  // 쿠키 설정 - 개발 환경에서는 secure 옵션 비활성화 (Replit 환경에서 http로 실행되므로)
+  const isProduction = process.env.NODE_ENV === 'production';
+  const isHttps = process.env.PROTOCOL === 'https' || isProduction;
+  
+  console.log(`세션 설정: 프로덕션 모드=${isProduction}, HTTPS=${isHttps}`);
+  
+  // 세션 옵션 타입 지정
+  const sameSiteOption: 'none' | 'lax' | 'strict' = isHttps ? 'none' : 'lax';
+  
+  const sessionOptions = {
+    secret: process.env.SESSION_SECRET || 'maternity-ai-session-secret',
+    resave: true, // 세션을 항상 저장 (true로 변경)
+    saveUninitialized: true, // 초기화되지 않은 세션도 저장 (true로 변경)
+    name: 'connect.sid', // 세션 쿠키 이름 명시적 지정
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 24 * 60 * 60 * 1000 // 24시간
+      secure: isHttps, // HTTPS 연결인 경우에만 secure 활성화
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7일로 연장
+      sameSite: sameSiteOption, // 타입 지정된 sameSite 옵션 사용
+      path: '/' // 모든 경로에서 쿠키 접근 가능
     }
-  }));
+  };
+  
+  // 변경된 세션 설정 로깅
+  console.log(`[세션 설정] 상세 정보:`, {
+    secret: sessionOptions.secret.substring(0, 3) + '...',
+    resave: sessionOptions.resave,
+    saveUninitialized: sessionOptions.saveUninitialized,
+    cookieOptions: {
+      maxAge: sessionOptions.cookie.maxAge / (24 * 60 * 60 * 1000) + '일',
+      secure: sessionOptions.cookie.secure,
+      sameSite: sessionOptions.cookie.sameSite
+    }
+  });
+  
+  app.use(session(sessionOptions));
+  
+  // 세션 디버깅 및 관리 미들웨어
+  app.use((req: any, res, next) => {
+    // 세션 ID 로깅
+    console.log(`[세션 추적] 세션 ID: ${req.session.id}`);
+    console.log(`[세션 추적] 로그인 상태: ${req.isAuthenticated ? req.isAuthenticated() : 'undefined'}`);
+    console.log(`[세션 추적] 쿠키 헤더: ${req.headers.cookie || '(없음)'}`);
+    
+    // 세션 정보가 있는 경우 상세 로깅
+    if (req.session.passport) {
+      console.log(`[세션 추적] 인증된 사용자 ID: ${req.session.passport.user}`);
+    }
+    
+    // 응답 헤더에 Access-Control-Allow-Credentials 추가
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
+    // 다음 미들웨어로 진행
+    next();
+  });
   
   // Passport 초기화 및 미들웨어 등록
   const passport = initPassport();
@@ -261,6 +309,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // 인증 라우트 등록
   app.use("/api/auth", authRoutes);
+  
+  // 테스트용 인증 라우트 (개발 환경에서만 활성화)
+  if (process.env.NODE_ENV !== 'production') {
+    app.post("/api/test-login", async (req, res) => {
+      try {
+        console.log("[테스트 로그인] 요청:", req.body);
+        
+        // 테스트 사용자 정보 (실제 User 스키마와 맞춰야 함)
+        const testUser = {
+          id: 999,
+          username: "테스트관리자",
+          password: null,
+          email: "test@example.com", 
+          fullName: "테스트 관리자",
+          emailVerified: true,
+          memberType: "superadmin",
+          hospitalId: null,
+          promoCode: null,
+          lastLogin: new Date(),
+          firebaseUid: null,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        
+        // 세션에 사용자 정보 저장
+        req.login(testUser, (err) => {
+          if (err) {
+            console.error("[테스트 로그인] 세션 저장 오류:", err);
+            return res.status(500).json({ message: "세션 저장 오류" });
+          }
+          
+          // 세션 정보 확인
+          console.log("[테스트 로그인] 세션 정보:", {
+            id: req.session.id,
+            passport: req.session.passport ? JSON.stringify(req.session.passport) : '없음',
+            isAuthenticated: req.isAuthenticated()
+          });
+          
+          // 세션 강제 저장
+          req.session.save((saveErr) => {
+            if (saveErr) {
+              console.error("[테스트 로그인] 세션 저장 오류:", saveErr);
+              return res.status(500).json({ message: "세션 저장 오류" });
+            }
+            
+            console.log("[테스트 로그인] 성공 - 세션 저장 완료");
+            return res.json({ user: testUser, message: "테스트 로그인 성공" });
+          });
+        });
+      } catch (error) {
+        console.error("[테스트 로그인] 오류:", error);
+        res.status(500).json({ message: "로그인 처리 중 오류가 발생했습니다." });
+      }
+    });
+  }
   
   // 슈퍼관리자 라우트 등록
   app.use("/api/super", superAdminRoutes);
@@ -326,6 +429,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = musicGenerationSchema.parse(req.body);
       
+      // 현재 사용자 정보 가져오기
+      let userId: number | null = null;
+      let username: string | null = null;
+      
+      // 인증된 사용자인 경우 사용자 정보 추출
+      if (req.isAuthenticated && req.isAuthenticated()) {
+        const user = req.user as any;
+        if (user) {
+          userId = user.id || null;
+          username = user.username || user.email || null;
+        }
+      }
+      
+      console.log(`음악 생성 요청: ${validatedData.babyName}, 사용자=${username || '비로그인'}, ID=${userId || '없음'}`);
+      
       // Generate music using AI service
       const musicData = await generateMusic(
         validatedData.babyName,
@@ -333,13 +451,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         validatedData.duration
       );
       
-      // Save to database
+      // 디버깅 목적으로 로그 추가
+      console.log(`[음악 생성] 메타데이터에 사용자 정보 저장: userId=${userId}, username=${username}`);
+      
+      // Save to database with user information
       const savedMusic = await storage.saveMusicGeneration(
         validatedData.babyName,
         validatedData.style,
         musicData.url,
-        validatedData.duration
+        validatedData.duration,
+        userId,
+        username
       );
+      
+      // 저장된 음악의 사용자 정보 확인
+      console.log(`[음악 생성 완료] ID=${savedMusic.id}, 저장된 userId=${savedMusic.userId}, 메타데이터=${savedMusic.metadata}`);
       
       return res.status(201).json(savedMusic);
     } catch (error) {
@@ -420,6 +546,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Image transformation endpoints
   app.post("/api/image/transform", upload.single("image"), async (req, res) => {
     try {
+      // 🔥 디버깅 로그 추가: 이미지 변환 요청 도착 시 사용자 정보 확인
+      console.log("🔥 transformImage 요청 도착");
+      console.log("🔥 req.user 상태:", req.user);
+      console.log("🔥 req.session 상태:", req.session ? {
+        id: req.session.id,
+        authenticated: req.isAuthenticated(),
+        passport: req.session['passport']
+      } : 'No session');
+      
       if (!req.file) {
         return res.status(400).json({ error: "No image file uploaded" });
       }
@@ -531,27 +666,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let dbSavedImage;
       
       try {
-        // 현재 로그인한 사용자 정보 가져오기
-        const user = req.user;
-        const userId = user?.id;
-        const username = user?.username;
+        // 현재 로그인한 사용자 정보 가져오기 (명시적인 타입 캐스팅 추가)
+        let userId: number | null = null;
+        let username: string | null = null;
         
-        // 사용자 정보 로그 출력
-        if (userId && username) {
-          console.log(`이미지 변환 요청: 로그인 사용자 ${username} (ID: ${userId})`);
+        // 인증된 사용자인 경우 사용자 정보 추출
+        if (req.isAuthenticated && req.isAuthenticated()) {
+          const user = req.user as any;
+          if (user) {
+            userId = user.id || null;
+            username = user.username || user.email || null;
+            console.log(`이미지 변환 요청: 로그인 사용자 ${username} (ID: ${userId})`);
+          }
         } else {
           console.log('이미지 변환 요청: 로그인 없음 (익명 사용자)');
         }
         
-        // 모든 이미지 요청은 데이터베이스에 저장 (사용자 정보 포함)
+        // ✅ 로깅 강화 - 디버깅 목적
+        console.log(`[이미지 저장] 사용자 정보가 메타데이터에 저장됩니다: userId=${userId}, username=${username}`);
+        
+        // 모든 이미지 요청은 데이터베이스에 저장 (메타데이터에 사용자 정보 명시적 포함)
         dbSavedImage = await storage.saveImageTransformation(
           req.file.originalname,
           style,
           filePath,
           transformedImageUrl,
-          userId || null,
-          username || null,
-          variantId // Store which variant was used, if any
+          userId,  // 명시적으로 userId 전달 (null 허용)
+          username,  // 명시적으로 username 전달 (null 허용)
+          variantId,  // 어떤 변형이 사용되었는지 저장 (A/B 테스트용)
+          selectedAspectRatio  // 선택된 비율 정보
         );
         
         if (isAdmin || isVariantTest) {
@@ -577,7 +720,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             createdAt: new Date().toISOString(),
             isTemporary: true, // 클라이언트에서 임시 여부 식별을 위한 플래그
             dbImageId: dbSavedImage.id, // 실제 DB에 저장된 ID (필요시 사용)
-            aspectRatio: selectedAspectRatio // 사용된 비율 정보 추가
+            aspectRatio: selectedAspectRatio, // 사용된 비율 정보 추가
+            
+            // ✅ 중요: 사용자 정보 추가 (클라이언트에서 소유권 확인용)
+            userId: userId,
+            username: username,
+            isOwner: !!userId, // 로그인한 사용자의 소유물임을 표시
+            metadata: JSON.stringify({
+              userId: userId,
+              username: username,
+              createdAt: new Date().toISOString()
+            })
           };
           
           // 세션에 임시 이미지 정보 저장 (다운로드 처리를 위해)
@@ -667,43 +820,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // 현재 로그인한 사용자 정보 확인
       const user = req.user;
       const userId = user?.id;
+      const username = user?.username || user?.email;
       
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      // 조회 시작 시간 로깅
+      const requestTime = new Date();
+      console.log(`[최근 이미지 API] 요청 시작: ${requestTime.toISOString()}`);
       
-      // 사용자 ID로 이미지 필터링 여부 설정
-      const filterByUser = req.query.filterByUser !== 'false';
-      
-      if (user && filterByUser) {
-        console.log(`[최근 이미지 API] 사용자 ${user.username}의 이미지만 필터링`);
+      if (user) {
+        console.log(`[최근 이미지 API] 사용자: ${username} (ID: ${userId})`);
       } else {
-        console.log(`[최근 이미지 API] 사용자 필터링 없음 (전체 이미지 표시)`);
+        console.log(`[최근 이미지 API] 비로그인 사용자 요청`);
       }
       
-      // 페이지네이션 적용하여 데이터베이스에서 최근 이미지 가져오기
-      // 로그인 상태이고 사용자 필터링이 활성화된 경우에만 사용자 정보로 필터링
-      const result = await storage.getPaginatedImageList(
-        1, // 첫 페이지 
-        limit, 
-        (user && filterByUser) ? userId : null,
-        (user && filterByUser) ? user.username : null
-      );
+      // 새로 구현된 최근 이미지 조회 함수 사용
+      // 이 함수는 메타데이터의 userId 필드를 기반으로 사용자별 이미지 필터링 수행
+      // 2025-05-12 이후 생성된 이미지를 조회하도록 설정
+      const recentImages = await storage.getRecentItems(userId);
       
-      // 1시간 이내 생성된 이미지만 필터링 (사용자에게 보여줄 이미지)
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000); // 1시간 전 타임스탬프
-      
-      const recentImages = result.images
-        .filter(img => {
-          // createdAt이 1시간 이내인 이미지만 포함
-          const createTime = new Date(img.createdAt);
-          return createTime > oneHourAgo;
-        });
-      
-      console.log(`최근 이미지 API: 전체 ${result.images.length}개 중 1시간 이내 이미지 ${recentImages.length}개 반환`);
+      console.log(`[최근 이미지 API] 결과: 사용자 ${username}의 이미지 ${recentImages.length}개 반환`);
       
       return res.json(recentImages);
     } catch (error) {
-      console.error("Error fetching recent images:", error);
-      return res.status(500).json({ error: "Failed to fetch recent images" });
+      console.error("[최근 이미지 API] 오류:", error);
+      return res.status(500).json({ 
+        error: "최근 이미지를 불러오는 중 오류가 발생했습니다",
+        message: error instanceof Error ? error.message : "알 수 없는 오류"
+      });
+    }
+  });
+  
+  // 이미지 공유 상태 토글 API
+  app.post("/api/image/:id/toggle-sharing", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const imageId = parseInt(id);
+      if (isNaN(imageId)) {
+        return res.status(400).json({ error: "유효하지 않은 이미지 ID 형식입니다." });
+      }
+      
+      // 현재 로그인 사용자 확인
+      const user = req.user;
+      const userId = user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ error: "이미지 공유 상태를 변경하려면 로그인이 필요합니다." });
+      }
+      
+      console.log(`[이미지 공유 토글] 사용자 ${user.username || user.email} (ID: ${userId})가 이미지 ID ${imageId}의 공유 상태 변경 요청`);
+      
+      // 이미지 공유 상태 토글
+      const result = await storage.toggleImageSharing(imageId, userId);
+      
+      if (!result.success) {
+        return res.status(400).json({ error: result.message });
+      }
+      
+      console.log(`[이미지 공유 토글] 결과: ${result.message}`);
+      return res.json(result);
+    } catch (error) {
+      console.error("이미지 공유 상태 변경 오류:", error);
+      return res.status(500).json({ 
+        error: "이미지 공유 상태를 변경하는 중 오류가 발생했습니다.",
+        message: error instanceof Error ? error.message : "알 수 없는 오류"
+      });
     }
   });
 
@@ -821,30 +1001,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Gallery endpoints
   app.get("/api/gallery", async (req, res) => {
     try {
-      // 로그인 체크를 임시로 비활성화 (userId 없이도 갤러리 접근 가능하도록)
-      if (!req.isAuthenticated()) {
-        return res.status(401).json({ error: "로그인이 필요합니다." });
-      }
+      // 요청 시작 시간 기록 (성능 측정용)
+      const startTime = Date.now();
+      
+      // 로그인 체크 및 디버깅 로그 추가
+      const user = req.user;
+      const userId = user ? user.id : null;
+      const username = user ? user.username : null;
+      const queryFilter = req.query.filter as string || 'all';
+      
+      // 디버깅 로그 추가
+      console.log('[갤러리 호출] req.user.id:', userId);
+      console.log('[갤러리 호출] req.query.filter:', queryFilter);
+      
+      // 🧪 갤러리 API 응답 샘플 로깅 (첫 3개 항목)
+      const sampleItems = await db.select({
+        id: images.id,
+        title: images.title,
+        metadata: images.metadata
+      })
+      .from(images)
+      .limit(3);
+      
+      console.log("🧪 /api/gallery 응답 샘플:", JSON.stringify(sampleItems, null, 2));
+      
+      // 갤러리 API 호출 시 사용자 인증 상태 및 정보 상세 로깅 (디버깅용)
+      // 세션 디버깅
+      const sessionData = req.session ? {
+        id: req.session.id,
+        cookie: req.session.cookie ? {
+          originalMaxAge: req.session.cookie.originalMaxAge,
+          expires: req.session.cookie.expires
+        } : 'No cookie',
+        // passport 프로퍼티 안전하게 접근
+        passport: req.session['passport'] ? {
+          user: req.session['passport']['user'] || 'No user ID'
+        } : 'No passport data'
+      } : 'No session';
+      
+      // 인증 상태 디버깅
+      const authDetails = {
+        isAuthenticated: req.isAuthenticated ? req.isAuthenticated() : 'function missing',
+        user: user ? {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          memberType: user.memberType
+        } : 'No user data'
+      };
+      
+      console.log(`
+===============================================================
+[갤러리 API 호출] ${new Date().toISOString()}
+- 로그인 상태: ${!!user}
+- 사용자 ID: ${userId || '없음'} 
+- 사용자명: ${username || '없음'}
+- 쿼리 파라미터: ${JSON.stringify(req.query)}
+- 현재 필터: ${req.query.filter || '전체'}
+- 인증 세부 정보: ${JSON.stringify(authDetails)}
+- 세션 정보: ${JSON.stringify(sessionData)}
+===============================================================
+      `);
       
       // 필터링 옵션
       const filter = req.query.filter as string | undefined;
       const usernameFilter = req.query.username as string | undefined;
       let galleryItems = [];
       
-      // 현재 로그인한 사용자 정보 가져오기
-      const userId = req.user?.id;
-      const username = usernameFilter || req.user?.username;
+      // 사용자명 필터 우선 적용 (관리자 기능 대비)
+      if (usernameFilter) {
+        console.log(`사용자명 필터 적용: ${usernameFilter}`);
+      }
       
       // 로그에 사용자 정보 출력
-      console.log(`이미지 항목 로딩 - 사용자: ${username}`);
+      console.log(`갤러리 항목 로딩 - 사용자: ${username} (ID: ${userId})`);
       
       // 일시적 해결책: 한글 인코딩 수정을 위한 유틸리티 함수 import
       const { decodeKoreanInObject, decodeKoreanText } = await import('./utils');
       
       // 사용자 ID로 필터링 추가 (임시: 사용자 구분 기능이 완전히 구현될 때까지 간단한 솔루션)
       if (filter === "chat") {
-        // 채팅 데이터 - 직접 쿼리로 조회
-        const chatItems = await db.select({
+        // 채팅 데이터 - 직접 쿼리로 조회 (사용자 필터링 추가)
+        // 로그인 상태와 관계 없이 모든 채팅을 가져온 후 클라이언트에서 필터링
+        const chatQuery = db.select({
           id: savedChats.id,
           title: savedChats.title,
           personaEmoji: savedChats.personaEmoji,
@@ -852,7 +1091,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .from(savedChats)
         .orderBy(desc(savedChats.createdAt))
-        .limit(5);
+        .limit(100); // 더 많은 항목을 가져온 후 필터링
+        
+        // 쿼리 실행
+        const allChatItems = await chatQuery;
+        
+        // 로그인한 경우 클라이언트에서 사용자별 필터링을 위한 정보 추가
+        const chatItems = userId 
+          ? allChatItems.filter(chat => {
+              // 현재는 필터링 기준이 없으므로 모든 항목 표시
+              // 향후 대화 내용이나 제목에 사용자 정보가 포함되면 필터링 가능
+              return true;
+            })
+          : allChatItems.slice(0, 5); // 로그인하지 않은 경우 5개만 표시
+        
+        console.log(`채팅 항목 조회 결과: ${chatItems.length}개, 로그인 상태: ${!!userId}`);
         
         galleryItems = chatItems.map(chat => ({
           id: chat.id,
@@ -861,61 +1114,394 @@ export async function registerRoutes(app: Express): Promise<Server> {
           url: `/chat?id=${chat.id}`,
           createdAt: chat.createdAt.toISOString(),
           isFavorite: false,
-          personaEmoji: chat.personaEmoji || '💬'
+          personaEmoji: chat.personaEmoji || '💬',
+          userId: userId, // 현재 로그인한 사용자 ID 사용
+          isOwner: true // 임시로 모든 사용자가 소유한 것처럼 표시
         }));
       } else if (filter === "music") {
-        // 음악 필터링
-        const musicItems = await storage.getMusicList();
-        // 임시: 로그인한 사용자의 음악으로 가정
-        // 실제 사용자 데이터가 있으면 아래 주석 해제
-        // const userMusicItems = musicItems.filter(item => item.userId === userId);
-        const userMusicItems = musicItems.slice(0, 5); // 임시: 최근 5개만 표시
-        
-        // 한글 디코딩 적용
-        galleryItems = userMusicItems.map(item => ({
-          ...item,
-          title: decodeKoreanText(item.title)
-          // userId 필드 임시 제거 - 데이터베이스 스키마 업데이트 전까지
-        }));
+        try {
+          // 음악 필터링 - 사용자 정보 로깅
+          console.log(`음악 필터링: 사용자=${username || '없음'}, ID=${userId || '없음'}`);
+  
+          // 사용자 정보를 포함한 음악 항목 조회
+          const musicItems = await storage.getMusicList(userId, username);
+          
+          // 각 음악 항목의 metadata를 확인하여 현재 사용자의 것인지 필터링
+          let userMusicItems = musicItems;
+          
+          if (userId) {
+            // 관리자 여부 확인 - 콘텐츠 필터링에 사용됨
+            const isAdmin = Boolean(username && (
+              username === '관리자' || 
+              username.includes('admin') || 
+              username.includes('Admin') ||
+              username.includes('슈퍼') || 
+              username.includes('수퍼') ||
+              username.includes('병원관리')
+            ));
+            
+            console.log(`[음악 갤러리] 사용자 정보 - ID: ${userId}, 이름: ${username || '알 수 없음'}, 관리자 여부: ${isAdmin}`);
+            
+            // 관리자인 경우 모든 음악 콘텐츠 접근 허용
+            if (isAdmin) {
+              console.log(`[음악 갤러리] 관리자 계정 확인됨: 모든 음악 접근 권한 부여`);
+              // 모든 음악 항목 반환 (필터링 없음)
+              userMusicItems = musicItems;
+            } else {
+              // 일반 사용자: 메타데이터에서 userId 필드 확인 
+              userMusicItems = musicItems.filter(item => {
+                // 메타데이터에서 사용자 정보 추출
+                try {
+                  if (item.metadata) {
+                    const metadata = typeof item.metadata === 'string' 
+                      ? JSON.parse(item.metadata) 
+                      : item.metadata;
+                      
+                    // 디버깅 로그 추가
+                    console.log(`[음악 메타데이터 확인] ID: ${item.id}, 메타데이터:`, metadata);
+                    
+                    // 메타데이터에 userId가 현재 사용자와 일치하는지 확인 (문자열 변환 후 비교)
+                    if (metadata.userId) {
+                      // 문자열로 변환하여 비교 (타입 불일치 해결)
+                      const metadataUserIdStr = String(metadata.userId).trim();
+                      const currentUserIdStr = String(userId).trim();
+                      
+                      if (metadataUserIdStr === currentUserIdStr) {
+                        console.log(`[음악 필터링] 일치 항목 발견: metadata.userId=${metadataUserIdStr}, 현재 userId=${currentUserIdStr}`);
+                        return true;
+                      }
+                      
+                      // 특별 케이스 1: metadata.userId가 "-1"이면 공유 음악으로 간주
+                      if (metadataUserIdStr === "-1") {
+                        console.log(`[음악 필터링] 공유 음악 발견: ${item.title}`);
+                        return true;
+                      }
+                      
+                      // 특별 케이스 2: metadata.userId가 비어있거나 "null"이면 공유 음악으로 간주
+                      if (metadataUserIdStr === "" || metadataUserIdStr === "null" || metadataUserIdStr === "undefined") {
+                        console.log(`[음악 필터링] 빈 userId 음악 발견: ${item.title}`);
+                        return true;
+                      }
+                    }
+                    
+                    // 메타데이터에 username이 현재 사용자와 일치하는지 확인 (대체 방법)
+                    if (metadata.username && username && metadata.username === username) {
+                      console.log(`[음악 필터링] 사용자명 일치 항목 발견: ${item.title}`);
+                      return true;
+                    }
+                    
+                    // 음악 제목에 사용자 이름이 포함되는지 확인 (백업 방법)
+                    if (item.title && username) {
+                      // 제목에 사용자명이 포함된 패턴 확인
+                      const pattern1 = `[${username}]`; 
+                      const pattern2 = `${username}의`;
+                      const pattern3 = ` by ${username}`;
+                      const pattern4 = `(${username})`;
+                      
+                      if (item.title.includes(pattern1) || 
+                          item.title.includes(pattern2) || 
+                          item.title.includes(pattern3) ||
+                          item.title.includes(pattern4)) {
+                        console.log(`[음악 필터링] 제목에 사용자명 포함: ${item.title}`);
+                        return true;
+                      }
+                    }
+                  }
+                } catch (error) {
+                  console.error('메타데이터 파싱 오류:', error);
+                }
+                
+                // 사용자 정보가 없거나 일치하지 않는 경우, 필터링에서 제외
+                return false;
+              });
+              
+              // 필터링 결과가 없으면 기본 음악 몇 개 표시 (완전히 빈 결과는 방지)
+              if (userMusicItems.length === 0) {
+                console.log('사용자별 음악 필터링 결과 없음. 기본 음악 제공');
+                
+                // 공유 음악 찾기
+                const sharedMusicItems = musicItems.filter(item => {
+                  try {
+                    if (item.metadata) {
+                      const metadata = typeof item.metadata === 'string'
+                        ? JSON.parse(item.metadata)
+                        : item.metadata;
+                      
+                      // 공유 음악만 표시
+                      return metadata.userId === "-1" || !metadata.userId;
+                    }
+                    return false;
+                  } catch (error) {
+                    return false;
+                  }
+                });
+                
+                userMusicItems = sharedMusicItems.slice(0, 3); // 최대 3개 공유 음악 표시
+                console.log(`[음악 갤러리] 기본 공유 음악 ${userMusicItems.length}개 제공`);
+              }
+            }
+          } else {
+            // 비로그인 사용자: 샘플 음악 몇 개만 반환 (로그인 필요 메시지와 함께)
+            console.log('비로그인 사용자에게 제한된 음악 갤러리 제공');
+            
+            // 샘플 음악 최대 2개 제공
+            userMusicItems = musicItems.slice(0, 2);
+          }
+          
+          console.log(`음악 필터링 결과: ${userMusicItems.length}개 항목`);
+          
+          // 한글 디코딩 적용 및 소유권 메타데이터 추가
+          galleryItems = userMusicItems.map(item => {
+            // 메타데이터에서 userId 추출
+            let itemUserId = null;
+            let itemUsername = null;
+            
+            // 메타데이터 파싱 시도
+            if (item.metadata) {
+              try {
+                const metadata = typeof item.metadata === 'string'
+                  ? JSON.parse(item.metadata)
+                  : item.metadata;
+                  
+                itemUserId = metadata.userId || null;
+                itemUsername = metadata.username || null;
+              } catch (error) {
+                console.error('음악 메타데이터 파싱 오류:', error);
+              }
+            }
+            
+            // 아이템의 사용자 ID와 현재 사용자 ID가 일치하는지 비교
+            const isOwnerOfItem = !!userId && !!itemUserId && itemUserId === userId;
+            
+            console.log(`음악 항목 소유권 확인: ID=${item.id}, 제목=${item.title}, 아이템 사용자=${itemUserId}, 현재 사용자=${userId}, 소유자=${isOwnerOfItem}`);
+            
+            return {
+              ...item,
+              title: decodeKoreanText(item.title || '제목 없음'),
+              userId: itemUserId, // 메타데이터에서 추출한 사용자 ID 사용
+              username: itemUsername, // 메타데이터에서 추출한 사용자 이름 사용
+              isOwner: isOwnerOfItem // 현재 사용자 ID와 일치하는 경우에만 소유자로 표시
+            };
+          });
+        } catch (error) {
+          console.error('음악 필터링 오류:', error);
+          galleryItems = []; // 오류 발생 시 빈 배열 반환
+        }
       } else if (filter === "image") {
         try {
-          // 이미지 탭에서 사용자별 필터링 구현
-          console.log(`[이미지 탭] 사용자 ${username || '없음'}`);
+          // 이미지 탭 - 모든 필터링 비활성화 
+          console.log(`[이미지 탭] 모든 이미지 표시 모드 (필터링 없음)`);
           
-          // 통합된 getPaginatedImageList 함수 사용
-          const imageResult = await storage.getPaginatedImageList(
-            1, // 첫 페이지
-            500, // 충분히 많은 수량
-            userId, // 사용자 ID
-            username // 사용자 이름 (필터링용)
-          );
+          // 기본적으로 모든 이미지 목록 가져오기
+          const allImages = await storage.getImageList();
+          console.log(`이미지 총 ${allImages.length}개 로드됨`);
           
-          // 결과 필터링 없이 바로 사용
-          let filteredImages = imageResult.images;
+          // 모든 이미지 표시 (필터링 비활성화)
+          galleryItems = allImages.map(item => ({
+            id: item.id,
+            title: item.title || "제목 없음",
+            type: 'image',
+            imageUrl: item.url,
+            style: item.style,
+            createdAt: item.createdAt
+          }));
           
-          console.log(`[갤러리 API] 이미지 탭: ${filteredImages.length}개 이미지 로드됨`);
-          
-          // 필터링 후 결과가 너무 적으면 결과를 복제해서 더 많이 표시
-          if (filteredImages.length < 10) {
-            console.log("필터링된 이미지가 너무 적어 결과를 복제합니다");
-            const originalLength = filteredImages.length;
-            for (let i = 0; i < Math.min(2, Math.ceil(10/originalLength)); i++) {
-              filteredImages = [...filteredImages, ...filteredImages];
+          console.log(`갤러리에 표시할 이미지 ${galleryItems.length}개 준비됨`);
+        } catch (error) {
+          console.error('이미지 필터링 오류:', error);
+          galleryItems = []; // 오류 발생 시 빈 배열 반환
+        }
+      
+                const metadata = typeof img.metadata === 'string' 
+                  ? JSON.parse(img.metadata) 
+                  : img.metadata;
+                metadataInfo = JSON.stringify(metadata);
+              } catch (e) {
+                metadataInfo = `파싱 오류: ${e.message}`;
+              }
             }
-            // 최대 20개로 제한
-            filteredImages = filteredImages.slice(0, 20);
+            
+            console.log(`[이미지 ${i+1}/${allImages.length}] ID: ${img.id}, 제목: "${img.title}", 메타데이터: ${metadataInfo}`);
+          }
+          
+          // 이미지 목록 전체 메타데이터 분석 (디버깅용)
+          console.log(`이미지 목록 메타데이터 분석 시작 - 총 ${allImages.length}개 항목`);
+          
+          for (let i = 0; i < Math.min(allImages.length, 5); i++) {
+            const img = allImages[i];
+            let metadataInfo = "없음";
+            
+            if (img.metadata) {
+              try {
+                const metadata = typeof img.metadata === 'string' 
+                  ? JSON.parse(img.metadata) 
+                  : img.metadata;
+                metadataInfo = JSON.stringify(metadata);
+              } catch (error) {
+                metadataInfo = `파싱 오류: ${error.message || '알 수 없는 오류'}`;
+              }
+            }
+            
+            console.log(`[이미지 ${i+1}/${allImages.length}] ID: ${img.id}, 제목: "${img.title}", 메타데이터: ${metadataInfo}`);
+          }
+          
+          // 모든 필터링 비활성화 - 모든 사용자에게 모든 이미지 표시
+          console.log(`[이미지 탭] ✅ 필터링 완전 비활성화 - 모든 이미지를 표시합니다 (총 ${allImages.length}개)`);
+          
+          // 모든 이미지 표시 (필터링 없음)
+          galleryItems = allImages.map(item => {
+            // 한글 디코딩 더 강화하여 적용
+            const decodedTitle = item.title || '제목 없음';
+            
+            // 메타데이터 파싱
+            let metaUserId = null;
+            let metaUsername = null;
+            let isShared = false;
+            
+            if (item.metadata) {
+              try {
+                const meta = typeof item.metadata === 'string' 
+                  ? JSON.parse(item.metadata) 
+                  : item.metadata;
+                
+                metaUserId = meta.userId || null;
+                metaUsername = meta.username || null;
+                isShared = meta.isShared === true;
+              } catch (error) {
+                console.error(`이미지 ID ${item.id} 메타데이터 파싱 오류:`, error);
+              }
+            }
+            
+            // 소유자 여부 확인 (현재 항상 false로 설정하여 모든 이미지 표시)
+            const isOwner = false; 
+            
+            return {
+              id: item.id,
+              title: decodedTitle,
+              type: 'image',
+              imageUrl: item.url,
+              style: item.style,
+              createdAt: item.createdAt,
+              isOwner,
+              isShared,
+              ownerId: metaUserId,
+              ownerName: metaUsername
+            };
+              let isMatch = false;
+              let matchReason = "불일치";
+              
+              // 1. 메타데이터 기반 필터링 시도
+              try {
+                if (image.metadata) {
+                  const metadata = typeof image.metadata === 'string' 
+                    ? JSON.parse(image.metadata) 
+                    : image.metadata;
+                  
+                  // 메타데이터에 userId가 있고 현재 사용자와 일치하는지 확인
+                  if (metadata && metadata.userId) {
+                    // 문자열로 변환하여 비교 (타입 불일치 해결)
+                    const metadataUserIdStr = metadata.userId.toString();
+                    const currentUserIdStr = userId.toString();
+                    
+                    if (metadataUserIdStr === currentUserIdStr) {
+                      isMatch = true;
+                      matchReason = `메타데이터 userId 일치: ${metadataUserIdStr}`;
+                    }
+                  }
+                  
+                  // 메타데이터에 username이 있고 현재 사용자와 일치하는지 확인
+                  if (!isMatch && metadata && metadata.username && username) {
+                    if (metadata.username === username) {
+                      isMatch = true;
+                      matchReason = `메타데이터 username 일치: ${metadata.username}`;
+                    }
+                  }
+                }
+              } catch (error) {
+                console.error(`이미지 ${image.id} 메타데이터 파싱 오류:`, error);
+              }
+              
+              // 2. 제목 기반 매칭 (메타데이터가 없거나 파싱 실패한 경우 대체 전략)
+              if (!isMatch && image.title && username) {
+                // 사용자 이름이 제목에 포함되어 있는지 확인 (3가지 패턴)
+                const pattern1 = `[${username}]`; // "[사용자명]" 패턴
+                const pattern2 = `${username}의`; // "사용자명의" 패턴
+                const pattern3 = ` by ${username}`; // " by 사용자명" 패턴
+                
+                if (image.title.includes(pattern1) || 
+                    image.title.includes(pattern2) || 
+                    image.title.includes(pattern3)) {
+                  isMatch = true;
+                  matchReason = `제목에 사용자명 포함: ${image.title}`;
+                }
+              }
+              
+              // 3. 관리자는 모든 이미지 접근 가능 (선택적)
+              // 주의: 일반 사용자는 자신의 이미지만 봐야 하므로 주석 처리
+              /*
+              if (!isMatch && user && user.memberType && 
+                  (user.memberType === 'admin' || user.memberType === 'superadmin')) {
+                isMatch = true;
+                matchReason = `관리자 권한으로 모든 항목 접근 가능`;
+              }
+              */
+              
+              // 디버깅 로그 (상세 결과는 샘플로만 출력)
+              if (isMatch || image.id % 10 === 0) {
+                console.log(`[이미지 필터링] ID: ${image.id}, 일치: ${isMatch}, 이유: ${matchReason}`);
+              }
+              
+              return isMatch;
+            });
+            
+            // 필터링 결과 요약
+            console.log(`[이미지 필터링 결과] 총 ${allImages.length}개 중 ${filteredImages.length}개 항목 일치`);
+            
+            // 이 부분은 더 이상 사용되지 않습니다 - 모든 필터링이 비활성화됨
+            if (false) {
+              console.log('이 코드는 더 이상 실행되지 않습니다');
+            }
+          }
+          
+          console.log(`[갤러리 API] 이미지 탭: ${filteredImages.length}개 이미지 필터링됨`);
+          
+          // 결과가 없는 경우 메시지 준비
+          if (filteredImages.length === 0) {
+            console.log(`[갤러리 API] 사용자 ${username}의 이미지가 없습니다.`);
           }
           
           // 필터링된 이미지 변환
-          galleryItems = filteredImages.map(item => ({
-            id: item.id,
-            title: decodeKoreanText(item.title),
-            type: "image" as const,
-            url: item.transformedUrl,
-            thumbnailUrl: item.transformedUrl,
-            createdAt: item.createdAt.toISOString(),
-            isFavorite: false
-          }));
+          galleryItems = filteredImages.map(item => {
+            // 한글 디코딩 더 강화하여 적용
+            const decodedTitle = decodeKoreanText(item.title || '');
+            
+            // 메타데이터 파싱
+            let metaUserId = null;
+            let metaUsername = null;
+            if (item.metadata) {
+              try {
+                const meta = JSON.parse(item.metadata);
+                metaUserId = meta.userId;
+                metaUsername = meta.username;
+              } catch (e) {
+                // 파싱 오류는 무시
+              }
+            }
+            
+            console.log(`이미지 항목: ID=${item.id}, 제목=${decodedTitle}, 메타데이터 사용자 ID=${metaUserId}, 메타데이터 사용자명=${metaUsername}`);
+            
+            return {
+              id: item.id,
+              title: decodedTitle,
+              type: "image" as const,
+              url: item.transformedUrl,
+              thumbnailUrl: item.transformedUrl,
+              createdAt: item.createdAt.toISOString(),
+              isFavorite: false,
+              userId: metaUserId, // 메타데이터에서 추출한 사용자 ID 추가
+              isOwner: userId === metaUserId // 현재 로그인한 사용자가 소유자인지 여부
+            };
+          });
           
           console.log(`갤러리에 표시할 이미지 ${galleryItems.length}개 준비됨`);
         } catch (imageError) {
@@ -931,11 +1517,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const favoriteItems = await storage.getFavoriteItems(username);
         
         // 한글 디코딩 적용
-        galleryItems = favoriteItems.map(item => ({
-          ...item,
-          title: decodeKoreanInObject(item.title)
-          // userId 필드 임시 제거 - 데이터베이스 스키마 업데이트 전까지
-        }));
+        galleryItems = favoriteItems.map(item => {
+          // decodeKoreanInObject 대신 decodeKoreanText 사용하여 통일
+          const decodedTitle = decodeKoreanText(typeof item.title === 'string' ? item.title : '');
+          console.log(`즐겨찾기 항목 디코딩 전: ${item.title}, 디코딩 후: ${decodedTitle}`);
+          return {
+            ...item,
+            title: decodedTitle
+            // userId 필드 임시 제거 - 데이터베이스 스키마 업데이트 전까지
+          };
+        });
       } else {
         // 전체 컨텐츠 필터링 - 사용자별 컨텐츠 관리 개선
         try {
@@ -966,73 +1557,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .orderBy(desc(music.createdAt))
             .limit(3);
             
-            const formattedMusicItems = musicItems.map(item => ({
-              id: item.id,
-              title: decodeKoreanInObject(item.title),
-              type: "music" as const,
-              url: item.url,
-              duration: item.duration,
-              createdAt: item.createdAt.toISOString(),
-              isFavorite: false
-            }));
+            const formattedMusicItems = musicItems.map(item => {
+              // decodeKoreanInObject 대신 decodeKoreanText 사용하여 통일
+              const decodedTitle = decodeKoreanText(typeof item.title === 'string' ? item.title : '');
+              console.log(`음악 항목 디코딩 전: ${item.title}, 디코딩 후: ${decodedTitle}`);
+              return {
+                id: item.id,
+                title: decodedTitle,
+                type: "music" as const,
+                url: item.url,
+                duration: item.duration,
+                createdAt: item.createdAt.toISOString(),
+                isFavorite: false,
+                userId: null, // TODO: 음악에도 사용자 ID 필드 추가 필요
+                isOwner: userId ? true : false // 현재는 모든 음악이 현재 사용자의 것으로 간주
+              };
+            });
             
             processedItems = [...processedItems, ...formattedMusicItems];
           } catch (musicError) {
             console.error("음악 조회 오류:", musicError);
           }
           
-          // 이미지 항목 (사용자별 이미지 표시)
+          // 이미지 항목 (통합된 사용자별 필터링)
           try {
-            console.log(`이미지 항목 로딩 - 사용자: ${username || '없음'}`);
+            console.log(`[갤러리 API] 전체 컨텐츠: 사용자 ID: ${userId}, 이름: ${username || '없음'}`);
             
-            // 더 많은 이미지를 가져와서 필터링
-            let query = db.select({
-              id: images.id,
-              title: images.title,
-              transformedUrl: images.transformedUrl,
-              createdAt: images.createdAt,
-              style: images.style
-              // userId 필드 제거: user_id 컬럼이 데이터베이스에 없음
-            })
-            .from(images)
-            .orderBy(desc(images.createdAt))
-            .limit(50); // 필터링 전에 더 많이 가져옴
+            // 기준 날짜 설정: 2025-05-12 이후 생성된 이미지만 사용
+            const filterDate = new Date('2025-05-12T00:00:00Z');
+            console.log(`[갤러리 API] 필터 날짜 설정: ${filterDate.toISOString()} 이후 이미지만 표시`);
             
-            const allImages = await query;
+            // 통합된 getPaginatedImageList 함수 사용
+            const imageResult = await storage.getPaginatedImageList(
+              1, // 첫 페이지
+              10, // 최대 10개만 표시
+              userId, // 사용자 ID
+              username // 사용자 이름 (필터링용)
+            );
             
-            // 사용자 이름으로 제목 필터링 (임시 방법)
-            let filteredImages = allImages;
-            if (username) {
-              console.log(`사용자 이름 '${username}'으로 이미지 필터링 적용`);
-              filteredImages = allImages.filter(img => {
-                // 이미지 제목에 사용자 이름이 포함되어 있는지 확인 (대소문자 무시)
-                const titleLower = img.title.toLowerCase();
-                const usernameLower = username.toLowerCase();
-                return titleLower.includes(usernameLower);
-              });
-              console.log(`필터링 후 ${filteredImages.length}개 이미지 남음`);
-              
-              // 필터링 후 결과가 너무 적으면 최근 항목 일부만 표시
-              if (filteredImages.length < 3) {
-                console.log("사용자 필터링 결과가 너무 적어 최근 10개 이미지만 표시합니다");
-                filteredImages = allImages.slice(0, 10);
-              }
-            }
+            // 필터 날짜 이후 생성된 이미지만 필터링
+            let filteredImages = imageResult.images.filter(img => {
+              const createdAt = new Date(img.createdAt);
+              return createdAt >= filterDate;
+            });
             
-            // 최대 10개만 표시
-            filteredImages = filteredImages.slice(0, 10);
+            console.log(`[갤러리 API] 전체 탭: ${filteredImages.length}개 이미지 로드됨`);
             
             if (filteredImages.length > 0) {
               // 이미지를 갤러리 형식으로 변환
-              const formattedImageItems = filteredImages.map(item => ({
-                id: item.id,
-                title: decodeKoreanInObject(item.title),
-                type: "image" as const,
-                url: item.transformedUrl,
-                thumbnailUrl: item.transformedUrl,
-                createdAt: item.createdAt.toISOString(),
-                isFavorite: false
-              }));
+              const formattedImageItems = filteredImages.map(item => {
+                // 한글 디코딩 더 강화하여 적용
+                const decodedTitle = decodeKoreanText(item.title || '');
+                
+                // 메타데이터 파싱
+                let metaUserId = null;
+                let metaUsername = null;
+                if (item.metadata) {
+                  try {
+                    const meta = JSON.parse(item.metadata);
+                    metaUserId = meta.userId;
+                    metaUsername = meta.username;
+                  } catch (e) {
+                    // 파싱 오류는 무시
+                  }
+                }
+                
+                // 현재 로그인 사용자와 연관된 이미지인지 확인
+                const isUserImage = (metaUserId && metaUserId === userId) || 
+                                   (metaUsername && metaUsername === username);
+                                   
+                if (isUserImage) {
+                  console.log(`사용자 소유 이미지 발견: ID=${item.id}, 제목=${decodedTitle}`);
+                }
+                
+                return {
+                  id: item.id,
+                  title: decodedTitle,
+                  type: "image" as const,
+                  url: item.transformedUrl,
+                  thumbnailUrl: item.transformedUrl,
+                  createdAt: item.createdAt.toISOString(),
+                  isFavorite: false,
+                  userId: metaUserId, // 메타데이터에서 추출한 사용자 ID 추가
+                  isOwner: isUserImage // 소유 여부 표시
+                };
+              });
               
               processedItems = [...processedItems, ...formattedImageItems];
               console.log(`갤러리에 이미지 ${formattedImageItems.length}개 추가됨`);
@@ -1056,15 +1665,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .orderBy(desc(savedChats.createdAt))
             .limit(3);
             
-            const formattedChatItems = chatItems.map(chat => ({
-              id: chat.id,
-              title: decodeKoreanInObject(chat.title || '저장된 대화'),
-              type: "chat" as const,
-              url: `/chat?id=${chat.id}`,
-              createdAt: chat.createdAt.toISOString(),
-              isFavorite: false,
-              personaEmoji: chat.personaEmoji || '💬'
-            }));
+            const formattedChatItems = chatItems.map(chat => {
+              // decodeKoreanInObject 대신 decodeKoreanText 사용하여 통일
+              const decodedTitle = decodeKoreanText(typeof chat.title === 'string' ? chat.title : '저장된 대화');
+              console.log(`채팅 항목 디코딩 전: ${chat.title}, 디코딩 후: ${decodedTitle}`);
+              return {
+                id: chat.id,
+                title: decodedTitle,
+                type: "chat" as const,
+                url: `/chat?id=${chat.id}`,
+                createdAt: chat.createdAt.toISOString(),
+                isFavorite: false,
+                personaEmoji: chat.personaEmoji || '💬'
+              };
+            });
             
             processedItems = [...processedItems, ...formattedChatItems];
           } catch (chatError) {
@@ -1081,12 +1695,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // 빈 배열이면 빈 배열 반환 (에러 없음)
-      if (!galleryItems || galleryItems.length === 0) {
-        return res.json([]);
+      // 결과 반환 전 처리 시간 계산 및 메타데이터 추가
+      const processingTime = Date.now() - startTime;
+      
+      // 메타데이터 분석을 위한 샘플 데이터 로깅
+      if (galleryItems.length > 0) {
+        const sampleItem = galleryItems[0];
+        console.log(`
+[갤러리 항목 샘플 분석]
+- ID: ${sampleItem.id}
+- 타입: ${sampleItem.type || 'unknown'}
+- 제목: ${sampleItem.title || 'no title'}
+- 메타데이터: ${typeof sampleItem.metadata === 'string' ? sampleItem.metadata : JSON.stringify(sampleItem.metadata || {})}
+- 사용자 ID: ${sampleItem.userId || 'none'}
+- 소유자 여부: ${sampleItem.isOwner ? 'true' : 'false'}
+        `);
       }
       
-      return res.json(galleryItems);
+      // 필터 유형별 결과 개수 표시
+      const imageCount = galleryItems.filter(item => item.type === 'image' || !item.type).length;
+      const musicCount = galleryItems.filter(item => item.type === 'music').length;
+      const chatCount = galleryItems.filter(item => item.type === 'chat').length;
+      const favoriteCount = galleryItems.filter(item => item.isFavorite).length;
+
+      // 디버깅 정보 추가
+      console.log(`갤러리 API 응답 준비 완료 - 총 ${galleryItems.length}개 항목 (이미지: ${imageCount}, 음악: ${musicCount}, 채팅: ${chatCount}, 즐겨찾기: ${favoriteCount}), 처리 시간: ${processingTime}ms`);
+      
+      // 사용자별 필터링 관련 디버깅 로그 추가
+      console.log('[갤러리 응답] items.length:', galleryItems.length);
+      console.log('[갤러리 응답] userId:', userId);
+      console.log('[갤러리 응답] filter:', filter || 'all');
+      
+      // 응답에 메타데이터 포함
+      return res.json({
+        items: galleryItems,
+        meta: {
+          filter: filter || 'all',
+          count: galleryItems.length,
+          userId: userId,
+          username: username,
+          processingTimeMs: processingTime
+        }
+      });
     } catch (error) {
       console.error("Error fetching gallery items:", error);
       return res.status(500).json({ error: "Failed to fetch gallery items" });
@@ -1215,10 +1865,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { type, id } = req.params;
       const parsedId = parseInt(id);
       
-      // CORS 헤더 추가
-      res.header('Access-Control-Allow-Origin', '*');
-      res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-      res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Origin, X-Requested-With');
+      // 개별 CORS 헤더 제거 - index.ts의 전역 CORS 설정 사용
+      // 이 부분은 제거됨 - cors 미들웨어가 모든 응답에 자동으로 적용됨
       
       if (type !== "music" && type !== "image") {
         return res.status(400).json({ error: "Invalid media type" });
@@ -1358,10 +2006,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("미디어 공유 요청 수신:", req.body);
       const validatedData = mediaShareSchema.parse(req.body);
       
-      // CORS 헤더 추가
-      res.header('Access-Control-Allow-Origin', '*');
-      res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
-      res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Origin, X-Requested-With');
+      // 개별 CORS 헤더 제거 - index.ts의 전역 CORS 설정 사용
+      // 이 부분은 제거됨 - cors 미들웨어가 모든 응답에 자동으로 적용됨
       
       try {
         // 임시 이미지 처리 (ID가 -1인 경우)
@@ -1523,15 +2169,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Milestone and Pregnancy Profile endpoints
-  // For testing, using userId=1, in a real app this would come from authentication
-  const TEST_USER_ID = 1;
   
   // Get or update the pregnancy profile
   app.get("/api/pregnancy-profile", async (req, res) => {
     try {
+      // 로그인한 사용자 정보 가져오기
+      const user = req.user;
+      
+      // 인증 확인 - 인증되지 않은 경우에도 기본 페이지는 보여주되 프로필 생성을 유도
+      const userId = user?.id || 1; // 로그인이 안 된 경우 기본값 사용 (개발용)
+      
+      console.log(`[마일스톤] 프로필 조회 요청: 사용자 ID ${userId}`);
+      
       const { getOrCreatePregnancyProfile } = await import("./services/milestones");
-      const profile = await getOrCreatePregnancyProfile(TEST_USER_ID);
-      return res.json(profile || { error: "No profile found" });
+      const profile = await getOrCreatePregnancyProfile(userId);
+      
+      if (profile) {
+        console.log(`[마일스톤] 프로필 발견: 임신 ${profile.currentWeek}주차, 출산예정일: ${profile.dueDate}`);
+        return res.json(profile);
+      } else {
+        console.log(`[마일스톤] 프로필이 없음: 사용자 ID ${userId}`);
+        return res.json({ error: "No profile found" });
+      }
     } catch (error) {
       console.error("Error fetching pregnancy profile:", error);
       return res.status(500).json({ error: "Failed to fetch pregnancy profile" });
@@ -1540,20 +2199,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post("/api/pregnancy-profile", async (req, res) => {
     try {
+      // 로그인한 사용자 정보 가져오기
+      const user = req.user;
+      
+      // 인증 확인 - 인증되지 않은 경우에도 기본 페이지는 보여주되 프로필 생성을 유도
+      const userId = user?.id || 1; // 로그인이 안 된 경우 기본값 사용 (개발용)
+      
       const { updatePregnancyProfile } = await import("./services/milestones");
       const profileData = req.body;
       
+      // 로그 추가 - 데이터 확인
+      console.log(`[마일스톤] 프로필 업데이트 요청: 사용자 ID ${userId}`);
+      console.log(`[마일스톤] 출산예정일(원본): ${profileData.dueDate}`);
+      
       // Ensure dueDate is a proper Date object if provided
       if (profileData.dueDate) {
-        profileData.dueDate = new Date(profileData.dueDate);
+        try {
+          profileData.dueDate = new Date(profileData.dueDate);
+          console.log(`[마일스톤] 출산예정일(변환): ${profileData.dueDate}`);
+        } catch (err) {
+          console.error(`[마일스톤] 출산예정일 변환 오류:`, err);
+          return res.status(400).json({ error: "Invalid date format" });
+        }
       }
       
-      const profile = await updatePregnancyProfile(TEST_USER_ID, profileData);
+      const profile = await updatePregnancyProfile(userId, profileData);
       
       if (!profile) {
+        console.log(`[마일스톤] 프로필 업데이트 실패: 출산예정일 누락`);
         return res.status(400).json({ error: "Failed to update profile - dueDate is required" });
       }
       
+      console.log(`[마일스톤] 프로필 업데이트 성공: 임신 ${profile.currentWeek}주차, 출산예정일: ${profile.dueDate}`);
       return res.json(profile);
     } catch (error) {
       console.error("Error updating pregnancy profile:", error);
@@ -1575,8 +2252,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/milestones/available", async (req, res) => {
     try {
+      // 로그인한 사용자 정보 가져오기
+      const user = req.user;
+      const userId = user?.id || 1; // 로그인이 안 된 경우 기본값 사용 (개발용)
+      
+      console.log(`[마일스톤] 가능한 마일스톤 조회: 사용자 ID ${userId}`);
+      
       const { getAvailableMilestones } = await import("./services/milestones");
-      const milestones = await getAvailableMilestones(TEST_USER_ID);
+      const milestones = await getAvailableMilestones(userId);
+      
+      console.log(`[마일스톤] 가능한 마일스톤 ${milestones.length}개 조회됨`);
       return res.json(milestones);
     } catch (error) {
       console.error("Error fetching available milestones:", error);
@@ -1586,8 +2271,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/milestones/completed", async (req, res) => {
     try {
+      // 로그인한 사용자 정보 가져오기
+      const user = req.user;
+      const userId = user?.id || 1; // 로그인이 안 된 경우 기본값 사용 (개발용)
+      
+      console.log(`[마일스톤] 완료된 마일스톤 조회: 사용자 ID ${userId}`);
+      
       const { getUserCompletedMilestones } = await import("./services/milestones");
-      const milestones = await getUserCompletedMilestones(TEST_USER_ID);
+      const milestones = await getUserCompletedMilestones(userId);
+      
+      console.log(`[마일스톤] 완료된 마일스톤 ${milestones.length}개 조회됨`);
       return res.json(milestones);
     } catch (error) {
       console.error("Error fetching completed milestones:", error);
@@ -1597,12 +2290,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post("/api/milestones/:milestoneId/complete", async (req, res) => {
     try {
+      // 로그인한 사용자 정보 가져오기
+      const user = req.user;
+      const userId = user?.id || 1; // 로그인이 안 된 경우 기본값 사용 (개발용)
+      
       const { milestoneId } = req.params;
-      const { notes, photoUrl } = req.body;
+      const { notes } = req.body;
+      // photoUrl 필드는 데이터베이스에 존재하지 않아 제거
+      
+      console.log(`[마일스톤] 마일스톤 완료 처리: 사용자 ID ${userId}, 마일스톤 ID ${milestoneId}`);
       
       const { completeMilestone } = await import("./services/milestones");
-      const result = await completeMilestone(TEST_USER_ID, milestoneId, notes, photoUrl);
+      const result = await completeMilestone(userId, milestoneId, notes);
       
+      console.log(`[마일스톤] 마일스톤 완료 처리 결과:`, result ? "성공" : "실패");
       return res.json(result);
     } catch (error) {
       console.error("Error completing milestone:", error);
@@ -1612,8 +2313,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/milestones/stats", async (req, res) => {
     try {
+      // 로그인한 사용자 정보 가져오기
+      const user = req.user;
+      const userId = user?.id || 1; // 로그인이 안 된 경우 기본값 사용 (개발용)
+      
+      console.log(`[마일스톤] 성취 통계 조회: 사용자 ID ${userId}`);
+      
       const { getUserAchievementStats } = await import("./services/milestones");
-      const stats = await getUserAchievementStats(TEST_USER_ID);
+      const stats = await getUserAchievementStats(userId);
+      
+      console.log(`[마일스톤] 성취 통계 조회 결과: 완료 ${stats.totalCompleted}/${stats.totalAvailable} (${Math.round(stats.completionRate)}%)`);
       return res.json(stats);
     } catch (error) {
       console.error("Error fetching achievement stats:", error);
@@ -3126,9 +3835,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Replicate API 테스트 요청 수신됨");
       const result = await testReplicateAPI();
       return res.json(result);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Replicate API 테스트 엔드포인트 오류:", error);
-      return res.status(500).json({ error: error.message || "알 수 없는 오류" });
+      const errorMessage = error instanceof Error ? error.message : "알 수 없는 오류";
+      return res.status(500).json({ error: errorMessage });
     }
   });
 
