@@ -188,12 +188,22 @@ export const api = {
   // 갤러리 및 미디어
   getGalleryItems: (filter = '') => getApi(`/api/gallery${filter ? `?filter=${filter}` : ''}`),
   transformImage: (formData: FormData, isAdmin: boolean = false) => {
-    // 관리자 요청인 경우 헤더 추가
+    // 관리자 요청인 경우 헤더 추가 및 쿼리 파라미터 사용
     const headers: Record<string, string> = {};
+    const params: Record<string, any> = {};
+    
     if (isAdmin) {
       headers['X-Admin-Request'] = 'true';
+      params.admin = 'true'; // 두 가지 방법으로 관리자 요청 표시 (호환성 유지)
     }
-    return postApi('/api/image/transform', formData, { headers });
+    
+    // 변경된 코드: 요청 시 타임스탬프 추가하여 캐싱 방지
+    params.t = Date.now();
+    
+    // 디버깅용: 변환 요청 로깅
+    console.log(`[API] 이미지 변환 요청: 관리자=${isAdmin}, 타임스탬프=${params.t}`);
+    
+    return postApi('/api/image/transform', formData, { headers, params });
   },
   uploadThumbnail: (file: File) => {
     const formData = new FormData();
