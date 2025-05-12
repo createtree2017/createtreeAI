@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 
 interface User {
   id: number;
@@ -24,7 +24,9 @@ export function TestAuth() {
   const checkAuthStatus = async () => {
     try {
       console.log('사용자 인증 상태 확인 중...');
-      const userData = await api.getCurrentUser();
+      const response = await apiRequest('/api/user', { on401: 'returnNull' });
+      const userData = await response.json();
+      
       if (userData) {
         setUser(userData as User);
         console.log('현재 사용자 정보:', userData);
@@ -42,12 +44,13 @@ export function TestAuth() {
       setLoading(true);
       console.log('테스트 로그인 시도...');
       
-      const response = await api.testLogin();
+      const response = await apiRequest('/api/test-login', { method: 'POST' });
+      const data = await response.json();
       
-      console.log('테스트 로그인 성공:', response);
+      console.log('테스트 로그인 성공:', data);
       // 응답 타입 안전하게 처리
-      if (response && typeof response === 'object' && 'user' in response && response.user) {
-        const userData = response.user as User;
+      if (data && typeof data === 'object' && 'user' in data && data.user) {
+        const userData = data.user as User;
         setUser(userData);
         
         toast({
@@ -72,7 +75,7 @@ export function TestAuth() {
       setLoading(true);
       console.log('로그아웃 시도...');
       
-      await api.logout();
+      await apiRequest('/api/logout', { method: 'POST' });
       
       console.log('로그아웃 성공');
       setUser(null);
@@ -99,11 +102,12 @@ export function TestAuth() {
       await checkAuthStatus();
       toast({
         title: '인증 상태 새로고침',
-        description: user ? '인증됨' : '인증되지 않음',
+        description: '인증 상태가 업데이트되었습니다.',
       });
     } catch (error) {
+      console.error('인증 상태 새로고침 오류:', error);
       toast({
-        title: '인증 상태 확인 실패',
+        title: '새로고침 실패',
         description: error instanceof Error ? error.message : '알 수 없는 오류',
         variant: 'destructive',
       });
@@ -113,60 +117,44 @@ export function TestAuth() {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="w-[380px] mx-auto">
       <CardHeader>
         <CardTitle>인증 테스트</CardTitle>
-        <CardDescription>세션 기반 인증 테스트 컴포넌트</CardDescription>
+        <CardDescription>사용자 인증 상태를 테스트합니다.</CardDescription>
       </CardHeader>
-      
       <CardContent>
-        <div className="space-y-4">
-          <div className="p-4 border rounded-md bg-muted">
-            <h3 className="font-medium">현재 인증 상태</h3>
-            {user ? (
-              <div className="mt-2">
-                <p className="text-sm"><span className="font-medium">사용자 ID:</span> {user.id}</p>
-                <p className="text-sm"><span className="font-medium">사용자명:</span> {user.username}</p>
-                <p className="text-sm"><span className="font-medium">이메일:</span> {user.email || '(없음)'}</p>
-                <p className="text-sm"><span className="font-medium">회원 유형:</span> {user.memberType || '일반'}</p>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground mt-2">로그인되지 않음</p>
-            )}
+        {user ? (
+          <div className="space-y-2">
+            <p className="font-semibold">로그인 상태: <span className="text-green-500">로그인됨</span></p>
+            <div className="rounded-md border p-4 bg-muted/50">
+              <p><span className="font-medium">사용자 ID:</span> {user.id}</p>
+              <p><span className="font-medium">사용자명:</span> {user.username}</p>
+              {user.email && <p><span className="font-medium">이메일:</span> {user.email}</p>}
+              {user.memberType && <p><span className="font-medium">회원 유형:</span> {user.memberType}</p>}
+            </div>
           </div>
-          
-          <div className="py-2">
-            <p className="text-sm text-muted-foreground">쿠키 정보: {document.cookie || '(없음)'}</p>
-          </div>
-        </div>
-      </CardContent>
-      
-      <CardFooter className="flex gap-2 flex-wrap">
-        {!user ? (
-          <Button 
-            onClick={handleTestLogin} 
-            disabled={loading}
-            variant="default"
-          >
-            테스트 로그인
-          </Button>
         ) : (
-          <Button 
-            onClick={handleLogout} 
-            disabled={loading}
-            variant="destructive"
-          >
-            로그아웃
-          </Button>
+          <div className="space-y-2">
+            <p className="font-semibold">로그인 상태: <span className="text-red-500">로그인 안됨</span></p>
+            <p className="text-muted-foreground">로그인하려면 테스트 로그인 버튼을 클릭하세요.</p>
+          </div>
         )}
-        
-        <Button 
-          onClick={handleRefreshStatus} 
-          disabled={loading}
-          variant="outline"
-        >
-          인증 상태 새로고침
-        </Button>
+      </CardContent>
+      <CardFooter className="flex flex-col gap-3">
+        <div className="flex justify-between w-full gap-3">
+          {user ? (
+            <Button className="w-1/2" variant="destructive" onClick={handleLogout} disabled={loading}>
+              {loading ? '처리 중...' : '로그아웃'}
+            </Button>
+          ) : (
+            <Button className="w-1/2" onClick={handleTestLogin} disabled={loading}>
+              {loading ? '처리 중...' : '테스트 로그인'}
+            </Button>
+          )}
+          <Button className="w-1/2" variant="outline" onClick={handleRefreshStatus} disabled={loading}>
+            {loading ? '새로고침 중...' : '상태 새로고침'}
+          </Button>
+        </div>
       </CardFooter>
     </Card>
   );

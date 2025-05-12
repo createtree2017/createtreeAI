@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { sendChatMessage, getChatHistory } from "./api";
 import { create } from "zustand";
+import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
 
 export interface ChatMessage {
@@ -327,11 +327,14 @@ export const useSendEphemeralMessage = () => {
       
       // Send the message to the API for processing with ephemeral flag
       // Include the selected persona's system prompt
-      const response = await sendChatMessage(
-        message, 
-        true, 
-        selectedPersona.systemPrompt
-      );
+      const response = await apiRequest('/api/chat/message', {
+        method: 'POST',
+        data: { 
+          message, 
+          ephemeral: true, 
+          systemPrompt: selectedPersona.systemPrompt 
+        }
+      });
       
       // Add the AI response to the ephemeral store
       addMessage({
