@@ -445,6 +445,10 @@ export const storage = {
     try {
       console.log(`[Storage] getImageList 호출됨: ${new Date().toISOString()}`);
       
+      // 이전 날짜로 필터링 날짜 설정 (모든 이미지 표시)
+      const filterDate = new Date('2000-01-01T00:00:00Z');
+      console.log(`[Storage] 날짜 필터 완화: ${filterDate.toISOString()} 이후 모든 이미지 표시`);
+      
       // 명시적으로 필요한 필드만 선택하여 userId 참조 제거 (스키마 업데이트 전까지)
       const results = await db.select({
         id: images.id,
@@ -456,19 +460,28 @@ export const storage = {
         metadata: images.metadata
       })
       .from(images)
+      .where(gt(images.createdAt, filterDate))  // 2000년 이후 모든 이미지 표시
       .orderBy(desc(images.createdAt));
       
       // 결과 데이터 검증 및 로깅
       console.log(`[Storage] 이미지 조회 결과: ${results ? results.length : 0}개 이미지 찾음`);
       
-      // 메타데이터 분석
+      // 메타데이터 분석 및 URL 샘플 로깅
       if (results && results.length > 0) {
         console.log(`[Storage] 최신 이미지 ${results.length}개 조회됨, 가장 최근 ID: ${results[0].id}, 생성일: ${results[0].createdAt}`);
         
-        // 메타데이터 로깅 (디버깅용)
+        // 이미지 URL 샘플 로깅 (디버깅용)
+        console.log(`[Storage] 이미지 URL 샘플 (최대 3개):`);
+        results.slice(0, 3).forEach((img, idx) => {
+          const urlSample = img.transformedUrl 
+            ? img.transformedUrl.substring(0, Math.min(50, img.transformedUrl.length)) + "..." 
+            : "URL 없음";
+          console.log(`[이미지 URL ${idx+1}/3] ID: ${img.id}, 제목: ${img.title}, URL: ${urlSample}`);
+        });
+        
+        // 메타데이터 로깅은 축소 (디버깅 정보만)
         const sampleImages = results.slice(0, 3);
         sampleImages.forEach(img => {
-          // 메타데이터 구조 확인 로깅
           let metadataLog = "없음";
           
           if (img.metadata) {
