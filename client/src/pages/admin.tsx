@@ -2000,6 +2000,7 @@ function ConceptCategoryManager() {
   // Fetch concept categories
   const { data: categories, isLoading, error } = useQuery({
     queryKey: ["/api/admin/concept-categories"],
+    queryFn: getQueryFn()
   });
   
   // Handler for editing a category
@@ -2011,7 +2012,7 @@ function ConceptCategoryManager() {
   // Delete concept category mutation
   const deleteCategoryMutation = useMutation({
     mutationFn: (categoryId: string) => apiRequest(`/api/admin/concept-categories/${categoryId}`, {
-      method: "DELETE",
+      method: "DELETE"
     }),
     onSuccess: () => {
       toast({

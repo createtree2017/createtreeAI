@@ -82,7 +82,7 @@ export default function ConceptManagement() {
       return apiRequest(url, { method, data: concept });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/concepts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/concepts'] });
       toast({
         title: editingConcept ? "컨셉 업데이트 완료" : "새 컨셉 추가 완료",
         description: "컨셉이 성공적으로 저장되었습니다."
@@ -106,7 +106,7 @@ export default function ConceptManagement() {
       return apiRequest(`/api/admin/concepts/${conceptId}`, { method: 'DELETE' });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/concepts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/concepts'] });
       toast({
         title: "컨셉 삭제 완료",
         description: "컨셉이 성공적으로 삭제되었습니다."
