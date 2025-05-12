@@ -366,31 +366,41 @@ export const storage = {
       path.extname(originalFilename)
     );
     
-    // Create a title with user information for proper filtering
-    let title;
-    if (username) {
-      // 사용자 이름을 제목에 명확하게 포함하여 필터링 용이성 증가
-      title = `[${username}] ${style.charAt(0).toUpperCase() + style.slice(1)} ${nameWithoutExt}`;
-      // 한글 사용자 이름이라면 "사용자명의" 형식도 추가
-      if (/[가-힣]/.test(username)) {
-        title = `${username}의 ${style.charAt(0).toUpperCase() + style.slice(1)} ${nameWithoutExt}`;
-      }
-    } else {
-      title = `${style.charAt(0).toUpperCase() + style.slice(1)} ${nameWithoutExt}`;
-    }
+    // 스타일 이름에서 한글 인코딩 문제 해결 (영문/숫자 ID로 변환)
+    // 이것은 내부적으로만 사용되며 표시 이름에는 영향을 미치지 않음
+    const styleId = style.replace(/[^a-zA-Z0-9]/g, '_');
     
-    // Include the variant ID and aspectRatio if they exist
-    const metadata: Record<string, any> = {};
+    // 제목에서 한글 문자 인코딩 문제 방지 위해 간소화된 형식 사용
+    let title = `${style.charAt(0).toUpperCase() + style.slice(1)} ${nameWithoutExt}`;
+    
+    // 메타데이터에 필요한 모든 정보 포함
+    const metadata: Record<string, any> = {
+      // 원본 정보 보존
+      originalStyle: style,       // 원본 스타일 이름 (한글 포함 가능)
+      styleId: styleId,           // 내부 사용 ID (영문/숫자만)
+      originalName: nameWithoutExt,
+      
+      // 추가 메타데이터 저장
+      createdAt: new Date().toISOString(),
+      displayTitle: title         // 표시용 제목
+    };
+    
+    // 선택적 메타데이터 추가
     if (variantId) metadata.variantId = variantId;
     if (aspectRatio) metadata.aspectRatio = aspectRatio;
-    if (username) metadata.username = username;
     
-    // 사용자 ID는 항상 문자열로 저장하여 일관성 유지
+    // 사용자 정보는 일관된 방식으로 저장
     if (userId) {
-      metadata.userId = userId.toString();
+      // 이메일 기반 ID 사용 - 항상 숫자 형태로 저장 (문자열 변환 없음)
+      metadata.userId = userId;
+      
+      // 표시 이름은 별도로 저장 (이메일 또는 닉네임)
+      if (username) {
+        metadata.displayName = username;
+      }
     } else {
       // 특별 케이스: userId가 없는 경우 공유 이미지로 설정 (-1)
-      metadata.userId = "-1"; // 글로벌 공유 이미지 표시용
+      metadata.userId = -1; // 글로벌 공유 이미지 표시용 (숫자 타입 유지)
     }
     
     // 🔍 중요: 메타데이터 저장 전 최종 확인 로그
@@ -577,27 +587,28 @@ export const storage = {
               ? JSON.parse(item.metadata) 
               : item.metadata;
             
-            // 1. userId 비교 (문자열로 변환) - 매우 중요한 부분
-            if (userId && metadata && metadata.userId) {
+            // 1. userId 비교 (숫자로 통일) - 매우 중요한 부분
+            if (userId && metadata && metadata.userId !== undefined) {
               // 디버깅용 상세 로깅
               console.log(`🧪 필터 비교 [이미지 ID=${item.id}]:`, {
                 metadataUserId: metadata.userId,
                 currentUserId: userId,
-                metadataUserIdStr: String(metadata.userId),
-                currentUserIdStr: String(userId),
-                match: String(metadata.userId) === String(userId)
+                metadataType: typeof metadata.userId,
+                currentType: typeof userId,
+                match: Number(metadata.userId) === Number(userId)
               });
               
-              const metadataUserIdStr = String(metadata.userId).trim();
-              const currentUserIdStr = String(userId).trim();
+              // 숫자 타입으로 통일하여 비교
+              const metadataUserIdNum = Number(metadata.userId);
+              const currentUserIdNum = Number(userId);
               
-              // 일반적인 ID 일치 확인
-              if (metadataUserIdStr === currentUserIdStr) {
+              // 일반적인 ID 일치 확인 - 숫자 비교
+              if (metadataUserIdNum === currentUserIdNum) {
                 isMatch = true;
-                matchReason = `메타데이터 userId 일치: ${metadataUserIdStr}`;
+                matchReason = `메타데이터 userId 일치: ${metadataUserIdNum}`;
               }
-              // 특별 케이스 1: metadata.userId가 "-1"이면 공유 이미지로 간주
-              else if (metadataUserIdStr === "-1") {
+              // 특별 케이스 1: metadata.userId가 -1이면 공유 이미지로 간주
+              else if (metadataUserIdNum === -1) {
                 isMatch = true;
                 matchReason = `공유 이미지 (userId=-1): 모든 사용자에게 표시됨`;
               }
