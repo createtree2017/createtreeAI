@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
+import { api } from '@/lib/apiClient';
 
 interface User {
   id: number;
@@ -24,8 +24,7 @@ export function TestAuth() {
   const checkAuthStatus = async () => {
     try {
       console.log('사용자 인증 상태 확인 중...');
-      const response = await apiRequest('/api/user', { on401: 'returnNull' });
-      const userData = await response.json();
+      const userData = await api.getCurrentUser();
       
       if (userData) {
         setUser(userData as User);
@@ -44,8 +43,7 @@ export function TestAuth() {
       setLoading(true);
       console.log('테스트 로그인 시도...');
       
-      const response = await apiRequest('/api/test-login', { method: 'POST' });
-      const data = await response.json();
+      const data = await api.testLogin();
       
       console.log('테스트 로그인 성공:', data);
       // 응답 타입 안전하게 처리
@@ -75,7 +73,7 @@ export function TestAuth() {
       setLoading(true);
       console.log('로그아웃 시도...');
       
-      await apiRequest('/api/logout', { method: 'POST' });
+      await api.logout();
       
       console.log('로그아웃 성공');
       setUser(null);

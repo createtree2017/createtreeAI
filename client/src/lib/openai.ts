@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { create } from "zustand";
-import { apiRequest } from "@/lib/queryClient";
+import { api } from "@/lib/apiClient";
+import { queryClient } from "@/lib/queryClient";
 import { format } from "date-fns";
 
 export interface ChatMessage {
@@ -327,20 +328,15 @@ export const useSendEphemeralMessage = () => {
       
       // Send the message to the API for processing with ephemeral flag
       // Include the selected persona's system prompt
-      const response = await apiRequest('/api/chat/message', {
-        method: 'POST',
-        data: { 
-          message, 
-          ephemeral: true, 
-          systemPrompt: selectedPersona.systemPrompt 
-        }
-      });
+      const response = await api.sendChatMessage(message, true, selectedPersona.systemPrompt);
       
       // Add the AI response to the ephemeral store
-      addMessage({
-        role: "assistant",
-        content: response.assistantMessage.content,
-      });
+      if (response && response.assistantMessage) {
+        addMessage({
+          role: "assistant",
+          content: response.assistantMessage.content,
+        });
+      }
       
       return response;
     }
@@ -350,7 +346,7 @@ export const useSendEphemeralMessage = () => {
 // Legacy API-based send message hook (kept for compatibility)
 export const useSendMessage = () => {
   return useMutation({
-    mutationFn: (message: string) => sendChatMessage(message),
+    mutationFn: (message: string) => api.sendChatMessage(message),
     onSuccess: (_data, _variables, _context) => {
       // We invalidate the chat history query to refetch after sending a message
       queryClient.invalidateQueries({ queryKey: ["/api/chat/history"] });
@@ -376,4 +372,4 @@ export const suggestedTopics = [
   "Feeling unsure"
 ];
 
-import { queryClient } from "./queryClient";
+

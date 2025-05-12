@@ -1,6 +1,5 @@
-// 모든 함수를 직접 내보냅니다
-export * from './api-functions';
-
-// 대체 기본 내보내기도 제공
-import * as api from './api-functions';
-export default api;
+// 이 파일은 단순히 apiClient.ts를 다시 내보내기합니다.
+// 이를 통해 기존 코드가 중단 없이 계속 작동할 수 있습니다.
+export * from './apiClient';
+import * as apiClientExports from './apiClient';
+export default apiClientExports.api;
