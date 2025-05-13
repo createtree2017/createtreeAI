@@ -52,6 +52,7 @@ import {
   abTestResults,
   hospitals,
   banners,
+  campaigns,
   styleCards,
   serviceCategories,
   favorites,
