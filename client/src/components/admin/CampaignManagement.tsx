@@ -8,7 +8,7 @@ import { Campaign, InsertCampaign } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
 // 임시 인터페이스 - 백엔드에서 확장 데이터를 위해
-interface ExtendedCampaign extends Campaign {
+interface ExtendedCampaign extends Omit<Campaign, 'content' | 'startDate' | 'endDate' | 'announceDate' | 'contentStartDate' | 'contentEndDate' | 'resultDate'> {
   hospitalName?: string;
   hospitalSlug?: string;
   // 새로운 필드들에 대한 타입 정의
@@ -20,8 +20,8 @@ interface ExtendedCampaign extends Campaign {
   resultDate?: string | null;
   rewardPoint?: number;
   thumbnailUrl?: string;
-  content?: string;
-  status?: string;
+  content?: string | null;
+  status?: string | null;
 }
 
 import {
@@ -252,10 +252,28 @@ export default function CampaignManagement() {
 
   // 폼 제출 핸들러
   const onSubmit = (values: z.infer<typeof formSchema>) => {
+    // 디버깅용 로그 추가
+    console.log("🎯 제출되는 값:", values);
+    
     if (editingCampaign) {
+      // 수정 시에는 기존 값 유지
       updateMutation.mutate(values);
     } else {
-      createMutation.mutate(values);
+      // 생성 시 슬러그 중복 방지
+      const timestamp = new Date().getTime().toString().slice(-6);
+      const uniqueSlug = `${values.slug}-${timestamp}`;
+      
+      // 로그로 확인
+      console.log("🆕 생성 데이터:", {
+        ...values,
+        slug: uniqueSlug
+      });
+      
+      // 신규 슬러그로 교체하여 제출
+      createMutation.mutate({
+        ...values,
+        slug: uniqueSlug
+      });
     }
   };
 
