@@ -47,6 +47,10 @@ export const getServiceCategories = apiClient.getServiceCategories;
 export const createServiceCategory = apiClient.createServiceCategory;
 export const updateServiceCategory = apiClient.updateServiceCategory;
 export const deleteServiceCategory = apiClient.deleteServiceCategory;
+export const getServiceItems = apiClient.getServiceItems;
+export const createServiceItem = apiClient.createServiceItem;
+export const updateServiceItem = apiClient.updateServiceItem;
+export const deleteServiceItem = apiClient.deleteServiceItem;
 export const getLanguages = apiClient.getLanguages;
 export const uploadTranslations = apiClient.uploadTranslations;
 

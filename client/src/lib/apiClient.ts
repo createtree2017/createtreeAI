@@ -254,6 +254,16 @@ export const api = {
   updateServiceCategory: (id: number, data: any) => patchApi(`/api/admin/service-categories/${id}`, data),
   deleteServiceCategory: (id: number) => deleteApi(`/api/admin/service-categories/${id}`),
   
+  // 서비스 항목(하위 메뉴) 관리
+  getServiceItems: (categoryId?: string) => {
+    const params: Record<string, any> = {};
+    if (categoryId) params.categoryId = categoryId;
+    return getApi('/api/admin/service-items', params);
+  },
+  createServiceItem: (data: any) => postApi('/api/admin/service-items', data),
+  updateServiceItem: (id: number, data: any) => patchApi(`/api/admin/service-items/${id}`, data),
+  deleteServiceItem: (id: number) => deleteApi(`/api/admin/service-items/${id}`),
+  
   // 언어 관리
   getLanguages: () => getApi('/api/admin/languages'),
   uploadTranslations: (formData: FormData) => postApi('/api/admin/translations/upload', formData),
