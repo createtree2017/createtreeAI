@@ -272,6 +272,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 슈퍼관리자 라우트 등록
   app.use("/api/super", superAdminRoutes);
   
+  // 통합 메뉴 API - 카테고리와 서비스 항목을 함께 제공
+  app.get("/api/menu", async (req, res) => {
+    try {
+      // 1. 활성화된 서비스 카테고리 가져오기 (공개 상태인 것만)
+      const categories = await db.select().from(serviceCategories)
+        .where(eq(serviceCategories.isActive, true))
+        .orderBy(serviceCategories.order);
+      
+      if (!categories || categories.length === 0) {
+        return res.status(200).json([]);
+      }
+      
+      // 2. 메뉴 구조 생성
+      const menu = [];
+      
+      // 3. 각 카테고리별로 해당하는 서비스 항목 조회
+      for (const category of categories) {
+        // 해당 카테고리에 속한 활성화된 서비스 항목만 가져오기
+        const items = await db.select({
+          id: serviceItems.id,
+          title: serviceItems.title,
+          path: serviceItems.path,
+          iconName: serviceItems.iconName
+        }).from(serviceItems)
+          .where(and(
+            eq(serviceItems.categoryId, category.id),
+            eq(serviceItems.isActive, true)
+          ))
+          .orderBy(serviceItems.order);
+        
+        // 항목이 있는 카테고리만 메뉴에 추가
+        if (items && items.length > 0) {
+          menu.push({
+            title: category.title,
+            items: items
+          });
+        }
+      }
+      
+      return res.status(200).json(menu);
+    } catch (error) {
+      console.error('메뉴 조회 오류:', error);
+      return res.status(500).json({ error: "menu-error" });
+    }
+  });
+
   // 일반 사용자를 위한 병원 목록 API (로그인 필요없이 접근 가능)
   app.get("/api/hospitals", async (req, res) => {
     try {
