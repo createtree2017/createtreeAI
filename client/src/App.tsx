@@ -32,6 +32,10 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { AuthProvider, ProtectedRoute } from "@/lib/AuthProvider";
 import { HospitalProvider } from "@/lib/HospitalContext";
 import { ImageProcessingIndicator } from "@/components/ImageProcessingIndicator";
+// 서비스 페이지 컴포넌트 가져오기
+import MaternityPhoto from "@/pages/maternity-photo";
+import FamilyPhoto from "@/pages/family-photo";
+import Stickers from "@/pages/stickers";
 
 // Main layout component
 function Layout({ children }: { children: React.ReactNode }) {
@@ -283,6 +287,31 @@ function Router() {
         <ProtectedRoute>
           <Layout>
             <Profile />
+          </Layout>
+        </ProtectedRoute>
+      </Route>
+
+      {/* 서비스 경로 */}
+      <Route path="/maternity-photo">
+        <ProtectedRoute>
+          <Layout>
+            <MaternityPhoto />
+          </Layout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/family-photo">
+        <ProtectedRoute>
+          <Layout>
+            <FamilyPhoto />
+          </Layout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/stickers">
+        <ProtectedRoute>
+          <Layout>
+            <Stickers />
           </Layout>
         </ProtectedRoute>
       </Route>
