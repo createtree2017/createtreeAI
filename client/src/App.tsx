@@ -414,16 +414,18 @@ function App() {
   }, []);
   
   return (
-    <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <HospitalProvider>
-            <Router />
-            <Toaster />
-          </HospitalProvider>
-        </AuthProvider>
-      </QueryClientProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <HospitalProvider>
+              <Router />
+              <Toaster />
+            </HospitalProvider>
+          </AuthProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

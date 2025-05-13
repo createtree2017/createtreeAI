@@ -6,6 +6,7 @@ import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { transformImage, getImageList, downloadMedia, shareMedia, getMusicList } from "@/lib/api";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 import { format } from "date-fns";
 import { 
@@ -831,11 +832,15 @@ export default function AdminPage() {
               </TabsList>
               
               <TabsContent value="campaign-list" className="mt-4">
-                <CampaignManagement />
+                <ErrorBoundary>
+                  <CampaignManagement />
+                </ErrorBoundary>
               </TabsContent>
               
               <TabsContent value="campaign-applications" className="mt-4">
-                <CampaignApplicationManagement />
+                <ErrorBoundary>
+                  <CampaignApplicationManagement />
+                </ErrorBoundary>
               </TabsContent>
             </Tabs>
           </div>
