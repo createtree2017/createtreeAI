@@ -62,7 +62,7 @@ export default function CampaignsPage() {
               
               <CardFooter>
                 <Link 
-                  to={`/campaigns/${campaign.slug}`}
+                  to={`/campaign/${campaign.slug}`}
                   className="text-sm text-primary hover:underline inline-flex items-center"
                 >
                   자세히 보기 

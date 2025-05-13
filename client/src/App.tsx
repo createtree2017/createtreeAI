@@ -318,8 +318,8 @@ function Router() {
         </ProtectedRoute>
       </Route>
 
-      {/* 캠페인 경로 */}
-      <Route path="/campaigns">
+      {/* 캠페인 경로: 메뉴 DB 경로(/campaign-1)와 일치시킴 */}
+      <Route path="/campaign-1">
         <ProtectedRoute>
           <Layout>
             <CampaignsPage />
@@ -327,7 +327,8 @@ function Router() {
         </ProtectedRoute>
       </Route>
 
-      <Route path="/campaigns/:slug">
+      {/* 캠페인 상세 페이지 - 슬러그 기반 */}
+      <Route path="/campaign/:slug">
         <ProtectedRoute>
           <Layout>
             <CampaignDetailPage />

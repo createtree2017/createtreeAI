@@ -8,7 +8,7 @@ import { Link } from "wouter";
 
 export default function CampaignDetailPage() {
   // URL에서 슬러그 가져오기
-  const [match, params] = useRoute<{ slug: string }>("/campaigns/:slug");
+  const [match, params] = useRoute<{ slug: string }>("/campaign/:slug");
   
   if (!match) {
     return <div>캠페인을 찾을 수 없습니다.</div>;
@@ -40,7 +40,7 @@ export default function CampaignDetailPage() {
         <p className="text-muted-foreground mb-8">
           요청하신 캠페인을 찾을 수 없거나 오류가 발생했습니다.
         </p>
-        <Link to="/campaigns">
+        <Link to="/campaign-1">
           <Button>캠페인 목록으로 돌아가기</Button>
         </Link>
       </div>
