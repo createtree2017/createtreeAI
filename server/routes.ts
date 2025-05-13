@@ -3727,7 +3727,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // 관리자용 캠페인 신청 목록 조회
-  app.get("/api/campaign-applications", async (req, res) => {
+  app.get("/api/admin/campaign-applications", async (req, res) => {
     try {
       // 관리자 권한 체크
       if (!req.isAuthenticated() || req.user.memberType !== 'superadmin') {
@@ -3765,7 +3765,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // 관리자용 캠페인 신청 상태 업데이트
-  app.patch("/api/campaign-applications/:id", async (req, res) => {
+  app.patch("/api/admin/campaign-applications/:id", async (req, res) => {
     try {
       // 관리자 권한 체크
       if (!req.isAuthenticated() || req.user.memberType !== 'superadmin') {
