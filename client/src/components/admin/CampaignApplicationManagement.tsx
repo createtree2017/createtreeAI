@@ -48,13 +48,6 @@ export default function CampaignApplicationManagement() {
   // 캠페인 목록 조회
   const { data: campaigns, isLoading: isLoadingCampaigns } = useQuery<Campaign[]>({
     queryKey: ["/api/admin/campaigns"],
-    onError: (error) => {
-      toast({
-        title: "캠페인 목록 로드 실패",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
   });
 
   // 신청자 목록 조회
@@ -67,13 +60,6 @@ export default function CampaignApplicationManagement() {
       "/api/admin/campaign-applications", 
       selectedCampaignId !== "all" ? { campaignId: selectedCampaignId } : {}
     ],
-    onError: (error) => {
-      toast({
-        title: "신청자 목록 로드 실패",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
   });
 
   // 신청 상태 업데이트 mutation
@@ -189,7 +175,7 @@ export default function CampaignApplicationManagement() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">모든 캠페인</SelectItem>
-              {campaigns?.map((campaign) => (
+              {Array.isArray(campaigns) && campaigns.map((campaign) => (
                 <SelectItem key={campaign.id} value={String(campaign.id)}>
                   {campaign.title}
                 </SelectItem>
@@ -211,7 +197,7 @@ export default function CampaignApplicationManagement() {
         </div>
       </div>
 
-      {applications?.length === 0 ? (
+      {!Array.isArray(applications) || applications.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-64 text-center p-4 border rounded-lg bg-muted/10">
           <p className="text-muted-foreground mb-2">신청자가 없습니다.</p>
           <p className="text-sm text-muted-foreground">
@@ -234,7 +220,7 @@ export default function CampaignApplicationManagement() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {applications?.map((application) => (
+              {applications.map((application: CampaignApplication) => (
                 <TableRow 
                   key={application.id}
                   className={getRowStyle(application.status)}

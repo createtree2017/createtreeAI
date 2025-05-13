@@ -23,6 +23,7 @@ import CategoryManagement from "@/components/admin/CategoryManagement";
 import ServiceItemManagement from "@/components/admin/ServiceItemManagement";
 import ConceptManagement from "@/components/admin/ConceptManagement";
 import CampaignManagement from "@/components/admin/CampaignManagement";
+import CampaignApplicationManagement from "@/components/admin/CampaignApplicationManagement";
 import { getQueryFn } from '@/lib/queryClient';
 import { 
   getLanguages, 
@@ -822,9 +823,21 @@ export default function AdminPage() {
         <TabsContent value="campaigns">
           <div className="space-y-6">
             <h2 className="text-2xl font-bold">캠페인 관리</h2>
-            <div className="mt-4">
-              <CampaignManagement />
-            </div>
+            
+            <Tabs defaultValue="campaign-list">
+              <TabsList>
+                <TabsTrigger value="campaign-list">캠페인 목록</TabsTrigger>
+                <TabsTrigger value="campaign-applications">신청자 관리</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="campaign-list" className="mt-4">
+                <CampaignManagement />
+              </TabsContent>
+              
+              <TabsContent value="campaign-applications" className="mt-4">
+                <CampaignApplicationManagement />
+              </TabsContent>
+            </Tabs>
           </div>
         </TabsContent>
         
