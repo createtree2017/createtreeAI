@@ -1,8 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/hooks/useAuth";
 import CampaignTableForHospital from "@/components/hospital/CampaignTableForHospital";
-import Layout from "@/components/Layout";
 
 export default function HospitalCampaignsPage() {
   const { user, isLoading } = useAuth();
@@ -31,11 +30,9 @@ export default function HospitalCampaignsPage() {
 
   if (isLoading) {
     return (
-      <Layout>
-        <div className="flex justify-center items-center h-96">
-          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
-        </div>
-      </Layout>
+      <div className="flex justify-center items-center h-96">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+      </div>
     );
   }
 
@@ -45,10 +42,8 @@ export default function HospitalCampaignsPage() {
   }
 
   return (
-    <Layout>
-      <div className="container mx-auto">
-        <CampaignTableForHospital />
-      </div>
-    </Layout>
+    <div className="container mx-auto">
+      <CampaignTableForHospital />
+    </div>
   );
 }
