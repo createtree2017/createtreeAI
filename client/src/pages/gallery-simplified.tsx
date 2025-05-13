@@ -29,6 +29,8 @@ export default function Gallery() {
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6; // 한 페이지당 6개 항목
+  const [viewImageDialog, setViewImageDialog] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
 
   // 갤러리 항목 조회
   const { data: items, isLoading } = useQuery({
@@ -88,18 +90,51 @@ export default function Gallery() {
     toggleFavoriteMutation({ itemId: item.id, type: item.type });
   };
 
+  // 이미지 다운로드 함수
+  const handleDownload = async (id: number) => {
+    try {
+      // 실제 다운로드 기능이 구현되어 있지 않아 토스트만 표시
+      toast({
+        title: "다운로드 시작",
+        description: "이미지 다운로드가 시작되었습니다."
+      });
+    } catch (error) {
+      toast({
+        title: "다운로드 실패",
+        description: "다시 시도해주세요.",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // 공유 기능
+  const handleShare = (id: number) => {
+    toast({
+      title: "공유 기능",
+      description: "준비 중입니다!",
+    });
+  };
+
   const handleItemAction = (item: GalleryItem, action: 'view' | 'play' | 'share') => {
-    if (action === 'view' || action === 'play') {
+    if (action === 'play') {
+      // 음악 재생 - 기존과 동일하게 음악 페이지로 이동
+      setLocation(`/music?id=${item.id}`);
+    } else if (action === 'view') {
       if (item.type === 'chat') {
+        // 채팅은 기존과 동일하게 채팅 페이지로 이동
         setLocation(`/chat?id=${item.id}`);
+      } else if (item.type === 'image') {
+        // 이미지는 팝업 다이얼로그로 표시
+        setSelectedItem(item);
+        setViewImageDialog(true);
       } else {
-        setLocation(`/${item.type === 'music' ? 'music' : 'image'}?id=${item.id}`);
+        // 음악도 상세 페이지로 이동
+        setLocation(`/music?id=${item.id}`);
       }
     } else if (action === 'share') {
-      toast({
-        title: "공유 기능",
-        description: "준비 중입니다!",
-      });
+      if (item.id) {
+        handleShare(item.id);
+      }
     }
   };
 
