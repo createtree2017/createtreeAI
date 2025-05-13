@@ -3540,11 +3540,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/campaigns", async (req, res) => {
     try {
       // 일반 사용자에게는 공개된 캠페인만 보여줌
-      const campaignsList = await db.query.campaigns.findMany({
-        where: eq(campaigns.isPublic, true),
-        orderBy: [asc(campaigns.displayOrder), asc(campaigns.title)]
-      });
+      const campaignsList = await db.select({
+        id: campaigns.id,
+        slug: campaigns.slug,
+        title: campaigns.title,
+        description: campaigns.description,
+        bannerImage: campaigns.bannerImage,
+        isPublic: campaigns.isPublic,
+        displayOrder: campaigns.displayOrder,
+        createdAt: campaigns.createdAt,
+        updatedAt: campaigns.updatedAt
+      })
+      .from(campaigns)
+      .where(eq(campaigns.isPublic, true))
+      .orderBy(asc(campaigns.displayOrder), asc(campaigns.title));
       
+      console.log("Fetched public campaigns:", campaignsList);
       res.json(campaignsList);
     } catch (error) {
       console.error("Error fetching public campaigns:", error);
@@ -3556,18 +3567,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { slug } = req.params;
       
-      const campaign = await db.query.campaigns.findFirst({
-        where: and(
-          eq(campaigns.slug, slug),
-          eq(campaigns.isPublic, true)
-        )
-      });
+      const campaigns = await db.select({
+        id: campaigns.id,
+        slug: campaigns.slug,
+        title: campaigns.title,
+        description: campaigns.description,
+        bannerImage: campaigns.bannerImage,
+        isPublic: campaigns.isPublic,
+        displayOrder: campaigns.displayOrder,
+        createdAt: campaigns.createdAt,
+        updatedAt: campaigns.updatedAt
+      })
+      .from(campaigns)
+      .where(and(
+        eq(campaigns.slug, slug),
+        eq(campaigns.isPublic, true)
+      ));
       
-      if (!campaign) {
+      if (campaigns.length === 0) {
         return res.status(404).json({ error: "Campaign not found" });
       }
       
-      res.json(campaign);
+      res.json(campaigns[0]);
     } catch (error) {
       console.error("Error fetching campaign:", error);
       res.status(500).json({ error: "Failed to fetch campaign" });

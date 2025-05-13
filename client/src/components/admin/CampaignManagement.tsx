@@ -41,7 +41,7 @@ import { FileUpload } from "@/components/ui/file-upload";
 
 // 캠페인 가져오기 함수
 const getCampaigns = async () => {
-  const response = await apiRequest("GET", "/api/admin/campaigns");
+  const response = await apiRequest("/api/admin/campaigns");
   return response.json();
 };
 
@@ -112,7 +112,10 @@ export default function CampaignManagement() {
         }
       }
       
-      const response = await apiRequest("POST", "/api/admin/campaigns", data);
+      const response = await apiRequest("/api/admin/campaigns", {
+        method: "POST",
+        data: data
+      });
       return response.json();
     },
     onSuccess: () => {
@@ -144,7 +147,10 @@ export default function CampaignManagement() {
         }
       }
       
-      const response = await apiRequest("PATCH", `/api/admin/campaigns/${editingCampaign?.id}`, data);
+      const response = await apiRequest(`/api/admin/campaigns/${editingCampaign?.id}`, {
+        method: "PATCH",
+        data: data
+      });
       return response.json();
     },
     onSuccess: () => {
@@ -186,7 +192,7 @@ export default function CampaignManagement() {
         slug: campaign.slug,
         description: campaign.description || "",
         bannerImage: campaign.bannerImage || "",
-        isPublic: campaign.isPublic,
+        isPublic: Boolean(campaign.isPublic),
         displayOrder: campaign.displayOrder || 0
       });
       
