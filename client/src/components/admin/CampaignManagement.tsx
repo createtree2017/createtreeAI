@@ -7,6 +7,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Campaign, InsertCampaign } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
+// 임시 인터페이스 - 백엔드에서 확장 데이터를 위해
+interface ExtendedCampaign extends Campaign {
+  hospitalName?: string;
+}
+
 import {
   Table,
   TableBody,
@@ -81,7 +86,8 @@ const formSchema = z.object({
   description: z.string().optional(),
   bannerImage: z.string().optional(),
   isPublic: z.boolean().default(true),
-  displayOrder: z.number().int().default(0)
+  displayOrder: z.number().int().default(0),
+  hospitalId: z.number().optional().nullable()
 });
 
 export default function CampaignManagement() {
@@ -102,7 +108,8 @@ export default function CampaignManagement() {
       description: "",
       bannerImage: "",
       isPublic: true,
-      displayOrder: 0
+      displayOrder: 0,
+      hospitalId: null
     }
   });
 
@@ -113,7 +120,7 @@ export default function CampaignManagement() {
   });
 
   // 캠페인 데이터 가져오기
-  const { data = [], isLoading } = useQuery<Campaign[]>({
+  const { data = [], isLoading } = useQuery<ExtendedCampaign[]>({
     queryKey: ["/api/admin/campaigns", activeScope, selectedHospitalId],
     queryFn: () => getCampaigns(activeScope, selectedHospitalId),
   });
@@ -230,7 +237,8 @@ export default function CampaignManagement() {
         description: campaign.description || "",
         bannerImage: campaign.bannerImage || "",
         isPublic: Boolean(campaign.isPublic),
-        displayOrder: campaign.displayOrder || 0
+        displayOrder: campaign.displayOrder || 0,
+        hospitalId: campaign.hospitalId
       });
       
       // 배너 이미지 미리보기 설정
@@ -247,7 +255,8 @@ export default function CampaignManagement() {
         description: "",
         bannerImage: "",
         isPublic: true,
-        displayOrder: 0
+        displayOrder: 0,
+        hospitalId: null
       });
       setBannerPreview(null);
     }
@@ -358,7 +367,7 @@ export default function CampaignManagement() {
                     <TableCell>{campaign.slug}</TableCell>
                     {activeScope !== 'public' && (
                       <TableCell>
-                        {campaign.hospitalName || '일반(공개)'}
+                        {campaign.hospitalName || (campaign.hospitalId ? `병원 ID: ${campaign.hospitalId}` : '일반(공개)')}
                       </TableCell>
                     )}
                     <TableCell>{campaign.isPublic ? "공개" : "비공개"}</TableCell>
@@ -494,6 +503,38 @@ export default function CampaignManagement() {
                     </FormControl>
                     <FormDescription>
                       숫자가 낮을수록 먼저 표시됩니다
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="hospitalId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>병원</FormLabel>
+                    <Select 
+                      value={field.value?.toString() || ""} 
+                      onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="병원 선택 (선택하지 않으면 공개 캠페인)" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="">공개 캠페인</SelectItem>
+                        {hospitals.map((hospital: any) => (
+                          <SelectItem key={hospital.id} value={hospital.id.toString()}>
+                            {hospital.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      캠페인을 특정 병원에 연결하려면 병원을 선택하세요. 선택하지 않으면 공개 캠페인이 됩니다.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
