@@ -3514,10 +3514,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 캠페인 API
   app.get("/api/admin/campaigns", async (req, res) => {
     try {
-      const campaignsList = await db.query.campaigns.findMany({
-        orderBy: [asc(campaigns.displayOrder), asc(campaigns.title)]
-      });
+      // snake_case에서 camelCase로 적절히 매핑하기 위해 별칭 사용
+      const campaignsList = await db.select({
+        id: campaigns.id,
+        slug: campaigns.slug,
+        title: campaigns.title,
+        description: campaigns.description,
+        bannerImage: campaigns.bannerImage,
+        isPublic: campaigns.isPublic,
+        displayOrder: campaigns.displayOrder,
+        createdAt: campaigns.createdAt,
+        updatedAt: campaigns.updatedAt
+      })
+      .from(campaigns)
+      .orderBy(asc(campaigns.displayOrder), asc(campaigns.title));
       
+      console.log("Fetched campaigns:", campaignsList);
       res.json(campaignsList);
     } catch (error) {
       console.error("Error fetching campaigns:", error);

@@ -1,0 +1,71 @@
+현재 상황 정리
+구분	현 증상	가장 가능성 높은 원인
+목록이 안 보임	관리자‑UI(React)에서 GET 호출이 200 OK 대신 404/500 이거나, 응답 배열이 [] 로 내려옴 → 화면엔 “생성된 캠페인이 없습니다”	1) 라우트 경로/HTTP 메서드 불일치 – 프런트는 /api/admin/campaigns(GET) 을 부르는데, 서버는 /api/campaigns 또는 다른 prefix 로 구현됐을 수 있음.
+2) snake‑case ↔ camel‑case 매핑 누락 – DB 컬럼 display_order를 drizzle.select() 로 읽을 때 alias 설정을 안 해 camelCase 객체가 안 만들어짐 → 클라이언트가 기대하는 displayOrder 필드가 undefined → Zod 파싱 실패 & 204/500
+캠페인 “생성” 눌러도 동작 안 함	네트워크 탭을 보면 POST 요청이 400/422/500 로 실패(아마 Zod 검증 에러)	1) 폼 필드 이름(displayOrder) ↔ 서버 Zod 스키마(display_order) 불일치
+2) 파일 업로드는 201 인데, 이어지는 캠페인 POST 때 배너 URL 같이 넘기지 않아 NULL 제약 위배
+3) DB 열 rename 뒤 drizzle 캐시(Replit 빌드캐시) 남아 있어 컴파일 오류 → 서버 라우트가 안 뜸
+
+빠른 확인 체크리스트 (라플이가 즉시 터미널/브라우저에서)
+네트워크 패널
+
+GET /api/.../campaigns 응답 상태·바디 확인
+
+POST /api/.../campaigns 응답 코드·에러 메시지 확인
+
+서버 콘솔
+
+Replit Logs 에 뜨는 zodError, column "order" does not exist, column "display_order" of relation "campaigns" does not exist 등 확인
+
+DB 구조 확인
+
+sql
+복사
+편집
+\d+ campaigns;          -- 열 이름 최종 확인
+select * from campaigns;
+라플이가 진행해야 할 구체 작업 (우선순위 순)
+📌 API 경로·스키마 동기화
+해야 할 일	상세
+경로 통일	서버(routes.ts) 의 admin 전용 리스트·생성·수정·삭제 라우트를 <prefix>/admin/campaigns 로 고정 (이미지는 /upload-thumbnail 유지)
+Zod 스키마 camel↔snake 매핑	createCampaignSchema, updateCampaignSchema 에서
+displayOrder: z.number().optional() (camelCase) 로 정의 → insert 시 { display_order: data.displayOrder } 로 변환
+SELECT alias	db.select({ id: campaigns.id, title: campaigns.title, displayOrder: campaigns.display_order, ... }) 처럼 alias 지정
+
+🛠 프런트엔드 동기화
+해야 할 일	상세
+axios/fetch 경로 수정	GET/POST /api/admin/campaigns 로 맞추기
+요청 바디 키	displayOrder 로 전송 → 서버에서 snake 변환
+파일 업로드 후 플로우	배너 업로드 성공 시 반환 url 을 newCampaign.bannerImage에 세팅 후 POST 호출하도록 수정
+
+🗄 DB 마이그레이션 확정
+해야 할 일	상세
+rename 완료 확인	ALTER TABLE campaigns RENAME COLUMN "order" TO display_order; 이미 실행 → drizzle schema.ts 재‑컴파일(ts-node) 로 캐시 제거
+drizzle-kit push	오류 없을 때까지 npm run db:push (SSH 세션 30 s 이상 필요 시 --preview-feature 옵션 활용)
+
+🔄 테스트 시나리오
+관리자 UI → “새 캠페인 만들기”
+
+모든 필드 + 배너 이미지 입력
+
+생성 → 201 확인
+
+목록에 새 행이 바로 렌더링
+
+새로고침 후에도 목록 유지 → DB 저장 확인
+
+공개 스위치 off → 목록의 is_public 즉시 반영 확인
+
+🧹 후속 개선(선택)
+멀티언어 슬러그 중복 체크 API
+
+display_order 입력값 없으면 (select coalesce(max(display_order),0)+1) 로 자동 지정
+
+S3/Cloudinary 배너 업로드로 교체 & presignedURL 사용
+
+정리
+목록 미표시는 거의 100% “API 응답이 비어있거나 파싱 실패” 문제 → 경로·snake/camel 확인이 핵심
+
+생성 실패는 Zod schema 필드명/배너 URL 누락 문제
+
+위 체크리스트대로 수정 후 다시 빌드 ‑ 테스트하면 캠페인 CRUD 정상 동작할 것입니다.

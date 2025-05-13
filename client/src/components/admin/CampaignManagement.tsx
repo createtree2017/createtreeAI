@@ -204,7 +204,7 @@ export default function CampaignManagement() {
         description: "",
         bannerImage: "",
         isPublic: true,
-        order: 0
+        displayOrder: 0
       });
       setBannerPreview(null);
     }
