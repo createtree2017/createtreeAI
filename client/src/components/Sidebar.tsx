@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { getMenu } from '@/lib/apiClient';
+import { useAuth } from '@/hooks/useAuth';
 import { 
   Home, 
   Image, 
@@ -19,7 +20,9 @@ import {
   Layers,
   BarChart3,
   MessageSquare,
-  LayoutGrid
+  LayoutGrid,
+  ClipboardList,
+  Building2
 } from 'lucide-react';
 // LogOut 아이콘 개별 임포트
 import { LogOut } from 'lucide-react';
@@ -58,6 +61,7 @@ interface MenuGroup {
 
 export default function Sidebar({ collapsed = false }) {
   const [location] = useLocation();
+  const { user } = useAuth();
   
   // API 메뉴 데이터 가져오기
   const { data: apiMenu = [], isLoading } = useQuery({
@@ -100,6 +104,18 @@ export default function Sidebar({ collapsed = false }) {
           icon: User,
           label: '마이페이지',
           ariaLabel: '내 프로필 페이지',
+        },
+      ]
+    },
+    {
+      id: 'hospital',
+      title: '병원 관리',
+      items: [
+        {
+          path: '/hospital/campaigns',
+          icon: ClipboardList,
+          label: '병원 캠페인 관리',
+          ariaLabel: '병원 캠페인 관리 페이지',
         },
       ]
     },
@@ -164,7 +180,7 @@ export default function Sidebar({ collapsed = false }) {
       const categoryId = `dynamic-${index}`;
       
       // 카테고리 아이템을 MenuItem 형태로 변환
-      const items: MenuItem[] = category.items.map(item => {
+      const items: MenuItem[] = category.items.map((item: ApiMenuItem) => {
         console.log('아이템 디버깅:', item);
         return {
           path: item.path,
@@ -186,13 +202,32 @@ export default function Sidebar({ collapsed = false }) {
   const allGroups = React.useMemo(() => {
     // 메인 메뉴 항목을 찾아 맨 앞에 배치
     const mainGroup = staticGroups.find(group => group.id === 'main');
-    const otherStaticGroups = staticGroups.filter(group => group.id !== 'main');
+    
+    // 정적 그룹 중 권한에 맞는 그룹만 필터링
+    const filteredStaticGroups = staticGroups.filter(group => {
+      // main과 personal 그룹은 항상 표시
+      if (group.id === 'main' || group.id === 'personal') return true;
+      
+      // hospital 그룹은 병원 관리자와 슈퍼관리자에게만 표시
+      if (group.id === 'hospital') {
+        return user?.memberType === 'hospital_admin' || user?.memberType === 'superadmin';
+      }
+      
+      // admin 그룹은 슈퍼관리자에게만 표시
+      if (group.id === 'admin') {
+        return user?.memberType === 'superadmin';
+      }
+      
+      return false;
+    });
+    
+    const otherFilteredGroups = filteredStaticGroups.filter(group => group.id !== 'main');
     
     // 메인 -> 동적 메뉴(서비스 메뉴) -> 기타 정적 메뉴 순서로 배치
     return mainGroup 
-      ? [mainGroup, ...dynamicGroups, ...otherStaticGroups] 
-      : [...dynamicGroups, ...staticGroups];
-  }, [dynamicGroups, staticGroups]);
+      ? [mainGroup, ...dynamicGroups, ...otherFilteredGroups] 
+      : [...dynamicGroups, ...filteredStaticGroups];
+  }, [dynamicGroups, staticGroups, user?.memberType]);
 
   return (
     <aside 
@@ -225,7 +260,7 @@ export default function Sidebar({ collapsed = false }) {
               </div>
             )}
             <div className="space-y-1">
-              {group.items.map((item) => {
+              {group.items.map((item: MenuItem) => {
                 const isActive = location === item.path;
                 return (
                   <Link
