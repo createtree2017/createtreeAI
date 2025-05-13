@@ -93,7 +93,7 @@ const formSchema = z.object({
 export default function CampaignManagement() {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
-  const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
+  const [editingCampaign, setEditingCampaign] = useState<ExtendedCampaign | null>(null);
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [activeScope, setActiveScope] = useState<'all' | 'public' | 'hospital'>('all');
@@ -226,7 +226,7 @@ export default function CampaignManagement() {
   };
 
   // 대화상자 열기 핸들러
-  const openModal = (mode: 'create' | 'edit', campaign?: Campaign) => {
+  const openModal = (mode: 'create' | 'edit', campaign?: ExtendedCampaign) => {
     setIsOpen(true);
     
     if (mode === 'edit' && campaign) {
@@ -278,7 +278,7 @@ export default function CampaignManagement() {
   };
 
   // 편집 버튼 컴포넌트
-  const EditButton = ({ campaign }: { campaign: Campaign }) => (
+  const EditButton = ({ campaign }: { campaign: ExtendedCampaign }) => (
     <div className="flex space-x-2">
       <Button
         variant="outline"
@@ -367,7 +367,7 @@ export default function CampaignManagement() {
                     <TableCell>{campaign.slug}</TableCell>
                     {activeScope !== 'public' && (
                       <TableCell>
-                        {campaign.hospitalName || (campaign.hospitalId ? `병원 ID: ${campaign.hospitalId}` : '일반(공개)')}
+                        {'hospitalName' in campaign && campaign.hospitalName ? campaign.hospitalName : (campaign.hospitalId ? `병원 ID: ${campaign.hospitalId}` : '일반(공개)')}
                       </TableCell>
                     )}
                     <TableCell>{campaign.isPublic ? "공개" : "비공개"}</TableCell>
