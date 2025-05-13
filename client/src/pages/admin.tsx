@@ -20,6 +20,7 @@ import { getLanguage, loadTranslations, setLanguage, t } from "@/lib/i18n";
 import BannerManagement from "@/components/admin/BannerManagement";
 import StyleCardManagement from "@/components/admin/StyleCardManagement";
 import CategoryManagement from "@/components/admin/CategoryManagement";
+import ServiceItemManagement from "@/components/admin/ServiceItemManagement";
 import ConceptManagement from "@/components/admin/ConceptManagement";
 import { getQueryFn } from '@/lib/queryClient';
 import { 
@@ -757,6 +758,7 @@ export default function AdminPage() {
                 <TabsTrigger value="banners">슬라이드 배너</TabsTrigger>
                 <TabsTrigger value="style-cards">AI 이미지 스타일</TabsTrigger>
                 <TabsTrigger value="categories">카테고리</TabsTrigger>
+                <TabsTrigger value="service-items">하위 메뉴</TabsTrigger>
               </TabsList>
               
               <TabsContent value="banners">
@@ -774,6 +776,12 @@ export default function AdminPage() {
               <TabsContent value="categories">
                 <div className="mt-6">
                   <CategoryManagement />
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="service-items">
+                <div className="mt-6">
+                  <ServiceItemManagement />
                 </div>
               </TabsContent>
             </Tabs>

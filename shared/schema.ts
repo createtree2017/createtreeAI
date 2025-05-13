@@ -549,13 +549,13 @@ export const serviceCategories = pgTable("service_categories", {
 // 서비스 항목 테이블 (하위 메뉴)
 export const serviceItems = pgTable("service_items", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull(), // 항목 이름 (만삭사진, 가족사진 등)
+  itemId: text("item_id").notNull().unique(), // 고유 식별자 (maternity-photo 등)
+  title: text("title").notNull(), // 항목 이름 표시용 (만삭사진 만들기 등)
   description: text("description"), // 항목 설명
-  path: text("path").notNull(), // 항목 경로 ('/image/pregnant' 등)
-  icon: text("icon"), // 아이콘 (없을 경우 카테고리 아이콘 사용)
+  icon: text("icon").notNull(), // 아이콘 (Lucide 아이콘 이름)
   categoryId: integer("category_id").notNull().references(() => serviceCategories.id, { onDelete: "cascade" }), // 부모 카테고리 ID
-  isActive: boolean("is_active").notNull().default(true), // 활성화 여부
-  order: integer("order").notNull().default(0), // 표시 순서
+  isPublic: boolean("is_public").notNull().default(true), // 공개 여부
+  order: integer("order").default(0), // 표시 순서
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
