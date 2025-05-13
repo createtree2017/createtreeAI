@@ -1,0 +1,138 @@
+✅ 다음 작업 로드맵 (라플이 지시에 그대로 복사‑붙여넣기용)
+목표
+
+병원(기관) 단위 캠페인 스코프 구현 — 해당 병원의 회원에게만 캠페인 노출
+
+현행 관리자 UI/모델을 병원 스코프에 맞춰 정리
+
+이후 UI 디테일(정렬·컬러·엑셀다운로드 등)은 P2로 넘김
+
+P0‑1 DB 스키마 업데이트 (병원 스코프)
+bash
+복사
+편집
+# shared/schema.ts 맨 아래 추가 지시
+/*
+ * 병원(기관) 정보 테이블
+ */
+export const hospitals = pgTable("hospitals", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),     // 병원 고유슬러그
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+/*
+ * 회원 ↔︎ 병원 속성 (1:N)
+ * 이미 users 테이블이 있으므로, userId 측 FK 연동
+ */
+export const hospitalMembers = pgTable("hospital_members", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  hospitalId: integer("hospital_id").references(() => hospitals.id),
+  role: text("role").$type<"patient"|"staff">().default("patient"),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+/*
+ * campaigns 테이블에 병원 FK 추가
+ */
+campaigns.columns.hospitalId = integer("hospital_id").references(() => hospitals.id);
+db push 는 npm run db:push 대신 psql 직접 쿼리로 적용해도 OK.
+
+#### P0‑2 API 레이어 변경
+
+캠페인 조회(GET /api/campaigns)
+
+ts
+복사
+편집
+where(eq(campaigns.hospitalId, currentUser.hospitalId))
+currentUser는 JWT/세션에 얹어둔 hospitalId 필드를 통해 주입
+
+로그인 안된 경우엔 공개캠페인만 리턴 (향후 고도화)
+
+캠페인 신청 POST /api/campaign-applications
+
+body → campaignId만 받으면 OK
+
+서버에서 campaignId → hospitalId 조회 후
+
+currentUser.hospitalId !== campaign.hospitalId ➜ 403 리턴
+
+관리자 API (GET|PATCH /api/admin/campaign-applications)
+
+슈퍼관리자 → 모든 병원 캠페인을 필터없이
+
+병원 담당자(adminRole==="hospitalAdmin") →
+
+ts
+복사
+편집
+where(eq(campaigns.hospitalId, currentAdmin.hospitalId))
+캠페인 생성 API
+
+request body에 hospitalId 값 강제 세팅 (currentAdmin.hospitalId)
+
+#### P0‑3 프론트 (React) 변경
+
+글로벌 AuthContext
+
+hospitalId, role 포함하도록 확장
+
+캠페인 목록 페이지
+
+useQuery 호출 시 /api/campaigns → 서버 필터에 맡김
+
+빈 리스트 UI(“해당 병원 캠페인이 없습니다”) 추가
+
+신청자 관리 탭
+
+드롭다운 필터 →
+
+슈퍼: 모든 캠페인
+
+병원 관리자: 로그인 병원의 캠페인만
+
+캠페인 생성/수정 폼
+
+슈퍼관리자일 때만 ☑️ 병원 선택 드롭다운 노출
+
+병원관리자는 자신 병원 아이디로 고정
+
+#### P1 (다음 회차에 진행)
+
+신청자 관리 UI – 상태별 색상, 정렬, 검색바
+
+Excel/CSV 다운로드 버튼
+
+캠페인 신청 푸시/메일 알림
+
+🛠 라플이 실행 순서 (요약)
+스키마 → shared/schema.ts 수정 후 SQL 마이그레이션
+
+server/routes.ts
+
+캠페인 조회/신청/관리 API에 hospitalId 필터 반영
+
+미들웨어 requireHospitalAdmin 추가
+
+Auth 미들웨어에서 req.user.hospitalId 주입 완료
+
+client
+
+AuthProvider context 확장
+
+캠페인 목록/신청/관리 컴포넌트 수정
+
+테스트 시나리오
+
+병원 A 관리자로 캠페인 생성
+
+병원 A 회원 → 캠페인 목록 노출+신청
+
+병원 B 회원 → 해당 캠페인 미노출 확인
+
+병원 A 관리자 → 신청자 조회 및 상태 변경 확인
+
+이상 내용을 순서대로 반영해 주세요.

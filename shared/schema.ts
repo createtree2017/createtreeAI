@@ -27,6 +27,7 @@ export const users = pgTable("users", {
 export const hospitals = pgTable("hospitals", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),  // 병원 고유 슬러그 (URL용 식별자)
   address: text("address"),
   phone: text("phone"),
   email: text("email"),
@@ -48,6 +49,15 @@ export const roles = pgTable("roles", {
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// 병원-회원 관계 테이블
+export const hospitalMembers = pgTable("hospital_members", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  hospitalId: integer("hospital_id").references(() => hospitals.id),
+  role: text("role").$type<"patient" | "staff">().default("patient"),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // 사용자-역할 매핑 테이블 (다대다 관계)
@@ -587,6 +597,7 @@ export const campaigns = pgTable("campaigns", {
   title: text("title").notNull(),         // 캠페인명
   description: text("description"),       // 설명
   bannerImage: text("banner_image"),      // 배너 이미지 URL
+  hospitalId: integer("hospital_id").references(() => hospitals.id), // 병원 ID 외래키
   isPublic: boolean("is_public").default(true),
   displayOrder: integer("display_order").default(0),
   createdAt: timestamp("created_at").defaultNow(),
@@ -621,8 +632,12 @@ export type InsertCampaignApplication = z.infer<typeof insertCampaignApplication
 export type CampaignApplication = typeof campaignApplications.$inferSelect;
 
 // 캠페인-신청 관계 정의
-export const campaignsRelations = relations(campaigns, ({ many }) => ({
-  applications: many(campaignApplications)
+export const campaignsRelations = relations(campaigns, ({ many, one }) => ({
+  applications: many(campaignApplications),
+  hospital: one(hospitals, {
+    fields: [campaigns.hospitalId],
+    references: [hospitals.id]
+  })
 }));
 
 export const campaignApplicationsRelations = relations(campaignApplications, ({ one }) => ({
