@@ -546,9 +546,39 @@ export const serviceCategories = pgTable("service_categories", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// 서비스 항목 테이블 (하위 메뉴)
+export const serviceItems = pgTable("service_items", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(), // 항목 이름 (만삭사진, 가족사진 등)
+  description: text("description"), // 항목 설명
+  path: text("path").notNull(), // 항목 경로 ('/image/pregnant' 등)
+  icon: text("icon"), // 아이콘 (없을 경우 카테고리 아이콘 사용)
+  categoryId: integer("category_id").notNull().references(() => serviceCategories.id, { onDelete: "cascade" }), // 부모 카테고리 ID
+  isActive: boolean("is_active").notNull().default(true), // 활성화 여부
+  order: integer("order").notNull().default(0), // 표시 순서
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// 관계 설정
+export const serviceCategoriesRelations = relations(serviceCategories, ({ many }) => ({
+  items: many(serviceItems)
+}));
+
+export const serviceItemsRelations = relations(serviceItems, ({ one }) => ({
+  category: one(serviceCategories, {
+    fields: [serviceItems.categoryId],
+    references: [serviceCategories.id]
+  })
+}));
+
 export const insertServiceCategorySchema = createInsertSchema(serviceCategories);
 export type InsertServiceCategory = z.infer<typeof insertServiceCategorySchema>;
 export type ServiceCategory = typeof serviceCategories.$inferSelect;
+
+export const insertServiceItemSchema = createInsertSchema(serviceItems);
+export type InsertServiceItem = z.infer<typeof insertServiceItemSchema>;
+export type ServiceItem = typeof serviceItems.$inferSelect;
 
 // Export operators for query building
 export { eq, desc, and, asc, sql, gte, lte, gt, lt, ne, like, notLike, isNull, isNotNull, inArray } from "drizzle-orm";

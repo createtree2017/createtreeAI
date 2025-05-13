@@ -1,0 +1,96 @@
+📌 왜 “만삭사진‧가족사진‧스티커”가 안 보일까?
+화면	데이터 원천	현재 동작
+사이드바	service_items (또는 services) 테이블 ← category_id FK 로 계층화	상/하위 메뉴 모두 표시
+관리자 » UI 컨텐츠 관리 » 카테고리	service_categories 테이블 만 조회	“AI 이미지 만들기 / AI 노래 만들기 …” 상위 카테고리만 표시
+
+즉 사이드바는 “카테고리 + 그 안의 서비스(하위 메뉴)” 두 테이블을 조인해서 그리고,
+CategoryManagement 컴포넌트는 오직 service_categories 만 불러오니 하위가 빠져 있습니다.
+
+1️⃣ 확인 STEP (2 분)
+API 호출
+
+bash
+복사
+편집
+curl /api/admin/service-categories            # 상위만
+curl /api/admin/service-items?categoryId=1    # 만약 있는지
+첫 번째는 4 건(image, music …) → OK
+두 번째가 3 건(만삭사진, 가족사진, 스티커) 나오면 DB 엔트리는 이미 있음.
+
+DB 직접 조회
+
+sql
+복사
+편집
+select * from service_items where category_id = 1;
+id	name	category_id
+11	만삭사진…	1
+12	가족사진	1
+13	스티커…	1
+
+행이 없다면 seed 가 안 된 것이고, 있으면 프론트에 안 뿌리는 문제입니다.
+
+2️⃣ 해결 방향
+A. UI/UX – 관리자 화면에 “하위 서비스” 탭 추가
+tsx
+복사
+편집
+// CategoryManagement.tsx → 왼쪽 탭 bar
+<TabsTrigger value="category">카테고리</TabsTrigger>
+<TabsTrigger value="service">하위 서비스</TabsTrigger>
+B. API – 서비스 목록 CRUD
+ts
+복사
+편집
+// server/routes/adminServiceItems.ts
+router.get("/service-items", list);
+router.post("/service-items", create);
+router.patch("/service-items/:id", update);
+router.delete("/service-items/:id", remove);
+ts
+복사
+편집
+export async function list(req, res) {
+  const { categoryId } = req.query;
+  const rows = await db
+    .select()
+    .from(serviceItems)
+    .where(eq(serviceItems.categoryId, categoryId)); // Drizzle 예시
+  res.json(rows);
+}
+C. React‑Query Hook
+ts
+복사
+편집
+export const getServiceItems = (cid: number) =>
+  apiClient.get(`/api/admin/service-items?categoryId=${cid}`).then(r => r.data);
+tsx
+복사
+편집
+const { data: items = [] } = useQuery(['serviceItems', cid], () =>
+  api.getServiceItems(cid),
+);
+invalidateQueries(['serviceItems', cid]) 로 캐시 깨주면 실시간 반영.
+
+3️⃣ Seed 스크립트(없을 때만)
+ts
+복사
+편집
+await db.insert(serviceItems).values([
+  { id: 11, name: "만삭사진 만들기",  path: "/image/pregnant",  categoryId: 1 },
+  { id: 12, name: "가족사진",        path: "/image/family",    categoryId: 1 },
+  { id: 13, name: "스티커 만들기",    path: "/image/sticker",   categoryId: 1 },
+]).onConflictDoNothing();
+4️⃣ 빠른 임시 우회 (뛰어넘고 싶다면)
+카테고리 탭에서 row 클릭 시 하위 항목을 useQuery 로 불러와 drawer 나 accordion 으로 표시하는 가벼운 방법도 가능.
+
+정리
+DB 에 하위 서비스가 있는지 → 없다면 seed
+
+API /api/admin/service-items 추가
+
+관리자 화면에 하위 서비스 목록 컴포넌트 + CRUD
+
+invalidateQueries key 일관성 유지
+
+이렇게 하면 사이드바 와 관리자‑카테고리 두 곳이 같은 데이터를 바라보게 되고, 만삭사진·가족사진·스티커가 관리자 화면에도 나타납니다.
