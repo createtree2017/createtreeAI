@@ -65,12 +65,22 @@ import {
 } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 
+// 상태값과 한글 레이블 매핑
+const STATUS_MAP = {
+  draft: '작성대기',
+  active: '모집중',
+  closed: '마감',
+  completed: '완료'
+};
+
 // 캠페인 가져오기 함수
 const getHospitalCampaigns = async (status?: string) => {
   let url = "/api/hospital/campaigns";
   if (status && status !== 'all') {
     url += `?status=${status}`;
   }
+  
+  console.log(`병원 캠페인 API 호출: ${url} (상태: ${status || 'all'})`);
   
   const response = await fetch(url, {
     credentials: "include"
@@ -80,7 +90,9 @@ const getHospitalCampaigns = async (status?: string) => {
     throw new Error("캠페인 목록을 가져오는데 실패했습니다");
   }
   
-  return response.json();
+  const data = await response.json();
+  console.log(`병원 캠페인 데이터 수신: ${data.length}개`);
+  return data;
 };
 
 export default function CampaignTableForHospital() {
@@ -165,13 +177,7 @@ export default function CampaignTableForHospital() {
                         campaign.status === 'completed' ? 'destructive' :
                         'outline'
                       }>
-                        {
-                          campaign.status === 'active' ? '모집중' :
-                          campaign.status === 'draft' ? '초안' :
-                          campaign.status === 'closed' ? '마감' :
-                          campaign.status === 'completed' ? '완료' :
-                          campaign.status || '초안'
-                        }
+                        {STATUS_MAP[campaign.status as keyof typeof STATUS_MAP] || campaign.status || '초안'}
                       </Badge>
                     </TableCell>
                     <TableCell>

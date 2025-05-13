@@ -3587,7 +3587,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // 상태 필터링 (선택 사항)
       const status = req.query.status as string | undefined;
+      console.log(`병원 캠페인 API 요청 - 사용자: ${user.username}, 병원ID: ${user.hospitalId}, 상태 필터: ${status || '전체'}`);
       
+      // 기본 쿼리 설정
       let query = db.select({
         id: campaigns.id,
         slug: campaigns.slug,
@@ -3617,12 +3619,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       .leftJoin(hospitals, eq(campaigns.hospitalId, hospitals.id));
       
       // 병원 ID로 필터링 (병원 관리자인 경우)
-      if (user.memberType === 'hospital_admin') {
+      if (user.memberType === 'hospital_admin' && user.hospitalId) {
         query = query.where(eq(campaigns.hospitalId, user.hospitalId));
       }
       
-      // 상태로 필터링 (옵션)
-      if (status) {
+      // 상태로 필터링 (옵션) - all이 아닌 경우에만 적용
+      if (status && status !== 'all') {
         query = query.where(eq(campaigns.status, status));
       }
       
@@ -3632,6 +3634,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         desc(campaigns.createdAt)
       );
       
+      console.log(`병원 캠페인 API 응답 - 캠페인 수: ${campaignsList.length}`);
       res.json(campaignsList);
     } catch (error) {
       console.error("Error fetching hospital campaigns:", error);
