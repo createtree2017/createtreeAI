@@ -62,16 +62,24 @@ export default function CampaignDetailPage() {
   });
   
   // 캠페인 ID가 로드되면 기본값 업데이트
-  React.useEffect(() => {
+  useEffect(() => {
     if (campaign) {
       form.setValue("campaignId", campaign.id);
     }
   }, [campaign, form]);
   
   // 캠페인 신청 mutation
+  // 폼 제출 핸들러
+  const onSubmit = (data: ApplicationFormValues) => {
+    applicationMutation.mutate(data);
+  };
+  
   const applicationMutation = useMutation({
     mutationFn: async (data: ApplicationFormValues) => {
-      const response = await apiRequest("POST", "/api/campaign-applications", data);
+      const response = await apiRequest("/api/campaign-applications", {
+        method: "POST", 
+        data: data
+      });
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "신청 처리 중 오류가 발생했습니다.");
@@ -131,7 +139,7 @@ export default function CampaignDetailPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
-        <Link to="/campaigns" className="inline-flex items-center text-primary hover:underline">
+        <Link to="/campaign-1" className="inline-flex items-center text-primary hover:underline">
           <ArrowLeft className="h-4 w-4 mr-1" />
           캠페인 목록으로 돌아가기
         </Link>
@@ -159,9 +167,106 @@ export default function CampaignDetailPage() {
         </div>
         
         <div className="mt-12">
-          <Button size="lg">캠페인 신청하기</Button>
+          <Button 
+            size="lg" 
+            onClick={() => setIsDialogOpen(true)}
+            disabled={applicationMutation.isPending}
+          >
+            {applicationMutation.isPending ? "신청 처리 중..." : "캠페인 신청하기"}
+          </Button>
         </div>
       </article>
+      
+      {/* 신청 폼 다이얼로그 */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>{campaign.title} 신청하기</DialogTitle>
+            <DialogDescription>
+              아래 양식을 작성하여 캠페인에 신청해주세요. 입력한 연락처로 안내사항이 전달됩니다.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>이름</FormLabel>
+                    <FormControl>
+                      <div className="flex items-center border rounded-md pl-3 overflow-hidden ring-offset-background focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-ring">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <Input className="border-none focus-visible:ring-0 focus-visible:ring-offset-0" placeholder="홍길동" {...field} />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="contact"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>연락처</FormLabel>
+                    <FormControl>
+                      <div className="flex items-center border rounded-md pl-3 overflow-hidden ring-offset-background focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-ring">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        <Input className="border-none focus-visible:ring-0 focus-visible:ring-offset-0" placeholder="010-1234-5678 또는 이메일" {...field} />
+                      </div>
+                    </FormControl>
+                    <FormDescription>
+                      연락 가능한 휴대폰 번호나 이메일을 입력해주세요.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="memo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>추가 메모</FormLabel>
+                    <FormControl>
+                      <div className="flex items-start border rounded-md p-3 overflow-hidden ring-offset-background focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-ring">
+                        <MessageSquare className="h-4 w-4 text-muted-foreground mt-1 mr-2" />
+                        <Textarea 
+                          className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[100px]" 
+                          placeholder="문의사항이나 추가 정보를 입력해주세요 (선택사항)" 
+                          {...field} 
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter className="mt-6">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsDialogOpen(false)}
+                  disabled={applicationMutation.isPending}
+                >
+                  취소
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={applicationMutation.isPending}
+                >
+                  {applicationMutation.isPending ? "처리 중..." : "신청하기"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
