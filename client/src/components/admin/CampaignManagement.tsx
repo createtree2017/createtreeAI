@@ -316,22 +316,30 @@ export default function CampaignManagement() {
           </Tabs>
           
           {activeScope === 'hospital' && (
-            <Select 
-              value={selectedHospitalId?.toString() || ''} 
-              onValueChange={(value) => setSelectedHospitalId(value ? parseInt(value) : undefined)}
-            >
-              <SelectTrigger className="w-full sm:w-[220px]">
-                <SelectValue placeholder="병원 선택" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">모든 병원</SelectItem>
-                {hospitals.map((hospital: any) => (
-                  <SelectItem key={hospital.id} value={hospital.id.toString()}>
-                    {hospital.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <>
+              {hospitals.length === 0 ? (
+                <div className="text-sm text-yellow-600 bg-yellow-50 p-2 rounded-md">
+                  병원을 먼저 등록해주세요
+                </div>
+              ) : (
+                <Select 
+                  value={selectedHospitalId?.toString() || 'all'} 
+                  onValueChange={(value) => setSelectedHospitalId(value !== 'all' ? parseInt(value) : undefined)}
+                >
+                  <SelectTrigger className="w-full sm:w-[220px]">
+                    <SelectValue placeholder="병원 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">모든 병원</SelectItem>
+                    {hospitals.map((hospital: any) => (
+                      <SelectItem key={hospital.id} value={hospital.id.toString()}>
+                        {hospital.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </>
           )}
         </div>
       </div>
