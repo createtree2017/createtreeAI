@@ -57,21 +57,19 @@ import {
   serviceCategories,
   favorites,
   savedChats,
+  insertCampaignSchema,
   insertConceptSchema,
   insertConceptCategorySchema,
   insertBannerSchema,
   insertStyleCardSchema,
   insertServiceCategorySchema,
   insertServiceItemSchema,
-  eq,
-  asc,
-  desc,
-  and,
   sql,
   like
 } from "../shared/schema";
 import { db } from "../db";
-import { or, ne } from "drizzle-orm";
+import { or, ne, eq, and, asc, desc } from "drizzle-orm";
+import { z } from "zod";
 
 // Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), "uploads");
@@ -3510,6 +3508,175 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting style card:", error);
       res.status(500).json({ error: "Failed to delete style card" });
+    }
+  });
+
+  // 캠페인 API
+  app.get("/api/admin/campaigns", async (req, res) => {
+    try {
+      const campaignsList = await db.query.campaigns.findMany({
+        orderBy: [asc(campaigns.order), asc(campaigns.title)]
+      });
+      
+      res.json(campaignsList);
+    } catch (error) {
+      console.error("Error fetching campaigns:", error);
+      res.status(500).json({ error: "Failed to fetch campaigns" });
+    }
+  });
+
+  app.get("/api/campaigns", async (req, res) => {
+    try {
+      // 일반 사용자에게는 공개된 캠페인만 보여줌
+      const campaignsList = await db.query.campaigns.findMany({
+        where: eq(campaigns.isPublic, true),
+        orderBy: [asc(campaigns.order), asc(campaigns.title)]
+      });
+      
+      res.json(campaignsList);
+    } catch (error) {
+      console.error("Error fetching public campaigns:", error);
+      res.status(500).json({ error: "Failed to fetch campaigns" });
+    }
+  });
+
+  app.get("/api/campaigns/:slug", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      
+      const campaign = await db.query.campaigns.findFirst({
+        where: and(
+          eq(campaigns.slug, slug),
+          eq(campaigns.isPublic, true)
+        )
+      });
+      
+      if (!campaign) {
+        return res.status(404).json({ error: "Campaign not found" });
+      }
+      
+      res.json(campaign);
+    } catch (error) {
+      console.error("Error fetching campaign:", error);
+      res.status(500).json({ error: "Failed to fetch campaign" });
+    }
+  });
+
+  app.post("/api/admin/campaigns", async (req, res) => {
+    try {
+      // 관리자 권한 확인 (이미 authMiddleware에서 로그인 체크는 완료됨)
+      const userData = req.user as any;
+      if (userData.memberType !== 'superadmin' && userData.memberType !== 'admin') {
+        return res.status(403).json({ error: "Permission denied" });
+      }
+      
+      const campaignData = insertCampaignSchema.parse(req.body);
+      
+      // 슬러그 중복 확인
+      const existingCampaign = await db.query.campaigns.findFirst({
+        where: eq(campaigns.slug, campaignData.slug)
+      });
+      
+      if (existingCampaign) {
+        return res.status(400).json({ error: "Slug already exists" });
+      }
+      
+      const newCampaign = await db.insert(campaigns).values(campaignData).returning();
+      
+      res.status(201).json(newCampaign[0]);
+    } catch (error) {
+      console.error("Error creating campaign:", error);
+      
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      
+      res.status(500).json({ error: "Failed to create campaign" });
+    }
+  });
+
+  app.patch("/api/admin/campaigns/:id", async (req, res) => {
+    try {
+      // 관리자 권한 확인 (이미 authMiddleware에서 로그인 체크는 완료됨)
+      const userData = req.user as any;
+      if (userData.memberType !== 'superadmin' && userData.memberType !== 'admin') {
+        return res.status(403).json({ error: "Permission denied" });
+      }
+      
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid campaign ID" });
+      }
+      
+      // 캠페인 존재 확인
+      const existingCampaign = await db.query.campaigns.findFirst({
+        where: eq(campaigns.id, id)
+      });
+      
+      if (!existingCampaign) {
+        return res.status(404).json({ error: "Campaign not found" });
+      }
+      
+      const campaignData = insertCampaignSchema.partial().parse(req.body);
+      
+      // 슬러그를 변경하는 경우 중복 확인
+      if (campaignData.slug && campaignData.slug !== existingCampaign.slug) {
+        const slugExists = await db.query.campaigns.findFirst({
+          where: eq(campaigns.slug, campaignData.slug)
+        });
+        
+        if (slugExists) {
+          return res.status(400).json({ error: "Slug already exists" });
+        }
+      }
+      
+      const updatedCampaign = await db
+        .update(campaigns)
+        .set({
+          ...campaignData,
+          updatedAt: new Date()
+        })
+        .where(eq(campaigns.id, id))
+        .returning();
+        
+      res.json(updatedCampaign[0]);
+    } catch (error) {
+      console.error("Error updating campaign:", error);
+      
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      
+      res.status(500).json({ error: "Failed to update campaign" });
+    }
+  });
+
+  app.delete("/api/admin/campaigns/:id", async (req, res) => {
+    try {
+      // 관리자 권한 확인 (이미 authMiddleware에서 로그인 체크는 완료됨)
+      const userData = req.user as any;
+      if (userData.memberType !== 'superadmin' && userData.memberType !== 'admin') {
+        return res.status(403).json({ error: "Permission denied" });
+      }
+      
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid campaign ID" });
+      }
+      
+      const result = await db
+        .delete(campaigns)
+        .where(eq(campaigns.id, id))
+        .returning({ id: campaigns.id });
+        
+      if (result.length === 0) {
+        return res.status(404).json({ error: "Campaign not found" });
+      }
+      
+      res.json({ message: "Campaign deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting campaign:", error);
+      res.status(500).json({ error: "Failed to delete campaign" });
     }
   });
   
