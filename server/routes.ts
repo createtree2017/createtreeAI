@@ -68,7 +68,7 @@ import {
   like
 } from "../shared/schema";
 import { db } from "../db";
-import { or } from "drizzle-orm";
+import { or, ne } from "drizzle-orm";
 
 // Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), "uploads");
@@ -2563,6 +2563,138 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching languages:", error);
       return res.status(500).json({ error: "Failed to fetch languages" });
+    }
+  });
+  
+  // 서비스 카테고리 API 엔드포인트
+  
+  // 공개 서비스 카테고리 조회 (일반 사용자용)
+  app.get("/api/service-categories", async (req, res) => {
+    try {
+      const publicCategories = await db.query.serviceCategories.findMany({
+        where: eq(serviceCategories.isPublic, true),
+        orderBy: [asc(serviceCategories.order), asc(serviceCategories.id)]
+      });
+      return res.json(publicCategories);
+    } catch (error) {
+      console.error("Error fetching public service categories:", error);
+      return res.status(500).json({ error: "서비스 카테고리를 가져오는 데 실패했습니다." });
+    }
+  });
+  
+  // 서비스 카테고리 API 엔드포인트 (관리자용)
+  
+  // 모든 서비스 카테고리 조회 (관리자용)
+  app.get("/api/admin/service-categories", async (req, res) => {
+    try {
+      const allCategories = await db.query.serviceCategories.findMany({
+        orderBy: [asc(serviceCategories.order), asc(serviceCategories.id)]
+      });
+      return res.json(allCategories);
+    } catch (error) {
+      console.error("Error fetching service categories:", error);
+      return res.status(500).json({ error: "서비스 카테고리를 가져오는 데 실패했습니다." });
+    }
+  });
+  
+  // 새 서비스 카테고리 생성
+  app.post("/api/admin/service-categories", async (req, res) => {
+    try {
+      const categoryData = insertServiceCategorySchema.parse(req.body);
+      
+      // 이미 존재하는 카테고리 ID인지 확인
+      const existingCategory = await db.query.serviceCategories.findFirst({
+        where: eq(serviceCategories.categoryId, categoryData.categoryId)
+      });
+      
+      if (existingCategory) {
+        return res.status(400).json({ error: "이미 존재하는 카테고리 ID입니다." });
+      }
+      
+      const newCategory = await db.insert(serviceCategories)
+        .values({
+          ...categoryData,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+        
+      return res.status(201).json(newCategory[0]);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      console.error("Error creating service category:", error);
+      return res.status(500).json({ error: "서비스 카테고리 생성에 실패했습니다." });
+    }
+  });
+  
+  // 서비스 카테고리 업데이트
+  app.patch("/api/admin/service-categories/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "잘못된 카테고리 ID입니다." });
+      }
+      
+      const categoryData = insertServiceCategorySchema.partial().parse(req.body);
+      
+      // 카테고리 ID를 변경하려는 경우, 중복 확인
+      if (categoryData.categoryId) {
+        const existingWithSameId = await db.query.serviceCategories.findFirst({
+          where: and(
+            eq(serviceCategories.categoryId, categoryData.categoryId),
+            sql`${serviceCategories.id} != ${id}`
+          )
+        });
+        
+        if (existingWithSameId) {
+          return res.status(400).json({ error: "이미 존재하는 카테고리 ID입니다." });
+        }
+      }
+      
+      const updatedCategory = await db.update(serviceCategories)
+        .set({
+          ...categoryData,
+          updatedAt: new Date()
+        })
+        .where(eq(serviceCategories.id, id))
+        .returning();
+        
+      if (updatedCategory.length === 0) {
+        return res.status(404).json({ error: "카테고리를 찾을 수 없습니다." });
+      }
+      
+      return res.json(updatedCategory[0]);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      console.error("Error updating service category:", error);
+      return res.status(500).json({ error: "서비스 카테고리 업데이트에 실패했습니다." });
+    }
+  });
+  
+  // 서비스 카테고리 삭제
+  app.delete("/api/admin/service-categories/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "잘못된 카테고리 ID입니다." });
+      }
+      
+      const result = await db.delete(serviceCategories)
+        .where(eq(serviceCategories.id, id))
+        .returning({ id: serviceCategories.id });
+        
+      if (result.length === 0) {
+        return res.status(404).json({ error: "카테고리를 찾을 수 없습니다." });
+      }
+      
+      return res.json({ message: "카테고리가 성공적으로 삭제되었습니다." });
+    } catch (error) {
+      console.error("Error deleting service category:", error);
+      return res.status(500).json({ error: "서비스 카테고리 삭제에 실패했습니다." });
     }
   });
 
