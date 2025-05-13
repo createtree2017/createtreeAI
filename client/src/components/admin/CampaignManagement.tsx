@@ -10,6 +10,18 @@ import { apiRequest } from "@/lib/queryClient";
 // 임시 인터페이스 - 백엔드에서 확장 데이터를 위해
 interface ExtendedCampaign extends Campaign {
   hospitalName?: string;
+  hospitalSlug?: string;
+  // 새로운 필드들에 대한 타입 정의
+  startDate?: string | null;
+  endDate?: string | null;
+  announceDate?: string | null;
+  contentStartDate?: string | null;
+  contentEndDate?: string | null;
+  resultDate?: string | null;
+  rewardPoint?: number;
+  thumbnailUrl?: string;
+  content?: string;
+  status?: string;
 }
 
 import {
@@ -399,7 +411,10 @@ export default function CampaignManagement() {
                 <TableHead>제목</TableHead>
                 <TableHead>슬러그</TableHead>
                 {activeScope !== 'public' && <TableHead>병원</TableHead>}
+                <TableHead>상태</TableHead>
+                <TableHead>기간</TableHead>
                 <TableHead>공개</TableHead>
+                <TableHead>포인트</TableHead>
                 <TableHead>표시 순서</TableHead>
                 <TableHead>작업</TableHead>
               </TableRow>
@@ -407,7 +422,7 @@ export default function CampaignManagement() {
             <TableBody>
               {data.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={activeScope !== 'public' ? 6 : 5} className="text-center py-4">
+                  <TableCell colSpan={activeScope !== 'public' ? 9 : 8} className="text-center py-4">
                     생성된 캠페인이 없습니다. 새 캠페인을 만들어보세요.
                   </TableCell>
                 </TableRow>
@@ -421,7 +436,35 @@ export default function CampaignManagement() {
                         {'hospitalName' in campaign && campaign.hospitalName ? campaign.hospitalName : (campaign.hospitalId ? `병원 ID: ${campaign.hospitalId}` : '일반(공개)')}
                       </TableCell>
                     )}
+                    <TableCell>
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        campaign.status === 'active' ? 'bg-green-100 text-green-800' :
+                        campaign.status === 'draft' ? 'bg-gray-100 text-gray-800' :
+                        campaign.status === 'closed' ? 'bg-yellow-100 text-yellow-800' :
+                        campaign.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {
+                          campaign.status === 'active' ? '활성화' :
+                          campaign.status === 'draft' ? '초안' :
+                          campaign.status === 'closed' ? '마감' :
+                          campaign.status === 'completed' ? '완료' :
+                          campaign.status || '초안'
+                        }
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {campaign.startDate ? (
+                        <div className="text-xs">
+                          <div>{new Date(campaign.startDate).toLocaleDateString()}</div>
+                          {campaign.endDate && <div>~ {new Date(campaign.endDate).toLocaleDateString()}</div>}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">미설정</span>
+                      )}
+                    </TableCell>
                     <TableCell>{campaign.isPublic ? "공개" : "비공개"}</TableCell>
+                    <TableCell>{campaign.rewardPoint || 0}</TableCell>
                     <TableCell>{campaign.displayOrder || 0}</TableCell>
                     <TableCell>
                       <EditButton campaign={campaign} />
@@ -762,8 +805,11 @@ export default function CampaignManagement() {
                     <FormControl>
                       <Input
                         type="number"
-                        {...field}
+                        value={field.value?.toString() || "0"}
                         onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
                       />
                     </FormControl>
                     <FormDescription>
