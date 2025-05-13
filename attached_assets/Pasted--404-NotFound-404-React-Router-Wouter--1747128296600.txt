@@ -1,0 +1,84 @@
+❗ 현재 증상
+사이드바에서 「캠페인 신청」 메뉴를 누르면 곧바로 프런트‑엔드의 404 (NotFound) 컴포넌트가 뜸
+(서버 404가 아니라 React Router/Wouter 의 “페이지를 찾을 수 없습니다” 화면)
+
+🔎 원인 추정 체크리스트
+범주	점검 항목	예상 원인
+라우팅(클라)	App.tsx (또는 Routes.tsx) 안에 <Route path="/campaigns" …> 가 실제로 존재하는가? 대소문자·슬래시 불일치가 없는지 확인	경로 불일치로 매칭 실패
+라우트 선언 순서 – Wouter <Switch> 는 위에서 아래 로 첫 매칭을 반환
+/campaigns/:slug 를 /campaigns 보다 위에 두면, /campaigns 도 slug="" 로 오인되어 NotFound 로 빠질 수 있음	선언 순서 오류
+Campaigns.tsx (목록 페이지) 가 default export 되어 있고, App.tsx 에서 import CampaignsPage … 로 정확히 임포트했는지	컴포넌트 import 미스
+링크(클라)	 사이드바 <Link> 혹은 navigate() 가 /campaigns 로 가도록 설정돼 있는지 확인 (↔ /campaign 등 오타)	잘못된 링크 경로
+빌드 경로(서버)	SPA fallback 미설정 시 새로고침 에서 404 발생. 이번 경우엔 내부 네비게이션에서 바로 404 → 서버 원인은 아님	-
+
+🛠 라플이 작업 지시서
+javascript
+복사
+편집
+// 1️⃣  라우트 존재·경로·순서 확인
+// -------------------------------------------------
+client/src/App.tsx   // 또는 Routes 정의 파일
+
+import CampaignsPage      from "@/pages/Campaigns";
+import CampaignDetailPage from "@/pages/CampaignDetail"; // 실제 파일명 확인
+
+<Router>
+  <Switch>
+    {/* ① 상세 페이지를 먼저, 목록을 그 다음에 두기 */}
+    <Route path="/campaigns/:slug" component={CampaignDetailPage} />
+    <Route path="/campaigns"       component={CampaignsPage} />
+    {/* …기존 라우트 */}
+    <Route component={NotFound} />   {/* 맨 마지막 */}
+  </Switch>
+</Router>
+
+// 2️⃣  사이드바 링크 경로 확정
+// -------------------------------------------------
+client/src/components/Sidebar.tsx
+
+<MenuItem
+  icon={<LayoutGrid className="w-4 h-4" />}   // 이미 아이콘 매핑 완료
+  label="캠페인 신청"
+  href="/campaigns"                            // 정확히 "/campaigns"
+/>
+
+// 3️⃣  CampaignsPage 컴포넌트 확인
+// -------------------------------------------------
+client/src/pages/Campaigns.tsx
+export default function CampaignsPage() { … }
+
+// 4️⃣  상세 페이지 파일명 일치
+// -------------------------------------------------
+파일명이 `campaign-detail.tsx` 이면 임포트도 **동일** 해야 함
+→ 권장: `CampaignDetail.tsx` 로 변경 후 export default
+
+// 5️⃣  (선택) 서버 SPA fallback
+//    새로고침 시 404 방지용 — 이미 내부 이동만 문제라면 우선순위 낮음
+server/index.ts
+app.get(/^\/(?!api).*/, (_, res) =>
+  res.sendFile(path.join(__dirname, "../client/dist/index.html"))
+);
+테스트 플로우
+
+개발 서버 재시작 → 사이드바 → 캠페인 신청
+
+/campaigns 로 이동해 목록 카드 노출 확인
+
+카드 클릭 → /campaigns/:slug 상세 화면 확인
+
+주소창 새로고침에서도 정상 렌더
+
+완료 체크리스트 (라플이용)
+ /campaigns·/campaigns/:slug 라우트가 정확히 매칭된다
+
+ 사이드바 링크 누르면 더 이상 404가 안 뜬다
+
+ 관리자에서 캠페인 추가 후 목록에 즉시 반영된다
+
+문제 해결 후 커밋 메시지 예시
+
+scss
+복사
+편집
+fix(routes): correct /campaigns routing & sidebar link
+feat(pages): add CampaignsPage & CampaignDetailPage
