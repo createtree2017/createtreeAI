@@ -107,7 +107,7 @@ export default function CampaignTableForHospital() {
           <h2 className="text-xl font-bold">병원 캠페인 관리</h2>
           {user?.hospitalId && (
             <div className="text-sm bg-blue-50 text-blue-600 px-2 py-1 rounded-md">
-              {user.hospitalName || '병원'} 관리자
+              {user.hospitalId} 번 병원 관리자
             </div>
           )}
         </div>

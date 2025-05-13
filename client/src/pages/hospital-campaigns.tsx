@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import CampaignTableForHospital from "@/components/hospital/CampaignTableForHospital";
+import { Building2 } from "lucide-react";
 
 export default function HospitalCampaignsPage() {
   const { user, isLoading } = useAuth();
@@ -38,12 +39,30 @@ export default function HospitalCampaignsPage() {
 
   // 적절한 권한이 있는 경우에만 컴포넌트 렌더링
   if (!user || (user.memberType !== 'hospital_admin' && user.memberType !== 'superadmin')) {
-    return null;
+    return (
+      <div className="flex flex-col items-center justify-center h-96 text-center">
+        <div className="bg-red-50 p-6 rounded-lg shadow-sm w-full max-w-md">
+          <div className="text-red-500 mb-4 flex justify-center">
+            <Building2 size={48} />
+          </div>
+          <h1 className="text-xl font-semibold text-red-700 mb-2">접근 권한이 없습니다</h1>
+          <p className="text-slate-600">
+            이 페이지는 병원 관리자 또는 슈퍼관리자만 접근할 수 있습니다.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="container mx-auto">
-      <CampaignTableForHospital />
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-slate-800">병원 캠페인 관리</h1>
+      </div>
+      
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <CampaignTableForHospital />
+      </div>
     </div>
   );
 }
