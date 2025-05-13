@@ -3515,7 +3515,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/campaigns", async (req, res) => {
     try {
       const campaignsList = await db.query.campaigns.findMany({
-        orderBy: [asc(campaigns.order), asc(campaigns.title)]
+        orderBy: [asc(campaigns.displayOrder), asc(campaigns.title)]
       });
       
       res.json(campaignsList);
@@ -3530,7 +3530,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // 일반 사용자에게는 공개된 캠페인만 보여줌
       const campaignsList = await db.query.campaigns.findMany({
         where: eq(campaigns.isPublic, true),
-        orderBy: [asc(campaigns.order), asc(campaigns.title)]
+        orderBy: [asc(campaigns.displayOrder), asc(campaigns.title)]
       });
       
       res.json(campaignsList);

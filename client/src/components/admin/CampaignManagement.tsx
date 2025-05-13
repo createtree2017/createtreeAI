@@ -275,7 +275,7 @@ export default function CampaignManagement() {
                   <TableCell>{campaign.title}</TableCell>
                   <TableCell>{campaign.slug}</TableCell>
                   <TableCell>{campaign.isPublic ? "공개" : "비공개"}</TableCell>
-                  <TableCell>{campaign.order}</TableCell>
+                  <TableCell>{campaign.displayOrder || 0}</TableCell>
                   <TableCell>
                     <EditButton campaign={campaign} />
                   </TableCell>
@@ -393,7 +393,7 @@ export default function CampaignManagement() {
 
               <FormField
                 control={form.control}
-                name="order"
+                name="displayOrder"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>표시 순서</FormLabel>
