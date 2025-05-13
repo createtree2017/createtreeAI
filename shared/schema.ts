@@ -580,5 +580,25 @@ export const insertServiceItemSchema = createInsertSchema(serviceItems);
 export type InsertServiceItem = z.infer<typeof insertServiceItemSchema>;
 export type ServiceItem = typeof serviceItems.$inferSelect;
 
+// 캠페인 테이블
+export const campaigns = pgTable("campaigns", {
+  id: serial("id").primaryKey(),
+  slug: text("slug").notNull().unique(),  // URL용 식별자
+  title: text("title").notNull(),         // 캠페인명
+  description: text("description"),       // 설명
+  bannerImage: text("banner_image"),      // 배너 이미지 URL
+  isPublic: boolean("is_public").default(true),
+  order: integer("order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const insertCampaignSchema = createInsertSchema(campaigns, {
+  title: (schema) => schema.min(2, "캠페인 제목은 최소 2자 이상이어야 합니다."),
+  slug: (schema) => schema.min(2, "슬러그는 최소 2자 이상이어야 합니다.")
+});
+export type InsertCampaign = z.infer<typeof insertCampaignSchema>;
+export type Campaign = typeof campaigns.$inferSelect;
+
 // Export operators for query building
 export { eq, desc, and, asc, sql, gte, lte, gt, lt, ne, like, notLike, isNull, isNotNull, inArray } from "drizzle-orm";

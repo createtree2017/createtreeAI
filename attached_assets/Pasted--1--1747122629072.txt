@@ -1,0 +1,135 @@
+📦 캠페인 시스템 개발 요청서 (1단계: 기본 구조 세팅)
+✅ 목적
+“맘스 서비스” 플랫폼 내에 캠페인 시스템을 구축하려고 합니다.
+관리자는 캠페인을 생성·관리하고, 사용자는 캠페인 목록을 보고 신청할 수 있어야 합니다.
+
+🧩 1. DB 스키마 생성
+ts
+복사
+편집
+// shared/schema.ts
+export const campaigns = pgTable("campaigns", {
+  id: serial("id").primaryKey(),
+  slug: text("slug").notNull().unique(),  // URL용 식별자
+  title: text("title").notNull(),         // 캠페인명
+  description: text("description"),       // 설명
+  bannerImage: text("banner_image"),      // 배너 이미지 URL
+  isPublic: boolean("is_public").default(true),
+  order: integer("order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+👉 npm run db:push 또는 npx drizzle-kit push
+
+⚙️ 2. 관리자 패널 상단 탭에 “캠페인” 메뉴 추가
+위치: client/src/pages/admin.tsx 내 탭바 (예: 채팅메뉴, 이미지 생성 옆)
+
+새로운 탭 이름: 캠페인
+
+탭 클릭 시 이동할 컴포넌트: CampaignManagement.tsx
+
+🛠 3. 캠페인 관리 컴포넌트 CampaignManagement.tsx
+tsx
+복사
+편집
+// client/src/components/admin/CampaignManagement.tsx
+
+export default function CampaignManagement() {
+  const { data = [], isLoading } = useQuery(["admin-campaigns"], getCampaigns);
+
+  return (
+    <div className="p-6">
+      <h2 className="text-xl font-bold mb-4">캠페인 관리</h2>
+      <Button onClick={() => openModal("create")}>+ 새 캠페인 만들기</Button>
+      <Table>
+        <thead>
+          <tr>
+            <th>제목</th><th>슬러그</th><th>공개</th><th>순서</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map(c => (
+            <tr key={c.id}>
+              <td>{c.title}</td>
+              <td>{c.slug}</td>
+              <td>{c.isPublic ? "공개" : "비공개"}</td>
+              <td>{c.order}</td>
+              <td><EditButton c={c} /></td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+    </div>
+  );
+}
+🔌 4. API 라우트 추가 (CRUD)
+server/routes.ts
+
+ts
+복사
+편집
+app.get("/api/admin/campaigns", async (_, res) => {
+  const rows = await db.select().from(campaigns).orderBy(campaigns.order);
+  res.json(rows);
+});
+
+app.post("/api/admin/campaigns", async (req, res) => {
+  const data = req.body;
+  const inserted = await db.insert(campaigns).values(data).returning();
+  res.json(inserted[0]);
+});
+
+app.patch("/api/admin/campaigns/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  const data = req.body;
+  await db.update(campaigns).set(data).where(eq(campaigns.id, id));
+  res.json({ success: true });
+});
+🌐 5. 사용자 캠페인 페이지 추가
+경로: /campaigns
+
+위치: client/src/pages/Campaigns.tsx
+
+tsx
+복사
+편집
+export default function CampaignsPage() {
+  const { data = [] } = useQuery(["public-campaigns"], () =>
+    apiClient.get("/api/public/campaigns").then(r => r.data)
+  );
+
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">캠페인 신청</h1>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {data.map(c => (
+          <Card key={c.id}>
+            <img src={c.bannerImage} className="w-full h-40 object-cover" />
+            <div className="p-4">
+              <h3 className="text-lg font-semibold">{c.title}</h3>
+              <p className="text-sm text-gray-400">{c.description}</p>
+              <Link to={`/campaigns/${c.slug}`}>자세히 보기</Link>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+🧭 6. 사이드바에 사용자용 캠페인 메뉴 추가
+이름: 캠페인 신청
+
+경로: /campaigns
+
+조건: isPublic: true인 캠페인만 노출
+
+✅ 필수 정리 요약
+항목	내용
+DB	campaigns 테이블
+관리자 UI	CampaignManagement.tsx
+사용자 페이지	/campaigns, 목록 카드 UI
+API	/api/admin/campaigns, /api/public/campaigns
+사이드바	캠페인 신청 메뉴 자동 추가 (isPublic 기준)
+
+이후 단계에서는 캠페인에 “신청폼”, “접수자 목록”, “리워드 지급 처리” 등이 추가될 예정입니다.
+지금은 구조와 생성 도구부터 만들어주세요.
