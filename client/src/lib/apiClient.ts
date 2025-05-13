@@ -177,7 +177,10 @@ export const getQueryFn =
     return getApi<T>(url, options.params, options);
   };
 
-// 직접 API 함수들
+// 메뉴 가져오기
+export const getMenu = () => getApi('/api/menu');
+
+// 직접 API 함수들 
 export const api = {
   // 인증 관련
   testLogin: () => postApi('/api/test-login'),

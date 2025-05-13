@@ -79,6 +79,7 @@ export default function ServiceItemManagement() {
     mutationFn: (data: ServiceItemFormValues) => createServiceItem(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/service-items'] });
+      queryClient.invalidateQueries({ queryKey: ['menu'] }); // 메뉴 캐시도 함께 무효화
       toast({
         title: "서비스 항목 생성 완료",
         description: "새로운 서비스 항목이 생성되었습니다.",
@@ -109,6 +110,9 @@ export default function ServiceItemManagement() {
           queryKey: ['/api/admin/service-items', selectedCategoryId] 
         });
       }
+      
+      // 메뉴 API도 함께 무효화 (사이드바 및 내부 화면 실시간 업데이트를 위함)
+      queryClient.invalidateQueries({ queryKey: ['menu'] });
       
       toast({
         title: "서비스 항목 수정 완료",

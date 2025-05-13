@@ -48,6 +48,7 @@ import {
   conceptCategories,
   abTests,
   abTestVariants,
+  serviceItems,
   abTestResults,
   hospitals,
   banners,
@@ -2570,6 +2571,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // 서비스 카테고리 API 엔드포인트
   
+  // --- public menu (카테고리 + 하위메뉴) --------------------------
+  app.get("/api/menu", async (req, res) => {
+    try {
+      const rows = await db
+        .select({
+          categoryId: serviceCategories.id,
+          categoryTitle: serviceCategories.title,
+          itemId: serviceItems.itemId,
+          itemTitle: serviceItems.title,
+          path: serviceItems.path,
+          order: serviceItems.order,
+        })
+        .from(serviceItems)
+        .innerJoin(serviceCategories, eq(serviceItems.categoryId, serviceCategories.id))
+        .where(eq(serviceItems.isPublic, true))
+        .orderBy(serviceCategories.order, serviceItems.order);
+
+      // { categoryTitle: "...", items:[...] } 형태로 묶기
+      const grouped = Object.values(
+        rows.reduce<Record<number, any>>((acc, r) => {
+          if (!acc[r.categoryId]) {
+            acc[r.categoryId] = { title: r.categoryTitle, items: [] };
+          }
+          acc[r.categoryId].items.push({
+            id: r.itemId,
+            title: r.itemTitle,
+            path: r.path,
+          });
+          return acc;
+        }, {})
+      );
+      res.json(grouped);
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: "menu-error" });
+    }
+  });
+
   // 공개 서비스 카테고리 조회 (일반 사용자용)
   app.get("/api/service-categories", async (req, res) => {
     try {
