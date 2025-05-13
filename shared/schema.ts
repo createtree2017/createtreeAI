@@ -268,7 +268,21 @@ export const usersRelations = relations(users, ({ many, one }) => ({
 
 // 병원 관계 정의
 export const hospitalsRelations = relations(hospitals, ({ many }) => ({
-  users: many(users)
+  users: many(users),
+  members: many(hospitalMembers),
+  campaigns: many(campaigns)
+}));
+
+// Hospital members relations
+export const hospitalMembersRelations = relations(hospitalMembers, ({ one }) => ({
+  hospital: one(hospitals, {
+    fields: [hospitalMembers.hospitalId],
+    references: [hospitals.id]
+  }),
+  user: one(users, {
+    fields: [hospitalMembers.userId],
+    references: [users.id]
+  })
 }));
 
 export const rolesRelations = relations(roles, ({ many }) => ({
