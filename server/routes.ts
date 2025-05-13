@@ -2597,6 +2597,143 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // 하위 서비스 항목 관리 API 엔드포인트 (관리자용)
+  app.get("/api/admin/service-items", async (req, res) => {
+    try {
+      const { categoryId } = req.query;
+      
+      // 카테고리 ID로 필터링 (옵션)
+      if (categoryId && typeof categoryId === 'string') {
+        // 카테고리 ID로 카테고리 조회
+        const category = await db.query.serviceCategories.findFirst({
+          where: eq(serviceCategories.categoryId, categoryId)
+        });
+        
+        if (!category) {
+          return res.status(404).json({ error: "해당 카테고리를 찾을 수 없습니다." });
+        }
+        
+        // 카테고리에 속한 서비스 항목 조회
+        const items = await db.query.serviceItems.findMany({
+          where: eq(serviceItems.categoryId, category.id),
+          orderBy: [asc(serviceItems.order), asc(serviceItems.id)]
+        });
+        
+        return res.json(items);
+      } else {
+        // 모든 서비스 항목 조회 (카테고리 정보 포함)
+        const items = await db.query.serviceItems.findMany({
+          orderBy: [asc(serviceItems.order), asc(serviceItems.id)],
+          with: {
+            category: true
+          }
+        });
+        
+        return res.json(items);
+      }
+    } catch (error) {
+      console.error("Error fetching service items:", error);
+      return res.status(500).json({ error: "서비스 항목을 가져오는 데 실패했습니다." });
+    }
+  });
+  
+  // 새 서비스 항목 생성
+  app.post("/api/admin/service-items", async (req, res) => {
+    try {
+      const itemData = insertServiceItemSchema.parse(req.body);
+      
+      // 카테고리 존재 여부 확인
+      const category = await db.query.serviceCategories.findFirst({
+        where: eq(serviceCategories.id, itemData.categoryId)
+      });
+      
+      if (!category) {
+        return res.status(404).json({ error: "카테고리를 찾을 수 없습니다." });
+      }
+      
+      // 새 서비스 항목 저장
+      const [newItem] = await db
+        .insert(serviceItems)
+        .values(itemData)
+        .returning();
+      
+      return res.status(201).json(newItem);
+    } catch (error) {
+      console.error("Error creating service item:", error);
+      return res.status(500).json({ error: "서비스 항목을 생성하는 데 실패했습니다." });
+    }
+  });
+  
+  // 서비스 항목 수정
+  app.patch("/api/admin/service-items/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // 기존 항목 존재 여부 확인
+      const existingItem = await db.query.serviceItems.findFirst({
+        where: eq(serviceItems.id, id)
+      });
+      
+      if (!existingItem) {
+        return res.status(404).json({ error: "서비스 항목을 찾을 수 없습니다." });
+      }
+      
+      const itemData = insertServiceItemSchema.partial().parse(req.body);
+      
+      // 카테고리 변경 시 카테고리 존재 여부 확인
+      if (itemData.categoryId) {
+        const category = await db.query.serviceCategories.findFirst({
+          where: eq(serviceCategories.id, itemData.categoryId)
+        });
+        
+        if (!category) {
+          return res.status(404).json({ error: "카테고리를 찾을 수 없습니다." });
+        }
+      }
+      
+      // 항목 업데이트
+      const [updatedItem] = await db
+        .update(serviceItems)
+        .set({
+          ...itemData,
+          updatedAt: new Date()
+        })
+        .where(eq(serviceItems.id, id))
+        .returning();
+      
+      return res.json(updatedItem);
+    } catch (error) {
+      console.error("Error updating service item:", error);
+      return res.status(500).json({ error: "서비스 항목을 수정하는 데 실패했습니다." });
+    }
+  });
+  
+  // 서비스 항목 삭제
+  app.delete("/api/admin/service-items/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // 기존 항목 존재 여부 확인
+      const existingItem = await db.query.serviceItems.findFirst({
+        where: eq(serviceItems.id, id)
+      });
+      
+      if (!existingItem) {
+        return res.status(404).json({ error: "서비스 항목을 찾을 수 없습니다." });
+      }
+      
+      // 항목 삭제
+      await db
+        .delete(serviceItems)
+        .where(eq(serviceItems.id, id));
+      
+      return res.status(204).end();
+    } catch (error) {
+      console.error("Error deleting service item:", error);
+      return res.status(500).json({ error: "서비스 항목을 삭제하는 데 실패했습니다." });
+    }
+  });
+  
   // 새 서비스 카테고리 생성
   app.post("/api/admin/service-categories", async (req, res) => {
     try {
