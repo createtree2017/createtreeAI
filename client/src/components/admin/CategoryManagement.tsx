@@ -101,7 +101,7 @@ export default function CategoryManagement() {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deleteServiceCategory(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/service-categories'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/service-categories'] });
       toast({
         title: "카테고리 삭제 완료",
         description: "서비스 카테고리가 삭제되었습니다.",
