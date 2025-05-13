@@ -318,13 +318,13 @@ export default function CampaignManagement() {
         isPublic: Boolean(campaign.isPublic),
         displayOrder: campaign.displayOrder || 0,
         hospitalId: campaign.hospitalId,
-        // 새로운 필드들 설정 - DB에서 ISO 문자열로 받기 때문에 타입을 맞춰준다
-        startDate: typeof campaign.startDate === 'string' ? campaign.startDate : null,
-        endDate: typeof campaign.endDate === 'string' ? campaign.endDate : null,
-        announceDate: typeof campaign.announceDate === 'string' ? campaign.announceDate : null,
-        contentStartDate: typeof campaign.contentStartDate === 'string' ? campaign.contentStartDate : null,
-        contentEndDate: typeof campaign.contentEndDate === 'string' ? campaign.contentEndDate : null,
-        resultDate: typeof campaign.resultDate === 'string' ? campaign.resultDate : null,
+        // 새로운 필드들 설정 - ISO 문자열을 yyyy-MM-dd 형식으로 변환
+        startDate: campaign.startDate ? new Date(campaign.startDate).toISOString().split('T')[0] : null,
+        endDate: campaign.endDate ? new Date(campaign.endDate).toISOString().split('T')[0] : null,
+        announceDate: campaign.announceDate ? new Date(campaign.announceDate).toISOString().split('T')[0] : null,
+        contentStartDate: campaign.contentStartDate ? new Date(campaign.contentStartDate).toISOString().split('T')[0] : null,
+        contentEndDate: campaign.contentEndDate ? new Date(campaign.contentEndDate).toISOString().split('T')[0] : null,
+        resultDate: campaign.resultDate ? new Date(campaign.resultDate).toISOString().split('T')[0] : null,
         rewardPoint: campaign.rewardPoint || 0,
         status: campaign.status || 'draft'
       });
