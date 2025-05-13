@@ -3597,6 +3597,135 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 캠페인 신청 등록
+  app.post("/api/campaign-applications", async (req, res) => {
+    try {
+      const applicationData = req.body;
+      
+      // Zod를 사용한 입력 데이터 검증
+      try {
+        insertCampaignApplicationSchema.parse(applicationData);
+      } catch (validationError) {
+        if (validationError instanceof z.ZodError) {
+          return res.status(400).json({ 
+            error: "입력 데이터가 올바르지 않습니다.", 
+            details: validationError.errors 
+          });
+        }
+      }
+      
+      // 현재 로그인한 사용자 ID가 있으면 추가
+      if (req.isAuthenticated()) {
+        applicationData.userId = req.user.id;
+      }
+      
+      // 중복 신청 체크 (동일한 contact + campaignId 조합이 이미 존재하는지)
+      const existingApplication = await db.query.campaignApplications.findFirst({
+        where: and(
+          eq(campaignApplications.contact, applicationData.contact),
+          eq(campaignApplications.campaignId, applicationData.campaignId)
+        )
+      });
+      
+      if (existingApplication) {
+        return res.status(409).json({ 
+          error: "이미 신청한 캠페인입니다.",
+          applicationId: existingApplication.id
+        });
+      }
+      
+      // 신청 정보 저장
+      const [newApplication] = await db.insert(campaignApplications)
+        .values(applicationData)
+        .returning();
+      
+      // TODO: 이메일 알림 발송 (향후 구현)
+      
+      return res.status(201).json({
+        message: "캠페인 신청이 완료되었습니다.",
+        application: newApplication
+      });
+    } catch (error) {
+      console.error("Error creating campaign application:", error);
+      return res.status(500).json({ error: "캠페인 신청 처리 중 오류가 발생했습니다." });
+    }
+  });
+  
+  // 관리자용 캠페인 신청 목록 조회
+  app.get("/api/campaign-applications", async (req, res) => {
+    try {
+      // 관리자 권한 체크
+      if (!req.isAuthenticated() || req.user.memberType !== 'superadmin') {
+        return res.status(403).json({ error: "접근 권한이 없습니다." });
+      }
+      
+      const { campaignId } = req.query;
+      
+      let query = db.select({
+        id: campaignApplications.id,
+        name: campaignApplications.name,
+        contact: campaignApplications.contact,
+        memo: campaignApplications.memo,
+        status: campaignApplications.status,
+        createdAt: campaignApplications.createdAt,
+        campaignId: campaignApplications.campaignId,
+        campaignTitle: campaigns.title
+      })
+      .from(campaignApplications)
+      .leftJoin(campaigns, eq(campaignApplications.campaignId, campaigns.id))
+      .orderBy(desc(campaignApplications.createdAt));
+      
+      // 특정 캠페인으로 필터링
+      if (campaignId && !isNaN(Number(campaignId))) {
+        query = query.where(eq(campaignApplications.campaignId, Number(campaignId)));
+      }
+      
+      const applications = await query;
+      
+      return res.json(applications);
+    } catch (error) {
+      console.error("Error fetching campaign applications:", error);
+      return res.status(500).json({ error: "캠페인 신청 목록을 불러오는데 실패했습니다." });
+    }
+  });
+  
+  // 관리자용 캠페인 신청 상태 업데이트
+  app.patch("/api/campaign-applications/:id", async (req, res) => {
+    try {
+      // 관리자 권한 체크
+      if (!req.isAuthenticated() || req.user.memberType !== 'superadmin') {
+        return res.status(403).json({ error: "접근 권한이 없습니다." });
+      }
+      
+      const { id } = req.params;
+      const { status } = req.body;
+      
+      if (!status || !['new', 'processing', 'completed'].includes(status)) {
+        return res.status(400).json({ error: "유효하지 않은 상태값입니다." });
+      }
+      
+      const [updatedApplication] = await db.update(campaignApplications)
+        .set({ 
+          status,
+          updatedAt: new Date()
+        })
+        .where(eq(campaignApplications.id, Number(id)))
+        .returning();
+      
+      if (!updatedApplication) {
+        return res.status(404).json({ error: "신청 정보를 찾을 수 없습니다." });
+      }
+      
+      return res.json({
+        message: "신청 상태가 업데이트되었습니다.",
+        application: updatedApplication
+      });
+    } catch (error) {
+      console.error("Error updating campaign application:", error);
+      return res.status(500).json({ error: "신청 상태 업데이트 중 오류가 발생했습니다." });
+    }
+  });
+  
   app.post("/api/admin/campaigns", async (req, res) => {
     try {
       // 관리자 권한 확인 (이미 authMiddleware에서 로그인 체크는 완료됨)
