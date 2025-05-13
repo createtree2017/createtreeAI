@@ -277,7 +277,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // 1. 활성화된 서비스 카테고리 가져오기 (공개 상태인 것만)
       const categories = await db.select().from(serviceCategories)
-        .where(eq(serviceCategories.isActive, true))
+        .where(eq(serviceCategories.isPublic, true))
         .orderBy(serviceCategories.order);
       
       if (!categories || categories.length === 0) {
@@ -293,24 +293,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const items = await db.select({
           id: serviceItems.id,
           title: serviceItems.title,
-          path: serviceItems.path,
-          iconName: serviceItems.iconName
+          path: serviceItems.itemId, // 클라이언트 라우팅에 사용될 경로
+          iconName: serviceItems.icon // 아이콘 이름
         }).from(serviceItems)
           .where(and(
             eq(serviceItems.categoryId, category.id),
-            eq(serviceItems.isActive, true)
+            eq(serviceItems.isPublic, true)
           ))
           .orderBy(serviceItems.order);
         
         // 항목이 있는 카테고리만 메뉴에 추가
         if (items && items.length > 0) {
           menu.push({
+            id: category.id,
             title: category.title,
-            items: items
+            icon: category.icon, // 카테고리 아이콘 (icons 필드)
+            items: items.map(item => ({
+              ...item,
+              // 클라이언트 사이드 라우팅에 필요한 형식으로 변환
+              path: `/${item.path}` // 경로 앞에 슬래시 추가
+            }))
           });
         }
       }
       
+      console.log("메뉴 구조:", JSON.stringify(menu));
       return res.status(200).json(menu);
     } catch (error) {
       console.error('메뉴 조회 오류:', error);
