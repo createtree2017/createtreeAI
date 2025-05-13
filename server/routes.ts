@@ -3515,8 +3515,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 캠페인 API
   app.get("/api/admin/campaigns", async (req, res) => {
     try {
-      // snake_case에서 camelCase로 적절히 매핑하기 위해 별칭 사용
-      const campaignsList = await db.select({
+      // 권한 체크
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "로그인이 필요합니다." });
+      }
+
+      const user = req.user;
+      let query = db.select({
         id: campaigns.id,
         slug: campaigns.slug,
         title: campaigns.title,
@@ -3524,11 +3529,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         bannerImage: campaigns.bannerImage,
         isPublic: campaigns.isPublic,
         displayOrder: campaigns.displayOrder,
+        hospitalId: campaigns.hospitalId,
+        hospitalName: hospitals.name, // 병원 이름도 함께 가져오기
         createdAt: campaigns.createdAt,
         updatedAt: campaigns.updatedAt
       })
       .from(campaigns)
-      .orderBy(asc(campaigns.displayOrder), asc(campaigns.title));
+      .leftJoin(hospitals, eq(campaigns.hospitalId, hospitals.id));
+
+      // 슈퍼 관리자는 모든 캠페인 조회 가능, 병원 관리자는 해당 병원 캠페인만 조회 가능
+      if (user.memberType === 'hospital_admin' && user.hospitalId) {
+        query = query.where(eq(campaigns.hospitalId, user.hospitalId));
+      } else if (user.memberType !== 'superadmin') {
+        return res.status(403).json({ error: "관리자 권한이 필요합니다." });
+      }
+      
+      const campaignsList = await query.orderBy(asc(campaigns.displayOrder), asc(campaigns.title));
       
       console.log("Fetched campaigns:", campaignsList);
       res.json(campaignsList);
@@ -3540,22 +3556,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/campaigns", async (req, res) => {
     try {
-      // 일반 사용자에게는 공개된 캠페인만 보여줌
-      const campaignTable = campaigns;
-      const campaignsList = await db.select({
-        id: campaignTable.id,
-        slug: campaignTable.slug,
-        title: campaignTable.title,
-        description: campaignTable.description,
-        bannerImage: campaignTable.bannerImage,
-        isPublic: campaignTable.isPublic,
-        displayOrder: campaignTable.displayOrder,
-        createdAt: campaignTable.createdAt,
-        updatedAt: campaignTable.updatedAt
+      // 병원 ID 파라미터 (선택 사항)
+      const hospitalSlug = req.query.hospitalSlug as string | undefined;
+      
+      // 쿼리 빌더
+      let query = db.select({
+        id: campaigns.id,
+        slug: campaigns.slug,
+        title: campaigns.title,
+        description: campaigns.description,
+        bannerImage: campaigns.bannerImage,
+        isPublic: campaigns.isPublic,
+        displayOrder: campaigns.displayOrder,
+        hospitalId: campaigns.hospitalId,
+        hospitalName: hospitals.name,
+        hospitalSlug: hospitals.slug,
+        createdAt: campaigns.createdAt,
+        updatedAt: campaigns.updatedAt
       })
-      .from(campaignTable)
-      .where(eq(campaignTable.isPublic, true))
-      .orderBy(asc(campaignTable.displayOrder), desc(campaignTable.createdAt));
+      .from(campaigns)
+      .leftJoin(hospitals, eq(campaigns.hospitalId, hospitals.id))
+      .where(eq(campaigns.isPublic, true));
+      
+      // 특정 병원의 캠페인만 필터링 (선택 사항)
+      if (hospitalSlug) {
+        query = query.where(eq(hospitals.slug, hospitalSlug));
+      }
+      
+      const campaignsList = await query.orderBy(
+        asc(campaigns.displayOrder), 
+        desc(campaigns.createdAt)
+      );
       
       console.log("Fetched public campaigns:", campaignsList);
       res.json(campaignsList);
@@ -3568,23 +3599,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/campaigns/:slug", async (req, res) => {
     try {
       const { slug } = req.params;
-      const campaignTable = campaigns;
       
       const campaignResults = await db.select({
-        id: campaignTable.id,
-        slug: campaignTable.slug,
-        title: campaignTable.title,
-        description: campaignTable.description,
-        bannerImage: campaignTable.bannerImage,
-        isPublic: campaignTable.isPublic,
-        displayOrder: campaignTable.displayOrder,
-        createdAt: campaignTable.createdAt,
-        updatedAt: campaignTable.updatedAt
+        id: campaigns.id,
+        slug: campaigns.slug,
+        title: campaigns.title,
+        description: campaigns.description,
+        bannerImage: campaigns.bannerImage,
+        isPublic: campaigns.isPublic,
+        displayOrder: campaigns.displayOrder,
+        hospitalId: campaigns.hospitalId,
+        hospitalName: hospitals.name,
+        hospitalSlug: hospitals.slug,
+        createdAt: campaigns.createdAt,
+        updatedAt: campaigns.updatedAt
       })
-      .from(campaignTable)
+      .from(campaigns)
+      .leftJoin(hospitals, eq(campaigns.hospitalId, hospitals.id))
       .where(and(
-        eq(campaignTable.slug, slug),
-        eq(campaignTable.isPublic, true)
+        eq(campaigns.slug, slug),
+        eq(campaigns.isPublic, true)
       ));
       
       if (campaignResults.length === 0) {
