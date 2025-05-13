@@ -52,14 +52,14 @@ export default function CategoryManagement() {
   const queryClient = useQueryClient();
 
   const { data: categories, isLoading } = useQuery({
-    queryKey: ['/api/service-categories'],
+    queryKey: ['/api/admin/service-categories'],
     queryFn: getServiceCategories,
   });
 
   const createMutation = useMutation({
     mutationFn: (data: CategoryFormValues) => createServiceCategory(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/service-categories'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/service-categories'] });
       toast({
         title: "카테고리 생성 완료",
         description: "새로운 서비스 카테고리가 생성되었습니다.",
@@ -80,7 +80,7 @@ export default function CategoryManagement() {
     mutationFn: ({ id, data }: { id: number, data: CategoryFormValues }) => 
       updateServiceCategory(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/service-categories'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/service-categories'] });
       toast({
         title: "카테고리 수정 완료",
         description: "서비스 카테고리가 업데이트되었습니다.",
