@@ -2606,9 +2606,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // 카테고리 ID로 필터링 (옵션)
       if (categoryId && typeof categoryId === 'string') {
-        // 카테고리 ID로 카테고리 조회
+        // 카테고리 ID는 숫자로 직접 변환 시도
+        const categoryIdNum = parseInt(categoryId);
+        
+        if (isNaN(categoryIdNum)) {
+          return res.status(400).json({ error: "카테고리 ID는 유효한 숫자여야 합니다." });
+        }
+        
+        // 카테고리 기본 키로 카테고리 조회
         const category = await db.query.serviceCategories.findFirst({
-          where: eq(serviceCategories.categoryId, categoryId)
+          where: eq(serviceCategories.id, categoryIdNum)
         });
         
         if (!category) {

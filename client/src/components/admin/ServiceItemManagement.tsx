@@ -100,7 +100,16 @@ export default function ServiceItemManagement() {
     mutationFn: ({ id, data }: { id: number, data: ServiceItemFormValues }) => 
       updateServiceItem(id, data),
     onSuccess: () => {
+      // 모든 관련 쿼리 무효화 - 카테고리별, 전체 목록 모두 갱신
       queryClient.invalidateQueries({ queryKey: ['/api/admin/service-items'] });
+      
+      // 현재 선택된 카테고리가 있으면 해당 카테고리 쿼리도 명시적으로 무효화
+      if (selectedCategoryId) {
+        queryClient.invalidateQueries({ 
+          queryKey: ['/api/admin/service-items', selectedCategoryId] 
+        });
+      }
+      
       toast({
         title: "서비스 항목 수정 완료",
         description: "서비스 항목이 업데이트되었습니다.",
