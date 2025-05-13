@@ -3540,20 +3540,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/campaigns", async (req, res) => {
     try {
       // 일반 사용자에게는 공개된 캠페인만 보여줌
+      const campaignTable = campaigns;
       const campaignsList = await db.select({
-        id: campaigns.id,
-        slug: campaigns.slug,
-        title: campaigns.title,
-        description: campaigns.description,
-        bannerImage: campaigns.bannerImage,
-        isPublic: campaigns.isPublic,
-        displayOrder: campaigns.displayOrder,
-        createdAt: campaigns.createdAt,
-        updatedAt: campaigns.updatedAt
+        id: campaignTable.id,
+        slug: campaignTable.slug,
+        title: campaignTable.title,
+        description: campaignTable.description,
+        bannerImage: campaignTable.bannerImage,
+        isPublic: campaignTable.isPublic,
+        displayOrder: campaignTable.displayOrder,
+        createdAt: campaignTable.createdAt,
+        updatedAt: campaignTable.updatedAt
       })
-      .from(campaigns)
-      .where(eq(campaigns.isPublic, true))
-      .orderBy(asc(campaigns.displayOrder), asc(campaigns.title));
+      .from(campaignTable)
+      .where(eq(campaignTable.isPublic, true))
+      .orderBy(asc(campaignTable.displayOrder), desc(campaignTable.createdAt));
       
       console.log("Fetched public campaigns:", campaignsList);
       res.json(campaignsList);
@@ -3566,29 +3567,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/campaigns/:slug", async (req, res) => {
     try {
       const { slug } = req.params;
+      const campaignTable = campaigns;
       
-      const campaigns = await db.select({
-        id: campaigns.id,
-        slug: campaigns.slug,
-        title: campaigns.title,
-        description: campaigns.description,
-        bannerImage: campaigns.bannerImage,
-        isPublic: campaigns.isPublic,
-        displayOrder: campaigns.displayOrder,
-        createdAt: campaigns.createdAt,
-        updatedAt: campaigns.updatedAt
+      const campaignResults = await db.select({
+        id: campaignTable.id,
+        slug: campaignTable.slug,
+        title: campaignTable.title,
+        description: campaignTable.description,
+        bannerImage: campaignTable.bannerImage,
+        isPublic: campaignTable.isPublic,
+        displayOrder: campaignTable.displayOrder,
+        createdAt: campaignTable.createdAt,
+        updatedAt: campaignTable.updatedAt
       })
-      .from(campaigns)
+      .from(campaignTable)
       .where(and(
-        eq(campaigns.slug, slug),
-        eq(campaigns.isPublic, true)
+        eq(campaignTable.slug, slug),
+        eq(campaignTable.isPublic, true)
       ));
       
-      if (campaigns.length === 0) {
+      if (campaignResults.length === 0) {
         return res.status(404).json({ error: "Campaign not found" });
       }
       
-      res.json(campaigns[0]);
+      res.json(campaignResults[0]);
     } catch (error) {
       console.error("Error fetching campaign:", error);
       res.status(500).json({ error: "Failed to fetch campaign" });

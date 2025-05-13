@@ -36,6 +36,8 @@ import { ImageProcessingIndicator } from "@/components/ImageProcessingIndicator"
 import MaternityPhoto from "@/pages/maternity-photo";
 import FamilyPhoto from "@/pages/family-photo";
 import Stickers from "@/pages/stickers";
+import CampaignsPage from "@/pages/campaigns";
+import CampaignDetailPage from "@/pages/campaign-detail";
 
 // Main layout component
 function Layout({ children }: { children: React.ReactNode }) {
@@ -312,6 +314,23 @@ function Router() {
         <ProtectedRoute>
           <Layout>
             <Stickers />
+          </Layout>
+        </ProtectedRoute>
+      </Route>
+
+      {/* 캠페인 경로 */}
+      <Route path="/campaigns">
+        <ProtectedRoute>
+          <Layout>
+            <CampaignsPage />
+          </Layout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/campaigns/:slug">
+        <ProtectedRoute>
+          <Layout>
+            <CampaignDetailPage />
           </Layout>
         </ProtectedRoute>
       </Route>

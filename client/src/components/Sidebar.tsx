@@ -18,7 +18,8 @@ import {
   Heart,
   Layers,
   BarChart3,
-  MessageSquare
+  MessageSquare,
+  LayoutGrid
 } from 'lucide-react';
 // LogOut 아이콘 개별 임포트
 import { LogOut } from 'lucide-react';
@@ -146,7 +147,8 @@ export default function Sidebar({ collapsed = false }) {
       'users': Users,
       'sticker': PaintBucket,
       'heart-pulse': Heart,
-      'stethoscope': MessageSquare
+      'stethoscope': MessageSquare,
+      'layout': LayoutGrid
     };
     
     return iconMap[iconName] || Layers; // 기본값으로 Layers 아이콘 사용
