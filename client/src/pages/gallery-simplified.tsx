@@ -4,9 +4,10 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/apiClient";
 import { queryClient } from "@/lib/queryClient";
-import { Music, PaintbrushVertical, Heart, Play, Eye, Share2, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Music, PaintbrushVertical, Heart, Play, Eye, Share2, MessageCircle, ChevronLeft, ChevronRight, Download, X } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface GalleryItem {
   id: number;
@@ -154,89 +155,95 @@ export default function Gallery() {
       
       {/* 갤러리 그리드 */}
       {!isLoading && paginatedItems.length > 0 && (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-4">
           {paginatedItems.map((item: GalleryItem) => (
             <div
               key={`${item.type}-${item.id}`}
-              className="bg-white rounded-lg overflow-hidden shadow-softer border border-neutral-light"
+              className="bg-white rounded-xl overflow-hidden shadow-soft border border-border hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => handleItemAction(item, item.type === "music" ? "play" : "view")}
             >
               {/* 아이템 썸네일 */}
               {item.type === "music" ? (
-                <div className="h-32 bg-primary-light flex items-center justify-center">
-                  <div className="p-3 bg-white rounded-full text-primary-dark">
-                    <Music className="h-5 w-5" />
+                <div className="aspect-square w-full overflow-hidden bg-primary-light flex items-center justify-center">
+                  <div className="p-4 bg-white rounded-full text-primary-dark">
+                    <Music className="h-8 w-8" />
                   </div>
                 </div>
               ) : item.type === "chat" ? (
-                <div className="h-32 bg-accent2-light flex items-center justify-center">
-                  <div className="p-3 bg-white rounded-full text-accent2-dark">
-                    <MessageCircle className="h-5 w-5" />
+                <div className="aspect-square w-full overflow-hidden bg-accent2-light flex items-center justify-center">
+                  <div className="p-4 bg-white rounded-full text-accent2-dark">
+                    <MessageCircle className="h-8 w-8" />
                   </div>
                 </div>
               ) : (
                 <div className="relative">
-                  <img
-                    src={item.thumbnailUrl || item.url || "https://placehold.co/300x200/e2e8f0/1e293b?text=이미지+준비중"}
-                    alt={item.title}
-                    className="w-full h-32 object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = "https://placehold.co/300x200/e2e8f0/1e293b?text=이미지+준비중";
-                    }}
-                  />
+                  <div className="aspect-square w-full overflow-hidden">
+                    <img
+                      src={item.thumbnailUrl || item.url || "https://placehold.co/400x400/F0F0F0/AAA?text=이미지+준비중"}
+                      alt={item.title}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = "https://placehold.co/400x400/F0F0F0/AAA?text=이미지+준비중";
+                      }}
+                    />
+                  </div>
                 </div>
               )}
               
               {/* 아이템 정보 */}
               <div className="p-3">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="font-medium">{item.title}</p>
-                    <p className="text-xs text-neutral-dark">
+                <div className="flex flex-col gap-2">
+                  <h4 className="font-medium text-[15px] text-neutral-dark line-clamp-1">{item.title}</h4>
+                  <div className="flex justify-between items-center">
+                    <p className="text-xs text-muted-foreground">
                       {item.type === "music" && item.duration
                         ? `${Math.floor(item.duration / 60)}:${(item.duration % 60).toString().padStart(2, "0")} • `
                         : ""}
                       {item.createdAt}
                     </p>
+                    <div className="flex gap-3 mr-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleItemAction(item, item.type === "music" ? "play" : "view");
+                        }}
+                        className="text-gray-600 hover:text-[#ff2d55] transition-colors p-1"
+                        title={item.type === "music" ? "재생" : "크게 보기"}
+                      >
+                        {item.type === "music" ? (
+                          <Play className="h-5 w-5" />
+                        ) : (
+                          <Eye className="h-5 w-5" />
+                        )}
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleShare(item.id);
+                        }}
+                        className="text-gray-600 hover:text-[#ff2d55] transition-colors p-1"
+                        title="공유하기"
+                      >
+                        <Share2 className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleFavorite(item);
+                        }}
+                        className={`p-1 transition-colors ${item.isFavorite ? "text-[#ff2d55]" : "text-gray-600 hover:text-[#ff2d55]"}`}
+                        title={item.isFavorite ? "즐겨찾기 해제" : "즐겨찾기 추가"}
+                      >
+                        {item.isFavorite ? (
+                          <Heart className="h-5 w-5 fill-[#ff2d55]" />
+                        ) : (
+                          <Heart className="h-5 w-5" />
+                        )}
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    className={`${item.isFavorite ? "text-primary" : "text-neutral hover:text-primary"}`}
-                    onClick={() => handleToggleFavorite(item)}
-                  >
-                    {item.isFavorite ? (
-                      <Heart className="h-4 w-4 fill-primary" />
-                    ) : (
-                      <Heart className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-                
-                {/* 액션 버튼 */}
-                <div className="flex mt-2 space-x-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => handleItemAction(item, item.type === "music" ? "play" : "view")}
-                  >
-                    {item.type === "music" ? (
-                      <>
-                        <Play className="mr-1 h-3 w-3" /> 재생
-                      </>
-                    ) : (
-                      <>
-                        <Eye className="mr-1 h-3 w-3" /> 보기
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => handleItemAction(item, "share")}
-                  >
-                    <Share2 className="mr-1 h-3 w-3" /> 공유
-                  </Button>
                 </div>
               </div>
             </div>
