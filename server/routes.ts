@@ -3598,6 +3598,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 관리자: 캠페인 신청자 목록 조회
+  app.get("/api/admin/campaign-applications", async (req, res) => {
+    try {
+      // 관리자 권한 체크
+      if (!req.isAuthenticated() || (req.user.memberType !== 'admin' && req.user.memberType !== 'superadmin')) {
+        return res.status(403).json({ error: "관리자 권한이 필요합니다." });
+      }
+
+      const campaignId = req.query.campaignId ? Number(req.query.campaignId) : undefined;
+      
+      // 캠페인별 신청자 목록 조회 (JOIN으로 캠페인 정보도 가져오기)
+      const applications = await db
+        .select({
+          id: campaignApplications.id,
+          name: campaignApplications.name,
+          contact: campaignApplications.contact,
+          memo: campaignApplications.memo,
+          status: campaignApplications.status,
+          createdAt: campaignApplications.createdAt,
+          campaignId: campaignApplications.campaignId,
+          campaignTitle: campaigns.title
+        })
+        .from(campaignApplications)
+        .leftJoin(campaigns, eq(campaignApplications.campaignId, campaigns.id))
+        .where(campaignId ? eq(campaignApplications.campaignId, campaignId) : undefined)
+        .orderBy(desc(campaignApplications.createdAt));
+      
+      return res.json(applications);
+    } catch (error) {
+      console.error("Error fetching campaign applications:", error);
+      return res.status(500).json({ error: "신청자 목록을 가져오는 중 오류가 발생했습니다." });
+    }
+  });
+  
+  // 관리자: 캠페인 신청 상태 업데이트
+  app.patch("/api/admin/campaign-applications/:id", async (req, res) => {
+    try {
+      // 관리자 권한 체크
+      if (!req.isAuthenticated() || (req.user.memberType !== 'admin' && req.user.memberType !== 'superadmin')) {
+        return res.status(403).json({ error: "관리자 권한이 필요합니다." });
+      }
+      
+      const applicationId = Number(req.params.id);
+      const { status } = req.body;
+      
+      // 상태값 검증
+      if (!["new", "processing", "done"].includes(status)) {
+        return res.status(400).json({ error: "유효하지 않은 상태값입니다." });
+      }
+      
+      // 신청 상태 업데이트
+      const [updatedApplication] = await db
+        .update(campaignApplications)
+        .set({ 
+          status,
+          updatedAt: new Date()
+        })
+        .where(eq(campaignApplications.id, applicationId))
+        .returning();
+      
+      if (!updatedApplication) {
+        return res.status(404).json({ error: "해당 신청 정보를 찾을 수 없습니다." });
+      }
+      
+      return res.json({
+        message: "신청 상태가 업데이트되었습니다.",
+        application: updatedApplication
+      });
+    } catch (error) {
+      console.error("Error updating campaign application status:", error);
+      return res.status(500).json({ error: "신청 상태 업데이트 중 오류가 발생했습니다." });
+    }
+  });
+
   // 캠페인 신청 등록
   app.post("/api/campaign-applications", async (req, res) => {
     try {
