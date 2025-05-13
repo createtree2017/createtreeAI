@@ -2630,9 +2630,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .select({
           categoryId: serviceCategories.id,
           categoryTitle: serviceCategories.title,
+          categoryIcon: serviceCategories.icon,
           itemId: serviceItems.itemId,
           itemTitle: serviceItems.title,
           path: serviceItems.path,
+          iconName: serviceItems.iconName,
           order: serviceItems.order,
         })
         .from(serviceItems)
@@ -2640,20 +2642,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(eq(serviceItems.isPublic, true))
         .orderBy(serviceCategories.order, serviceItems.order);
 
-      // { categoryTitle: "...", items:[...] } 형태로 묶기
+      // 각 카테고리마다 id, title, icon을 포함하는 구조로 변경
       const grouped = Object.values(
         rows.reduce<Record<number, any>>((acc, r) => {
           if (!acc[r.categoryId]) {
-            acc[r.categoryId] = { title: r.categoryTitle, items: [] };
+            acc[r.categoryId] = { 
+              id: r.categoryId,
+              title: r.categoryTitle, 
+              icon: r.categoryIcon || 'image', // 기본값 설정
+              items: [] 
+            };
           }
           acc[r.categoryId].items.push({
             id: r.itemId,
             title: r.itemTitle,
             path: r.path,
+            iconName: r.iconName || 'layers', // 기본값 설정
           });
           return acc;
         }, {})
       );
+      
+      console.log("메뉴 구조:", JSON.stringify(grouped));
       res.json(grouped);
     } catch (e) {
       console.error(e);
