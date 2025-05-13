@@ -524,8 +524,8 @@ export default function CampaignManagement() {
                   <FormItem>
                     <FormLabel>병원</FormLabel>
                     <Select 
-                      value={field.value?.toString() || ""} 
-                      onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
+                      value={field.value?.toString() || "null"} 
+                      onValueChange={(value) => field.onChange(value !== "null" ? parseInt(value) : null)}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -533,7 +533,7 @@ export default function CampaignManagement() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">공개 캠페인</SelectItem>
+                        <SelectItem value="null">공개 캠페인</SelectItem>
                         {hospitals.map((hospital: any) => (
                           <SelectItem key={hospital.id} value={hospital.id.toString()}>
                             {hospital.name}
