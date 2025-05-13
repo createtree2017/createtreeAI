@@ -614,13 +614,31 @@ export const campaigns = pgTable("campaigns", {
   hospitalId: integer("hospital_id").references(() => hospitals.id), // 병원 ID 외래키
   isPublic: boolean("is_public").default(true),
   displayOrder: integer("display_order").default(0),
+  // 신규 추가 필드
+  startDate: timestamp("start_date"),     // 캠페인 신청 시작일
+  endDate: timestamp("end_date"),         // 캠페인 신청 마감일 
+  announceDate: timestamp("announce_date"), // 캠페인 선정 발표일
+  contentStartDate: timestamp("content_start_date"), // 콘텐츠 등록 시작일
+  contentEndDate: timestamp("content_end_date"),    // 콘텐츠 등록 마감일
+  resultDate: timestamp("result_date"),   // 최종 결과 발표일
+  rewardPoint: integer("reward_point").default(0), // 제공 포인트
+  thumbnailUrl: text("thumbnail_url"),    // 썸네일 이미지 경로
+  content: text("content"),               // 상세내용 (HTML)
+  status: text("status").default("draft"), // 캠페인 상태 (draft, open, closed)
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
 });
 
 export const insertCampaignSchema = createInsertSchema(campaigns, {
   title: (schema) => schema.min(2, "캠페인 제목은 최소 2자 이상이어야 합니다."),
-  slug: (schema) => schema.min(2, "슬러그는 최소 2자 이상이어야 합니다.")
+  slug: (schema) => schema.min(2, "슬러그는 최소 2자 이상이어야 합니다."),
+  startDate: (schema) => schema.nullable().optional(),
+  endDate: (schema) => schema.nullable().optional(),
+  announceDate: (schema) => schema.nullable().optional(),
+  contentStartDate: (schema) => schema.nullable().optional(),
+  contentEndDate: (schema) => schema.nullable().optional(),
+  resultDate: (schema) => schema.nullable().optional(),
+  status: (schema) => schema.default("draft")
 });
 export type InsertCampaign = z.infer<typeof insertCampaignSchema>;
 export type Campaign = typeof campaigns.$inferSelect;
