@@ -53,11 +53,13 @@ import {
   hospitals,
   banners,
   campaigns,
+  campaignApplications,
   styleCards,
   serviceCategories,
   favorites,
   savedChats,
   insertCampaignSchema,
+  insertCampaignApplicationSchema,
   insertConceptSchema,
   insertConceptCategorySchema,
   insertBannerSchema,
@@ -69,7 +71,6 @@ import {
 } from "../shared/schema";
 import { db } from "../db";
 import { or, ne, eq, and, asc, desc } from "drizzle-orm";
-import { z } from "zod";
 
 // Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), "uploads");
