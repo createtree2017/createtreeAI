@@ -3531,6 +3531,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         displayOrder: campaigns.displayOrder,
         hospitalId: campaigns.hospitalId,
         hospitalName: hospitals.name, // 병원 이름도 함께 가져오기
+        // 새로운 필드들 추가
+        startDate: campaigns.startDate,
+        endDate: campaigns.endDate,
+        announceDate: campaigns.announceDate,
+        contentStartDate: campaigns.contentStartDate,
+        contentEndDate: campaigns.contentEndDate,
+        resultDate: campaigns.resultDate,
+        rewardPoint: campaigns.rewardPoint,
+        thumbnailUrl: campaigns.thumbnailUrl,
+        content: campaigns.content,
+        status: campaigns.status,
         createdAt: campaigns.createdAt,
         updatedAt: campaigns.updatedAt
       })
@@ -3571,6 +3582,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         hospitalId: campaigns.hospitalId,
         hospitalName: hospitals.name,
         hospitalSlug: hospitals.slug,
+        // 새로운 필드들 추가
+        startDate: campaigns.startDate,
+        endDate: campaigns.endDate,
+        announceDate: campaigns.announceDate,
+        contentStartDate: campaigns.contentStartDate,
+        contentEndDate: campaigns.contentEndDate,
+        resultDate: campaigns.resultDate,
+        rewardPoint: campaigns.rewardPoint,
+        thumbnailUrl: campaigns.thumbnailUrl,
+        // content는 상세 페이지에서만 제공 (용량 줄이기)
+        status: campaigns.status,
         createdAt: campaigns.createdAt,
         updatedAt: campaigns.updatedAt
       })
@@ -3611,6 +3633,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         hospitalId: campaigns.hospitalId,
         hospitalName: hospitals.name,
         hospitalSlug: hospitals.slug,
+        // 새로운 필드들 추가
+        startDate: campaigns.startDate,
+        endDate: campaigns.endDate,
+        announceDate: campaigns.announceDate,
+        contentStartDate: campaigns.contentStartDate,
+        contentEndDate: campaigns.contentEndDate,
+        resultDate: campaigns.resultDate,
+        rewardPoint: campaigns.rewardPoint,
+        thumbnailUrl: campaigns.thumbnailUrl,
+        content: campaigns.content, // 상세 페이지에서는 콘텐츠 포함
+        status: campaigns.status,
         createdAt: campaigns.createdAt,
         updatedAt: campaigns.updatedAt
       })
