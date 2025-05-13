@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { z } from "zod";
@@ -38,10 +38,39 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { FileUpload } from "@/components/ui/file-upload";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 
 // 캠페인 가져오기 함수
-const getCampaigns = async () => {
-  const response = await apiRequest("/api/admin/campaigns");
+const getCampaigns = async (scope: string, hospitalId?: number) => {
+  let url = "/api/admin/campaigns";
+  
+  if (scope === "hospital" && hospitalId) {
+    url += `?hospitalId=${hospitalId}`;
+  } else if (scope === "hospital") {
+    url += "?onlyHospital=true";
+  } else if (scope === "public") {
+    url += "?onlyPublic=true";
+  }
+  
+  const response = await apiRequest(url);
+  return response.json();
+};
+
+// 병원 목록 가져오기 함수
+const getHospitals = async () => {
+  const response = await apiRequest("/api/hospitals");
   return response.json();
 };
 
@@ -61,6 +90,8 @@ export default function CampaignManagement() {
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+  const [activeScope, setActiveScope] = useState<'all' | 'public' | 'hospital'>('all');
+  const [selectedHospitalId, setSelectedHospitalId] = useState<number | undefined>(undefined);
 
   // 폼 설정
   const form = useForm<z.infer<typeof formSchema>>({
@@ -75,10 +106,16 @@ export default function CampaignManagement() {
     }
   });
 
+  // 병원 데이터 가져오기
+  const { data: hospitals = [] } = useQuery({
+    queryKey: ["/api/hospitals"],
+    queryFn: getHospitals
+  });
+
   // 캠페인 데이터 가져오기
   const { data = [], isLoading } = useQuery<Campaign[]>({
-    queryKey: ["/api/admin/campaigns"],
-    queryFn: getCampaigns
+    queryKey: ["/api/admin/campaigns", activeScope, selectedHospitalId],
+    queryFn: () => getCampaigns(activeScope, selectedHospitalId),
   });
 
   // 배너 이미지 업로드 함수
@@ -246,11 +283,48 @@ export default function CampaignManagement() {
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">캠페인 관리</h2>
-        <Button onClick={() => openModal('create')}>
-          + 새 캠페인 만들기
-        </Button>
+      <div className="flex flex-col gap-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-bold">캠페인 관리</h2>
+          <Button onClick={() => openModal('create')}>
+            + 새 캠페인 만들기
+          </Button>
+        </div>
+        
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Tabs value={activeScope} onValueChange={(value) => {
+            setActiveScope(value as 'all' | 'public' | 'hospital');
+            // 스코프 변경 시 병원 선택 초기화
+            if (value !== 'hospital') {
+              setSelectedHospitalId(undefined);
+            }
+          }} className="w-full sm:w-auto">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="all">전체</TabsTrigger>
+              <TabsTrigger value="public">공개 캠페인</TabsTrigger>
+              <TabsTrigger value="hospital">병원 캠페인</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          
+          {activeScope === 'hospital' && (
+            <Select 
+              value={selectedHospitalId?.toString() || ''} 
+              onValueChange={(value) => setSelectedHospitalId(value ? parseInt(value) : undefined)}
+            >
+              <SelectTrigger className="w-full sm:w-[220px]">
+                <SelectValue placeholder="병원 선택" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">모든 병원</SelectItem>
+                {hospitals.map((hospital: any) => (
+                  <SelectItem key={hospital.id} value={hospital.id.toString()}>
+                    {hospital.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
       </div>
 
       {isLoading ? (
@@ -258,38 +332,46 @@ export default function CampaignManagement() {
           <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
         </div>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>제목</TableHead>
-              <TableHead>슬러그</TableHead>
-              <TableHead>공개</TableHead>
-              <TableHead>표시 순서</TableHead>
-              <TableHead>작업</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.length === 0 ? (
+        <div className="mt-4">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-4">
-                  생성된 캠페인이 없습니다. 새 캠페인을 만들어보세요.
-                </TableCell>
+                <TableHead>제목</TableHead>
+                <TableHead>슬러그</TableHead>
+                {activeScope !== 'public' && <TableHead>병원</TableHead>}
+                <TableHead>공개</TableHead>
+                <TableHead>표시 순서</TableHead>
+                <TableHead>작업</TableHead>
               </TableRow>
-            ) : (
-              data.map((campaign) => (
-                <TableRow key={campaign.id}>
-                  <TableCell>{campaign.title}</TableCell>
-                  <TableCell>{campaign.slug}</TableCell>
-                  <TableCell>{campaign.isPublic ? "공개" : "비공개"}</TableCell>
-                  <TableCell>{campaign.displayOrder || 0}</TableCell>
-                  <TableCell>
-                    <EditButton campaign={campaign} />
+            </TableHeader>
+            <TableBody>
+              {data.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={activeScope !== 'public' ? 6 : 5} className="text-center py-4">
+                    생성된 캠페인이 없습니다. 새 캠페인을 만들어보세요.
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                data.map((campaign) => (
+                  <TableRow key={campaign.id}>
+                    <TableCell>{campaign.title}</TableCell>
+                    <TableCell>{campaign.slug}</TableCell>
+                    {activeScope !== 'public' && (
+                      <TableCell>
+                        {campaign.hospitalName || '일반(공개)'}
+                      </TableCell>
+                    )}
+                    <TableCell>{campaign.isPublic ? "공개" : "비공개"}</TableCell>
+                    <TableCell>{campaign.displayOrder || 0}</TableCell>
+                    <TableCell>
+                      <EditButton campaign={campaign} />
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       )}
 
       {/* 캠페인 생성/수정 대화상자 */}
