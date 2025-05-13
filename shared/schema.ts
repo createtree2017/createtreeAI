@@ -632,12 +632,13 @@ export const campaigns = pgTable("campaigns", {
 export const insertCampaignSchema = createInsertSchema(campaigns, {
   title: (schema) => schema.min(2, "캠페인 제목은 최소 2자 이상이어야 합니다."),
   slug: (schema) => schema.min(2, "슬러그는 최소 2자 이상이어야 합니다."),
-  startDate: (schema) => schema.nullable().optional(),
-  endDate: (schema) => schema.nullable().optional(),
-  announceDate: (schema) => schema.nullable().optional(),
-  contentStartDate: (schema) => schema.nullable().optional(),
-  contentEndDate: (schema) => schema.nullable().optional(),
-  resultDate: (schema) => schema.nullable().optional(),
+  // 날짜 필드를 문자열로 처리하도록 오버라이드
+  startDate: () => z.string().nullable().optional(),
+  endDate: () => z.string().nullable().optional(),
+  announceDate: () => z.string().nullable().optional(),
+  contentStartDate: () => z.string().nullable().optional(),
+  contentEndDate: () => z.string().nullable().optional(),
+  resultDate: () => z.string().nullable().optional(),
   status: (schema) => schema.default("draft")
 });
 export type InsertCampaign = z.infer<typeof insertCampaignSchema>;
