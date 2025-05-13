@@ -366,6 +366,15 @@ function Router() {
         </ProtectedRoute>
       </Route>
       
+      {/* 병원 관리자 전용 캠페인 관리 */}
+      <Route path="/hospital/campaigns">
+        <ProtectedRoute allowedRoles={["hospital_admin", "superadmin"]}>
+          <Layout>
+            <HospitalCampaignsPage />
+          </Layout>
+        </ProtectedRoute>
+      </Route>
+
       {/* 슈퍼관리자 회원 관리 */}
       <Route path="/super/users">
         <ProtectedRoute allowedRoles={["superadmin"]}>
