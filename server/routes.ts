@@ -54,7 +54,6 @@ import {
   banners,
   styleCards,
   serviceCategories,
-  serviceItems,
   favorites,
   savedChats,
   insertConceptSchema,

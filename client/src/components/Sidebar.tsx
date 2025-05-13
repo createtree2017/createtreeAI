@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
+import { getMenu } from '@/lib/apiClient';
 import { 
   Home, 
   Image, 
@@ -22,7 +23,20 @@ import {
 // LogOut 아이콘 개별 임포트
 import { LogOut } from 'lucide-react';
 
-// 메뉴 아이템 타입 정의
+// API에서 반환되는 메뉴 아이템 타입
+interface ApiMenuItem {
+  id: string;
+  title: string;
+  path: string;
+}
+
+// API에서 반환되는 메뉴 카테고리 타입
+interface ApiMenuCategory {
+  title: string;
+  items: ApiMenuItem[];
+}
+
+// 표시용 메뉴 아이템 타입 정의
 interface MenuItem {
   path: string;
   icon: React.ComponentType<any>;
@@ -35,27 +49,20 @@ interface MenuItem {
 interface MenuGroup {
   id: string;
   title: string;
-  categoryId?: string; // optional for non-AI service categories
   items: MenuItem[];
 }
 
 export default function Sidebar({ collapsed = false }) {
   const [location] = useLocation();
-  const { data: serviceCategories } = useQuery({
-    queryKey: ['/api/service-categories'],
-    queryFn: async () => {
-      const response = await fetch('/api/service-categories', {
-        credentials: 'include'
-      });
-      if (!response.ok) {
-        throw new Error('서비스 카테고리를 가져오는 데 실패했습니다.');
-      }
-      return response.json();
-    }
+  
+  // API 메뉴 데이터 가져오기
+  const { data: apiMenu = [], isLoading } = useQuery({
+    queryKey: ['menu'],
+    queryFn: getMenu
   });
   
-  // 메뉴 그룹 정의
-  const groups: MenuGroup[] = [
+  // 정적 메뉴 그룹 정의 (관리자용, 개인용 메뉴 등)
+  const staticGroups: MenuGroup[] = [
     {
       id: 'main',
       title: '메인',
@@ -71,60 +78,6 @@ export default function Sidebar({ collapsed = false }) {
           icon: Award,
           label: '마일스톤',
           ariaLabel: '임신 마일스톤 페이지',
-        },
-      ]
-    },
-    {
-      id: 'imageTools',
-      title: 'AI 이미지 만들기',
-      categoryId: 'image', // 관리자 공개/비공개 관리를 위한 카테고리 ID
-      items: [
-        {
-          path: '/image',
-          icon: ImagePlus,
-          label: '만삭사진만들기',
-          ariaLabel: '만삭사진만들기 페이지',
-          new: true
-        },
-        {
-          path: '/family-photo',
-          icon: Image,
-          label: '가족사진',
-          ariaLabel: '가족사진 생성 페이지',
-          new: true
-        },
-        {
-          path: '/sticker',
-          icon: PaintBucket,
-          label: '스티커만들기',
-          ariaLabel: '스티커 만들기 페이지',
-        },
-      ]
-    },
-    {
-      id: 'musicTools',
-      title: 'AI 노래 만들기',
-      categoryId: 'music', // 관리자 공개/비공개 관리를 위한 카테고리 ID
-      items: [
-        {
-          path: '/music',
-          icon: Music2,
-          label: '아기 주제가 만들기',
-          ariaLabel: '아기 주제가 만들기 페이지',
-          new: true
-        },
-      ]
-    },
-    {
-      id: 'chatTools',
-      title: 'AI 친구 만들기',
-      categoryId: 'chat', // 관리자 공개/비공개 관리를 위한 카테고리 ID
-      items: [
-        {
-          path: '/chat',
-          icon: MessageCircle,
-          label: '컨셉채팅 챗베프티',
-          ariaLabel: '컨셉채팅 챗베프티 페이지',
         },
       ]
     },
@@ -181,39 +134,45 @@ export default function Sidebar({ collapsed = false }) {
     return iconMap[iconName] || Layers; // 기본값으로 Layers 아이콘 사용
   };
   
-  // 카테고리 필터링 및 제목 업데이트
-  const visibleGroups = React.useMemo(() => {
-    return groups.filter(group => {
-      // 카테고리 ID가 없는 그룹은 항상 표시
-      if (!group.categoryId) return true;
+  // API에서 동적으로 받아온 카테고리 그룹 변환
+  const dynamicGroups = React.useMemo(() => {
+    if (!apiMenu || apiMenu.length === 0) return [];
+    
+    // 각 API 카테고리를 MenuGroup 형태로 변환
+    return apiMenu.map((category: ApiMenuCategory, index: number) => {
+      // 카테고리 ID 생성 (고유 식별자)
+      const categoryId = `dynamic-${index}`;
       
-      // 서비스 카테고리 정보가 로드되지 않았으면 모두 표시
-      if (!serviceCategories) return true;
+      // 카테고리 아이템을 MenuItem 형태로 변환
+      const items: MenuItem[] = category.items.map(item => ({
+        path: item.path,
+        icon: getIconByPath(item.path), // 경로 기반으로 적절한 아이콘 할당
+        label: item.title,
+        ariaLabel: `${item.title} 페이지`,
+      }));
       
-      // 해당 카테고리 ID를 가진 서비스 카테고리 찾기
-      const category = serviceCategories.find(
-        (cat: any) => cat.categoryId === group.categoryId
-      );
-      
-      // 카테고리가 없거나 공개 상태인 경우에만 표시
-      return !category || category.isPublic;
-    }).map(group => {
-      // 그룹 객체 복사하여 수정
-      const updatedGroup = { ...group };
-      
-      // 서비스 카테고리 정보가 있을 경우 카테고리 제목 업데이트
-      if (group.categoryId && serviceCategories) {
-        const category = serviceCategories.find(
-          (cat: any) => cat.categoryId === group.categoryId
-        );
-        if (category) {
-          updatedGroup.title = category.title;
-        }
-      }
-      
-      return updatedGroup;
+      return {
+        id: categoryId,
+        title: category.title,
+        items: items
+      };
     });
-  }, [groups, serviceCategories]);
+  }, [apiMenu]);
+  
+  // 경로 기반으로 적절한 아이콘 결정
+  const getIconByPath = (path: string) => {
+    if (path.includes('image')) return ImagePlus;
+    if (path.includes('family')) return Users;
+    if (path.includes('sticker')) return PaintBucket;
+    if (path.includes('music')) return Music2;
+    if (path.includes('chat')) return MessageCircle;
+    return Layers; // 기본 아이콘
+  };
+  
+  // 정적 그룹과 동적 그룹 결합
+  const allGroups = React.useMemo(() => {
+    return [...dynamicGroups, ...staticGroups];
+  }, [dynamicGroups, staticGroups]);
 
   return (
     <aside 
@@ -238,7 +197,7 @@ export default function Sidebar({ collapsed = false }) {
 
       {/* 메뉴 그룹 */}
       <div className="flex-1 flex flex-col gap-5">
-        {visibleGroups.map((group) => (
+        {allGroups.map((group) => (
           <div key={group.id} className={`${collapsed ? "px-1" : "px-2"}`}>
             {!collapsed && (
               <div className="text-xs text-neutral-400 uppercase tracking-wider px-3 mb-2">
