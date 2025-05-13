@@ -88,7 +88,7 @@ export default function CampaignManagement() {
     const formData = new FormData();
     formData.append("file", file);
     
-    const response = await fetch("/api/uploads", {
+    const response = await fetch("/api/admin/upload-thumbnail", {
       method: "POST",
       body: formData
     });
@@ -211,7 +211,7 @@ export default function CampaignManagement() {
   };
 
   // 파일 선택 핸들러
-  const handleFileChange = (file: File | null) => {
+  const handleFileChange = (file: File) => {
     setBannerFile(file);
     
     if (file) {
@@ -353,7 +353,7 @@ export default function CampaignManagement() {
               <div className="space-y-2">
                 <FormLabel>배너 이미지</FormLabel>
                 <FileUpload
-                  onChange={handleFileChange}
+                  onFileSelect={handleFileChange}
                   accept="image/*"
                   maxSize={5 * 1024 * 1024} // 5MB
                 />
