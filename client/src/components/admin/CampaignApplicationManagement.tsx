@@ -58,8 +58,21 @@ export default function CampaignApplicationManagement() {
   } = useQuery<CampaignApplication[]>({
     queryKey: [
       "/api/admin/campaign-applications", 
-      selectedCampaignId !== "all" ? { campaignId: selectedCampaignId } : {}
+      selectedCampaignId
     ],
+    queryFn: async ({ queryKey }) => {
+      const campaignId = queryKey[1];
+      const url = campaignId !== "all" 
+        ? `/api/admin/campaign-applications?campaignId=${campaignId}`
+        : "/api/admin/campaign-applications";
+      
+      const response = await apiRequest(url, { method: "GET" });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "신청자 목록을 불러오는데 실패했습니다.");
+      }
+      return await response.json();
+    }
   });
 
   // 신청 상태 업데이트 mutation

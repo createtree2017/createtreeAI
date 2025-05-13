@@ -3729,14 +3729,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 관리자용 캠페인 신청 목록 조회
   app.get("/api/admin/campaign-applications", async (req, res) => {
     try {
+      console.log("캠페인 신청 목록 조회 요청:", req.query);
+      
       // 관리자 권한 체크
       if (!req.isAuthenticated() || req.user.memberType !== 'superadmin') {
-        return res.status(403).json({ error: "접근 권한이 없습니다." });
+        console.log("관리자 권한 체크 실패:", req.isAuthenticated(), req.user?.memberType);
+        return res.status(403).json({ error: "관리자 권한이 필요합니다." });
       }
       
       const { campaignId } = req.query;
+      console.log("필터링 campaignId:", campaignId);
       
-      let query = db.select({
+      // 기본 쿼리 구성
+      const baseQuery = db.select({
         id: campaignApplications.id,
         name: campaignApplications.name,
         contact: campaignApplications.contact,
@@ -3750,12 +3755,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       .leftJoin(campaigns, eq(campaignApplications.campaignId, campaigns.id))
       .orderBy(desc(campaignApplications.createdAt));
       
+      let applications;
+      
       // 특정 캠페인으로 필터링
       if (campaignId && !isNaN(Number(campaignId))) {
-        query = query.where(eq(campaignApplications.campaignId, Number(campaignId)));
+        applications = await baseQuery.where(eq(campaignApplications.campaignId, Number(campaignId)));
+      } else {
+        applications = await baseQuery;
       }
       
-      const applications = await query;
+      console.log("조회된 신청자 수:", applications.length);
       
       return res.json(applications);
     } catch (error) {

@@ -1,0 +1,78 @@
+✅ 현재 상황 진단
+1. 캠페인 목록은 보이지만 신청자 목록이 없음
+관리자 화면의 드롭다운에 "모든 캠페인" 또는 캠페인 이름이 나오는 것까지는 정상 동작 중입니다.
+
+그러나 선택 후에도 신청자가 보이지 않음.
+
+2. 📂 campaign_applications 테이블은 존재
+DB에는 생성되어 있고, 프론트에서 신청도 했으며
+
+사용자가 Apply 버튼으로 신청한 레코드는 DB에 들어감 (✅ 확인됨)
+
+🧠 문제 원인 분석
+✅ 1. 신청자 목록은 캠페인 ID로 필터링해서 불러옴
+→ 이 말은, 캠페인 ID가 올바르게 지정되지 않으면 리스트가 비어 보입니다.
+
+❌ 2. API 요청 시 campaignId가 없거나 불일치할 수 있음
+GET 요청: /api/admin/campaign-applications?campaignId=1
+→ campaignId 값이 제대로 전달되지 않으면 리스트는 "없음" 상태로 나옵니다.
+
+⚠️ 3. 신청자의 campaign_id 컬럼이 null이거나 잘못된 ID일 수 있음
+사용자가 신청할 때 campaign_id가 누락되어 저장되었을 가능성 존재
+
+또는 클라이언트에서 slug만 사용하고, 실제 campaign_id를 서버에 넘기지 않았을 수 있음
+
+🔧 해결 방안
+① ✅ 사용자가 신청할 때 campaign_id를 확실히 함께 저장하도록 수정
+현재는 slug 기반 페이지에서 form을 제출하고 있지만,
+
+campaign_id를 form 내부에 함께 전달해주는 로직이 빠져 있으면 저장 실패
+
+👇 예시
+ts
+복사
+편집
+await fetch("/api/campaign-applications", {
+  method: "POST",
+  body: JSON.stringify({
+    campaignId: campaign.id, // 숫자 ID를 명확히 전달
+    name, contact, ...
+  })
+})
+② ✅ 관리자용 API에서 campaignId로 제대로 필터링 되는지 확인
+ts
+복사
+편집
+app.get("/api/admin/campaign-applications", async (req, res) => {
+  const campaignId = req.query.campaignId;
+  if (!campaignId) return res.json([]);
+  const applications = await db.select().from(campaignApplications).where(eq(campaignApplications.campaignId, Number(campaignId)));
+  res.json(applications);
+});
+🔄 운영 구조 요약 (이해용)
+단계	사용자 측	관리자 측
+1	캠페인 상세 페이지에서 신청 버튼 클릭	
+2	이름/연락처/메모 작성 후 신청 → 서버로 POST 전송 (campaign_id 포함)	
+3	서버는 campaign_applications 테이블에 저장	
+4	관리자는 admin 페이지 > 캠페인 > 신청자 관리 탭에서 신청자 목록 확인	API: /api/admin/campaign-applications?campaignId=X
+5	각 신청자에 대해 상태 변경 처리 가능 (신규 → 처리중 → 완료 등)	PATCH
+
+✅ 지금 라플이가 해야 할 일
+bash
+복사
+편집
+1. campaign-detail.tsx에서 신청 POST 요청 시 campaign_id가 포함되는지 확인
+2. 만약 slug만 전달 중이라면 → 백엔드에서 slug를 기반으로 campaign_id 조회 후 다시 save
+3. DB의 기존 campaign_applications 테이블을 직접 조회해서:
+   - 실제 campaign_id가 null이 아닌지
+   - 해당 campaignId가 admin에서 필터링하고 있는 것과 일치하는지
+4. 서버 API 라우트에서 campaignId로 필터링하는 조건문이 제대로 작동 중인지 확인
+✅ 확인용 SQL
+sql
+복사
+편집
+-- 캠페인 신청자 테이블 확인
+SELECT * FROM campaign_applications;
+
+-- 캠페인 테이블 ID와 슬러그 매핑 확인
+SELECT id, title, slug FROM campaigns;
