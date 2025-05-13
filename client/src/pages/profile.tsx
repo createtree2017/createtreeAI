@@ -1,10 +1,63 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { Settings, User as UserIcon, Calendar, Hospital, Download } from "lucide-react";
+import { Settings, User as UserIcon, Calendar, Hospital, Download, Building2 } from "lucide-react";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+
+// 역할 및 멤버 타입 한글 맵핑
+const MEMBER_TYPE_MAP: Record<string, string> = {
+  'superadmin': '슈퍼관리자',
+  'hospital_admin': '병원 관리자',
+  'admin': '관리자',
+  'user': '일반 사용자'
+};
+
+// 날짜 포맷팅 함수
+const formatDate = (dateStr?: string | Date | null) => {
+  if (!dateStr) return '설정되지 않음';
+  const date = new Date(dateStr);
+  // 유효한 날짜인지 확인
+  if (isNaN(date.getTime())) return '설정되지 않음';
+  return date.toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).replace(/\.\s/g, '.'); // "2025.06.01" 형식으로 변환
+};
+
+// 병원 정보 인터페이스
+interface Hospital {
+  id: number;
+  name: string;
+  slug: string | null;
+  description: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  address: string | null;
+  contractStartDate: Date | null;
+  contractEndDate: Date | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+}
 
 export default function Profile() {
   const { user } = useAuth();
+  
+  // 병원 관리자인 경우 병원 정보 가져오기
+  const { data: hospital, isLoading: isLoadingHospital } = useQuery<Hospital>({
+    queryKey: [`/api/hospitals/${user?.hospitalId}`],
+    queryFn: async () => {
+      if (!user?.hospitalId) return null;
+      const response = await fetch(`/api/hospitals/${user.hospitalId}`, {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('병원 정보를 가져오는데 실패했습니다.');
+      }
+      return response.json();
+    },
+    enabled: !!user?.hospitalId,
+  });
 
   return (
     <div className="p-5 animate-fadeIn">
@@ -28,22 +81,36 @@ export default function Profile() {
               <div className="flex items-center gap-2">
                 <UserIcon className="w-4 h-4 text-primary" />
                 <span className="text-sm font-medium text-neutral-dark">계정 유형:</span>
-                <span className="text-sm">{user?.memberType || "일반 사용자"}</span>
+                <span className="text-sm">{user?.memberType ? MEMBER_TYPE_MAP[user.memberType] || user.memberType : "일반 사용자"}</span>
               </div>
               
               {user?.hospitalId && (
-                <div className="flex items-center gap-2">
-                  <Hospital className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-medium text-neutral-dark">소속 병원:</span>
-                  <span className="text-sm">병원 ID {user.hospitalId}</span>
-                </div>
+                <>
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium text-neutral-dark">소속 병원:</span>
+                    <span className="text-sm">
+                      {isLoadingHospital ? "로딩 중..." : (hospital?.name || `병원 ID ${user.hospitalId}`)}
+                    </span>
+                  </div>
+                  
+                  {hospital?.contractStartDate && (
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-medium text-neutral-dark">계약 기간:</span>
+                      <span className="text-sm">
+                        {formatDate(hospital.contractStartDate)} ~ {formatDate(hospital.contractEndDate)}
+                      </span>
+                    </div>
+                  )}
+                </>
               )}
               
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-primary" />
                 <span className="text-sm font-medium text-neutral-dark">가입일:</span>
                 <span className="text-sm">
-                  {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "정보 없음"}
+                  {user?.createdAt ? formatDate(user.createdAt) : "정보 없음"}
                 </span>
               </div>
             </div>

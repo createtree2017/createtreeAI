@@ -3566,6 +3566,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // 병원 관리자 전용 캠페인 API
+  // 병원 정보 조회 API
+  app.get("/api/hospitals/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "로그인이 필요합니다." });
+      }
+
+      const user = req.user;
+      const hospitalId = parseInt(req.params.id, 10);
+      
+      // 권한 체크: 해당 병원 관리자 또는 슈퍼 관리자만 접근 가능
+      if (user.memberType !== 'superadmin' && (user.memberType !== 'hospital_admin' || user.hospitalId !== hospitalId)) {
+        return res.status(403).json({ error: "접근 권한이 없습니다." });
+      }
+      
+      console.log(`병원 정보 조회 - 병원 ID: ${hospitalId}`);
+      
+      const hospital = await db.query.hospitals.findFirst({
+        where: eq(hospitals.id, hospitalId)
+      });
+      
+      if (!hospital) {
+        return res.status(404).json({ error: "병원을 찾을 수 없습니다." });
+      }
+      
+      res.json(hospital);
+    } catch (error) {
+      console.error("병원 정보 조회 오류:", error);
+      res.status(500).json({ error: "병원 정보를 가져오는데 실패했습니다." });
+    }
+  });
+  
   app.get("/api/hospital/campaigns", async (req, res) => {
     try {
       // 권한 체크

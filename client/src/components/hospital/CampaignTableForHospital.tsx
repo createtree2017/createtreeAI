@@ -112,6 +112,12 @@ export default function CampaignTableForHospital() {
     window.location.href = `/campaigns/${slug}`;
   };
 
+  // 디버깅 로그 - 문제 확인용
+  console.log(`현재 탭: ${activeStatus}, 데이터 개수: ${data.length}`);
+  data.forEach((campaign, index) => {
+    console.log(`캠페인 ${index+1}: ID=${campaign.id}, 제목=${campaign.title}, 상태=${campaign.status}`);
+  });
+
   return (
     <div className="p-6">
       <div className="flex flex-col gap-4">
@@ -126,6 +132,7 @@ export default function CampaignTableForHospital() {
         
         <div className="flex flex-col sm:flex-row gap-4">
           <Tabs value={activeStatus} onValueChange={(value) => {
+            console.log(`탭 변경: ${value}`);
             setActiveStatus(value);
           }} className="w-full sm:w-auto">
             <TabsList className="grid w-full grid-cols-4">
