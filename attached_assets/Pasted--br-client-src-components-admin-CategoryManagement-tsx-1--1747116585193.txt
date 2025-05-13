@@ -1,0 +1,105 @@
+― 현 상황 진단
+체크 포인트	현 증상	원인 후보
+프론트<br/>client/src/components/admin/CategoryManagement.tsx	리스트가 비어 있음	1) React‑Query queryKey → /api/admin/service‑categories 와 불일치<br/>2) API 호출 함수가 POST 나 잘못된 base‑URL 을 사용
+백엔드<br/>server/routes.ts 및 server/controllers/serviceCategories.ts	404 또는 빈 배열 반환	1) GET /api/admin/service‑categories 라우터 누락<br/>2) DB seed 데이터가 없음
+DB<br/>service_categories 테이블	레코드 0 건	초기 카테고리를 INSERT 하지 않음
+
+1️⃣ 백엔드부터 확실히 살리기
+ts
+복사
+편집
+// server/routes.ts (일부)
+import { getAdminServiceCategories } from "./controllers/serviceCategories";
+
+router.get("/api/admin/service-categories", getAdminServiceCategories);
+ts
+복사
+편집
+// server/controllers/serviceCategories.ts
+import { db } from "@/db";
+import { serviceCategories } from "@/db/schema";
+
+export async function getAdminServiceCategories(_, res) {
+  const rows = await db
+    .select()
+    .from(serviceCategories)
+    .orderBy(serviceCategories.order.asc());
+  res.json(rows);
+}
+🔑 실행 후: curl http://localhost:5000/api/admin/service-categories 가 JSON 배열을 돌려주면 OK.
+
+seed 가 없다면
+ts
+복사
+편집
+// scripts/seedServiceCategories.ts
+import { db } from "@/db";
+import { serviceCategories } from "@/db/schema";
+
+await db
+  .insert(serviceCategories)
+  .values([
+    { id: 1, name: "AI 이미지 만들기", icon: "💡", order: 1, isPublic: true },
+    { id: 2, name: "만삭사진 만들기",  icon: "🤰", order: 2, isPublic: true },
+    { id: 3, name: "가족사진",        icon: "👨‍👩‍👧", order: 3, isPublic: true },
+    { id: 4, name: "스티커 만들기",    icon: "🎀", order: 4, isPublic: true },
+  ])
+  .onConflictDoNothing();
+console.log("✅ service_categories seed 완료");
+process.exit(0);
+bash
+복사
+편집
+npx ts-node scripts/seedServiceCategories.ts
+2️⃣ 프론트 – API 경로 & 캐시 key 통일
+client/src/lib/apiClient.ts
+
+ts
+복사
+편집
+export const getServiceCategories = () =>
+  getApi("/api/admin/service-categories");   // ← 반드시 admin prefix
+client/src/components/admin/CategoryManagement.tsx
+
+tsx
+복사
+편집
+const queryKey = ["/api/admin/service-categories"]; // ← 여기와…
+
+const { data: categories = [] } = useQuery({
+  queryKey,
+  queryFn: api.getServiceCategories,
+});
+
+const mutation = useMutation(api.createServiceCategory, {
+  onSuccess: () => queryClient.invalidateQueries(queryKey), // ← …여기를 동일하게
+});
+⚠️ queryClient.invalidateQueries("/") 처럼 루트 경로를 쓰면 캐시가 맞지 않아 다시 안 불러옵니다.
+
+3️⃣ 사이드바에 바로 반영
+client/src/components/layout/Sidebar.tsx (혹은 유사 파일)
+React‑Query useQuery(['service-categories'], api.getServiceCategories) 로 동일한 엔드포인트 사용.
+
+tsx
+복사
+편집
+<ul>
+  {categories.map((c) => (
+    <li key={c.id}>
+      <Icon name={c.icon} />
+      {c.name}
+    </li>
+  ))}
+</ul>
+4️⃣ 로컬 테스트 순서
+DB 마이그레이션
+
+bash
+복사
+편집
+npm run db:push        # Drizzle‑ORM
+node scripts/seedServiceCategories.ts
+서버 재시작 (npm run dev or Replit 버튼)
+
+브라우저 새로고침 →
+/admin → UI 컨텐츠 관리 → 카테고리 에 초기 4 건이 보여야 함.
