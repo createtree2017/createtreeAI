@@ -7,6 +7,19 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Campaign, InsertCampaign } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
+// 날짜 포맷팅 유틸리티 함수
+const formatDate = (dateStr?: string | null) => {
+  if (!dateStr) return '미설정';
+  const date = new Date(dateStr);
+  // 유효한 날짜인지 확인
+  if (isNaN(date.getTime())) return '미설정';
+  return date.toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).replace(/\.\s/g, '.'); // "2025.06.01" 형식으로 변환
+};
+
 // 임시 인터페이스 - 백엔드에서 확장 데이터를 위해
 interface ExtendedCampaign {
   id: number;
@@ -484,14 +497,7 @@ export default function CampaignManagement() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      {campaign.startDate ? (
-                        <div className="text-xs">
-                          <div>{new Date(campaign.startDate).toLocaleDateString()}</div>
-                          {campaign.endDate && <div>~ {new Date(campaign.endDate).toLocaleDateString()}</div>}
-                        </div>
-                      ) : (
-                        <span className="text-gray-400">미설정</span>
-                      )}
+                      {formatDate(campaign.startDate)} ~ {formatDate(campaign.endDate)}
                     </TableCell>
                     <TableCell>{campaign.isPublic ? "공개" : "비공개"}</TableCell>
                     <TableCell>{campaign.rewardPoint || 0}</TableCell>
