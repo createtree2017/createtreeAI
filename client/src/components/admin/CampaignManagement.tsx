@@ -85,9 +85,20 @@ const formSchema = z.object({
   slug: z.string().min(2, "슬러그는 최소 2자 이상이어야 합니다.").regex(/^[a-z0-9-]+$/, "슬러그는 소문자, 숫자, 하이픈(-)만 사용 가능합니다."),
   description: z.string().optional(),
   bannerImage: z.string().optional(),
+  thumbnailUrl: z.string().optional(),
+  content: z.string().optional(),
   isPublic: z.boolean().default(true),
   displayOrder: z.number().int().default(0),
-  hospitalId: z.number().optional().nullable()
+  hospitalId: z.number().optional().nullable(),
+  // 새로운 필드들 추가
+  startDate: z.string().optional().nullable(),
+  endDate: z.string().optional().nullable(),
+  announceDate: z.string().optional().nullable(),
+  contentStartDate: z.string().optional().nullable(),
+  contentEndDate: z.string().optional().nullable(),
+  resultDate: z.string().optional().nullable(),
+  rewardPoint: z.number().int().default(0).nullable(),
+  status: z.string().default('draft')
 });
 
 export default function CampaignManagement() {
@@ -107,9 +118,20 @@ export default function CampaignManagement() {
       slug: "",
       description: "",
       bannerImage: "",
+      thumbnailUrl: "",
+      content: "",
       isPublic: true,
       displayOrder: 0,
-      hospitalId: null
+      hospitalId: null,
+      // 새로운 필드들 기본값
+      startDate: null,
+      endDate: null,
+      announceDate: null,
+      contentStartDate: null,
+      contentEndDate: null,
+      resultDate: null,
+      rewardPoint: 0,
+      status: 'draft'
     }
   });
 
@@ -236,9 +258,20 @@ export default function CampaignManagement() {
         slug: campaign.slug,
         description: campaign.description || "",
         bannerImage: campaign.bannerImage || "",
+        thumbnailUrl: campaign.thumbnailUrl || "",
+        content: campaign.content || "",
         isPublic: Boolean(campaign.isPublic),
         displayOrder: campaign.displayOrder || 0,
-        hospitalId: campaign.hospitalId
+        hospitalId: campaign.hospitalId,
+        // 새로운 필드들 설정 - DB에서 ISO 문자열로 받기 때문에 타입을 맞춰준다
+        startDate: typeof campaign.startDate === 'string' ? campaign.startDate : null,
+        endDate: typeof campaign.endDate === 'string' ? campaign.endDate : null,
+        announceDate: typeof campaign.announceDate === 'string' ? campaign.announceDate : null,
+        contentStartDate: typeof campaign.contentStartDate === 'string' ? campaign.contentStartDate : null,
+        contentEndDate: typeof campaign.contentEndDate === 'string' ? campaign.contentEndDate : null,
+        resultDate: typeof campaign.resultDate === 'string' ? campaign.resultDate : null,
+        rewardPoint: campaign.rewardPoint || 0,
+        status: campaign.status || 'draft'
       });
       
       // 배너 이미지 미리보기 설정
@@ -254,9 +287,19 @@ export default function CampaignManagement() {
         slug: "",
         description: "",
         bannerImage: "",
+        thumbnailUrl: "",
+        content: "",
         isPublic: true,
         displayOrder: 0,
-        hospitalId: null
+        hospitalId: null,
+        startDate: null,
+        endDate: null,
+        announceDate: null,
+        contentStartDate: null,
+        contentEndDate: null,
+        resultDate: null,
+        rewardPoint: 0,
+        status: 'draft'
       });
       setBannerPreview(null);
     }
@@ -543,6 +586,228 @@ export default function CampaignManagement() {
                     </Select>
                     <FormDescription>
                       캠페인을 특정 병원에 연결하려면 병원을 선택하세요. 선택하지 않으면 공개 캠페인이 됩니다.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* 상태 선택 필드 */}
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>상태</FormLabel>
+                    <Select 
+                      value={field.value} 
+                      onValueChange={field.onChange}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="캠페인 상태 선택" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="draft">초안</SelectItem>
+                        <SelectItem value="active">활성화</SelectItem>
+                        <SelectItem value="closed">마감</SelectItem>
+                        <SelectItem value="completed">완료</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      캠페인의 현재 상태를 선택하세요.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* 날짜 필드들 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="startDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>시작일</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="date"
+                          value={field.value || ""}
+                          onChange={(e) => field.onChange(e.target.value || null)}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        캠페인 시작 날짜
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="endDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>종료일</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="date"
+                          value={field.value || ""}
+                          onChange={(e) => field.onChange(e.target.value || null)}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        캠페인 종료 날짜
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="announceDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>발표일</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="date"
+                          value={field.value || ""}
+                          onChange={(e) => field.onChange(e.target.value || null)}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        당첨자 발표 날짜
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="resultDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>결과 게시일</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="date"
+                          value={field.value || ""}
+                          onChange={(e) => field.onChange(e.target.value || null)}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        결과 게시 날짜
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="contentStartDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>컨텐츠 시작일</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="date"
+                          value={field.value || ""}
+                          onChange={(e) => field.onChange(e.target.value || null)}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        컨텐츠 제공 시작 날짜
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="contentEndDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>컨텐츠 종료일</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="date"
+                          value={field.value || ""}
+                          onChange={(e) => field.onChange(e.target.value || null)}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        컨텐츠 제공 종료 날짜
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              {/* 보상 포인트 */}
+              <FormField
+                control={form.control}
+                name="rewardPoint"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>보상 포인트</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        {...field}
+                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      참여자에게 지급될 포인트 (0: 보상 없음)
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* 컨텐츠 필드 - 리치 에디터로 대체 가능 */}
+              <FormField
+                control={form.control}
+                name="content"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>컨텐츠</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="캠페인 상세 내용을 입력하세요"
+                        className="min-h-[200px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      캠페인 상세 페이지에 표시될 내용
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* 썸네일 URL 필드 */}
+              <FormField
+                control={form.control}
+                name="thumbnailUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>썸네일 URL (선택사항)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://example.com/image.jpg" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      캠페인 목록에 표시될 작은 썸네일 이미지 URL
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
