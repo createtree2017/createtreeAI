@@ -1,0 +1,64 @@
+🕵️ 빠르게 “왜 아직도 빈 화면인가?” 체크‑리스트
+체크	가장 흔한 원인	1분‑테스트 방법	예상 결과
+1	API 경로 미연결 (app.ts에 라우터 안 붙음)	브라우저 network → GET /api/admin/service-categories	404 또는 ERR → app.use('/api/admin', adminRouter) 누락
+2	쿼리 성공 but 빈 배열	dev 콘솔에서 fetch('/api/admin/service-categories').then(r=>r.json())	[] → DB에 row가 없다
+3	401 Unauthorized	응답 status 401	Next‑auth/Firebase 세션 안 붙음; dev모드 쿠키 sameSite 설정 확인
+4	React‑Query 캐시 key 불일치	Network 응답 200인데 화면은 없음	queryKey ['/api/service-categories'] 와 invalidateQueries key 달라 cache stale
+
+1️⃣ API 라우터 연결 먼저 확인
+ts
+복사
+편집
+// server/index.ts  (or app.ts)
+import adminRouter from './routes/admin';
+
+app.use('/api/admin', adminRouter);   // ← 이 줄 필수
+curl http://localhost:5000/api/admin/service-categories 가 200 JSON 인지 즉시 확인하세요.
+
+2️⃣ DB 에 진짜 데이터가 있나?
+bash
+복사
+편집
+# Replit console
+psql $DATABASE_URL -c "select * from service_categories;"
+→ 0 row 면 화면에 아무것도 못 뿌립니다.
+seed 스크립트 (아래) 한 번만 돌리세요.
+
+ts
+복사
+편집
+// scripts/seedServiceCategories.ts
+import { db } from "@/db";
+import { serviceCategories } from "@/db/schema";
+
+await db.insert(serviceCategories).values([
+  { id: 1, name: "AI 이미지 만들기", icon: "💡", order: 1, isPublic: true },
+  { id: 2, name: "만삭사진 만들기",  icon: "🤰", order: 2, isPublic: true },
+  { id: 3, name: "가족사진",        icon: "👨‍👩‍👧", order: 3, isPublic: true },
+  { id: 4, name: "스티커 만들기",    icon: "🎀", order: 4, isPublic: true },
+]).onConflictDoNothing();
+console.log('✅ seed 완료'); process.exit(0);
+bash
+복사
+편집
+npx ts-node scripts/seedServiceCategories.ts
+3️⃣ 프론트 쪽 Key & fetcher 통일
+tsx
+복사
+편집
+// client/src/lib/api.ts
+export const getServiceCategories = () =>
+  apiClient.get('/api/admin/service-categories').then(r => r.data);
+
+// client/src/components/admin/CategoryManagement.tsx
+const queryKey = ['admin-service-categories'];
+
+const { data = [] } = useQuery({ queryKey, queryFn: api.getServiceCategories });
+
+const mutation = useMutation(api.createServiceCategory, {
+  onSuccess: () => queryClient.invalidateQueries(queryKey),
+});
+4️⃣ 세션 쿠키 문제면?
+Replit preview 탭은 sub‑domain 이 다릅니다 → sameSite: 'none', secure: true 로 쿠키 설정
+
+dev 모드일 땐 credentials: 'include' 로 fetch
