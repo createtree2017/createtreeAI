@@ -3666,45 +3666,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // 관리자: 캠페인 신청 상태 업데이트
-  app.patch("/api/admin/campaign-applications/:id", async (req, res) => {
-    try {
-      // 관리자 권한 체크
-      if (!req.isAuthenticated() || (req.user.memberType !== 'admin' && req.user.memberType !== 'superadmin')) {
-        return res.status(403).json({ error: "관리자 권한이 필요합니다." });
-      }
-      
-      const applicationId = Number(req.params.id);
-      const { status } = req.body;
-      
-      // 상태값 검증
-      if (!["new", "processing", "done"].includes(status)) {
-        return res.status(400).json({ error: "유효하지 않은 상태값입니다." });
-      }
-      
-      // 신청 상태 업데이트
-      const [updatedApplication] = await db
-        .update(campaignApplications)
-        .set({ 
-          status,
-          updatedAt: new Date()
-        })
-        .where(eq(campaignApplications.id, applicationId))
-        .returning();
-      
-      if (!updatedApplication) {
-        return res.status(404).json({ error: "해당 신청 정보를 찾을 수 없습니다." });
-      }
-      
-      return res.json({
-        message: "신청 상태가 업데이트되었습니다.",
-        application: updatedApplication
-      });
-    } catch (error) {
-      console.error("Error updating campaign application status:", error);
-      return res.status(500).json({ error: "신청 상태 업데이트 중 오류가 발생했습니다." });
-    }
-  });
+  // 이전 중복 캠페인 신청 상태 업데이트 API 제거됨
+  // 최신 병원 스코프 지원 코드는 아래쪽에 있습니다.
 
   // 캠페인 신청 등록
   app.post("/api/campaign-applications", async (req, res) => {
@@ -3765,17 +3728,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("캠페인 신청 목록 조회 요청:", req.query);
       
-      // 관리자 권한 체크
-      if (!req.isAuthenticated() || req.user.memberType !== 'superadmin') {
-        console.log("관리자 권한 체크 실패:", req.isAuthenticated(), req.user?.memberType);
+      // 인증 체크
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "로그인이 필요합니다." });
+      }
+      
+      const user = req.user;
+      
+      // 권한에 따라 접근 제어
+      if (user.memberType !== 'superadmin' && user.memberType !== 'hospital_admin') {
+        console.log("관리자 권한 체크 실패:", user.memberType);
         return res.status(403).json({ error: "관리자 권한이 필요합니다." });
       }
       
-      const { campaignId } = req.query;
-      console.log("필터링 campaignId:", campaignId);
+      const { campaignId, hospitalId, hospitalSlug } = req.query;
+      console.log("필터링 - campaignId:", campaignId, "hospitalId:", hospitalId, "hospitalSlug:", hospitalSlug);
       
       // 기본 쿼리 구성
-      const baseQuery = db.select({
+      let baseQuery = db.select({
         id: campaignApplications.id,
         name: campaignApplications.name,
         contact: campaignApplications.contact,
@@ -3783,15 +3753,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: campaignApplications.status,
         createdAt: campaignApplications.createdAt,
         campaignId: campaignApplications.campaignId,
-        campaignTitle: campaigns.title
+        campaignTitle: campaigns.title,
+        hospitalId: campaigns.hospitalId,
+        hospitalName: hospitals.name,
+        hospitalSlug: hospitals.slug
       })
       .from(campaignApplications)
       .leftJoin(campaigns, eq(campaignApplications.campaignId, campaigns.id))
+      .leftJoin(hospitals, eq(campaigns.hospitalId, hospitals.id))
       .orderBy(desc(campaignApplications.createdAt));
+      
+      // 권한에 따른 필터링
+      if (user.memberType === 'hospital_admin') {
+        if (!user.hospitalId) {
+          return res.status(403).json({ error: "병원 관리자 설정이 올바르지 않습니다." });
+        }
+        // 병원 관리자는 자신의 병원 캠페인 신청만 볼 수 있음
+        baseQuery = baseQuery.where(eq(campaigns.hospitalId, user.hospitalId));
+      } else if (hospitalId && !isNaN(Number(hospitalId))) {
+        // 슈퍼어드민이 특정 병원의 캠페인 신청을 필터링
+        baseQuery = baseQuery.where(eq(campaigns.hospitalId, Number(hospitalId)));
+      } else if (hospitalSlug) {
+        // 슈퍼어드민이 슬러그로 특정 병원의 캠페인 신청을 필터링
+        baseQuery = baseQuery.where(eq(hospitals.slug, hospitalSlug as string));
+      }
       
       let applications;
       
-      // 특정 캠페인으로 필터링
+      // 특정 캠페인으로 필터링 (추가 옵션)
       if (campaignId && !isNaN(Number(campaignId))) {
         applications = await baseQuery.where(eq(campaignApplications.campaignId, Number(campaignId)));
       } else {
@@ -3810,9 +3799,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 관리자용 캠페인 신청 상태 업데이트
   app.patch("/api/admin/campaign-applications/:id", async (req, res) => {
     try {
-      // 관리자 권한 체크
-      if (!req.isAuthenticated() || req.user.memberType !== 'superadmin') {
-        return res.status(403).json({ error: "접근 권한이 없습니다." });
+      // 인증 체크
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "로그인이 필요합니다." });
+      }
+      
+      const user = req.user;
+      
+      // 권한에 따라 접근 제어
+      if (user.memberType !== 'superadmin' && user.memberType !== 'hospital_admin') {
+        return res.status(403).json({ error: "관리자 권한이 필요합니다." });
       }
       
       const { id } = req.params;
@@ -3820,6 +3816,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!status || !['new', 'processing', 'completed'].includes(status)) {
         return res.status(400).json({ error: "유효하지 않은 상태값입니다." });
+      }
+      
+      // 신청서 정보 조회
+      const application = await db.query.campaignApplications.findFirst({
+        where: eq(campaignApplications.id, Number(id)),
+        with: {
+          campaign: {
+            columns: {
+              id: true,
+              hospitalId: true
+            }
+          }
+        }
+      });
+      
+      if (!application) {
+        return res.status(404).json({ error: "해당 신청서를 찾을 수 없습니다." });
+      }
+      
+      // 병원 관리자는 자신의 병원 캠페인 신청만 수정 가능
+      if (user.memberType === 'hospital_admin' && application?.campaign) {
+        if (user.hospitalId !== application.campaign.hospitalId) {
+          return res.status(403).json({ error: "다른 병원의 캠페인 신청은 수정할 수 없습니다." });
+        }
       }
       
       const [updatedApplication] = await db.update(campaignApplications)
