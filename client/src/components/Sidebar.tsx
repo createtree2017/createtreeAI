@@ -25,14 +25,17 @@ import { LogOut } from 'lucide-react';
 
 // API에서 반환되는 메뉴 아이템 타입
 interface ApiMenuItem {
-  id: string;
+  id: number;
   title: string;
   path: string;
+  iconName: string;  // 아이콘 이름 필드 추가
 }
 
 // API에서 반환되는 메뉴 카테고리 타입
 interface ApiMenuCategory {
+  id: number;
   title: string;
+  icon: string;    // 카테고리 아이콘 필드
   items: ApiMenuItem[];
 }
 
@@ -113,6 +116,16 @@ export default function Sidebar({ collapsed = false }) {
     }
   ];
   
+  // 경로 기반으로 적절한 아이콘 결정
+  const getIconByPath = (path: string) => {
+    if (path.includes('image')) return ImagePlus;
+    if (path.includes('family')) return Users;
+    if (path.includes('sticker')) return PaintBucket;
+    if (path.includes('music')) return Music2;
+    if (path.includes('chat')) return MessageCircle;
+    return Layers; // 기본 아이콘
+  };
+  
   // 아이콘 컴포넌트 맵핑 함수
   const getIconComponent = (iconName: string) => {
     const iconMap: {[key: string]: React.ComponentType<any>} = {
@@ -128,7 +141,12 @@ export default function Sidebar({ collapsed = false }) {
       'award': Award,
       'settings': Settings,
       'image-plus': ImagePlus,
-      'paint-bucket': PaintBucket
+      'paint-bucket': PaintBucket,
+      'baby': ImagePlus,
+      'users': Users,
+      'sticker': PaintBucket,
+      'heart-pulse': Heart,
+      'stethoscope': MessageSquare
     };
     
     return iconMap[iconName] || Layers; // 기본값으로 Layers 아이콘 사용
@@ -144,12 +162,15 @@ export default function Sidebar({ collapsed = false }) {
       const categoryId = `dynamic-${index}`;
       
       // 카테고리 아이템을 MenuItem 형태로 변환
-      const items: MenuItem[] = category.items.map(item => ({
-        path: item.path,
-        icon: getIconByPath(item.path), // 경로 기반으로 적절한 아이콘 할당
-        label: item.title,
-        ariaLabel: `${item.title} 페이지`,
-      }));
+      const items: MenuItem[] = category.items.map(item => {
+        console.log('아이템 디버깅:', item);
+        return {
+          path: item.path,
+          icon: item.iconName ? getIconComponent(item.iconName) : getIconByPath(item.path),  // 아이콘 이름이 있으면 사용, 아니면 경로로 추정
+          label: item.title,
+          ariaLabel: `${item.title} 페이지`,
+        };
+      });
       
       return {
         id: categoryId,
@@ -158,16 +179,6 @@ export default function Sidebar({ collapsed = false }) {
       };
     });
   }, [apiMenu]);
-  
-  // 경로 기반으로 적절한 아이콘 결정
-  const getIconByPath = (path: string) => {
-    if (path.includes('image')) return ImagePlus;
-    if (path.includes('family')) return Users;
-    if (path.includes('sticker')) return PaintBucket;
-    if (path.includes('music')) return Music2;
-    if (path.includes('chat')) return MessageCircle;
-    return Layers; // 기본 아이콘
-  };
   
   // 정적 그룹과 동적 그룹 결합
   const allGroups = React.useMemo(() => {
