@@ -190,7 +190,7 @@ export default function ServiceItemManagement() {
         <TableCell>{item.order}</TableCell>
         <TableCell>
           {item.category ? item.category.title : (
-            categories?.find(c => c.id === item.categoryId)?.title || `카테고리 ID: ${item.categoryId}`
+            categories?.find((c: any) => c.id === item.categoryId)?.title || `카테고리 ID: ${item.categoryId}`
           )}
         </TableCell>
         <TableCell>
@@ -233,7 +233,7 @@ export default function ServiceItemManagement() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="0">모든 카테고리</SelectItem>
-                {categories?.map((category: any) => (
+                {categories?.map((category) => (
                   <SelectItem key={category.id} value={String(category.id)}>
                     {category.title}
                   </SelectItem>

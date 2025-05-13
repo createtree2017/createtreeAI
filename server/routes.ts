@@ -2644,6 +2644,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const itemData = insertServiceItemSchema.parse(req.body);
       
+      // 중복 itemId 체크
+      const existingItemId = await db.query.serviceItems.findFirst({
+        where: eq(serviceItems.itemId, itemData.itemId)
+      });
+      
+      if (existingItemId) {
+        return res.status(400).json({ error: "이미 사용 중인 서비스 항목 ID입니다." });
+      }
+      
       // 카테고리 존재 여부 확인
       const category = await db.query.serviceCategories.findFirst({
         where: eq(serviceCategories.id, itemData.categoryId)
@@ -2681,6 +2690,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const itemData = insertServiceItemSchema.partial().parse(req.body);
+      
+      // itemId 수정 시 중복 체크
+      if (itemData.itemId && itemData.itemId !== existingItem.itemId) {
+        const existingItemId = await db.query.serviceItems.findFirst({
+          where: eq(serviceItems.itemId, itemData.itemId)
+        });
+        
+        if (existingItemId) {
+          return res.status(400).json({ error: "이미 사용 중인 서비스 항목 ID입니다." });
+        }
+      }
       
       // 카테고리 변경 시 카테고리 존재 여부 확인
       if (itemData.categoryId) {
