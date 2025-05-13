@@ -341,6 +341,60 @@ export default function Gallery() {
           <p className="text-neutral-dark">{getEmptyMessage()}</p>
         </div>
       )}
+      
+      {/* 이미지 상세 보기 다이얼로그 */}
+      <Dialog open={viewImageDialog} onOpenChange={setViewImageDialog}>
+        <DialogContent className="max-w-5xl w-[95vw] h-auto p-0 overflow-hidden bg-white dark:bg-zinc-900 rounded-xl shadow-xl border-0">
+          {/* X 버튼 */}
+          <button
+            onClick={() => setViewImageDialog(false)}
+            className="absolute top-4 right-4 z-50 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white bg-white/80 dark:bg-black/50 hover:bg-white/90 dark:hover:bg-black/70 p-2 rounded-full transition-all shadow-md"
+            aria-label="닫기"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          
+          {/* 이미지 표시 */}
+          <div className="bg-black w-full h-full flex items-center justify-center">
+            {selectedItem && selectedItem.type === "image" && (
+              <img 
+                src={selectedItem.url || selectedItem.thumbnailUrl} 
+                alt={selectedItem.title || "갤러리 이미지"} 
+                className="max-w-full max-h-[85vh] object-contain"
+              />
+            )}
+          </div>
+          
+          {/* 하단 정보 및 액션 영역 */}
+          <div className="absolute bottom-0 left-0 right-0 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-t border-gray-200 dark:border-gray-800">
+            {/* 제목 및 버튼 */}
+            <div className="px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                {selectedItem?.title}
+              </h3>
+              
+              {selectedItem && selectedItem.type === "image" && (
+                <div className="flex items-center gap-3">
+                  <Button 
+                    className="bg-[#ff2d55] hover:bg-[#ff2d55]/90 text-white rounded-lg h-11"
+                    onClick={() => selectedItem.id && handleDownload(selectedItem.id)}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    <span>다운로드</span>
+                  </Button>
+                  <Button 
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-gray-200 rounded-lg h-11"
+                    onClick={() => selectedItem.id && handleShare(selectedItem.id)}
+                  >
+                    <Share2 className="mr-2 h-4 w-4" />
+                    <span>공유하기</span>
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
