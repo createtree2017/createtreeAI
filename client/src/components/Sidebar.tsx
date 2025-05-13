@@ -180,9 +180,16 @@ export default function Sidebar({ collapsed = false }) {
     });
   }, [apiMenu]);
   
-  // 정적 그룹과 동적 그룹 결합
+  // 정적 그룹과 동적 그룹 결합 (메인 메뉴가 항상 위에 오도록 정렬)
   const allGroups = React.useMemo(() => {
-    return [...dynamicGroups, ...staticGroups];
+    // 메인 메뉴 항목을 찾아 맨 앞에 배치
+    const mainGroup = staticGroups.find(group => group.id === 'main');
+    const otherStaticGroups = staticGroups.filter(group => group.id !== 'main');
+    
+    // 메인 -> 동적 메뉴(서비스 메뉴) -> 기타 정적 메뉴 순서로 배치
+    return mainGroup 
+      ? [mainGroup, ...dynamicGroups, ...otherStaticGroups] 
+      : [...dynamicGroups, ...staticGroups];
   }, [dynamicGroups, staticGroups]);
 
   return (
