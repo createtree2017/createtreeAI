@@ -22,6 +22,7 @@ import StyleCardManagement from "@/components/admin/StyleCardManagement";
 import CategoryManagement from "@/components/admin/CategoryManagement";
 import ServiceItemManagement from "@/components/admin/ServiceItemManagement";
 import ConceptManagement from "@/components/admin/ConceptManagement";
+import CampaignManagement from "@/components/admin/CampaignManagement";
 import { getQueryFn } from '@/lib/queryClient';
 import { 
   getLanguages, 
@@ -686,6 +687,7 @@ export default function AdminPage() {
         <TabsList className="flex flex-wrap mb-8">
           <TabsTrigger value="chat-menu">채팅 메뉴</TabsTrigger>
           <TabsTrigger value="image-menu">이미지 생성</TabsTrigger>
+          <TabsTrigger value="campaigns">캠페인</TabsTrigger>
           <TabsTrigger value="ui-content">UI 컨텐츠 관리</TabsTrigger>
           <TabsTrigger value="test-menu">TEST</TabsTrigger>
           <TabsTrigger value="languages">언어 설정</TabsTrigger>
@@ -815,6 +817,15 @@ export default function AdminPage() {
         
         <TabsContent value="languages">
           <LanguageSettings />
+        </TabsContent>
+        
+        <TabsContent value="campaigns">
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">캠페인 관리</h2>
+            <div className="mt-4">
+              <CampaignManagement />
+            </div>
+          </div>
         </TabsContent>
         
         <TabsContent value="dev-history">
