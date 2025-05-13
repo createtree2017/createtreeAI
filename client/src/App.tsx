@@ -39,6 +39,7 @@ import FamilyPhoto from "@/pages/family-photo";
 import Stickers from "@/pages/stickers";
 import CampaignsPage from "@/pages/campaigns";
 import CampaignDetailPage from "@/pages/campaign-detail";
+import HospitalCampaignsPage from "@/pages/hospital-campaigns";
 
 // Main layout component
 function Layout({ children }: { children: React.ReactNode }) {

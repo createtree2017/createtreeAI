@@ -3564,6 +3564,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch campaigns" });
     }
   });
+  
+  // 병원 관리자 전용 캠페인 API
+  app.get("/api/hospital/campaigns", async (req, res) => {
+    try {
+      // 권한 체크
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "로그인이 필요합니다." });
+      }
+
+      const user = req.user;
+      
+      // 병원 관리자 또는 슈퍼 관리자만 접근 가능
+      if (user.memberType !== 'hospital_admin' && user.memberType !== 'superadmin') {
+        return res.status(403).json({ error: "병원 관리자 권한이 필요합니다." });
+      }
+      
+      // 병원 관리자는 자신의 병원 ID가 있어야 함
+      if (user.memberType === 'hospital_admin' && !user.hospitalId) {
+        return res.status(403).json({ error: "병원 정보가 없습니다." });
+      }
+      
+      // 상태 필터링 (선택 사항)
+      const status = req.query.status as string | undefined;
+      
+      let query = db.select({
+        id: campaigns.id,
+        slug: campaigns.slug,
+        title: campaigns.title,
+        description: campaigns.description,
+        bannerImage: campaigns.bannerImage,
+        isPublic: campaigns.isPublic,
+        displayOrder: campaigns.displayOrder,
+        hospitalId: campaigns.hospitalId,
+        hospitalName: hospitals.name,
+        // 날짜 필드들
+        startDate: campaigns.startDate,
+        endDate: campaigns.endDate,
+        announceDate: campaigns.announceDate,
+        contentStartDate: campaigns.contentStartDate,
+        contentEndDate: campaigns.contentEndDate,
+        resultDate: campaigns.resultDate,
+        // 기타 필드
+        rewardPoint: campaigns.rewardPoint,
+        thumbnailUrl: campaigns.thumbnailUrl,
+        content: campaigns.content,
+        status: campaigns.status,
+        createdAt: campaigns.createdAt,
+        updatedAt: campaigns.updatedAt
+      })
+      .from(campaigns)
+      .leftJoin(hospitals, eq(campaigns.hospitalId, hospitals.id));
+      
+      // 병원 ID로 필터링 (병원 관리자인 경우)
+      if (user.memberType === 'hospital_admin') {
+        query = query.where(eq(campaigns.hospitalId, user.hospitalId));
+      }
+      
+      // 상태로 필터링 (옵션)
+      if (status) {
+        query = query.where(eq(campaigns.status, status));
+      }
+      
+      // 정렬: 표시 순서 오름차순, 생성일 내림차순
+      const campaignsList = await query.orderBy(
+        asc(campaigns.displayOrder),
+        desc(campaigns.createdAt)
+      );
+      
+      res.json(campaignsList);
+    } catch (error) {
+      console.error("Error fetching hospital campaigns:", error);
+      res.status(500).json({ error: "캠페인 목록을 가져오는데 실패했습니다." });
+    }
+  });
 
   app.get("/api/campaigns", async (req, res) => {
     try {
