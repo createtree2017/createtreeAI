@@ -52,7 +52,7 @@ const formSchema = z.object({
   description: z.string().optional(),
   bannerImage: z.string().optional(),
   isPublic: z.boolean().default(true),
-  order: z.number().int().default(0)
+  displayOrder: z.number().int().default(0)
 });
 
 export default function CampaignManagement() {
@@ -71,7 +71,7 @@ export default function CampaignManagement() {
       description: "",
       bannerImage: "",
       isPublic: true,
-      order: 0
+      displayOrder: 0
     }
   });
 
@@ -187,7 +187,7 @@ export default function CampaignManagement() {
         description: campaign.description || "",
         bannerImage: campaign.bannerImage || "",
         isPublic: campaign.isPublic,
-        order: campaign.order || 0
+        displayOrder: campaign.displayOrder || 0
       });
       
       // 배너 이미지 미리보기 설정
@@ -258,7 +258,7 @@ export default function CampaignManagement() {
               <TableHead>제목</TableHead>
               <TableHead>슬러그</TableHead>
               <TableHead>공개</TableHead>
-              <TableHead>순서</TableHead>
+              <TableHead>표시 순서</TableHead>
               <TableHead>작업</TableHead>
             </TableRow>
           </TableHeader>

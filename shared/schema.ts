@@ -588,7 +588,7 @@ export const campaigns = pgTable("campaigns", {
   description: text("description"),       // 설명
   bannerImage: text("banner_image"),      // 배너 이미지 URL
   isPublic: boolean("is_public").default(true),
-  order: integer("order").default(0),
+  displayOrder: integer("display_order").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
 });
