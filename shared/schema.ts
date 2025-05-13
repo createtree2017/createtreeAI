@@ -600,5 +600,41 @@ export const insertCampaignSchema = createInsertSchema(campaigns, {
 export type InsertCampaign = z.infer<typeof insertCampaignSchema>;
 export type Campaign = typeof campaigns.$inferSelect;
 
+// 캠페인 신청 테이블
+export const campaignApplications = pgTable("campaign_applications", {
+  id: serial("id").primaryKey(),
+  campaignId: integer("campaign_id").references(() => campaigns.id),
+  name: text("name").notNull(),
+  contact: text("contact").notNull(),
+  memo: text("memo"),
+  status: text("status").default("new"),   // new, processing, completed
+  userId: integer("user_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+export const insertCampaignApplicationSchema = createInsertSchema(campaignApplications, {
+  name: (schema) => schema.min(2, "이름은 최소 2자 이상이어야 합니다."),
+  contact: (schema) => schema.min(5, "연락처는 최소 5자 이상이어야 합니다.")
+});
+export type InsertCampaignApplication = z.infer<typeof insertCampaignApplicationSchema>;
+export type CampaignApplication = typeof campaignApplications.$inferSelect;
+
+// 캠페인-신청 관계 정의
+export const campaignsRelations = relations(campaigns, ({ many }) => ({
+  applications: many(campaignApplications)
+}));
+
+export const campaignApplicationsRelations = relations(campaignApplications, ({ one }) => ({
+  campaign: one(campaigns, {
+    fields: [campaignApplications.campaignId],
+    references: [campaigns.id]
+  }),
+  user: one(users, {
+    fields: [campaignApplications.userId], 
+    references: [users.id]
+  })
+}));
+
 // Export operators for query building
 export { eq, desc, and, asc, sql, gte, lte, gt, lt, ne, like, notLike, isNull, isNotNull, inArray } from "drizzle-orm";
