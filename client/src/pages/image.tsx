@@ -91,9 +91,10 @@ export default function Image() {
   // 전역 이미지 처리 상태 관리
   const { startProcessing, stopProcessing } = useImageProcessingStore();
 
-  // Extract image ID from URL if any
+  // Extract image ID and preset type from URL if any
   const query = new URLSearchParams(location.split("?")[1] || "");
   const imageId = query.get("id");
+  const preset = query.get("preset"); // 'maternity', 'family', 'sticker' 중 하나
   
   // Fetch categories 
   const { data: categories = [], isLoading: categoriesLoading, error: categoriesError } = useQuery<Category[]>({
@@ -119,6 +120,24 @@ export default function Image() {
       count: categories?.length 
     });
   }, [categories, categoriesLoading, categoriesError]);
+  
+  // URL의 preset 파라미터에 따라 자동으로 적절한 카테고리 선택
+  useEffect(() => {
+    if (!preset || categoriesLoading || !categories.length) return;
+    
+    // preset 값에 따라 카테고리 매핑
+    const categoryMapping: Record<string, string> = {
+      'maternity': 'mansak_img', // 만삭사진 카테고리 ID
+      'family': 'family_img',   // 가족사진 카테고리 ID
+      'sticker': 'sticker_img'  // 스티커 카테고리 ID
+    };
+    
+    const categoryId = categoryMapping[preset];
+    if (categoryId) {
+      console.log(`프리셋(${preset})에 해당하는 카테고리 ${categoryId} 자동 선택`);
+      setSelectedCategory(categoryId);
+    }
+  }, [preset, categories, categoriesLoading]);
   
   // Fetch concepts (styles)
   const { data: concepts = [], isLoading: conceptsLoading, error: conceptsError } = useQuery<Concept[]>({
