@@ -1,0 +1,100 @@
+1. 먼저 서버 로그를 딱 한 줄이라도 확인하세요
+클라이언트 콘솔에 500 만 보이면 원인이 안 보입니다.
+Replit → “Shell” 또는 “Logs” 탭에서 직접 찍힌 에러 스택을 보세요.
+
+bash
+복사
+편집
+# 예시 ─ 이런 형태가 찍혀 있을 것
+🟥  error: null value in column "hospital_id" violates not‑null constraint
+      at Query.<anonymous>  …
+500 = 라우터 안쪽 코드가 throw 된 상태입니다.
+로그 1‑2줄만 봐도 “어떤 컬럼 / 필드 / enum” 때문에 난리인지 즉시 알 수 있습니다.
+
+2. 클라이언트가 보내는 Payload 다시 확인
+방금 올려주신 브라우저 로그 중 전송 데이터를 확대해 보면:
+
+json
+복사
+편집
+{
+  "slug": "test-771845",
+  "description": "1212",
+  "thumbnail_url": "/api/uploads/…",
+  /* date 필드들 … */
+  "status": "active"   // ← 이미 영문으로 고쳤음 OK
+}
+체크리스트
+
+필드	백엔드 열 이름	전송 key	주의점
+hospital_id	hospital_id (NOT NULL)	❓ 없음?	없으면 DB NOT NULL 오류 발생
+날짜 6종	DATE	"YYYY‑MM‑DD"	문자열이어도 OK → DB driver에서 파싱
+thumbnail_url	thumbnail_url	✅ 있음	Zod 스키마도 snake case 인가?
+reward_point	INTEGER	✅	Number() 로 변환되어야
+
+➡️ 가장 흔한 500 원인 2가지
+hospital_id 누락
+
+admin 패널 따로, 캠페인은 특정 병원에 귀속돼야 하고
+컬럼이 NOT NULL 인데 입력이 없으면 Postgres 가 500 을 터뜨립니다.
+
+폼에 “소속 병원” <Select> 를 넣고 value = 병원 pk 로 보내세요.
+
+snake_case ≠ camelCase 불일치
+
+thumbnail_url 은 snake_case 인데 Zod 스키마가 thumbnailUrl 로 돼 있으면
+undefined → DB NOT NULL 오류.
+
+3. 백엔드 Zod 스키마와 컬럼명을 1:1로 맞추기
+ts
+복사
+편집
+// shared/schema.ts  (예시)
+export const CampaignInsert = z.object({
+  hospital_id: z.number(),            // ← NOT NULL
+  slug:         z.string(),
+  title:        z.string(),
+  description:  z.string().optional(),
+  thumbnail_url:z.string().url().optional(),
+  start_date:   z.coerce.date().optional(),
+  end_date:     z.coerce.date().optional(),
+  status:       z.enum(['draft','active','closed','done']).default('draft'),
+  reward_point: z.coerce.number().default(0),
+});
+그리고 라우터에서 검증 실패는 400으로, DB 오류는 그대로 throw 하지 말고 잡아서 메시지를 내려주면 앞으로 디버깅이 훨씬 편합니다.
+
+ts
+복사
+편집
+try {
+  const data = CampaignInsert.parse(req.body);
+  await db.insert(campaigns).values(data);
+  res.json({ ok: true });
+} catch (e) {
+  if (e instanceof ZodError) {
+    return res.status(400).json({ errors: e.errors });
+  }
+  console.error(e);                // ← 진짜 스택 찍기
+  return res.status(500).json({ message: 'Server error' });
+}
+4. 프론트 폼 정리 포인트
+tsx
+복사
+편집
+/* 병원 선택 */
+<Select {...register('hospital_id', { valueAsNumber: true })}>
+  {hospitals.map(h => (
+    <option key={h.id} value={h.id}>{h.name}</option>
+  ))}
+</Select>
+
+/* 숫자 필드 → valueAsNumber */
+<Input type="number" {...register('reward_point', { valueAsNumber: true })} />
+
+/* 날짜 필드 → toISOString().slice(0,10) 로 통일 */
+<Input
+  type="date"
+  {...register('start_date', {
+    setValueAs: v => v ? new Date(v).toISOString().slice(0,10) : null,
+  })}
+/>

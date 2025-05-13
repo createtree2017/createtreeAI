@@ -1,0 +1,80 @@
+🔍 로그로 확인된 실제 500 오류 원인
+vbnet
+복사
+편집
+TypeError: value.toISOString is not a function  ← drizzle‑pg 가
+            ^^^^^  (Date 객체일 때만 toISOString 존재)
+드리즈‑ORM이 timestamp / date 컬럼에 넣으려고 할 때
+Date 객체 인 줄 알고 toISOString()을 호출합니다.
+
+그런데 우리는 문자열(예: "2025‑05‑13") 그대로 넘긴 상태라 런타임에서 죽고 500 을 돌려준 것 입니다.
+
+첫 번째 스크린샷에서 rewardPoint 타입 경고(숫자 → 문자열)도 보이지만,
+실제로는 날짜 필드가 Date가 아니라서 바로 터집니다.
+
+✅ 해결 전략
+단계	해야 할 것	위치
+1	백엔드에서 문자열 → Date 변환	routes/campaigns.ts (create·update API)
+2	Zod 스키마를 z.coerce.date() 로 바꿔 자동 파싱	shared/schema.ts
+3	프론트에서 숫자 필드(reward_point, hospital_id)를 valueAsNumber 로 전송	CampaignManagement.tsx
+4	DB 마이그레이션 X (컬럼 타입은 그대로)	–
+
+1️⃣ API 라우터에서 안전 변환
+ts
+복사
+편집
+import { CampaignInsert } from '../../shared/schema';
+
+app.post('/api/admin/campaigns', async (req, res) => {
+  try {
+    // ① 문자열을 Date 로 coerce
+    const parsed = CampaignInsert.parse(req.body);
+
+    await db.insert(campaigns).values(parsed);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error(e);        // <-- 스택 그대로 찍어두기
+    res.status(400).json({ message: (e as Error).message });
+  }
+});
+2️⃣ shared/schema.ts – Zod 스키마
+ts
+복사
+편집
+export const CampaignInsert = z.object({
+  hospital_id: z.coerce.number(),           // 숫자 coercion
+  slug:        z.string().min(1),
+  title:       z.string().min(1),
+  description: z.string().nullable(),
+  thumbnail_url: z.string().url().nullable(),
+
+  // 날짜 6종 – 문자열이 오면 자동 Date 로 변환
+  start_date:        z.coerce.date().nullable(),
+  end_date:          z.coerce.date().nullable(),
+  announce_date:     z.coerce.date().nullable(),
+  content_start_date:z.coerce.date().nullable(),
+  content_end_date:  z.coerce.date().nullable(),
+  result_date:       z.coerce.date().nullable(),
+
+  reward_point: z.coerce.number().default(0),
+  status:       z.enum(['draft','active','closed','done']).default('draft'),
+  content:      z.string().nullable(),
+});
+z.coerce.date() 는 ISO 문자열이나 YYYY‑MM‑DD를 자동으로 Date 로 변환합니다.
+
+3️⃣ 프론트 폼 바인딩 수정
+tsx
+복사
+편집
+/* 숫자 필드 */
+<Input
+  type="number"
+  {...register('reward_point', { valueAsNumber: true })}
+/>
+
+/* 날짜 필드 → 문자열 그대로 전달 */
+<Input
+  type="date"
+  {...register('start_date')}
+/>
+react‑hook‑form의 valueAsNumber: true 옵션을 쓰면 문자열이 숫자로 변환됩니다.

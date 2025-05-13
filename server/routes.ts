@@ -3905,7 +3905,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Permission denied" });
       }
       
+      // 요청 데이터 유효성 검사 및 자동 변환(문자열 날짜 → Date 객체)
       const campaignData = insertCampaignSchema.parse(req.body);
+      
+      console.log("서버 파싱 후 데이터:", {
+        startDate: campaignData.startDate,
+        endDate: campaignData.endDate,
+        type: campaignData.startDate ? typeof campaignData.startDate : null
+      });
       
       // 슬러그 중복 확인
       const existingCampaign = await db.query.campaigns.findFirst({
@@ -3952,7 +3959,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Campaign not found" });
       }
       
+      // 요청 데이터 유효성 검사 및 자동 변환(문자열 날짜 → Date 객체)
       const campaignData = insertCampaignSchema.partial().parse(req.body);
+      
+      console.log("캠페인 업데이트 데이터:", {
+        startDate: campaignData.startDate,
+        endDate: campaignData.endDate,
+        type: campaignData.startDate ? typeof campaignData.startDate : null
+      });
       
       // 슬러그를 변경하는 경우 중복 확인
       if (campaignData.slug && campaignData.slug !== existingCampaign.slug) {

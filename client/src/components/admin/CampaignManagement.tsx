@@ -8,20 +8,32 @@ import { Campaign, InsertCampaign } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
 // 임시 인터페이스 - 백엔드에서 확장 데이터를 위해
-interface ExtendedCampaign extends Omit<Campaign, 'content' | 'startDate' | 'endDate' | 'announceDate' | 'contentStartDate' | 'contentEndDate' | 'resultDate'> {
-  hospitalName?: string;
-  hospitalSlug?: string;
-  // 새로운 필드들에 대한 타입 정의
-  startDate?: string | null;
-  endDate?: string | null;
-  announceDate?: string | null;
-  contentStartDate?: string | null;
-  contentEndDate?: string | null;
-  resultDate?: string | null;
-  rewardPoint?: number;
-  thumbnailUrl?: string;
-  content?: string | null;
-  status?: string | null;
+interface ExtendedCampaign {
+  id: number;
+  slug: string;
+  title: string;
+  description: string | null;
+  bannerImage: string | null;
+  isPublic: boolean;
+  displayOrder: number;
+  hospitalId: number | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  // 확장 필드
+  hospitalName?: string | null;
+  hospitalSlug?: string | null;
+  // 날짜 필드들(프론트에서는 string으로 처리)
+  startDate: string | null;
+  endDate: string | null;
+  announceDate: string | null;
+  contentStartDate: string | null;
+  contentEndDate: string | null;
+  resultDate: string | null;
+  // 기타 필드
+  rewardPoint: number | null;
+  thumbnailUrl: string | null;
+  content: string | null;
+  status: string | null;
 }
 
 import {
