@@ -167,17 +167,47 @@ export default function MusicPlayer({
   };
   
   // 음악 다운로드
-  const handleDownload = () => {
-    if (!music.url) return;
+  const handleDownload = async () => {
+    if (!music.id) return;
     
-    // 다운로드 링크 생성
-    const link = document.createElement('a');
-    link.href = music.url;
-    link.download = `${music.title || '음악'}.mp3`;
-    link.target = '_blank';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      // API로 다운로드 요청
+      const response = await fetch(`/api/music/${music.id}/download`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`다운로드 실패: ${response.status}`);
+      }
+      
+      // 파일 다운로드 처리
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${music.title || '음악'}.mp3`;
+      document.body.appendChild(link);
+      link.click();
+      
+      // 리소스 정리
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(link);
+      }, 100);
+    } catch (error) {
+      console.error('음악 다운로드 오류:', error);
+      // 직접 URL 다운로드로 폴백 (API 실패 시)
+      if (music.url) {
+        const link = document.createElement('a');
+        link.href = music.url;
+        link.download = `${music.title || '음악'}.mp3`;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    }
   };
   
   // 진행률 계산

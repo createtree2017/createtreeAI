@@ -129,20 +129,41 @@ export default function Music() {
       });
       const shareData = await response.json();
       
-      // 공유 URL을 클립보드에 복사
-      if (shareData.shareUrl) {
-        await navigator.clipboard.writeText(shareData.shareUrl);
+      const shareUrl = shareData.shareUrl || `${window.location.origin}/shared/music/${id}`;
+      const shareTitle = "CreateTree Culture Center - AI 태교 음악";
+      const foundMusic = musicList.find((item: MusicItem) => item.id === id);
+      const shareText = foundMusic ? `${foundMusic.title} - CreateTree Culture Center` : shareTitle;
+      
+      // 네이티브 공유 API 사용 (모바일)
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: shareText,
+            url: shareUrl
+          });
+          toast({
+            title: "공유되었습니다",
+            description: "음악이 공유되었습니다!",
+          });
+        } catch (shareError) {
+          console.error('공유 API 오류:', shareError);
+          // 클립보드 폴백
+          await navigator.clipboard.writeText(shareUrl);
+          toast({
+            title: "공유 링크가 생성되었습니다",
+            description: "클립보드에 링크가 복사되었습니다!",
+          });
+        }
+      } else {
+        // 공유 URL을 클립보드에 복사 (데스크톱)
+        await navigator.clipboard.writeText(shareUrl);
         toast({
           title: "공유 링크가 생성되었습니다",
           description: "클립보드에 링크가 복사되었습니다!",
         });
-      } else {
-        toast({
-          title: "공유 준비 완료",
-          description: "음악을 공유할 준비가 되었습니다!",
-        });
       }
     } catch (error) {
+      console.error('음악 공유 오류:', error);
       toast({
         title: "공유 링크 생성 오류",
         description: "나중에 다시 시도해주세요",

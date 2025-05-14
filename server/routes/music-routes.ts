@@ -285,6 +285,97 @@ musicRouter.post('/:id/share', isAuthenticated, async (req, res) => {
   }
 });
 
+// 특정 공유 음악 조회 (메타데이터 이용)
+musicRouter.get('/shared/:id', async (req, res) => {
+  try {
+    const musicId = Number(req.params.id);
+    
+    if (isNaN(musicId)) {
+      return res.status(400).json({ error: '유효하지 않은 음악 ID입니다.' });
+    }
+    
+    // 음악 정보 조회
+    const musicItem = await db.query.music.findFirst({
+      where: (music, { eq }) => eq(music.id, Number(musicId))
+    });
+    
+    if (!musicItem) {
+      return res.status(404).json({ error: '음악을 찾을 수 없습니다.' });
+    }
+    
+    // 공유 상태 확인 (메타데이터에서 isPublic 값 확인)
+    const metadata = musicItem.metadata as Record<string, any> || {};
+    const isPublic = metadata.isPublic === true;
+    
+    // 공유되지 않은 음악은 접근 불가
+    if (!isPublic) {
+      return res.status(403).json({ error: '이 음악은 공개되지 않았습니다.' });
+    }
+    
+    // 민감한 정보 제거 후 반환
+    const safeMusic = {
+      id: musicItem.id,
+      title: musicItem.title,
+      prompt: musicItem.prompt,
+      url: musicItem.url,
+      tags: musicItem.tags,
+      lyrics: musicItem.lyrics,
+      duration: musicItem.duration,
+      createdAt: musicItem.createdAt
+    };
+    
+    res.json(safeMusic);
+  } catch (error) {
+    console.error('공유 음악 조회 오류:', error);
+    res.status(500).json({ error: '음악 정보를 가져오는데 실패했습니다.' });
+  }
+});
+
+// 공유된 음악 목록 조회
+musicRouter.get('/shared', async (req, res) => {
+  try {
+    // 페이지네이션 파라미터
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+    
+    // 공유된 음악만 조회 (메타데이터에서 isPublic 확인)
+    const allMusic = await db.query.music.findMany({
+      orderBy: (music, { desc }) => [desc(music.createdAt)]
+    });
+    
+    // 클라이언트 측에서 메타데이터의 isPublic이 true인 항목만 필터링
+    const sharedMusic = allMusic.filter(item => {
+      const metadata = item.metadata as Record<string, any> || {};
+      return metadata.isPublic === true;
+    });
+    
+    // 페이지네이션 적용
+    const paginatedMusic = sharedMusic.slice(skip, skip + limit);
+    
+    // 민감한 정보 제거
+    const safeMusic = paginatedMusic.map(item => ({
+      id: item.id,
+      title: item.title,
+      prompt: item.prompt,
+      url: item.url,
+      tags: item.tags,
+      duration: item.duration,
+      createdAt: item.createdAt
+    }));
+    
+    res.json({
+      music: safeMusic,
+      total: sharedMusic.length,
+      page,
+      totalPages: Math.ceil(sharedMusic.length / limit)
+    });
+  } catch (error) {
+    console.error('공유 음악 목록 조회 오류:', error);
+    res.status(500).json({ error: '공유 음악 목록을 가져오는데 실패했습니다.' });
+  }
+});
+
 // 음악 삭제
 musicRouter.delete('/:id', isAuthenticated, async (req, res) => {
   try {
