@@ -79,7 +79,7 @@ export default function HospitalCampaignEditPage() {
   }
 
   // 병원 관리자의 경우 본인 병원 캠페인만 편집 가능
-  if (user?.role === "hospital_admin" && campaign.hospitalId !== user.hospitalId) {
+  if (user?.memberType === "hospital_admin" && campaign.hospitalId !== user.hospitalId) {
     return <AccessDenied />;
   }
 

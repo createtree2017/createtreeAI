@@ -616,7 +616,6 @@ export default function CampaignEditorForHospital({ campaign }: { campaign: Exte
             </Button>
             <Button
               type="submit"
-              isLoading={updateMutation.isPending}
               disabled={updateMutation.isPending}
             >
               {updateMutation.isPending ? "저장 중..." : "저장하기"}
