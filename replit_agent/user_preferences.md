@@ -127,3 +127,4 @@ Preferred communication style: Simple, everyday language.
 - 신청형 캠페인: `신청 종료일` 이후 자동 마감
 - 후기형 캠페인: `콘텐츠 등록 종료일` 이후 자동 마감
 - 모든 유형에서 관리자(슈퍼/일반/병원)는 마감일 연장 및 강제 마감 가능
+- 
