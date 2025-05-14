@@ -1,0 +1,62 @@
+// [TASK] Build a Suno-style music generation interface for emotional songs like lullabies or prenatal messages.
+
+1. 📌 Purpose:
+Create a mini-app where users (mainly mothers) can generate personalized songs (e.g., lullabies, prenatal music, letters to baby) using the Replicate AI API. UI/UX must mimic Suno’s interface.
+
+2. 📁 UI Layout (React component structure):
+
+- Top Section:
+  [Simple | Custom] mode toggle (default: Simple)
+
+- Main Form:
+  - Prompt input (textarea, default: empty)
+  - Style tag selector (e.g., “nursery”, “soft piano”, “motherly”)
+  - [Instrumental only] toggle switch
+  - Create button
+
+- Custom Mode (optional):
+  - Lyrics input (multi-line textarea)
+  - "Write Lyrics" button → call GPT API (OpenAI)
+
+- Results Area:
+  - Show generated audio player (React audio component)
+  - Optional: "Extend", "Download", "Publish" buttons
+
+3. 🔌 Backend Tasks (Node.js + Express):
+
+- [POST] /api/song/create
+  Input:
+    {
+      prompt: string,       // example: "a lullaby from a mom to her baby"
+      tags: string[],       // optional music styles
+      lyrics: string,       // optional, for custom lyrics
+      instrumental: boolean
+    }
+
+  Processing:
+    - Use Replicate API (e.g. lucataco/ai-song-generator or riffusion/riffusion)
+    - Translate Korean to English using OpenAI GPT-4 if needed
+    - Send prompt and tags to Replicate model
+    - Return audio URL or base64 stream
+
+4. 🔐 Security & Guardrails:
+
+- Use .env for:
+  - REPLICATE_API_TOKEN
+  - OPENAI_API_KEY
+- Limit style tags to a verified list (avoid prompt injection)
+- Show error message if generation fails:
+  → "음악 생성에 실패했습니다. 잠시 후 다시 시도해주세요."
+
+5. ✅ Final Output:
+
+- Audio player preview + download
+- Optional: Save metadata to Firebase (userId, prompt, result URL)
+
+6. 📦 Notes:
+
+- Style UI and tag input similar to [https://suno.com](https://suno.com)
+- Support mobile-first responsive layout (TailwindCSS)
+- Support Korean → English prompt translation via GPT before passing to Replicate
+
+// ⛳ Goal: Build fast and stable — avoid delays like in gpt-image-1 integration

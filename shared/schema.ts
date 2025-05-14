@@ -81,12 +81,16 @@ export const refreshTokens = pgTable("refresh_tokens", {
 export const music = pgTable("music", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
-  babyName: text("baby_name").notNull(),
-  style: text("style").notNull(),
-  url: text("url").notNull(),
-  duration: integer("duration").notNull().default(60),
-  userId: integer("user_id"), // 사용자 ID 추가
-  metadata: text("metadata").default("{}"), // 메타데이터 필드 추가
+  prompt: text("prompt").notNull(),                  // 사용자 프롬프트
+  translatedPrompt: text("translated_prompt"),       // 영어로 번역된 프롬프트
+  tags: jsonb("tags").default("[]"),                 // 스타일 태그 목록
+  url: text("url").notNull(),                        // 오디오 파일 URL
+  lyrics: text("lyrics"),                            // 생성된 가사
+  instrumental: boolean("instrumental").default(false), // 반주 전용 여부
+  duration: integer("duration").notNull().default(60), // 음악 길이(초)
+  userId: integer("user_id"),                        // 사용자 ID
+  metadata: jsonb("metadata").default("{}"),         // 추가 메타데이터
+  isFavorite: boolean("is_favorite").default(false), // 즐겨찾기 여부
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -446,7 +450,11 @@ export const insertRoleSchema = createInsertSchema(roles);
 export const insertUserRoleSchema = createInsertSchema(userRoles);
 export const insertRefreshTokenSchema = createInsertSchema(refreshTokens);
 
-export const insertMusicSchema = createInsertSchema(music);
+export const insertMusicSchema = createInsertSchema(music, {
+  title: (schema) => schema.min(2, '제목은 2글자 이상이어야 합니다'),
+  prompt: (schema) => schema.min(3, '프롬프트는 3글자 이상이어야 합니다'),
+  url: (schema) => schema.url('유효한 URL이어야 합니다')
+});
 export const insertImageSchema = createInsertSchema(images);
 export const insertChatMessageSchema = createInsertSchema(chatMessages);
 export const insertFavoriteSchema = createInsertSchema(favorites);
@@ -486,6 +494,7 @@ export type UserMilestone = typeof userMilestones.$inferSelect;
 export type InsertPregnancyProfile = z.infer<typeof insertPregnancyProfileSchema>;
 export type PregnancyProfile = typeof pregnancyProfiles.$inferSelect;
 
+export type InsertMusic = z.infer<typeof insertMusicSchema>;
 export type InsertMusic = z.infer<typeof insertMusicSchema>;
 export type Music = typeof music.$inferSelect;
 
