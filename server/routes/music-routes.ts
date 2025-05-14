@@ -9,6 +9,7 @@ import {
 } from '../services/music-service';
 import { authMiddleware as isAuthenticated } from '../common/middleware/auth';
 import { eq, and, desc, sql } from 'drizzle-orm';
+import { z } from 'zod';
 
 const musicRouter = Router();
 
@@ -20,17 +21,32 @@ musicRouter.get('/styles', (req, res) => {
 // 가사 생성 엔드포인트
 musicRouter.post('/lyrics', isAuthenticated, async (req, res) => {
   try {
-    const { prompt } = req.body;
+    // 가사 생성 요청 검증 스키마
+    const lyricsRequestSchema = z.object({
+      prompt: z.string().min(3, "프롬프트는 최소 3자 이상이어야 합니다."),
+      genre: z.string().optional(),
+      mood: z.string().optional(),
+      language: z.string().default("korean")
+    });
     
-    if (!prompt || typeof prompt !== 'string' || prompt.length < 3) {
-      return res.status(400).json({ error: '올바른 프롬프트를 입력해주세요.' });
+    // 요청 데이터 검증
+    const result = lyricsRequestSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ 
+        error: '입력 형식이 잘못되었습니다.', 
+        details: result.error.format() 
+      });
     }
 
-    const lyrics = await generateLyrics(prompt);
+    // 가사 생성 요청
+    const lyrics = await generateLyrics(result.data.prompt);
     res.json({ lyrics });
   } catch (error) {
     console.error('가사 생성 오류:', error);
-    res.status(500).json({ error: '가사를 생성하는데 실패했습니다. 잠시 후 다시 시도해주세요.' });
+    res.status(500).json({ 
+      error: '가사를 생성하는데 실패했습니다. 잠시 후 다시 시도해주세요.',
+      message: error instanceof Error ? error.message : String(error)
+    });
   }
 });
 
@@ -43,34 +59,60 @@ musicRouter.post('/create', isAuthenticated, async (req, res) => {
       return res.status(400).json({ error: '입력 형식이 잘못되었습니다.', details: result.error.format() });
     }
 
-    const songResult = await generateMusic(result.data);
+    // 사용자 ID 확인
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: '로그인이 필요합니다.' });
+    }
     
-    // 음악 저장 (데이터베이스에 생성한 음악 저장)
-    const [savedMusic] = await db.insert(music).values({
-      title: req.body.title || '제목 없는 음악',
-      prompt: songResult.prompt,
-      translatedPrompt: songResult.translatedPrompt,
-      tags: songResult.tags,
-      url: songResult.audioUrl,
-      lyrics: songResult.lyrics,
-      instrumental: songResult.instrumental,
-      userId: req.user?.id,
-      duration: 60, // 기본값 60초 (실제 길이는 확인 필요)
-      metadata: JSON.stringify({
-        generationDate: new Date().toISOString(),
-        model: 'riffusion',
-        version: '1.0',
-      }),
-    }).returning();
-
-    res.status(201).json({ 
-      music: savedMusic,
-      message: '음악이 성공적으로 생성되었습니다.'
-    });
+    try {
+      // 음악 생성 (최대 3번 시도)
+      const songResult = await generateMusic(result.data);
+      
+      // 음악 저장 (데이터베이스에 생성한 음악 저장)
+      const insertData = {
+        title: req.body.title || '제목 없는 음악',
+        prompt: songResult.prompt,
+        translatedPrompt: songResult.translatedPrompt,
+        tags: songResult.tags,
+        url: songResult.audioUrl,
+        lyrics: songResult.lyrics,
+        instrumental: songResult.instrumental,
+        userId: userId,
+        duration: 60, // 기본값 60초 (실제 길이는 확인 필요)
+        metadata: JSON.stringify({
+          generationDate: new Date().toISOString(),
+          model: 'musicgen-melody',
+          version: '1.0',
+          style: req.body.style || 'general',
+        }),
+      };
+      
+      // DB 저장 시도
+      const [savedMusic] = await db.insert(music).values(insertData).returning();
+      
+      // 성공 응답
+      res.status(201).json({ 
+        music: savedMusic,
+        message: '음악이 성공적으로 생성되었습니다.'
+      });
+    } catch (generationError) {
+      console.error('음악 생성 중 오류:', generationError);
+      // 음악 생성 단계에서 오류 발생 시
+      return res.status(500).json({ 
+        error: '음악 생성 중 오류가 발생했습니다.', 
+        message: generationError instanceof Error ? generationError.message : String(generationError)
+      });
+    }
+    
   } catch (error) {
-    console.error('음악 생성 오류:', error);
-    res.status(500).json({ 
-      error: error instanceof Error ? error.message : '음악 생성에 실패했습니다. 잠시 후 다시 시도해주세요.' 
+    // 전체 프로세스 오류 처리
+    console.error('음악 생성 요청 처리 오류:', error);
+    const errorMessage = error instanceof Error ? error.message : '음악 생성에 실패했습니다. 잠시 후 다시 시도해주세요.';
+    const statusCode = errorMessage.includes('인증') || errorMessage.includes('로그인') ? 401 : 500;
+    
+    res.status(statusCode).json({ 
+      error: errorMessage
     });
   }
 });

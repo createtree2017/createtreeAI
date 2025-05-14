@@ -1,0 +1,78 @@
+// [TASK] Continue Suno-style Music Generator — Next Steps & Improvements
+
+/**
+ * 📝 Context
+ * You’ve scaffolded the backend: schema updates, /api/song/create route and Replicate integration.
+ * OpenAI (lyrics) integration was deferred—now focus on core features and stability.
+ */
+
+/** 1. Improvements & Fixes **/
+1. **Isolate OpenAI Lyrics Module**
+   - Move all OpenAI–based lyrics logic into a separate service file (e.g. `services/lyrics-service.ts`).
+   - Keep core music generation (Replicate) in `services/music-service.ts` to avoid version conflicts and simplify start-up.
+2. **Robust Error Handling & Logging**
+   - Wrap Replicate calls with retry logic (3×, exponential backoff).
+   - If DB insert fails, rollback and return HTTP 500 with JSON `{ error: "Internal server error. Please try again." }`.
+   - Log all failures (API, DB) to console with context (`prompt`, `userId`).
+3. **Automated Tests**
+   - **Unit Tests**: Jest tests for
+     - `music-service.generate()` (mock Replicate).
+     - `lyrics-service.generate()` (mock OpenAI).
+   - **E2E Tests**: Playwright/TanStack Query
+     - Flow: POST `/api/song/create` → receives URL → GET `/api/song/:id` → audio playback metadata.
+4. **Validation & Schemas**
+   - Ensure request body DTO uses Zod/Drizzle validation:
+     ```ts
+     const createSongSchema = z.object({
+       prompt: z.string().min(1),
+       tags: z.array(z.string()).optional(),
+       lyrics: z.string().optional(),
+       instrumental: z.boolean(),
+     });
+     ```
+   - Return 400 on validation error with JSON `{ error: "Invalid input" }`.
+
+/** 2. Backend → Frontend Handoff **/
+5. **React Components (client/src/components/)**
+   - `MusicForm.tsx`
+     - Textarea for `prompt`
+     - Tag selector (multi‐select)
+     - “Write Lyrics” button → calls `/api/song/lyrics`
+     - “Create Song” button → calls `/api/song/create`
+   - `MusicPlayer.tsx`
+     - `<audio>` preview + Play/Pause controls
+     - “Download” button
+   - `MusicGallery.tsx`
+     - Fetch user’s saved songs (`GET /api/song/list`)
+     - Display cards with title, tags, play button
+6. **Client API Layer (client/src/lib/api.ts)**
+   - `createSong(data: CreateSongInput): Promise<Song>`
+   - `generateLyrics(prompt: string): Promise<string>`
+   - Use TanStack Query for caching & loading states.
+7. **UX & Styling**
+   - Mirror Suno’s dark mode Simple/Custom toggle.
+   - Mobile‐first, TailwindCSS with responsive grid in `MusicGallery`.
+
+────────────────────────────────────────────
+
+[라플이 작업 시 필수 설계 지침] :contentReference[oaicite:0]{index=0}:contentReference[oaicite:1]{index=1}  
+1. **리소스 소유권 기반 필터링**  
+   - hospital_admin 유저는 `hospital_id` === `user.hospitalId` 리소스만 접근.  
+2. **역할 기반 라우팅 분리**  
+   - Admin: `/admin/*`  
+   - Hospital Admin: `/hospital/*`  
+   - Public User: `/campaigns/*`  
+3. **라우트 접근 조건**  
+   - 로그인 여부, user.role, hospital_id 일치 여부 체크  
+4. **접근 실패 처리**  
+   - 미로그인 → 로그인 페이지 리디렉트  
+   - 병원 ID 불일치 → “접근 권한 없음” 안내  
+   - 잘못된 ID → 404 Not Found  
+5. **버튼·링크 조건 처리**  
+   - hospital_admin 전용 버튼은 hospitalId 일치 시만 렌더링  
+6. **컴포넌트 분리 전략**  
+   - Admin / Hospital / Public 컴포넌트 분리 (예: `MusicFormPublic.tsx`)  
+7. **유효성 검증**  
+   - user.role, user.hospitalId, route params 검증 필수
+
+────────────────────────────────────────────  
