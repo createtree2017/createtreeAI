@@ -121,10 +121,10 @@ export async function generateLyrics(data: GenerateLyricsRequest): Promise<strin
 
       console.log("OpenAI API 호출 성공 - 가사 생성 완료");
       
-      if (response.choices && response.choices.length > 0 && response.choices[0].message) {
-        return response.choices[0].message.content || "가사 생성에 실패했습니다.";
+      if (responseData.choices && responseData.choices.length > 0 && responseData.choices[0].message) {
+        return responseData.choices[0].message.content || "가사 생성에 실패했습니다.";
       } else {
-        console.error("OpenAI API 응답 형식 오류:", response);
+        console.error("OpenAI API 응답 형식 오류:", responseData);
         return "API 응답 형식 오류로 가사 생성에 실패했습니다.";
       }
     } catch (apiError: any) {
@@ -166,25 +166,40 @@ export async function translateText(text: string, targetLanguage: string = "engl
     try {
       console.log("OpenAI API 호출 시작 - 텍스트 번역");
       
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          { 
-            role: "system", 
-            content: `당신은 전문 번역가입니다. 제공된 텍스트를 ${targetLanguage === "english" ? "영어" : "한국어"}로 번역해주세요.` 
-          },
-          { role: "user", content: text }
-        ],
-        temperature: 0.3,
-        max_tokens: 1000
+      // 이미지 생성 서비스에서 성공적으로 사용 중인 직접 fetch API 호출 방식 사용
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${API_KEY}`
+        },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          messages: [
+            { 
+              role: "system", 
+              content: `당신은 전문 번역가입니다. 제공된 텍스트를 ${targetLanguage === "english" ? "영어" : "한국어"}로 번역해주세요.` 
+            },
+            { role: "user", content: text }
+          ],
+          temperature: 0.3,
+          max_tokens: 1000
+        })
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`API request failed: ${JSON.stringify(errorData)}`);
+      }
+      
+      const responseData = await response.json();
       
       console.log("OpenAI API 호출 성공 - 텍스트 번역 완료");
 
-      if (response.choices && response.choices.length > 0 && response.choices[0].message) {
-        return response.choices[0].message.content || text;
+      if (responseData.choices && responseData.choices.length > 0 && responseData.choices[0].message) {
+        return responseData.choices[0].message.content || text;
       } else {
-        console.error("OpenAI API 응답 형식 오류:", response);
+        console.error("OpenAI API 응답 형식 오류:", responseData);
         return text;
       }
     } catch (apiError: any) {
