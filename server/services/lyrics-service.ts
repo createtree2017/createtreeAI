@@ -5,21 +5,48 @@
 
 import { z } from "zod";
 
-// OpenAI API를 직접 불러오기 위한 모듈 설정
+// OpenAI API를 사용하기 위한 준비
 let openai: any = null;
 let isOpenAIAvailable = false;
 
-// 비동기 함수로 OpenAI 클라이언트 초기화
+// 올바른 방식으로 OpenAI 모듈 가져오기 및 초기화
 async function initializeOpenAI() {
   try {
     // OpenAI API 키가 있는 경우에만 초기화
     if (process.env.OPENAI_API_KEY) {
-      const OpenAI = await import('openai');
-      openai = new OpenAI.default({
-        apiKey: process.env.OPENAI_API_KEY,
-      });
-      isOpenAIAvailable = true;
-      console.log("OpenAI 클라이언트가 성공적으로 초기화되었습니다.");
+      try {
+        // dynamic import와 default export 구문
+        const OpenAIModule = await import('openai');
+        const OpenAI = OpenAIModule.default;
+        
+        openai = new OpenAI({
+          apiKey: process.env.OPENAI_API_KEY,
+        });
+        isOpenAIAvailable = true;
+        console.log("OpenAI 클라이언트가 성공적으로 초기화되었습니다.");
+      } catch (importError: any) {
+        console.error("OpenAI 모듈 가져오기 실패:", importError.message);
+        
+        // 오류 발생 시 가상 API 클라이언트 제공
+        console.log("임시 API 클라이언트를 사용합니다.");
+        openai = {
+          chat: {
+            completions: {
+              create: async () => {
+                return {
+                  choices: [
+                    {
+                      message: {
+                        content: "임시 모드에서는 가사 생성이 제한됩니다."
+                      }
+                    }
+                  ]
+                };
+              }
+            }
+          }
+        };
+      }
     } else {
       console.log("OPENAI_API_KEY가 설정되지 않았습니다 - 임시 모드로 작동");
     }
