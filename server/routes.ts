@@ -242,6 +242,7 @@ import cookieParser from "cookie-parser";
 import session from "express-session";
 import { placeholderRouter } from './routes/placeholder';
 import musicRouter from './routes/music-routes';
+import testOpenAIRouter from './routes/test-openai-route';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // 쿠키 파서 미들웨어 등록
@@ -275,6 +276,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // 새로운 음악 생성 API 라우트 등록
   app.use("/api/song", musicRouter);
+  
+  // OpenAI API 테스트 라우트 등록
+  app.use("/api/test-openai", testOpenAIRouter);
   
   // 통합 메뉴 API - 카테고리와 서비스 항목을 함께 제공
   app.get("/api/menu", async (req, res) => {
