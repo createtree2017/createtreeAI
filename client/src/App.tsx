@@ -40,6 +40,7 @@ import Stickers from "@/pages/stickers";
 import CampaignsPage from "@/pages/campaigns";
 import CampaignDetailPage from "@/pages/campaign-detail";
 import HospitalCampaignsPage from "@/pages/hospital-campaigns";
+import HospitalCampaignEditPage from "@/pages/hospital/campaign-edit";
 
 // Main layout component
 function Layout({ children }: { children: React.ReactNode }) {
@@ -371,6 +372,15 @@ function Router() {
         <ProtectedRoute allowedRoles={["hospital_admin", "superadmin"]}>
           <Layout>
             <HospitalCampaignsPage />
+          </Layout>
+        </ProtectedRoute>
+      </Route>
+
+      {/* 병원 관리자 전용 캠페인 수정 */}
+      <Route path="/hospital/campaigns/edit/:id">
+        <ProtectedRoute allowedRoles={["hospital_admin"]}>
+          <Layout>
+            <HospitalCampaignEditPage />
           </Layout>
         </ProtectedRoute>
       </Route>
