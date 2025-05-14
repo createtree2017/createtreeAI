@@ -666,8 +666,8 @@ export default function CampaignEditorForHospital({ campaign }: { campaign: Exte
           />
 
           {/* 캠페인 옵션 - 신청방식, 후기, 배송여부 */}
-          <div className="grid grid-cols-1 gap-6 border p-6 rounded-lg bg-gray-50 mt-6">
-            <h3 className="text-lg font-medium mb-4">캠페인 옵션 설정</h3>
+          <div className="grid grid-cols-1 gap-6 border p-6 rounded-lg bg-gray-900 mt-6">
+            <h3 className="text-lg font-medium mb-4 text-white">캠페인 옵션 설정</h3>
             
             {/* 신청방식 선택 (선정형/비선정형) */}
             <FormField
