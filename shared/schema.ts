@@ -639,18 +639,16 @@ export const insertCampaignSchema = createInsertSchema(campaigns, {
   title: (schema) => schema.min(2, "캠페인 제목은 최소 2자 이상이어야 합니다."),
   slug: (schema) => schema.min(2, "슬러그는 최소 2자 이상이어야 합니다."),
   // 문자열 → Date 자동 변환 처리
-  startDate: () => z.coerce.date().nullable().optional(),
-  endDate: () => z.coerce.date().nullable().optional(),
+  startDate: () => z.coerce.date().refine(date => date !== null && date !== undefined, {
+    message: "신청 시작일은 필수 입력 항목입니다."
+  }),
+  endDate: () => z.coerce.date().refine(date => date !== null && date !== undefined, {
+    message: "신청 종료일은 필수 입력 항목입니다."
+  }),
   announceDate: () => z.coerce.date().nullable().optional(),
-  // 콘텐츠 등록 기간 - 필수 입력으로 변경 (2024-05)
-  contentStartDate: () => 
-    z.coerce.date().refine(date => date !== null && date !== undefined, {
-      message: "콘텐츠 등록 시작일은 필수 입력 항목입니다."
-    }),
-  contentEndDate: () => 
-    z.coerce.date().refine(date => date !== null && date !== undefined, {
-      message: "콘텐츠 등록 종료일은 필수 입력 항목입니다."
-    }),
+  // 콘텐츠 등록 기간 - 후기 필요시에만 필수 (2024-05)
+  contentStartDate: () => z.coerce.date().nullable().optional(),
+  contentEndDate: () => z.coerce.date().nullable().optional(),
   resultDate: () => z.coerce.date().nullable().optional(),
   // 숫자 필드 자동 변환
   rewardPoint: () => z.coerce.number().default(0).nullable(),
