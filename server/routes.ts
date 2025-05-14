@@ -3650,14 +3650,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       .from(campaigns)
       .leftJoin(hospitals, eq(campaigns.hospitalId, hospitals.id));
       
+      // 조건 설정을 위한 배열
+      const conditions = [];
+      
       // 병원 ID로 필터링 (병원 관리자인 경우)
       if (user.memberType === 'hospital_admin' && user.hospitalId) {
-        query = query.where(eq(campaigns.hospitalId, user.hospitalId));
+        conditions.push(eq(campaigns.hospitalId, user.hospitalId));
       }
       
       // 상태로 필터링 (옵션) - all이 아닌 경우에만 적용
       if (status && status !== 'all') {
-        query = query.where(eq(campaigns.status, status));
+        conditions.push(eq(campaigns.status, status));
+      }
+      
+      // 모든 조건을 적용
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
       }
       
       // 정렬: 표시 순서 오름차순, 생성일 내림차순
