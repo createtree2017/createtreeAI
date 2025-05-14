@@ -45,7 +45,7 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
     queryKey: ["/api/song/styles"],
     enabled: false, // 서버 API 완성 전까지 비활성화
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/song/styles");
+      const res = await apiRequest("GET", "/api/song/styles", null);
       return await res.json();
     }
   });

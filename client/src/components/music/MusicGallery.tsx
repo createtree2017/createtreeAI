@@ -62,12 +62,12 @@ export default function MusicGallery({
     queryKey: ["/api/song/styles"],
     enabled: false, // 서버 API 완성 전까지 비활성화
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/song/styles");
+      const res = await apiRequest("GET", "/api/song/styles", null);
       return await res.json();
     }
   });
   
-  // 임시 음악 데이터
+  // 임시 음악 데이터 (오디오 재생 테스트용)
   const mockMusicData = {
     music: [
       {
@@ -75,7 +75,7 @@ export default function MusicGallery({
         title: "아기를 위한 편안한 자장가",
         prompt: "아기가 깊은 수면을 취할 수 있는 부드러운 멜로디의 자장가",
         tags: ["자장가", "수면", "편안함"],
-        url: "https://example.com/music/1.mp3",
+        url: "https://soundssamples.s3.ap-northeast-2.amazonaws.com/Lullaby1.mp3",
         instrumental: false,
         lyrics: "잘 자라 우리 아가\n별빛이 내리는 밤\n엄마 품에 안겨서\n달콤한 꿈을 꾸렴",
         userId: 1,
@@ -87,7 +87,7 @@ export default function MusicGallery({
         title: "태교를 위한 클래식 멜로디",
         prompt: "태교에 좋은 평온한, 서정적인 클래식 피아노 멜로디",
         tags: ["태교", "클래식", "피아노"],
-        url: "https://example.com/music/2.mp3",
+        url: "https://soundssamples.s3.ap-northeast-2.amazonaws.com/Lullaby2.mp3",
         instrumental: true,
         userId: 1,
         duration: 210,
@@ -98,7 +98,7 @@ export default function MusicGallery({
         title: "아기와 함께하는 동요",
         prompt: "아기와 함께 불러볼 수 있는 밝고 경쾌한 동요",
         tags: ["동요", "밝은", "아기"],
-        url: "https://example.com/music/3.mp3",
+        url: "https://soundssamples.s3.ap-northeast-2.amazonaws.com/Lullaby3.mp3",
         instrumental: false,
         lyrics: "아기야 안녕\n뭐하고 놀까\n같이 춤을 추자\n손뼉을 치자",
         userId: 1,
@@ -144,7 +144,7 @@ export default function MusicGallery({
         params.append("userId", userId.toString());
       }
       
-      const res = await apiRequest("GET", `/api/song/list?${params.toString()}`);
+      const res = await apiRequest("GET", `/api/song/list?${params.toString()}`, null);
       return await res.json();
     }
   });
