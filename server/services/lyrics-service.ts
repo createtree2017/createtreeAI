@@ -7,20 +7,34 @@ import { z } from "zod";
 // @ts-ignore - 타입 선언 파일 없음 오류 무시
 import OpenAI from 'openai';
 
+// OpenAI API 키 및 프로젝트 ID
+const API_KEY = process.env.OPENAI_API_KEY;
+
 // OpenAI 클라이언트 인스턴스 생성 및 상태 관리
 let openai: any = null;
 let isOpenAIAvailable = false;
 
+// API 키 유효성 검증 함수
+function isValidApiKey(apiKey: string | undefined): boolean {
+  return !!apiKey && (apiKey.startsWith('sk-') || apiKey.startsWith('sk-proj-'));
+}
+
 // API 키가 있는지 확인하고 OpenAI 클라이언트 초기화
 try {
-  if (process.env.OPENAI_API_KEY) {
+  if (API_KEY && isValidApiKey(API_KEY)) {
+    console.log("OpenAI 클라이언트 초기화 시작");
+    
+    // 이미지 생성 서비스와 동일하게 단순화된 방식으로 초기화
     openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey: API_KEY,
     });
+    
     isOpenAIAvailable = true;
+    
     console.log("OpenAI 클라이언트가 성공적으로 초기화되었습니다.");
+    console.log("API 키 유형:", API_KEY.startsWith('sk-proj-') ? "Project Key" : "Standard Key");
   } else {
-    console.log("OPENAI_API_KEY가 설정되지 않았습니다. API 키를 확인해주세요.");
+    console.log("OPENAI_API_KEY가 설정되지 않았거나 유효하지 않습니다. API 키를 확인해주세요.");
   }
 } catch (error: any) {
   console.error("OpenAI 클라이언트 초기화 중 오류 발생:", error.message);
@@ -77,19 +91,33 @@ export async function generateLyrics(data: GenerateLyricsRequest): Promise<strin
     try {
       console.log("OpenAI API 호출 시작 - 가사 생성");
       
-      // OpenAI API 호출 - v4 API 형식으로 호출
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o", // 최신 모델 사용
-        messages: [
-          { 
-            role: "system", 
-            content: "당신은 아이들을 위한 노래 가사를 작성하는 전문가입니다. 감성적이고 따뜻한 가사를 작성해주세요."
-          },
-          { role: "user", content: fullPrompt }
-        ],
-        temperature: 0.7,
-        max_tokens: 1000
+      // 이미지 생성 서비스에서 성공적으로 사용 중인 직접 fetch API 호출 방식 사용
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${API_KEY}`
+        },
+        body: JSON.stringify({
+          model: "gpt-4o", // 최신 모델 사용
+          messages: [
+            { 
+              role: "system", 
+              content: "당신은 아이들을 위한 노래 가사를 작성하는 전문가입니다. 감성적이고 따뜻한 가사를 작성해주세요."
+            },
+            { role: "user", content: fullPrompt }
+          ],
+          temperature: 0.7,
+          max_tokens: 1000
+        })
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`API request failed: ${JSON.stringify(errorData)}`);
+      }
+      
+      const responseData = await response.json();
 
       console.log("OpenAI API 호출 성공 - 가사 생성 완료");
       
