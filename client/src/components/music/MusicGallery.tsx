@@ -59,11 +59,32 @@ export default function MusicGallery({
     "lullaby", "classical", "ambient", "relaxing", "piano", 
     "orchestral", "korean-traditional", "nature-sounds", "meditation", "prenatal"
   ] } = useQuery({
-    queryKey: ["/api/song/styles"],
-    enabled: false, // 서버 API 완성 전까지 비활성화
+    queryKey: ["/api/music/styles"],
+    enabled: true, // API가 준비되어 활성화
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/song/styles", null);
-      return await res.json();
+      try {
+        const res = await apiRequest("GET", "/api/music/styles", null);
+        
+        if (!res.ok) {
+          console.warn("음악 스타일 목록을 가져오는데 실패했습니다. 기본값 사용");
+          return [
+            "lullaby", "classical", "ambient", "relaxing", "piano", 
+            "orchestral", "korean-traditional", "nature-sounds", "meditation", "prenatal"
+          ];
+        }
+        
+        const data = await res.json();
+        return data || [
+          "lullaby", "classical", "ambient", "relaxing", "piano", 
+          "orchestral", "korean-traditional", "nature-sounds", "meditation", "prenatal"
+        ];
+      } catch (error) {
+        console.error("음악 스타일 목록 요청 오류:", error);
+        return [
+          "lullaby", "classical", "ambient", "relaxing", "piano", 
+          "orchestral", "korean-traditional", "nature-sounds", "meditation", "prenatal"
+        ]; // 오류 발생 시 기본값 사용
+      }
     }
   });
   
@@ -114,7 +135,7 @@ export default function MusicGallery({
     }
   };
   
-  // 음악 목록 가져오기 (서버 API 완성 전까지 비활성화)
+  // 음악 목록 가져오기
   const { 
     data: serverMusicData, 
     isLoading: isServerLoading, 
@@ -122,30 +143,44 @@ export default function MusicGallery({
     error: serverError,
     refetch
   } = useQuery({
-    queryKey: ["/api/song/list", page, limit, activeTab, selectedStyle, userId],
-    enabled: false, // 서버 API 완성 전까지 비활성화
+    queryKey: ["/api/music/list", page, limit, activeTab, selectedStyle, userId],
+    enabled: true, // API 경로가 준비되어 활성화
     queryFn: async () => {
-      // 쿼리 파라미터 구성
-      const params = new URLSearchParams();
-      params.append("page", page.toString());
-      params.append("limit", limit.toString());
-      
-      if (activeTab === "instrumental") {
-        params.append("instrumental", "true");
-      } else if (activeTab === "vocal") {
-        params.append("instrumental", "false");
+      try {
+        // 쿼리 파라미터 구성
+        const params = new URLSearchParams();
+        params.append("page", page.toString());
+        params.append("limit", limit.toString());
+        
+        if (activeTab === "instrumental") {
+          params.append("instrumental", "true");
+        } else if (activeTab === "vocal") {
+          params.append("instrumental", "false");
+        }
+        
+        if (selectedStyle) {
+          params.append("style", selectedStyle);
+        }
+        
+        if (userId) {
+          params.append("userId", userId.toString());
+        }
+        
+        const res = await apiRequest("GET", `/api/music/list?${params.toString()}`);
+        
+        if (!res.ok) {
+          // API 호출 실패 시 임시 데이터 사용
+          console.warn("음악 목록을 가져오는데 실패했습니다. 임시 데이터 사용");
+          return mockMusicData;
+        }
+        
+        const data = await res.json();
+        return data || mockMusicData;
+      } catch (error) {
+        console.error("음악 목록 요청 오류:", error);
+        // 오류 발생 시 임시 데이터 사용
+        return mockMusicData;
       }
-      
-      if (selectedStyle) {
-        params.append("style", selectedStyle);
-      }
-      
-      if (userId) {
-        params.append("userId", userId.toString());
-      }
-      
-      const res = await apiRequest("GET", `/api/song/list?${params.toString()}`, null);
-      return await res.json();
     }
   });
   
@@ -165,9 +200,9 @@ export default function MusicGallery({
     }
   };
   
-  // 서버에서 데이터를 가져오는 중인지 여부 (서버 API 완성 후 활성화)
-  const isLoading = false; // isServerLoading;
-  const isError = false; // isServerError;
+  // 서버에서 데이터를 가져오는 중인지 여부
+  const isLoading = isServerLoading;
+  const isError = isServerError;
   const error = serverError;
   
   const handleRetry = () => {

@@ -54,17 +54,30 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
   // Object.keys를 사용하여 musicStyleMap의 키 배열 생성
   const musicStyleKeys = Object.keys(musicStyleMap);
   
-  // 추후 API 연동을 위한 쿼리 (현재는 비활성화)
+  // 음악 스타일 목록 가져오기
   const { data: musicStyles = musicStyleKeys } = useQuery({
-    queryKey: ["/api/song/styles"],
-    enabled: false, // 서버 API 완성 전까지 비활성화
+    queryKey: ["/api/music/styles"],
+    // API가 준비되면 활성화
+    enabled: true,
     queryFn: async () => {
-      const res = await fetch("/api/song/styles", {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include"
-      });
-      return await res.json();
+      try {
+        const res = await fetch("/api/music/styles", {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include"
+        });
+        
+        if (!res.ok) {
+          console.warn("음악 스타일 목록을 가져오는데 실패했습니다. 기본값 사용");
+          return musicStyleKeys;
+        }
+        
+        const data = await res.json();
+        return data || musicStyleKeys;
+      } catch (error) {
+        console.error("음악 스타일 목록 요청 오류:", error);
+        return musicStyleKeys; // 오류 발생 시 기본값 사용
+      }
     }
   });
   
@@ -83,19 +96,27 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
   // 가사 생성 뮤테이션
   const generateLyricsMutation = useMutation({
     mutationFn: async (prompt: string) => {
-      const res = await fetch("/api/song/lyrics", {
+      const res = await fetch("/api/music/lyrics", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ 
           prompt,
           genre: form.getValues().style || "lullaby",
-          mood: "soothing"
+          mood: "soothing",
+          language: "korean"
         })
       });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "가사 생성에 실패했습니다.");
+      }
+      
       return await res.json();
     },
     onSuccess: (data) => {
+      console.log("가사 생성 응답:", data);
       if (data.lyrics) {
         // 생성된 가사를 프롬프트에 추가
         const currentPrompt = form.getValues().prompt;
@@ -104,9 +125,16 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
           title: "가사가 생성되었습니다",
           description: "프롬프트에 가사가 추가되었습니다. 필요에 따라 수정해주세요.",
         });
+      } else if (data.error) {
+        toast({
+          title: "가사 생성 실패",
+          description: data.error,
+          variant: "destructive",
+        });
       }
     },
     onError: (error) => {
+      console.error("가사 생성 오류:", error);
       toast({
         title: "가사 생성 실패",
         description: error instanceof Error ? error.message : "가사 생성에 실패했습니다.",
@@ -121,15 +149,22 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
   // 음악 생성 뮤테이션
   const createMusicMutation = useMutation({
     mutationFn: async (values: MusicFormValues) => {
-      const res = await fetch("/api/song/create", {
+      const res = await fetch("/api/music/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify(values)
       });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "음악 생성에 실패했습니다.");
+      }
+      
       return await res.json();
     },
     onSuccess: (data) => {
+      console.log("음악 생성 응답:", data);
       toast({
         title: "음악 생성 성공",
         description: "음악이 성공적으로 생성되었습니다.",
@@ -138,11 +173,12 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
         onMusicGenerated(data.music);
       }
       // 음악 목록 갱신
-      queryClient.invalidateQueries({ queryKey: ["/api/song/list"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/music/list"] });
       // 폼 초기화
       form.reset();
     },
     onError: (error) => {
+      console.error("음악 생성 오류:", error);
       toast({
         title: "음악 생성 실패",
         description: error instanceof Error ? error.message : "음악 생성에 실패했습니다. 잠시 후 다시 시도해주세요.",
