@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { z } from "zod";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 import { Button } from "@/components/ui/button";
@@ -59,7 +59,11 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
     queryKey: ["/api/song/styles"],
     enabled: false, // 서버 API 완성 전까지 비활성화
     queryFn: async () => {
-      const res = await apiRequest("/api/song/styles");
+      const res = await fetch("/api/song/styles", {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include"
+      });
       return await res.json();
     }
   });
@@ -79,11 +83,16 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
   // 가사 생성 뮤테이션
   const generateLyricsMutation = useMutation({
     mutationFn: async (prompt: string) => {
-      const res = await apiRequest("POST", "/api/song/lyrics", JSON.stringify({ 
-        prompt,
-        genre: form.getValues().style || "lullaby",
-        mood: "soothing"
-      }));
+      const res = await fetch("/api/song/lyrics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ 
+          prompt,
+          genre: form.getValues().style || "lullaby",
+          mood: "soothing"
+        })
+      });
       return await res.json();
     },
     onSuccess: (data) => {
@@ -112,7 +121,12 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
   // 음악 생성 뮤테이션
   const createMusicMutation = useMutation({
     mutationFn: async (values: MusicFormValues) => {
-      const res = await apiRequest("POST", "/api/song/create", JSON.stringify(values));
+      const res = await fetch("/api/song/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(values)
+      });
       return await res.json();
     },
     onSuccess: (data) => {

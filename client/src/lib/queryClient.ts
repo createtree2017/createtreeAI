@@ -9,7 +9,7 @@ export const queryClient = new QueryClient({
   },
 });
 
-interface ApiRequestOptions {
+export interface ApiRequestOptions {
   headers?: HeadersInit;
   on401?: "throw" | "returnNull";
   params?: Record<string, string | number | boolean>;
