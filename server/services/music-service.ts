@@ -1,41 +1,36 @@
-import Replicate from 'replicate';
-import { OpenAI } from 'openai';
-import { z } from 'zod';
+import Replicate from "replicate";
+import { z } from "zod";
+// OpenAI 관련 코드는 필요한 경우 추가할 예정
 
-// API 클라이언트 초기화
+// Replicate API 클라이언트 초기화
 const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN as string,
+  auth: process.env.REPLICATE_API_TOKEN,
 });
 
-const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY as string 
-});
-
-// 스타일 태그 목록 (허용된 태그들)
+// 음악 생성시 지원되는 스타일 목록
 export const ALLOWED_MUSIC_STYLES = [
-  'nursery',
-  'lullaby',
-  'soft piano',
-  'motherly',
-  'gentle',
-  'calm',
-  'soothing',
-  'classical',
-  'orchestral',
-  '자장가',
-  '태교',
-  '클래식',
-  '피아노',
+  "lullaby",
+  "classical",
+  "ambient",
+  "relaxing",
+  "piano",
+  "orchestral",
+  "korean-traditional",
+  "nature-sounds",
+  "meditation",
+  "prenatal"
 ];
 
-// 음악 생성 요청 검증 스키마
+// 음악 생성 요청 스키마
 export const createSongSchema = z.object({
-  prompt: z.string().min(3, "프롬프트는 최소 3자 이상이어야 합니다"),
-  tags: z.array(z.string()).optional().default([]),
-  lyrics: z.string().optional(),
-  instrumental: z.boolean().optional().default(false),
+  title: z.string().min(1, "제목을 입력해주세요"),
+  prompt: z.string().min(3, "최소 3글자 이상의 프롬프트를 입력해주세요"),
+  style: z.string().optional(),
+  instrumental: z.boolean().default(false),
+  translatePrompt: z.boolean().default(true)
 });
 
+// 서비스 관련 타입 선언
 export type CreateSongRequest = z.infer<typeof createSongSchema>;
 
 export interface SongGenerationResult {
@@ -54,24 +49,26 @@ export interface SongGenerationResult {
 async function translateToEnglish(text: string): Promise<string> {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // 최신 GPT 모델 사용
+      // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: "You are a Korean to English translator. Translate the given Korean text to English. Keep the original meaning intact."
+          content: "You are a translation assistant. Translate the Korean text into English accurately."
         },
         {
           role: "user",
-          content: text
+          content: `Translate the following Korean text to English:\n\n${text}`
         }
       ],
-      temperature: 0.3, // 낮은 온도로 일관된 번역 결과
+      temperature: 0.3,
+      max_tokens: 200
     });
 
-    return response.choices[0].message.content || text;
+    return response.choices[0].message.content?.trim() || text;
   } catch (error) {
-    console.error('번역 오류:', error);
-    return text; // 오류 발생시 원본 텍스트 반환
+    console.error("번역 중 오류 발생:", error);
+    return text; // 오류 발생 시 원본 텍스트 반환
   }
 }
 
@@ -80,30 +77,36 @@ async function translateToEnglish(text: string): Promise<string> {
  */
 export async function generateLyrics(prompt: string): Promise<string> {
   try {
-    const translatedPrompt = await translateToEnglish(prompt);
-    
+    // 한국어 프롬프트인 경우 영어로 번역
+    const translatedPrompt = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(prompt) 
+      ? await translateToEnglish(prompt)
+      : prompt;
+
     const response = await openai.chat.completions.create({
+      // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       model: "gpt-4o",
       messages: [
         {
-          role: "system", 
-          content: "You are a lyric writer specializing in lullabies and children's songs. " +
-                   "Create short, gentle lyrics suitable for babies and young children. " +
-                   "Keep the lyrics 4-8 lines, with a soothing, calm tone. " +
-                   "The lyrics should be loving, positive, and simple."
+          role: "system",
+          content: `You are a talented songwriter specializing in lullabies and gentle songs for babies and expecting mothers. 
+          Create beautiful, soothing lyrics that capture the essence of parental love and the beauty of new life.
+          Keep the lyrics appropriate for the context, using gentle and reassuring language.
+          The song should have a verse-chorus structure with 2-3 verses and a repeating chorus.
+          Write the lyrics in both Korean and English, with the Korean version first.`
         },
         {
           role: "user",
-          content: `Write lyrics for a song based on this prompt: ${translatedPrompt}`
+          content: `I need lyrics for a song based on this concept: ${translatedPrompt}`
         }
       ],
       temperature: 0.7,
+      max_tokens: 800
     });
 
-    return response.choices[0].message.content || "";
+    return response.choices[0].message.content?.trim() || "";
   } catch (error) {
-    console.error('가사 생성 오류:', error);
-    throw new Error("가사를 생성하는데 실패했습니다");
+    console.error("가사 생성 중 오류 발생:", error);
+    throw new Error(`가사 생성에 실패했습니다: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -112,69 +115,68 @@ export async function generateLyrics(prompt: string): Promise<string> {
  */
 export async function generateMusic(data: CreateSongRequest): Promise<SongGenerationResult> {
   try {
-    // 태그 검증 (보안을 위해 허용된 태그만 사용)
-    const validatedTags = data.tags.filter(tag => 
-      ALLOWED_MUSIC_STYLES.includes(tag) || 
-      ALLOWED_MUSIC_STYLES.some(style => tag.toLowerCase().includes(style.toLowerCase()))
-    );
-
-    // 한국어 감지 후 번역 (간단한 감지 방식)
-    const koreanRegex = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/;
-    let finalPrompt = data.prompt;
-    let translatedPrompt;
-
-    if (koreanRegex.test(data.prompt)) {
-      translatedPrompt = await translateToEnglish(data.prompt);
-      finalPrompt = translatedPrompt;
-    }
-
-    // 가사가 있고 한국어라면 번역
-    let translatedLyrics;
-    if (data.lyrics && koreanRegex.test(data.lyrics)) {
-      translatedLyrics = await translateToEnglish(data.lyrics);
-    }
-
-    // 최종 프롬프트 구성
-    let musicPrompt = finalPrompt;
-    if (validatedTags.length > 0) {
-      musicPrompt += `. Style: ${validatedTags.join(', ')}`;
+    let prompt = data.prompt;
+    let translatedPrompt: string | undefined;
+    
+    // 한국어 프롬프트인 경우 영어로 번역 (Replicate 모델이 영어 프롬프트에 더 최적화되어 있음)
+    if (data.translatePrompt && /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(prompt)) {
+      translatedPrompt = await translateToEnglish(prompt);
+      console.log(`원본 프롬프트: ${prompt}`);
+      console.log(`번역된 프롬프트: ${translatedPrompt}`);
+      prompt = translatedPrompt; // 번역된 프롬프트로 대체
     }
     
-    if (data.instrumental) {
-      musicPrompt += ". Instrumental only, no vocals.";
-    } else if (translatedLyrics || data.lyrics) {
-      musicPrompt += `. Lyrics: ${translatedLyrics || data.lyrics}`;
+    // 스타일 키워드 추가
+    if (data.style) {
+      prompt = `${prompt}, style: ${data.style}`;
     }
-
-    // Replicate API 호출
-    // 여기서는 riffusion/riffusion 모델을 사용하나 다른 음악 생성 모델로 변경 가능
+    
+    // Replicate API를 통한 음악 생성
+    // MusicGen Melody 모델 사용 - 고품질 음악 생성
     const output = await replicate.run(
-      "riffusion/riffusion:8cf61ea6c56afd61d8f5b9ffd14d7c216c0a93844ce2d82ac1c9ecc9c7f24e05",
+      "meta/musicgen-melody:5e729892184e758ebf41e5064fc788a76fd56a92f836aa217791409f2244219c",
       {
         input: {
-          prompt_a: musicPrompt,
-          prompt_b: "",
-          alpha: 0.5,
-          num_inference_steps: 50
+          prompt: prompt,
+          duration: 30, // 기본 30초
+          continuation: false,
+          normalize: true,
+          output_format: "mp3"
         }
       }
     );
-
-    // 결과 처리 및 반환
-    if (!output || !output.audio) {
-      throw new Error("음악 생성 결과가 없습니다");
+    
+    // 출력 결과에서 오디오 URL 추출
+    const audioUrl = output.audio as string;
+    if (!audioUrl) {
+      throw new Error("음악 생성에 실패했습니다. 오디오 URL을 받지 못했습니다.");
     }
-
+    
+    // 태그 생성 - 프롬프트에서 주요 키워드 추출
+    const tags = [
+      ...(data.style ? [data.style] : []),
+      "음악",
+      "태교",
+      "자장가",
+      ...(prompt.split(/[\s,]+/).filter(word => word.length > 2 && !["and", "the", "for", "with", "style"].includes(word.toLowerCase())).slice(0, 3))
+    ];
+    
+    // 가사 생성 (instrumental이 false인 경우만)
+    let lyrics: string | undefined;
+    if (!data.instrumental) {
+      lyrics = await generateLyrics(data.prompt);
+    }
+    
     return {
-      audioUrl: output.audio as string,
+      audioUrl,
       prompt: data.prompt,
       translatedPrompt,
-      tags: validatedTags,
-      instrumental: !!data.instrumental,
-      lyrics: data.lyrics
+      tags,
+      instrumental: data.instrumental,
+      lyrics
     };
   } catch (error) {
-    console.error('음악 생성 오류:', error);
-    throw new Error("음악 생성에 실패했습니다. 잠시 후 다시 시도해주세요.");
+    console.error("음악 생성 중 오류 발생:", error);
+    throw new Error(`음악 생성에 실패했습니다: ${error instanceof Error ? error.message : String(error)}`);
   }
 }

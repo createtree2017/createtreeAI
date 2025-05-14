@@ -241,6 +241,7 @@ import { initPassport } from "./services/auth";
 import cookieParser from "cookie-parser";
 import session from "express-session";
 import { placeholderRouter } from './routes/placeholder';
+import musicRouter from './routes/music-routes';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // 쿠키 파서 미들웨어 등록
@@ -271,6 +272,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // 슈퍼관리자 라우트 등록
   app.use("/api/super", superAdminRoutes);
+  
+  // 새로운 음악 생성 API 라우트 등록
+  app.use("/api/song", musicRouter);
   
   // 통합 메뉴 API - 카테고리와 서비스 항목을 함께 제공
   app.get("/api/menu", async (req, res) => {

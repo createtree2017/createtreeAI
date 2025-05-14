@@ -495,7 +495,6 @@ export type InsertPregnancyProfile = z.infer<typeof insertPregnancyProfileSchema
 export type PregnancyProfile = typeof pregnancyProfiles.$inferSelect;
 
 export type InsertMusic = z.infer<typeof insertMusicSchema>;
-export type InsertMusic = z.infer<typeof insertMusicSchema>;
 export type Music = typeof music.$inferSelect;
 
 export type InsertImage = z.infer<typeof insertImageSchema>;
