@@ -90,11 +90,14 @@ function Layout({ children }: { children: React.ReactNode }) {
   // Determine if direct page mode (for iframe embedding of single features)
   const isDirectPage = 
     location === "/music" || 
-    location === "/image" || 
     location === "/chat";
+    
+  // 이미지 페이지는 query parameter가 있는 경우에만 direct page로 처리
+  const isImagePage = location === "/image";
+  const isIframeEmbedMode = isInIframe && (isDirectPage || isImagePage);
   
-  // We show the navigation only if not in direct page mode or not in iframe
-  const showNavigation = !isInIframe || !isDirectPage;
+  // iframe에 있는 경우에만 네비게이션 숨김 (일반 페이지에서는 항상 네비게이션 표시)
+  const showNavigation = !isIframeEmbedMode;
   
   // Use sidebar on desktop, use bottom navigation on mobile (unless in iframe direct mode)
   const useDesktopLayout = !isMobile && showNavigation;
