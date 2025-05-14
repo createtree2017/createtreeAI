@@ -4056,15 +4056,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/admin/campaigns/:id", async (req, res) => {
     try {
-      // 관리자 권한 확인 (이미 authMiddleware에서 로그인 체크는 완료됨)
-      const userData = req.user as any;
-      if (userData.memberType !== 'superadmin' && userData.memberType !== 'admin') {
-        return res.status(403).json({ error: "Permission denied" });
+      // 로그인 체크
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "로그인이 필요합니다." });
       }
       
+      const userData = req.user as any;
       const id = parseInt(req.params.id);
+      
       if (isNaN(id)) {
-        return res.status(400).json({ error: "Invalid campaign ID" });
+        return res.status(400).json({ error: "유효하지 않은 캠페인 ID입니다." });
       }
       
       // 캠페인 존재 확인
@@ -4073,7 +4074,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       if (!existingCampaign) {
-        return res.status(404).json({ error: "Campaign not found" });
+        return res.status(404).json({ error: "캠페인을 찾을 수 없습니다." });
+      }
+      
+      // 권한 체크
+      // 1. 슈퍼관리자나 일반 관리자는 모든 캠페인 수정 가능
+      if (userData.memberType === 'superadmin' || userData.memberType === 'admin') {
+        // 권한 있음 - 계속 진행
+      } 
+      // 2. 병원 관리자는 본인 병원 캠페인만 수정 가능
+      else if (userData.memberType === 'hospital_admin') {
+        if (!userData.hospitalId) {
+          return res.status(403).json({ error: "병원 정보가 없습니다." });
+        }
+        
+        if (existingCampaign.hospitalId !== userData.hospitalId) {
+          return res.status(403).json({ 
+            error: "접근 권한이 없습니다. 본인이 소속된 병원의 캠페인만 수정할 수 있습니다."
+          });
+        }
+      } 
+      // 3. 기타 권한 없음
+      else {
+        return res.status(403).json({ error: "접근 권한이 없습니다." });
       }
       
       // 요청 데이터 유효성 검사 및 자동 변환(문자열 날짜 → Date 객체)
@@ -4119,15 +4142,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/admin/campaigns/:id", async (req, res) => {
     try {
-      // 관리자 권한 확인 (이미 authMiddleware에서 로그인 체크는 완료됨)
-      const userData = req.user as any;
-      if (userData.memberType !== 'superadmin' && userData.memberType !== 'admin') {
-        return res.status(403).json({ error: "Permission denied" });
+      // 로그인 체크
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "로그인이 필요합니다." });
       }
       
+      const userData = req.user as any;
       const id = parseInt(req.params.id);
+      
       if (isNaN(id)) {
-        return res.status(400).json({ error: "Invalid campaign ID" });
+        return res.status(400).json({ error: "유효하지 않은 캠페인 ID입니다." });
+      }
+      
+      // 캠페인 존재 확인
+      const existingCampaign = await db.query.campaigns.findFirst({
+        where: eq(campaigns.id, id)
+      });
+      
+      if (!existingCampaign) {
+        return res.status(404).json({ error: "캠페인을 찾을 수 없습니다." });
+      }
+      
+      // 권한 체크
+      // 1. 슈퍼관리자나 일반 관리자는 모든 캠페인 수정 가능
+      if (userData.memberType === 'superadmin' || userData.memberType === 'admin') {
+        // 권한 있음 - 계속 진행
+      } 
+      // 2. 병원 관리자는 본인 병원 캠페인만 수정 가능
+      else if (userData.memberType === 'hospital_admin') {
+        if (!userData.hospitalId) {
+          return res.status(403).json({ error: "병원 정보가 없습니다." });
+        }
+        
+        if (existingCampaign.hospitalId !== userData.hospitalId) {
+          return res.status(403).json({ 
+            error: "접근 권한이 없습니다. 본인이 소속된 병원의 캠페인만 삭제할 수 있습니다."
+          });
+        }
+      } 
+      // 3. 기타 권한 없음
+      else {
+        return res.status(403).json({ error: "접근 권한이 없습니다." });
       }
       
       const result = await db
