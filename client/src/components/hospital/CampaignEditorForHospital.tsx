@@ -54,12 +54,19 @@ export type ExtendedCampaign = {
   resultDate?: string | null;
   rewardPoint?: number;
   status?: string;
+  // 캠페인 확장 필드 (2024-05)
+  selectionType?: string;    // 선정형(selection) / 비선정형(first_come)
+  requireReview?: boolean;   // 후기 제출 필요 여부
+  hasShipping?: boolean;     // 배송 여부
+  maxParticipants?: number;  // 최대 참여자 수
+  reviewPolicy?: string;     // 후기 정책 설명
   createdAt?: string;
   updatedAt?: string;
 };
 
 // 양식 스키마
 const formSchema = z.object({
+  // 기본 정보 필드
   title: z.string().min(2, "캠페인 제목은 최소 2자 이상이어야 합니다."),
   slug: z.string().min(2, "슬러그는 최소 2자 이상이어야 합니다.").regex(/^[a-z0-9-]+$/, "슬러그는 소문자, 숫자, 하이픈(-)만 사용 가능합니다."),
   description: z.string().optional(),
@@ -69,14 +76,30 @@ const formSchema = z.object({
   isPublic: z.boolean().default(true),
   displayOrder: z.number().int().default(0),
   // 병원 관리자는 병원 ID를 변경할 수 없음 (서버에서 자동 설정)
-  startDate: z.string().optional().nullable(),
-  endDate: z.string().optional().nullable(),
-  announceDate: z.string().optional().nullable(),
-  contentStartDate: z.string().optional().nullable(),
-  contentEndDate: z.string().optional().nullable(),
-  resultDate: z.string().optional().nullable(),
+  // 날짜 관련 필드
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  announceDate: z.string().optional(),
+  // 콘텐츠 등록 기간은 필수 입력 (2024-05)
+  contentStartDate: z.string()
+    .refine(val => !!val, {
+      message: "콘텐츠 등록 시작일은 필수 입력 항목입니다."
+    }),
+  contentEndDate: z.string()
+    .refine(val => !!val, {
+      message: "콘텐츠 등록 종료일은 필수 입력 항목입니다."
+    }),
+  resultDate: z.string().optional(),
+  // 숫자 필드
   rewardPoint: z.number().int().default(0).nullable(),
-  status: z.string().default('draft')
+  maxParticipants: z.number().int().nullable().optional(),
+  // 상태 필드
+  status: z.string().default('draft'),
+  // 새로운 필드 (2024-05)
+  selectionType: z.enum(['selection', 'first_come']).default('selection'),
+  requireReview: z.boolean().default(false),
+  hasShipping: z.boolean().default(false),
+  reviewPolicy: z.string().optional()
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -122,6 +145,7 @@ export default function CampaignEditorForHospital({ campaign }: { campaign: Exte
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      // 기본 정보 필드
       title: campaign?.title ?? "",
       slug: campaign?.slug ?? "",
       description: campaign?.description ?? "",
@@ -130,14 +154,23 @@ export default function CampaignEditorForHospital({ campaign }: { campaign: Exte
       content: campaign?.content ?? "",
       isPublic: campaign?.isPublic ?? true,
       displayOrder: campaign?.displayOrder ?? 0,
-      startDate: formatDateForInput(campaign?.startDate) || null,
-      endDate: formatDateForInput(campaign?.endDate) || null,
-      announceDate: formatDateForInput(campaign?.announceDate) || null,
-      contentStartDate: formatDateForInput(campaign?.contentStartDate) || null,
-      contentEndDate: formatDateForInput(campaign?.contentEndDate) || null,
-      resultDate: formatDateForInput(campaign?.resultDate) || null,
+      // 날짜 관련 필드
+      startDate: formatDateForInput(campaign?.startDate) || "",
+      endDate: formatDateForInput(campaign?.endDate) || "",
+      announceDate: formatDateForInput(campaign?.announceDate) || "",
+      contentStartDate: formatDateForInput(campaign?.contentStartDate) || '',
+      contentEndDate: formatDateForInput(campaign?.contentEndDate) || '',
+      resultDate: formatDateForInput(campaign?.resultDate) || "",
+      // 숫자 필드
       rewardPoint: campaign?.rewardPoint ?? 0,
-      status: campaign?.status ?? 'draft'
+      maxParticipants: campaign?.maxParticipants ?? undefined,
+      // 상태 필드
+      status: campaign?.status ?? 'draft',
+      // 새로운 필드 (2024-05)
+      selectionType: (campaign?.selectionType as "selection" | "first_come") ?? 'selection',
+      requireReview: campaign?.requireReview ?? false,
+      hasShipping: campaign?.hasShipping ?? false,
+      reviewPolicy: campaign?.reviewPolicy ?? ""
     },
   });
 
