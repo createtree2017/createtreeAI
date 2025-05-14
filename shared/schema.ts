@@ -614,7 +614,7 @@ export const campaigns = pgTable("campaigns", {
   hospitalId: integer("hospital_id").references(() => hospitals.id), // 병원 ID 외래키
   isPublic: boolean("is_public").default(true),
   displayOrder: integer("display_order").default(0),
-  // 신규 추가 필드
+  // 신규 추가 필드 - 기존
   startDate: timestamp("start_date"),     // 캠페인 신청 시작일
   endDate: timestamp("end_date"),         // 캠페인 신청 마감일 
   announceDate: timestamp("announce_date"), // 캠페인 선정 발표일
@@ -625,6 +625,12 @@ export const campaigns = pgTable("campaigns", {
   thumbnailUrl: text("thumbnail_url"),    // 썸네일 이미지 경로
   content: text("content"),               // 상세내용 (HTML)
   status: text("status").default("draft"), // 캠페인 상태 (draft, open, closed)
+  // 신규 추가 필드 - 확장 (2024-05 추가)
+  selectionType: text("selection_type").default("selection"), // 신청 방식: selection(선정형) / first_come(비선정형/선착순)
+  requireReview: boolean("require_review").default(false),    // 후기 제출 여부: true(활성) / false(비활성)
+  hasShipping: boolean("has_shipping").default(false),        // 배송 여부: true(배송) / false(비배송)
+  maxParticipants: integer("max_participants"),              // 최대 참여자 수
+  reviewPolicy: text("review_policy"),                        // 후기 정책 설명
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
 });
@@ -636,13 +642,26 @@ export const insertCampaignSchema = createInsertSchema(campaigns, {
   startDate: () => z.coerce.date().nullable().optional(),
   endDate: () => z.coerce.date().nullable().optional(),
   announceDate: () => z.coerce.date().nullable().optional(),
-  contentStartDate: () => z.coerce.date().nullable().optional(),
-  contentEndDate: () => z.coerce.date().nullable().optional(),
+  // 콘텐츠 등록 기간 - 필수 입력으로 변경 (2024-05)
+  contentStartDate: () => 
+    z.coerce.date().refine(date => date !== null && date !== undefined, {
+      message: "콘텐츠 등록 시작일은 필수 입력 항목입니다."
+    }),
+  contentEndDate: () => 
+    z.coerce.date().refine(date => date !== null && date !== undefined, {
+      message: "콘텐츠 등록 종료일은 필수 입력 항목입니다."
+    }),
   resultDate: () => z.coerce.date().nullable().optional(),
   // 숫자 필드 자동 변환
   rewardPoint: () => z.coerce.number().default(0).nullable(),
+  maxParticipants: () => z.coerce.number().nullable().optional(),
   hospitalId: () => z.coerce.number().nullable().optional(),
-  status: (schema) => schema.default("draft")
+  // 상태 및 유형 필드
+  status: (schema) => schema.default("draft"),
+  // 새로운 필드 (2024-05)
+  selectionType: (schema) => schema.default("selection"), // 선정형 기본값
+  requireReview: (schema) => schema.default(false),
+  hasShipping: (schema) => schema.default(false)
 });
 export type InsertCampaign = z.infer<typeof insertCampaignSchema>;
 export type Campaign = typeof campaigns.$inferSelect;
@@ -656,13 +675,30 @@ export const campaignApplications = pgTable("campaign_applications", {
   memo: text("memo"),
   status: text("status").default("new"),   // new, processing, completed
   userId: integer("user_id").references(() => users.id),
+  // 후기 관련 필드 추가 (2024-05)
+  isSelected: boolean("is_selected").default(false),   // 캠페인 선정 여부
+  reviewUrls: text("review_urls"),                     // 후기 URL (줄바꿈으로 구분된 다중 URL)
+  reviewSubmittedAt: timestamp("review_submitted_at"), // 후기 제출 일시
+  reviewApprovedAt: timestamp("review_approved_at"),   // 후기 승인 일시
+  isReviewSelected: boolean("is_review_selected").default(false), // 후기 선정 여부
+  shippingAddress: text("shipping_address"),          // 배송 주소 (배송 필요 시)
+  shippingStatus: text("shipping_status"),            // 배송 상태
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
 export const insertCampaignApplicationSchema = createInsertSchema(campaignApplications, {
   name: (schema) => schema.min(2, "이름은 최소 2자 이상이어야 합니다."),
-  contact: (schema) => schema.min(5, "연락처는 최소 5자 이상이어야 합니다.")
+  contact: (schema) => schema.min(5, "연락처는 최소 5자 이상이어야 합니다."),
+  // 새로운 필드들 (2024-05)
+  reviewUrls: () => z.string().nullable().optional(),
+  shippingAddress: () => z.string().nullable().optional(),
+  // 자동 변환 필드
+  reviewSubmittedAt: () => z.coerce.date().nullable().optional(),
+  reviewApprovedAt: () => z.coerce.date().nullable().optional(),
+  // Boolean 값 기본값
+  isSelected: (schema) => schema.default(false),
+  isReviewSelected: (schema) => schema.default(false)
 });
 export type InsertCampaignApplication = z.infer<typeof insertCampaignApplicationSchema>;
 export type CampaignApplication = typeof campaignApplications.$inferSelect;
