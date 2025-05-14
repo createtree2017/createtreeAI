@@ -4,9 +4,9 @@ import { music } from '@shared/schema';
 import { 
   createSongSchema, 
   generateMusic, 
-  generateLyrics, 
   ALLOWED_MUSIC_STYLES 
 } from '../services/music-service';
+import { generateLyrics, generateLyricsSchema } from '../services/lyrics-service';
 import { authMiddleware as isAuthenticated } from '../common/middleware/auth';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { z } from 'zod';
@@ -21,16 +21,8 @@ musicRouter.get('/styles', (req, res) => {
 // 가사 생성 엔드포인트
 musicRouter.post('/lyrics', isAuthenticated, async (req, res) => {
   try {
-    // 가사 생성 요청 검증 스키마
-    const lyricsRequestSchema = z.object({
-      prompt: z.string().min(3, "프롬프트는 최소 3자 이상이어야 합니다."),
-      genre: z.string().optional(),
-      mood: z.string().optional(),
-      language: z.string().default("korean")
-    });
-    
-    // 요청 데이터 검증
-    const result = lyricsRequestSchema.safeParse(req.body);
+    // lyrics-service에서 가져온 스키마 활용
+    const result = generateLyricsSchema.safeParse(req.body);
     if (!result.success) {
       return res.status(400).json({ 
         error: '입력 형식이 잘못되었습니다.', 
@@ -38,12 +30,24 @@ musicRouter.post('/lyrics', isAuthenticated, async (req, res) => {
       });
     }
 
-    // 가사 생성 요청
-    const lyrics = await generateLyrics(result.data.prompt);
-    res.json({ lyrics });
+    console.log(`가사 생성 요청: ${JSON.stringify(result.data)}`);
+    
+    // 개선된 lyrics-service의 함수 활용
+    const lyrics = await generateLyrics(result.data);
+    
+    // 성공 응답
+    res.json({ 
+      success: true,
+      lyrics: lyrics,
+      prompt: result.data.prompt,
+      genre: result.data.genre,
+      mood: result.data.mood,
+      language: result.data.language
+    });
   } catch (error) {
     console.error('가사 생성 오류:', error);
     res.status(500).json({ 
+      success: false,
       error: '가사를 생성하는데 실패했습니다. 잠시 후 다시 시도해주세요.',
       message: error instanceof Error ? error.message : String(error)
     });

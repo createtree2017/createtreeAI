@@ -1,6 +1,6 @@
 import Replicate from "replicate";
 import { z } from "zod";
-import { generateLyrics as generateLyricsFromService, translateText } from "./lyrics-service";
+import { generateLyrics as generateLyricsFromService, translateText, GenerateLyricsRequest } from "./lyrics-service";
 
 // Replicate API 클라이언트 초기화
 const replicate = new Replicate({
@@ -156,7 +156,14 @@ export async function generateMusic(data: CreateSongRequest): Promise<SongGenera
     let lyrics: string | undefined;
     if (!data.instrumental) {
       try {
-        lyrics = await generateLyrics(data.prompt);
+        // 개선된 lyrics-service를 사용하여 가사 생성
+        const lyricsRequest: GenerateLyricsRequest = {
+          prompt: data.prompt,
+          genre: data.style || "lullaby",
+          mood: "soothing",
+          language: "korean"
+        };
+        lyrics = await generateLyricsFromService(lyricsRequest);
       } catch (lyricsError) {
         console.error("가사 생성 중 오류가 발생했지만 계속 진행합니다:", lyricsError);
         // 가사 생성 실패해도 음악 생성은 계속 진행
