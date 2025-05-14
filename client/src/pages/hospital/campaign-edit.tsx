@@ -8,6 +8,7 @@ import { AlertTriangle } from "lucide-react";
 import CampaignEditorForHospital from "@/components/hospital/CampaignEditorForHospital";
 import { ExtendedCampaign } from "@/components/hospital/CampaignEditorForHospital";
 import AccessDenied from "@/pages/access-denied";
+import { apiRequest } from "@/lib/queryClient";
 
 /**
  * 병원 관리자용 캠페인 수정 페이지
@@ -25,6 +26,14 @@ export default function HospitalCampaignEditPage() {
   // 캠페인 상세 정보 가져오기
   const { data: campaign, isLoading, error } = useQuery<ExtendedCampaign>({
     queryKey: [`/api/hospital/campaigns/${campaignId}`],
+    // queryFn 추가: 병원 캠페인 데이터 가져오기
+    queryFn: async () => {
+      const response = await apiRequest("GET", `/api/hospital/campaigns/${campaignId}`);
+      if (!response.ok) {
+        throw new Error("캠페인을 불러오는데 실패했습니다.");
+      }
+      return await response.json();
+    },
     // 병원 관리자는 자신의 병원 캠페인만 편집할 수 있음
     enabled: !!campaignId && !!user,
     retry: false,
