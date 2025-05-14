@@ -63,7 +63,7 @@ export default function MusicGallery({
     enabled: true, // API가 준비되어 활성화
     queryFn: async () => {
       try {
-        const res = await apiRequest("GET", "/api/music/styles", null);
+        const res = await apiRequest("/api/music/styles");
         
         if (!res.ok) {
           console.warn("음악 스타일 목록을 가져오는데 실패했습니다. 기본값 사용");
@@ -166,7 +166,9 @@ export default function MusicGallery({
           params.append("userId", userId.toString());
         }
         
-        const res = await apiRequest("GET", `/api/music/list?${params.toString()}`);
+        const res = await apiRequest(`/api/music/list`, {
+          params: Object.fromEntries(params.entries())
+        });
         
         if (!res.ok) {
           // API 호출 실패 시 임시 데이터 사용

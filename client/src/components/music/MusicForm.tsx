@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { z } from "zod";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 import { Button } from "@/components/ui/button";
@@ -57,15 +57,10 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
   // 음악 스타일 목록 가져오기
   const { data: musicStyles = musicStyleKeys } = useQuery({
     queryKey: ["/api/music/styles"],
-    // API가 준비되면 활성화
     enabled: true,
     queryFn: async () => {
       try {
-        const res = await fetch("/api/music/styles", {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include"
-        });
+        const res = await apiRequest("/api/music/styles");
         
         if (!res.ok) {
           console.warn("음악 스타일 목록을 가져오는데 실패했습니다. 기본값 사용");
@@ -96,16 +91,14 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
   // 가사 생성 뮤테이션
   const generateLyricsMutation = useMutation({
     mutationFn: async (prompt: string) => {
-      const res = await fetch("/api/music/lyrics", {
+      const res = await apiRequest("/api/music/lyrics", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ 
+        data: { 
           prompt,
           genre: form.getValues().style || "lullaby",
           mood: "soothing",
           language: "korean"
-        })
+        }
       });
       
       if (!res.ok) {
@@ -149,11 +142,9 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
   // 음악 생성 뮤테이션
   const createMusicMutation = useMutation({
     mutationFn: async (values: MusicFormValues) => {
-      const res = await fetch("/api/music/create", {
+      const res = await apiRequest("/api/music/create", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(values)
+        data: values
       });
       
       if (!res.ok) {
