@@ -3598,6 +3598,143 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // 병원 관리자용 캠페인 상세 조회 API
+  app.get("/api/hospital/campaigns/:id", async (req, res) => {
+    try {
+      // 권한 체크
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "로그인이 필요합니다." });
+      }
+      
+      const user = req.user;
+      if (!user) {
+        return res.status(401).json({ error: "사용자 정보를 찾을 수 없습니다." });
+      }
+      
+      // 병원 관리자와 슈퍼관리자만 접근 가능
+      if (user.memberType !== "hospital_admin" && user.memberType !== "superadmin") {
+        return res.status(403).json({ error: "접근 권한이 없습니다." });
+      }
+      
+      const campaignId = parseInt(req.params.id);
+      
+      if (isNaN(campaignId)) {
+        return res.status(400).json({ error: "유효하지 않은 캠페인 ID입니다." });
+      }
+      
+      // 캠페인 정보 조회
+      const campaign = await db.query.campaigns.findFirst({
+        where: eq(campaigns.id, campaignId)
+      });
+      
+      if (!campaign) {
+        return res.status(404).json({ error: "캠페인을 찾을 수 없습니다." });
+      }
+      
+      // 병원 관리자의 경우, 본인 병원의 캠페인만 조회 가능
+      if (user.memberType === "hospital_admin" && user.hospitalId !== campaign.hospitalId) {
+        return res.status(403).json({ error: "접근 권한이 없습니다. 해당 병원의 캠페인이 아닙니다." });
+      }
+      
+      // 병원 정보 추가
+      let hospitalName = null;
+      
+      if (campaign.hospitalId) {
+        const hospital = await db.query.hospitals.findFirst({
+          where: eq(hospitals.id, campaign.hospitalId)
+        });
+        
+        hospitalName = hospital?.name || null;
+      }
+      
+      res.json({
+        ...campaign,
+        hospitalName
+      });
+      
+    } catch (error) {
+      console.error("병원 캠페인 상세 조회 오류:", error);
+      res.status(500).json({ error: "캠페인 정보를 불러오는데 실패했습니다." });
+    }
+  });
+  
+  // 병원 관리자용 캠페인 수정 API
+  app.patch("/api/hospital/campaigns/:id", async (req, res) => {
+    try {
+      // 권한 체크
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "로그인이 필요합니다." });
+      }
+      
+      const user = req.user;
+      if (!user) {
+        return res.status(401).json({ error: "사용자 정보를 찾을 수 없습니다." });
+      }
+      
+      // 병원 관리자와 슈퍼관리자만 접근 가능
+      if (user.memberType !== "hospital_admin" && user.memberType !== "superadmin") {
+        return res.status(403).json({ error: "접근 권한이 없습니다." });
+      }
+      
+      const campaignId = parseInt(req.params.id);
+      
+      if (isNaN(campaignId)) {
+        return res.status(400).json({ error: "유효하지 않은 캠페인 ID입니다." });
+      }
+      
+      // 기존 캠페인 정보 조회
+      const existingCampaign = await db.query.campaigns.findFirst({
+        where: eq(campaigns.id, campaignId)
+      });
+      
+      if (!existingCampaign) {
+        return res.status(404).json({ error: "캠페인을 찾을 수 없습니다." });
+      }
+      
+      // 병원 관리자의 경우, 본인 병원의 캠페인만 수정 가능
+      if (user.memberType === "hospital_admin" && user.hospitalId !== existingCampaign.hospitalId) {
+        return res.status(403).json({ error: "접근 권한이 없습니다. 해당 병원의 캠페인이 아닙니다." });
+      }
+      
+      // 수정할 데이터 (병원 ID는 변경 불가능)
+      const updateData = {
+        ...req.body,
+        // 병원 ID는 원래 값을 유지
+        hospitalId: existingCampaign.hospitalId,
+        // 업데이트 시간 현재로 설정
+        updatedAt: new Date()
+      };
+      
+      // 캠페인 업데이트
+      const updatedCampaign = await db
+        .update(campaigns)
+        .set(updateData)
+        .where(eq(campaigns.id, campaignId))
+        .returning();
+      
+      // 병원 정보 추가
+      let hospitalName = null;
+      
+      if (existingCampaign.hospitalId) {
+        const hospital = await db.query.hospitals.findFirst({
+          where: eq(hospitals.id, existingCampaign.hospitalId)
+        });
+        
+        hospitalName = hospital?.name || null;
+      }
+      
+      res.json({
+        ...updatedCampaign[0],
+        hospitalName
+      });
+      
+    } catch (error) {
+      console.error("병원 캠페인 수정 오류:", error);
+      res.status(500).json({ error: "캠페인 정보를 수정하는데 실패했습니다." });
+    }
+  });
+  
+  // 병원 관리자용 캠페인 목록 API
   app.get("/api/hospital/campaigns", async (req, res) => {
     try {
       // 권한 체크

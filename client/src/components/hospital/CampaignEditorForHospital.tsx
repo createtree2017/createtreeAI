@@ -150,7 +150,7 @@ export default function CampaignEditorForHospital({ campaign }: { campaign: Exte
   // 캠페인 업데이트 뮤테이션
   const updateMutation = useMutation({
     mutationFn: async (data: FormValues) => {
-      const response = await apiRequest(`/api/admin/campaigns/${campaign.id}`, {
+      const response = await apiRequest(`/api/hospital/campaigns/${campaign.id}`, {
         method: "PATCH",
         data: data
       });
@@ -170,7 +170,7 @@ export default function CampaignEditorForHospital({ campaign }: { campaign: Exte
       
       // 쿼리 캐시 무효화
       queryClient.invalidateQueries({ queryKey: ["/api/hospital/campaigns"] });
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/campaigns/${campaign.id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/hospital/campaigns/${campaign.id}`] });
       
       // 목록 페이지로 돌아가기
       setLocation("/hospital/campaigns");

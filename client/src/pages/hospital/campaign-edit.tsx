@@ -24,7 +24,7 @@ export default function HospitalCampaignEditPage() {
 
   // 캠페인 상세 정보 가져오기
   const { data: campaign, isLoading, error } = useQuery<ExtendedCampaign>({
-    queryKey: [`/api/admin/campaigns/${campaignId}`],
+    queryKey: [`/api/hospital/campaigns/${campaignId}`],
     // 병원 관리자는 자신의 병원 캠페인만 편집할 수 있음
     enabled: !!campaignId && !!user,
     retry: false,
