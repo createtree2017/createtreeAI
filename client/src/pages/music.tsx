@@ -13,7 +13,7 @@ import { queryClient } from "@/lib/queryClient";
 import { Music as MusicIcon, PlayCircle, MoreVertical } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AudioPlayer } from "@/components/ui/audio-player";
-import { generateMusic, getMusicList, downloadMedia, shareMedia } from "@/lib/api";
+import { generateMusic, getMusicList, shareMedia, apiRequest } from "@/lib/api";
 
 const formSchema = z.object({
   babyName: z.string().min(1, "Name or theme is required"),
@@ -95,22 +95,51 @@ export default function Music() {
     });
   };
   
-  const handleDownload = (id: number) => {
-    downloadMedia(id, "music");
+  const handleDownload = async (id: number) => {
+    try {
+      const response = await apiRequest(`/api/music/${id}/download`);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `music-${id}.mp3`;
+      document.body.appendChild(link);
+      link.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(link);
+    } catch (error) {
+      toast({
+        title: "다운로드 실패",
+        description: "음악 파일을 다운로드하는 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    }
   };
   
   const handleShare = async (id: number) => {
     try {
-      const shareData = await shareMedia(id, "music");
-      // Implement sharing logic based on the response
-      toast({
-        title: "Share link created",
-        description: "Ready to share your melody!",
+      const response = await apiRequest(`/api/music/${id}/share`, {
+        method: "POST"
       });
+      const shareData = await response.json();
+      
+      // 공유 URL을 클립보드에 복사
+      if (shareData.shareUrl) {
+        await navigator.clipboard.writeText(shareData.shareUrl);
+        toast({
+          title: "공유 링크가 생성되었습니다",
+          description: "클립보드에 링크가 복사되었습니다!",
+        });
+      } else {
+        toast({
+          title: "공유 준비 완료",
+          description: "음악을 공유할 준비가 되었습니다!",
+        });
+      }
     } catch (error) {
       toast({
-        title: "Error creating share link",
-        description: "Please try again later",
+        title: "공유 링크 생성 오류",
+        description: "나중에 다시 시도해주세요",
         variant: "destructive",
       });
     }
