@@ -321,6 +321,14 @@ function Router() {
           </Layout>
         </ProtectedRoute>
       </Route>
+      
+      <Route path="/lullaby">
+        <ProtectedRoute>
+          <Layout>
+            <Lullaby />
+          </Layout>
+        </ProtectedRoute>
+      </Route>
 
       {/* 캠페인 경로: 메뉴 DB 경로(/campaign-1)와 일치시킴 */}
       <Route path="/campaign-1">

@@ -55,23 +55,75 @@ export default function MusicGallery({
   const [selectedMusic, setSelectedMusic] = useState<Music | null>(null);
   
   // 음악 스타일 목록 가져오기
-  const { data: musicStyles = [] } = useQuery({
+  const { data: musicStyles = [
+    "lullaby", "classical", "ambient", "relaxing", "piano", 
+    "orchestral", "korean-traditional", "nature-sounds", "meditation", "prenatal"
+  ] } = useQuery({
     queryKey: ["/api/song/styles"],
+    enabled: false, // 서버 API 완성 전까지 비활성화
     queryFn: async () => {
       const res = await apiRequest("GET", "/api/song/styles");
       return await res.json();
     }
   });
   
-  // 음악 목록 가져오기
+  // 임시 음악 데이터
+  const mockMusicData = {
+    music: [
+      {
+        id: 1,
+        title: "아기를 위한 편안한 자장가",
+        prompt: "아기가 깊은 수면을 취할 수 있는 부드러운 멜로디의 자장가",
+        tags: ["자장가", "수면", "편안함"],
+        url: "https://example.com/music/1.mp3",
+        instrumental: false,
+        lyrics: "잘 자라 우리 아가\n별빛이 내리는 밤\n엄마 품에 안겨서\n달콤한 꿈을 꾸렴",
+        userId: 1,
+        duration: 180,
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 2,
+        title: "태교를 위한 클래식 멜로디",
+        prompt: "태교에 좋은 평온한, 서정적인 클래식 피아노 멜로디",
+        tags: ["태교", "클래식", "피아노"],
+        url: "https://example.com/music/2.mp3",
+        instrumental: true,
+        userId: 1,
+        duration: 210,
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 3,
+        title: "아기와 함께하는 동요",
+        prompt: "아기와 함께 불러볼 수 있는 밝고 경쾌한 동요",
+        tags: ["동요", "밝은", "아기"],
+        url: "https://example.com/music/3.mp3",
+        instrumental: false,
+        lyrics: "아기야 안녕\n뭐하고 놀까\n같이 춤을 추자\n손뼉을 치자",
+        userId: 1,
+        duration: 160,
+        createdAt: new Date().toISOString()
+      }
+    ],
+    meta: {
+      currentPage: page,
+      totalPages: 1,
+      totalItems: 3,
+      itemsPerPage: limit
+    }
+  };
+  
+  // 음악 목록 가져오기 (서버 API 완성 전까지 비활성화)
   const { 
-    data: musicData, 
-    isLoading, 
-    isError, 
-    error,
+    data: serverMusicData, 
+    isLoading: isServerLoading, 
+    isError: isServerError, 
+    error: serverError,
     refetch
   } = useQuery({
     queryKey: ["/api/song/list", page, limit, activeTab, selectedStyle, userId],
+    enabled: false, // 서버 API 완성 전까지 비활성화
     queryFn: async () => {
       // 쿼리 파라미터 구성
       const params = new URLSearchParams();
@@ -96,6 +148,27 @@ export default function MusicGallery({
       return await res.json();
     }
   });
+  
+  // 임시 음악 데이터 필터링 (서버 API 대신 사용)
+  let filteredMusic = [...mockMusicData.music];
+  if (activeTab === "instrumental") {
+    filteredMusic = filteredMusic.filter(music => music.instrumental);
+  } else if (activeTab === "vocal") {
+    filteredMusic = filteredMusic.filter(music => !music.instrumental);
+  }
+  
+  const musicData = {
+    music: filteredMusic,
+    meta: {
+      ...mockMusicData.meta,
+      totalItems: filteredMusic.length
+    }
+  };
+  
+  // 서버에서 데이터를 가져오는 중인지 여부 (서버 API 완성 후 활성화)
+  const isLoading = false; // isServerLoading;
+  const isError = false; // isServerError;
+  const error = serverError;
   
   const handleRetry = () => {
     refetch();

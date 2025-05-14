@@ -38,8 +38,12 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
   const [generatingLyrics, setGeneratingLyrics] = useState(false);
   
   // 음악 스타일 목록 가져오기
-  const { data: musicStyles = [] } = useQuery({
+  const { data: musicStyles = [
+    "lullaby", "classical", "ambient", "relaxing", "piano", 
+    "orchestral", "korean-traditional", "nature-sounds", "meditation", "prenatal"
+  ] } = useQuery({
     queryKey: ["/api/song/styles"],
+    enabled: false, // 서버 API 완성 전까지 비활성화
     queryFn: async () => {
       const res = await apiRequest("GET", "/api/song/styles");
       return await res.json();
@@ -61,11 +65,11 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
   // 가사 생성 뮤테이션
   const generateLyricsMutation = useMutation({
     mutationFn: async (prompt: string) => {
-      const res = await apiRequest("POST", "/api/song/lyrics", { 
+      const res = await apiRequest("POST", "/api/song/lyrics", JSON.stringify({ 
         prompt,
         genre: form.getValues().style || "lullaby",
         mood: "soothing"
-      });
+      }));
       return await res.json();
     },
     onSuccess: (data) => {
@@ -94,7 +98,7 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
   // 음악 생성 뮤테이션
   const createMusicMutation = useMutation({
     mutationFn: async (values: MusicFormValues) => {
-      const res = await apiRequest("POST", "/api/song/create", values);
+      const res = await apiRequest("POST", "/api/song/create", JSON.stringify(values));
       return await res.json();
     },
     onSuccess: (data) => {
