@@ -91,6 +91,7 @@ export const music = pgTable("music", {
   userId: integer("user_id"),                        // 사용자 ID
   metadata: jsonb("metadata").default("{}"),         // 추가 메타데이터
   isFavorite: boolean("is_favorite").default(false), // 즐겨찾기 여부
+  isPublic: boolean("is_public").default(false),     // 공개 여부
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

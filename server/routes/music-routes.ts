@@ -185,6 +185,106 @@ musicRouter.get('/:id', async (req, res) => {
   }
 });
 
+// 음악 파일 다운로드 엔드포인트
+musicRouter.get('/:id/download', isAuthenticated, async (req, res) => {
+  try {
+    const musicId = Number(req.params.id);
+    const userId = req.user?.id;
+    
+    if (isNaN(musicId)) {
+      return res.status(400).json({ error: '유효하지 않은 음악 ID입니다.' });
+    }
+    
+    // 음악 정보 조회
+    const musicItem = await db.query.music.findFirst({
+      where: (music, { eq }) => eq(music.id, Number(musicId))
+    });
+    
+    if (!musicItem) {
+      return res.status(404).json({ error: '음악을 찾을 수 없습니다.' });
+    }
+    
+    // URL이 없는 경우 오류 처리
+    if (!musicItem.url) {
+      return res.status(404).json({ error: '음악 파일을 찾을 수 없습니다.' });
+    }
+    
+    // 원격 URL에서 음악 파일 가져오기
+    try {
+      const response = await fetch(musicItem.url);
+      
+      if (!response.ok) {
+        throw new Error(`원격 서버 응답 오류: ${response.status} ${response.statusText}`);
+      }
+      
+      // 컨텐츠 타입 헤더 설정
+      const contentType = response.headers.get('content-type') || 'audio/mpeg';
+      res.setHeader('Content-Type', contentType);
+      
+      // 다운로드 파일명 설정
+      const filename = `${musicItem.title || `music-${musicId}`}.mp3`;
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+      
+      // 스트림으로 응답
+      const arrayBuffer = await response.arrayBuffer();
+      res.send(Buffer.from(arrayBuffer));
+      
+    } catch (fetchError) {
+      console.error('음악 파일 가져오기 오류:', fetchError);
+      return res.status(500).json({ error: '음악 파일을 다운로드할 수 없습니다.' });
+    }
+    
+  } catch (error) {
+    console.error('음악 다운로드 처리 오류:', error);
+    res.status(500).json({ error: '음악 다운로드에 실패했습니다.' });
+  }
+});
+
+// 음악 공유하기 엔드포인트
+musicRouter.post('/:id/share', isAuthenticated, async (req, res) => {
+  try {
+    const musicId = Number(req.params.id);
+    const userId = req.user?.id;
+    
+    if (isNaN(musicId)) {
+      return res.status(400).json({ error: '유효하지 않은 음악 ID입니다.' });
+    }
+    
+    // 음악 정보 조회
+    const musicItem = await db.query.music.findFirst({
+      where: (music, { eq }) => eq(music.id, Number(musicId))
+    });
+    
+    if (!musicItem) {
+      return res.status(404).json({ error: '음악을 찾을 수 없습니다.' });
+    }
+    
+    // 공유 상태로 업데이트 (DB 스키마에 isPublic 필드가 아직 없을 수 있으므로 메타데이터 활용)
+    const metadata = musicItem.metadata as Record<string, any> || {};
+    const isAlreadyPublic = metadata.isPublic === true;
+    
+    if (!isAlreadyPublic) {
+      metadata.isPublic = true;
+      await db.update(music)
+        .set({ metadata: metadata })
+        .where(eq(music.id, Number(musicId)));
+    }
+    
+    // 공유 URL 생성
+    const shareUrl = `${req.protocol}://${req.get('host')}/shared/music/${musicId}`;
+    
+    res.json({ 
+      success: true, 
+      shareUrl,
+      message: '음악이 성공적으로 공유되었습니다.'
+    });
+    
+  } catch (error) {
+    console.error('음악 공유 처리 오류:', error);
+    res.status(500).json({ error: '음악 공유에 실패했습니다.' });
+  }
+});
+
 // 음악 삭제
 musicRouter.delete('/:id', isAuthenticated, async (req, res) => {
   try {

@@ -107,7 +107,13 @@ export default function Music() {
       link.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(link);
+      
+      toast({
+        title: "다운로드 성공",
+        description: "음악 파일이 성공적으로 다운로드되었습니다.",
+      });
     } catch (error) {
+      console.error('다운로드 오류:', error);
       toast({
         title: "다운로드 실패",
         description: "음악 파일을 다운로드하는 중 오류가 발생했습니다.",
