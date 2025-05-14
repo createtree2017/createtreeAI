@@ -4,19 +4,24 @@
  */
 
 import { z } from "zod";
-let openai: any = null;
+// 타입스크립트 @ts-ignore 주석을 사용하여 오류 무시
+// @ts-ignore
+import OpenAI from 'openai';
 
-// openai 모듈 로딩 시도
+// OpenAI 클라이언트를 직접 초기화
+let openai: any = null;
 try {
-  // 타입스크립트에서는 require를 직접 사용할 수 없으므로 dynamic import를 사용
-  import('../../openai.js').then((module) => {
-    openai = module.default;
+  // OpenAI API 키가 있는 경우에만 초기화
+  if (process.env.OPENAI_API_KEY) {
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
     console.log("OpenAI 클라이언트가 성공적으로 초기화되었습니다.");
-  }).catch((error) => {
-    console.log("OpenAI 클라이언트 초기화 실패:", error.message);
-    console.log("OpenAI 클라이언트 생성을 건너뜁니다 - 임시 모드로 작동");
-  });
+  } else {
+    console.log("OPENAI_API_KEY가 설정되지 않았습니다 - 임시 모드로 작동");
+  }
 } catch (error: any) {
+  console.error("OpenAI 클라이언트 초기화 중 오류:", error.message);
   console.log("OpenAI 클라이언트 생성을 건너뜁니다 - 임시 모드로 작동");
 }
 
