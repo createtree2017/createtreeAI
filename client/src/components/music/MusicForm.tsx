@@ -37,15 +37,29 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
   const [isAdvancedMode, setIsAdvancedMode] = useState(false);
   const [generatingLyrics, setGeneratingLyrics] = useState(false);
   
-  // 음악 스타일 목록 가져오기
-  const { data: musicStyles = [
-    "lullaby", "classical", "ambient", "relaxing", "piano", 
-    "orchestral", "korean-traditional", "nature-sounds", "meditation", "prenatal"
-  ] } = useQuery({
+  // 음악 스타일 정의 - Suno AI 스타일 참고하여 구성
+  const musicStyleMap = {
+    "lullaby": "자장가",
+    "classical": "클래식",
+    "ambient": "앰비언트",
+    "relaxing": "릴렉싱",
+    "piano": "피아노",
+    "orchestral": "오케스트라",
+    "korean-traditional": "국악",
+    "nature-sounds": "자연의 소리", 
+    "meditation": "명상음악",
+    "prenatal": "태교음악"
+  };
+  
+  // Object.keys를 사용하여 musicStyleMap의 키 배열 생성
+  const musicStyleKeys = Object.keys(musicStyleMap);
+  
+  // 추후 API 연동을 위한 쿼리 (현재는 비활성화)
+  const { data: musicStyles = musicStyleKeys } = useQuery({
     queryKey: ["/api/song/styles"],
     enabled: false, // 서버 API 완성 전까지 비활성화
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/song/styles", null);
+      const res = await apiRequest("/api/song/styles");
       return await res.json();
     }
   });
@@ -230,17 +244,7 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
                     <SelectContent>
                       {musicStyles.map((style: string) => (
                         <SelectItem key={style} value={style}>
-                          {style === "lullaby" && "자장가"}
-                          {style === "classical" && "클래식"}
-                          {style === "ambient" && "앰비언트"}
-                          {style === "relaxing" && "릴렉싱"}
-                          {style === "piano" && "피아노"}
-                          {style === "orchestral" && "오케스트라"}
-                          {style === "korean-traditional" && "국악"}
-                          {style === "nature-sounds" && "자연의 소리"}
-                          {style === "meditation" && "명상음악"}
-                          {style === "prenatal" && "태교음악"}
-                          {!["lullaby", "classical", "ambient", "relaxing", "piano", "orchestral", "korean-traditional", "nature-sounds", "meditation", "prenatal"].includes(style) && style}
+                          {musicStyleMap[style as keyof typeof musicStyleMap] || style}
                         </SelectItem>
                       ))}
                     </SelectContent>
