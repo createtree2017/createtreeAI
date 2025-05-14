@@ -1,0 +1,348 @@
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Music, Filter, RefreshCw, AlertTriangle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import MusicPlayer from "./MusicPlayer";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Pagination } from "@/components/ui/pagination";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+
+type Music = {
+  id: number;
+  title: string;
+  prompt: string;
+  translatedPrompt?: string;
+  tags: string[];
+  url: string;
+  instrumental: boolean;
+  lyrics?: string;
+  userId: number;
+  duration: number;
+  createdAt: string;
+};
+
+interface MusicGalleryProps {
+  limit?: number;
+  userId?: number;
+  showFilters?: boolean;
+  onMusicSelect?: (music: Music) => void;
+  className?: string;
+}
+
+export default function MusicGallery({
+  limit = 10,
+  userId,
+  showFilters = true,
+  onMusicSelect,
+  className = "",
+}: MusicGalleryProps) {
+  const { toast } = useToast();
+  const [page, setPage] = useState(1);
+  const [activeTab, setActiveTab] = useState<string>("all");
+  const [selectedStyle, setSelectedStyle] = useState<string>("");
+  const [selectedMusic, setSelectedMusic] = useState<Music | null>(null);
+  
+  // 음악 스타일 목록 가져오기
+  const { data: musicStyles = [] } = useQuery({
+    queryKey: ["/api/song/styles"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/song/styles");
+      return await res.json();
+    }
+  });
+  
+  // 음악 목록 가져오기
+  const { 
+    data: musicData, 
+    isLoading, 
+    isError, 
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ["/api/song/list", page, limit, activeTab, selectedStyle, userId],
+    queryFn: async () => {
+      // 쿼리 파라미터 구성
+      const params = new URLSearchParams();
+      params.append("page", page.toString());
+      params.append("limit", limit.toString());
+      
+      if (activeTab === "instrumental") {
+        params.append("instrumental", "true");
+      } else if (activeTab === "vocal") {
+        params.append("instrumental", "false");
+      }
+      
+      if (selectedStyle) {
+        params.append("style", selectedStyle);
+      }
+      
+      if (userId) {
+        params.append("userId", userId.toString());
+      }
+      
+      const res = await apiRequest("GET", `/api/song/list?${params.toString()}`);
+      return await res.json();
+    }
+  });
+  
+  const handleRetry = () => {
+    refetch();
+  };
+  
+  const handleMusicClick = (music: Music) => {
+    setSelectedMusic(music);
+    if (onMusicSelect) {
+      onMusicSelect(music);
+    }
+  };
+  
+  const handleAddToFavorites = (id: number) => {
+    toast({
+      title: "즐겨찾기에 추가됨",
+      description: "선택한 음악이 즐겨찾기에 추가되었습니다.",
+    });
+  };
+  
+  const handleShare = (id: number) => {
+    if (navigator.share) {
+      navigator.share({
+        title: "음악 공유",
+        text: "AI로 생성된 음악을 들어보세요!",
+        url: `${window.location.origin}/music/${id}`,
+      }).catch(error => {
+        console.error("공유 실패:", error);
+      });
+    } else {
+      // 공유 API를 지원하지 않는 브라우저의 경우 클립보드에 복사
+      const url = `${window.location.origin}/music/${id}`;
+      navigator.clipboard.writeText(url).then(() => {
+        toast({
+          title: "링크가 복사되었습니다",
+          description: "링크가 클립보드에 복사되었습니다.",
+        });
+      }).catch(err => {
+        console.error("클립보드 복사 실패:", err);
+      });
+    }
+  };
+  
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
+  
+  // 에러 표시
+  if (isError) {
+    return (
+      <Alert variant="destructive" className={className}>
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>음악 목록을 불러오는데 실패했습니다</AlertTitle>
+        <AlertDescription>
+          {error instanceof Error ? error.message : "서버에 접속할 수 없습니다. 잠시 후 다시 시도해주세요."}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRetry} 
+            className="mt-2"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            다시 시도
+          </Button>
+        </AlertDescription>
+      </Alert>
+    );
+  }
+  
+  // 필터 및 탭 UI 렌더링
+  const renderFilters = () => {
+    if (!showFilters) return null;
+    
+    return (
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="w-full sm:w-auto"
+        >
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="all">전체</TabsTrigger>
+            <TabsTrigger value="vocal">가사 있음</TabsTrigger>
+            <TabsTrigger value="instrumental">반주만</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        
+        <div className="flex items-center gap-2">
+          <p className="text-sm whitespace-nowrap">스타일 필터:</p>
+          <Select
+            value={selectedStyle}
+            onValueChange={setSelectedStyle}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="스타일 선택" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">전체</SelectItem>
+              {musicStyles.map((style: string) => (
+                <SelectItem key={style} value={style}>
+                  {style === "lullaby" && "자장가"}
+                  {style === "classical" && "클래식"}
+                  {style === "ambient" && "앰비언트"}
+                  {style === "relaxing" && "릴렉싱"}
+                  {style === "piano" && "피아노"}
+                  {style === "orchestral" && "오케스트라"}
+                  {style === "korean-traditional" && "국악"}
+                  {style === "nature-sounds" && "자연의 소리"}
+                  {style === "meditation" && "명상음악"}
+                  {style === "prenatal" && "태교음악"}
+                  {!["lullaby", "classical", "ambient", "relaxing", "piano", "orchestral", "korean-traditional", "nature-sounds", "meditation", "prenatal"].includes(style) && style}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    );
+  };
+  
+  // 로딩 UI 렌더링
+  const renderLoading = () => {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {Array(limit).fill(0).map((_, i) => (
+          <Card key={i} className="overflow-hidden">
+            <CardHeader>
+              <Skeleton className="h-6 w-3/4" />
+              <Skeleton className="h-4 w-1/2 mt-2" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-32 w-full rounded-md" />
+            </CardContent>
+            <CardFooter>
+              <Skeleton className="h-10 w-full" />
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+    );
+  };
+  
+  // 현재 선택된 음악 렌더링
+  const renderSelectedMusic = () => {
+    if (!selectedMusic) return null;
+    
+    return (
+      <div className="mb-8">
+        <h2 className="text-xl font-semibold mb-4">현재 재생 중</h2>
+        <MusicPlayer
+          music={selectedMusic}
+          onAddToFavorites={handleAddToFavorites}
+          onShare={handleShare}
+          autoPlay
+        />
+      </div>
+    );
+  };
+  
+  // 음악 목록 렌더링
+  const renderMusicList = () => {
+    if (isLoading) {
+      return renderLoading();
+    }
+    
+    if (!musicData?.music || musicData.music.length === 0) {
+      return (
+        <div className="text-center p-8 bg-muted rounded-lg">
+          <Music className="h-16 w-16 mx-auto text-muted-foreground" />
+          <h3 className="mt-4 text-lg font-medium">음악이 없습니다</h3>
+          <p className="text-muted-foreground mt-2">
+            아직 생성된 음악이 없습니다. 음악을 생성해보세요!
+          </p>
+        </div>
+      );
+    }
+    
+    return (
+      <>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {musicData.music.map((music: Music) => (
+            <Card 
+              key={music.id} 
+              className={`overflow-hidden cursor-pointer transition-all hover:shadow-md ${selectedMusic?.id === music.id ? 'ring-2 ring-primary' : ''}`}
+              onClick={() => handleMusicClick(music)}
+            >
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Music className="h-4 w-4" />
+                  {music.title || "제목 없음"}
+                </CardTitle>
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  {music.prompt}
+                </p>
+              </CardHeader>
+              
+              <CardContent className="pb-2">
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {music.tags?.slice(0, 3).map((tag, index) => (
+                    <Badge key={index} variant="secondary" className="text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
+                  {music.tags?.length > 3 && (
+                    <Badge variant="outline" className="text-xs">
+                      +{music.tags.length - 3}
+                    </Badge>
+                  )}
+                </div>
+                
+                <div className="bg-muted h-1 w-full rounded-full">
+                  <div className="bg-primary h-1 rounded-full w-0 animate-pulse"></div>
+                </div>
+              </CardContent>
+              
+              <CardFooter>
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  className="w-full"
+                >
+                  <Music className="h-4 w-4 mr-2" />
+                  재생하기
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+        
+        {/* 페이지네이션 */}
+        {musicData?.meta && musicData.meta.totalPages > 1 && (
+          <div className="mt-8 flex justify-center">
+            <Pagination
+              currentPage={page}
+              totalPages={musicData.meta.totalPages}
+              onPageChange={handlePageChange}
+            />
+          </div>
+        )}
+      </>
+    );
+  };
+  
+  return (
+    <div className={className}>
+      {renderSelectedMusic()}
+      {renderFilters()}
+      {renderMusicList()}
+    </div>
+  );
+}

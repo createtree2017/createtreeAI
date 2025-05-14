@@ -37,6 +37,7 @@ import { ImageProcessingIndicator } from "@/components/ImageProcessingIndicator"
 import MaternityPhoto from "@/pages/maternity-photo";
 import FamilyPhoto from "@/pages/family-photo";
 import Stickers from "@/pages/stickers";
+import Lullaby from "@/pages/lullaby";
 import CampaignsPage from "@/pages/campaigns";
 import CampaignDetailPage from "@/pages/campaign-detail";
 import HospitalCampaignsPage from "@/pages/hospital-campaigns";
