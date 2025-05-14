@@ -1,119 +1,87 @@
-import { useEffect, useState } from "react";
-import { useLocation, useParams } from "wouter";
-import { Loader2 } from "lucide-react";
+import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
+import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle } from "lucide-react";
 import CampaignEditorForHospital from "@/components/hospital/CampaignEditorForHospital";
-import NotFound from "@/pages/not-found";
+import { ExtendedCampaign } from "@/components/hospital/CampaignEditorForHospital";
 import AccessDenied from "@/pages/access-denied";
 
-// 캠페인 타입
-export type ExtendedCampaign = {
-  id: number;
-  slug: string;
-  title: string;
-  description?: string;
-  bannerImage?: string;
-  thumbnailUrl?: string;
-  content?: string;
-  isPublic: boolean;
-  displayOrder: number;
-  hospitalId?: number;
-  hospitalName?: string;
-  startDate?: string | null;
-  endDate?: string | null;
-  announceDate?: string | null;
-  contentStartDate?: string | null;
-  contentEndDate?: string | null;
-  resultDate?: string | null;
-  rewardPoint?: number;
-  status?: string;
-  createdAt?: string;
-  updatedAt?: string;
-};
-
+/**
+ * 병원 관리자용 캠페인 수정 페이지
+ * 
+ * 이 페이지는 병원 관리자만 접근할 수 있으며, 자신의 병원 캠페인만 수정할 수 있습니다.
+ * 슈퍼관리자용 페이지(/super/campaigns/edit/:id)와는 별도로 구현되어 있습니다.
+ */
 export default function HospitalCampaignEditPage() {
-  const { id } = useParams();
-  const { user, isLoading: authLoading } = useAuth();
-  const { toast } = useToast();
+  const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
-  const [notFound, setNotFound] = useState(false);
-  const [accessDenied, setAccessDenied] = useState(false);
+  const { user } = useAuth();
+  
+  const campaignId = parseInt(id);
 
-  // 캠페인 정보 조회
-  const { data: campaign, isLoading } = useQuery<ExtendedCampaign>({
-    queryKey: [`/api/admin/campaigns/${id}`],
-    enabled: !!id && !authLoading && !!user,
+  // 캠페인 상세 정보 가져오기
+  const { data: campaign, isLoading, error } = useQuery<ExtendedCampaign>({
+    queryKey: [`/api/admin/campaigns/${campaignId}`],
+    // 병원 관리자는 자신의 병원 캠페인만 편집할 수 있음
+    enabled: !!campaignId && !!user,
     retry: false,
-    onError: (error: any) => {
-      console.error("캠페인 상세 조회 실패:", error);
-      if (error.status === 404) {
-        setNotFound(true);
-      } else if (error.status === 403) {
-        setAccessDenied(true);
-        toast({
-          title: "접근 권한 없음",
-          description: "이 캠페인을 수정할 권한이 없습니다.",
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "오류 발생",
-          description: "캠페인 정보를 불러오는데 실패했습니다.",
-          variant: "destructive"
-        });
-      }
-    }
   });
 
-  // 권한 체크
-  useEffect(() => {
-    if (!authLoading && user) {
-      if (user.memberType !== 'hospital_admin') {
-        setAccessDenied(true);
-        toast({
-          title: "접근 권한 없음",
-          description: "병원 관리자만 접근할 수 있는 페이지입니다.",
-          variant: "destructive"
-        });
-      } else if (campaign && user.hospitalId !== campaign.hospitalId) {
-        setAccessDenied(true);
-        toast({
-          title: "접근 권한 없음",
-          description: "본인 소속 병원의 캠페인만 수정할 수 있습니다.",
-          variant: "destructive"
-        });
-      }
-    }
-  }, [user, authLoading, campaign, toast]);
-
-  if (authLoading || isLoading) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">로딩 중...</span>
+      <div className="flex justify-center items-center min-h-[70vh]">
+        <Loader2 className="w-8 h-8 animate-spin" />
       </div>
     );
   }
 
-  if (notFound) {
-    return <NotFound />;
+  // 에러 처리
+  if (error) {
+    return (
+      <div className="container py-8">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>오류 발생</AlertTitle>
+          <AlertDescription>
+            {error instanceof Error ? error.message : "캠페인을 불러오는 중 오류가 발생했습니다."}
+          </AlertDescription>
+        </Alert>
+        <div className="mt-4">
+          <Button onClick={() => setLocation("/hospital/campaigns")}>
+            돌아가기
+          </Button>
+        </div>
+      </div>
+    );
   }
 
-  if (accessDenied) {
+  // 캠페인이 없는 경우
+  if (!campaign) {
+    return (
+      <div className="container py-8">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>캠페인을 찾을 수 없음</AlertTitle>
+          <AlertDescription>
+            요청하신 캠페인을 찾을 수 없습니다.
+          </AlertDescription>
+        </Alert>
+        <div className="mt-4">
+          <Button onClick={() => setLocation("/hospital/campaigns")}>
+            돌아가기
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // 병원 관리자의 경우 본인 병원 캠페인만 편집 가능
+  if (user?.role === "hospital_admin" && campaign.hospitalId !== user.hospitalId) {
     return <AccessDenied />;
   }
 
-  if (!campaign) {
-    return <NotFound />;
-  }
-
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">병원 캠페인 수정</h1>
-      <CampaignEditorForHospital campaign={campaign} />
-    </div>
-  );
+  return <CampaignEditorForHospital campaign={campaign} />;
 }

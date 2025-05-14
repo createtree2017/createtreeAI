@@ -510,7 +510,9 @@ export default function CampaignEditorForHospital({ campaign }: { campaign: Exte
                       }}
                     />
                   </FormControl>
-                  <FormDescription>낮은 숫자가 먼저 표시됩니다</FormDescription>
+                  <FormDescription>
+                    낮은 숫자가 더 위에 표시됩니다. 0이 가장 먼저 표시됩니다.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -539,12 +541,24 @@ export default function CampaignEditorForHospital({ campaign }: { campaign: Exte
                     </SelectContent>
                   </Select>
                   <FormDescription>
-                    작성대기: 미완성 상태, 모집중: 사용자에게 공개됨
+                    캠페인의 현재 상태입니다. 작성대기일 경우 사용자에게 표시되지 않습니다.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
+          </div>
+          
+          {/* 병원 정보 표시 (읽기 전용) */}
+          <div className="col-span-2 mt-6">
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>병원 정보</AlertTitle>
+              <AlertDescription>
+                이 캠페인은 {hospitalData?.name || campaign?.hospitalName || "알 수 없는 병원"} 소속 캠페인입니다. 
+                병원 관리자는 병원을 변경할 수 없습니다.
+              </AlertDescription>
+            </Alert>
           </div>
 
           <FormField
@@ -553,9 +567,11 @@ export default function CampaignEditorForHospital({ campaign }: { campaign: Exte
             render={({ field }) => (
               <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                 <div className="space-y-0.5">
-                  <FormLabel className="text-base">공개 여부</FormLabel>
+                  <FormLabel className="text-base">
+                    공개 여부
+                  </FormLabel>
                   <FormDescription>
-                    사용자에게 캠페인을 공개할지 설정합니다
+                    공개로 설정 시 캠페인이 사용자에게 표시됩니다.
                   </FormDescription>
                 </div>
                 <FormControl>
@@ -573,39 +589,38 @@ export default function CampaignEditorForHospital({ campaign }: { campaign: Exte
             name="content"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>상세 내용</FormLabel>
+                <FormLabel>캠페인 상세 내용</FormLabel>
                 <FormControl>
                   <Textarea
                     placeholder="캠페인의 상세 내용을 입력하세요"
-                    className="min-h-48"
+                    className="min-h-64"
                     {...field}
                     value={field.value || ""}
                   />
                 </FormControl>
                 <FormDescription>
-                  HTML 형식으로 작성할 수 있습니다
+                  HTML을 포함한 마크다운 형식으로 작성할 수 있습니다.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
 
-          <div className="flex justify-between">
-            <Button 
-              type="button" 
-              variant="outline" 
+          <div className="flex justify-end space-x-4">
+            <Button
+              type="button"
+              variant="outline"
               onClick={() => setLocation("/hospital/campaigns")}
             >
               취소
             </Button>
-            <div className="space-x-2">
-              <Button 
-                type="submit" 
-                disabled={updateMutation.isPending}
-              >
-                {updateMutation.isPending ? "저장 중..." : "저장"}
-              </Button>
-            </div>
+            <Button
+              type="submit"
+              isLoading={updateMutation.isPending}
+              disabled={updateMutation.isPending}
+            >
+              {updateMutation.isPending ? "저장 중..." : "저장하기"}
+            </Button>
           </div>
         </form>
       </Form>
