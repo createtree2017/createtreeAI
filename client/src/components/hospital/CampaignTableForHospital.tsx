@@ -213,8 +213,8 @@ export default function CampaignTableForHospital() {
                               // 슈퍼관리자는 모든 캠페인 수정 가능 (기존 경로 사용)
                               window.location.href = `/admin?tab=campaigns&edit=${campaign.id}`;
                             } else if (user?.memberType === 'hospital_admin' && user?.hospitalId === campaign.hospitalId) {
-                              // 병원 관리자는 자신의 병원 캠페인만 수정 가능
-                              window.location.href = `/admin?tab=campaigns&edit=${campaign.id}&hospitalId=${campaign.hospitalId}`;
+                              // 병원 관리자는 자신의 병원 캠페인만 수정 가능 - 병원 전용 경로 사용
+                              window.location.href = `/hospital/campaigns/edit/${campaign.id}`;
                             } else {
                               // 권한 없음
                               toast({
