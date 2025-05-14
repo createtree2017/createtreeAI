@@ -133,7 +133,7 @@ musicRouter.get('/list', isAuthenticated, async (req, res) => {
     
     // 사용자 음악 목록 조회
     const musicList = await db.query.music.findMany({
-      where: (music, { eq }) => eq(music.userId, userId),
+      where: (music, { eq }) => eq(music.userId, Number(userId)),
       orderBy: (music, { desc }) => [desc(music.createdAt)],
       limit,
       offset
@@ -144,7 +144,7 @@ musicRouter.get('/list', isAuthenticated, async (req, res) => {
         count: sql`COUNT(*)`.mapWith(Number)
       })
       .from(music)
-      .where(eq(music.userId, userId));
+      .where(eq(music.userId, Number(userId)));
     
     res.json({
       music: musicList,
@@ -171,7 +171,7 @@ musicRouter.get('/:id', async (req, res) => {
     }
     
     const musicItem = await db.query.music.findFirst({
-      where: (music, { eq }) => eq(music.id, musicId)
+      where: (music, { eq }) => eq(music.id, Number(musicId))
     });
     
     if (!musicItem) {
@@ -199,7 +199,7 @@ musicRouter.delete('/:id', isAuthenticated, async (req, res) => {
     const musicItem = await db.query.music.findFirst({
       where: (music, { and, eq }) => and(
         eq(music.id, musicId),
-        eq(music.userId, userId)
+        eq(music.userId, Number(userId))
       )
     });
     
@@ -208,7 +208,7 @@ musicRouter.delete('/:id', isAuthenticated, async (req, res) => {
     }
     
     // 음악 삭제
-    await db.delete(music).where(eq(music.id, musicId));
+    await db.delete(music).where(eq(music.id, Number(musicId)));
     
     res.json({ message: '음악이 성공적으로 삭제되었습니다.' });
   } catch (error) {
