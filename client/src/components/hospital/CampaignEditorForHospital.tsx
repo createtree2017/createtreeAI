@@ -77,18 +77,12 @@ const formSchema = z.object({
   displayOrder: z.number().int().default(0),
   // 병원 관리자는 병원 ID를 변경할 수 없음 (서버에서 자동 설정)
   // 날짜 관련 필드
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
+  startDate: z.string().min(1, "신청 시작일은 필수 항목입니다."),
+  endDate: z.string().min(1, "신청 종료일은 필수 항목입니다."),
   announceDate: z.string().optional(),
-  // 콘텐츠 등록 기간은 필수 입력 (2024-05)
-  contentStartDate: z.string()
-    .refine(val => !!val, {
-      message: "콘텐츠 등록 시작일은 필수 입력 항목입니다."
-    }),
-  contentEndDate: z.string()
-    .refine(val => !!val, {
-      message: "콘텐츠 등록 종료일은 필수 입력 항목입니다."
-    }),
+  // 콘텐츠 등록 기간 - 후기 필요할 경우에만 필수 (2024-05)
+  contentStartDate: z.string().optional(),
+  contentEndDate: z.string().optional(),
   resultDate: z.string().optional(),
   // 숫자 필드
   rewardPoint: z.number().int().default(0).nullable(),
@@ -100,6 +94,29 @@ const formSchema = z.object({
   requireReview: z.boolean().default(false),
   hasShipping: z.boolean().default(false),
   reviewPolicy: z.string().optional()
+}).refine((data) => {
+  // 후기 필수일 경우 콘텐츠 등록 기간 입력 필수
+  if (data.requireReview) {
+    if (!data.contentStartDate || data.contentStartDate.trim() === '') {
+      return false;
+    }
+    if (!data.contentEndDate || data.contentEndDate.trim() === '') {
+      return false;
+    }
+  }
+  return true;
+}, {
+  message: "후기 제출이 필요한 캠페인은 콘텐츠 등록 기간을 반드시 설정해야 합니다.",
+  path: ["contentStartDate"] // 오류 메시지 표시 위치
+}).refine((data) => {
+  // 후기 필수일 경우 후기 정책 설명 필수
+  if (data.requireReview) {
+    return !!data.reviewPolicy && data.reviewPolicy.trim() !== '';
+  }
+  return true;
+}, {
+  message: "후기 제출이 필요한 캠페인은 후기 정책 설명을 반드시 입력해야 합니다.",
+  path: ["reviewPolicy"]
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -220,9 +237,40 @@ export default function CampaignEditorForHospital({ campaign }: { campaign: Exte
 
   // 폼 제출 처리
   const onSubmit = async (values: FormValues) => {
+    // 필수 항목 검증 - 특히 후기 제출이 필요한 경우 추가 검증
+    if (values.requireReview) {
+      // 콘텐츠 등록 기간이 설정되었는지 확인
+      if (!values.contentStartDate || !values.contentEndDate) {
+        toast({
+          title: "입력 오류",
+          description: "후기 제출이 필요한 캠페인은 콘텐츠 등록 기간을 반드시 설정해야 합니다.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // 후기 정책이 입력되었는지 확인
+      if (!values.reviewPolicy || values.reviewPolicy.trim() === '') {
+        toast({
+          title: "입력 오류",
+          description: "후기 제출이 필요한 캠페인은 후기 정책 설명을 반드시 입력해야 합니다.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     // 상태값이 변경되었는지 확인하고 확인 요청 (draft → active로 변경 시)
     if (campaign.status === 'draft' && values.status === 'active') {
       if (!window.confirm('캠페인을 활성화하시겠습니까? 활성화된 캠페인은 사용자에게 공개됩니다.')) {
+        return;
+      }
+    }
+    
+    // 최대 참여자 수 검증
+    if (values.selectionType === 'selection' && (!values.maxParticipants || values.maxParticipants <= 0)) {
+      const confirmNoMax = window.confirm('선정형 캠페인에 최대 참여자 수가 설정되지 않았습니다. 그대로 진행하시겠습니까?');
+      if (!confirmNoMax) {
         return;
       }
     }
@@ -616,6 +664,151 @@ export default function CampaignEditorForHospital({ campaign }: { campaign: Exte
               </FormItem>
             )}
           />
+
+          {/* 캠페인 옵션 - 신청방식, 후기, 배송여부 */}
+          <div className="grid grid-cols-1 gap-6 border p-6 rounded-lg bg-gray-50 mt-6">
+            <h3 className="text-lg font-medium mb-4">캠페인 옵션 설정</h3>
+            
+            {/* 신청방식 선택 (선정형/비선정형) */}
+            <FormField
+              control={form.control}
+              name="selectionType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>신청 방식</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="신청 방식 선택" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="selection">선정형 (심사 후 선정)</SelectItem>
+                      <SelectItem value="first_come">비선정형 (선착순)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    선정형: 모든 신청자 중 일부를 심사 후 선정합니다. 비선정형: 선착순으로 신청자를 받습니다.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            {/* 최대 참여자 수 */}
+            <FormField
+              control={form.control}
+              name="maxParticipants"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>최대 참여자 수</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="예: 10, 20, 30"
+                      {...field}
+                      value={field.value ?? ""}
+                      onChange={(e) => {
+                        const value = e.target.value ? parseInt(e.target.value) : undefined;
+                        field.onChange(value);
+                      }}
+                    />
+                  </FormControl>
+                  <FormDescription>최대 몇 명까지 참여할 수 있는지 설정합니다.</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            {/* 후기 제출 여부 */}
+            <FormField
+              control={form.control}
+              name="requireReview"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">
+                      후기 제출 필요
+                    </FormLabel>
+                    <FormDescription>
+                      활성화 시 참여자는 후기를 제출해야 합니다.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            
+            {/* 배송 여부 */}
+            <FormField
+              control={form.control}
+              name="hasShipping"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">
+                      배송 여부
+                    </FormLabel>
+                    <FormDescription>
+                      활성화 시 참여자는 배송지 정보를 입력해야 합니다.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            
+            {/* 후기 정책 (후기 제출이 필요한 경우에만 표시) */}
+            {form.watch("requireReview") && (
+              <FormField
+                control={form.control}
+                name="reviewPolicy"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>후기 정책 설명</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="후기 작성 시 유의사항을 입력하세요"
+                        className="min-h-24"
+                        {...field}
+                        value={field.value || ""}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      참여자에게 보여질 후기 작성 안내사항을 입력하세요. 예: "인스타그램에 #해시태그와 함께 포스팅해 주세요."
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+          </div>
+
+          {/* 필수 항목 알림 */}
+          <Alert className="mb-6 bg-yellow-50 text-yellow-800 border-yellow-200">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>캠페인 옵션 설정 안내</AlertTitle>
+            <AlertDescription>
+              <ul className="list-disc pl-5 mt-2 space-y-1">
+                <li>신청 시작일과 종료일은 모든 캠페인에 <strong>필수</strong>입니다.</li>
+                <li>'후기 제출 필요' 옵션을 활성화한 경우, 콘텐츠 등록 기간과 후기 정책 설명은 <strong>필수</strong>입니다.</li>
+                <li>'선정형' 캠페인에는 최대 참여자 수 설정을 권장합니다.</li>
+              </ul>
+            </AlertDescription>
+          </Alert>
 
           <FormField
             control={form.control}
