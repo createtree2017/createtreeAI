@@ -26,20 +26,10 @@ export default function HospitalCampaignEditPage() {
   // 캠페인 상세 정보 가져오기
   const { data: campaign, isLoading, error } = useQuery<ExtendedCampaign>({
     queryKey: [`/api/hospital/campaigns/${campaignId}`],
-    // queryFn 추가: 병원 캠페인 데이터 가져오기
+    // queryFn 필수 - 캠페인 데이터 가져오기
     queryFn: async () => {
-      try {
-        // getApi 도우미 함수 사용 - 자동으로 JSON 응답 반환
-        return await getApi<ExtendedCampaign>(`/api/hospital/campaigns/${campaignId}`);
-      } catch (error) {
-        console.error("캠페인 조회 오류:", error);
-        // 오류 객체에서 적절한 메시지 추출 후 다시 던지기
-        const errorMessage = error instanceof Error 
-          ? error.message 
-          : "캠페인을 불러오는데 실패했습니다.";
-        
-        throw new Error(errorMessage);
-      }
+      // getApi 함수는 내부적으로 오류 처리와 JSON 파싱을 수행
+      return await getApi<ExtendedCampaign>(`/api/hospital/campaigns/${campaignId}`);
     },
     // 병원 관리자는 자신의 병원 캠페인만 편집할 수 있음
     enabled: !!campaignId && !!user,
