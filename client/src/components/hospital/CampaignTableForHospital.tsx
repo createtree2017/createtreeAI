@@ -109,7 +109,16 @@ export default function CampaignTableForHospital() {
 
   // 상세 페이지로 이동
   const handleViewDetail = (slug: string) => {
-    window.location.href = `/campaigns/${slug}`;
+    if(!slug) {
+      console.error("캠페인 슬러그가 없습니다.");
+      toast({
+        title: "오류",
+        description: "캠페인 상세 정보를 불러올 수 없습니다.",
+        variant: "destructive"
+      });
+      return;
+    }
+    window.location.href = `/campaign/${slug}`; // 올바른 경로로 수정
   };
 
   // 디버깅 로그 - 문제 확인용
@@ -198,7 +207,23 @@ export default function CampaignTableForHospital() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => window.location.href = `/admin?tab=campaigns&edit=${campaign.id}`}
+                          onClick={() => {
+                            // 권한 체크 추가
+                            if (user?.memberType === 'superadmin') {
+                              // 슈퍼관리자는 모든 캠페인 수정 가능 (기존 경로 사용)
+                              window.location.href = `/admin?tab=campaigns&edit=${campaign.id}`;
+                            } else if (user?.memberType === 'hospital_admin' && user?.hospitalId === campaign.hospitalId) {
+                              // 병원 관리자는 자신의 병원 캠페인만 수정 가능
+                              window.location.href = `/admin?tab=campaigns&edit=${campaign.id}&hospitalId=${campaign.hospitalId}`;
+                            } else {
+                              // 권한 없음
+                              toast({
+                                title: "접근 권한 없음",
+                                description: "본인이 소속된 병원의 캠페인만 수정할 수 있습니다.",
+                                variant: "destructive"
+                              });
+                            }
+                          }}
                         >
                           수정
                         </Button>
