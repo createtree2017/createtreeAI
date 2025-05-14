@@ -666,7 +666,7 @@ export default function CampaignEditorForHospital({ campaign }: { campaign: Exte
           />
 
           {/* 캠페인 옵션 - 신청방식, 후기, 배송여부 */}
-          <div className="grid grid-cols-1 gap-6 border p-6 rounded-lg bg-gray-900 mt-6">
+          <div className="grid grid-cols-1 gap-6 border border-gray-700 p-6 rounded-lg bg-gray-900 mt-6">
             <h3 className="text-lg font-medium mb-4 text-white">캠페인 옵션 설정</h3>
             
             {/* 신청방식 선택 (선정형/비선정형) */}
@@ -675,13 +675,13 @@ export default function CampaignEditorForHospital({ campaign }: { campaign: Exte
               name="selectionType"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>신청 방식</FormLabel>
+                  <FormLabel className="text-white">신청 방식</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
                   >
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-gray-800 text-white border-gray-700">
                         <SelectValue placeholder="신청 방식 선택" />
                       </SelectTrigger>
                     </FormControl>
@@ -690,7 +690,7 @@ export default function CampaignEditorForHospital({ campaign }: { campaign: Exte
                       <SelectItem value="first_come">비선정형 (선착순)</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormDescription>
+                  <FormDescription className="text-gray-400">
                     선정형: 모든 신청자 중 일부를 심사 후 선정합니다. 비선정형: 선착순으로 신청자를 받습니다.
                   </FormDescription>
                   <FormMessage />
@@ -704,11 +704,12 @@ export default function CampaignEditorForHospital({ campaign }: { campaign: Exte
               name="maxParticipants"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>최대 참여자 수</FormLabel>
+                  <FormLabel className="text-white">최대 참여자 수</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
                       placeholder="예: 10, 20, 30"
+                      className="bg-gray-800 text-white border-gray-700"
                       {...field}
                       value={field.value ?? ""}
                       onChange={(e) => {
@@ -717,7 +718,7 @@ export default function CampaignEditorForHospital({ campaign }: { campaign: Exte
                       }}
                     />
                   </FormControl>
-                  <FormDescription>최대 몇 명까지 참여할 수 있는지 설정합니다.</FormDescription>
+                  <FormDescription className="text-gray-400">최대 몇 명까지 참여할 수 있는지 설정합니다.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -728,12 +729,12 @@ export default function CampaignEditorForHospital({ campaign }: { campaign: Exte
               control={form.control}
               name="requireReview"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border border-gray-700 bg-gray-800 p-4">
                   <div className="space-y-0.5">
-                    <FormLabel className="text-base">
+                    <FormLabel className="text-base text-white">
                       후기 제출 필요
                     </FormLabel>
-                    <FormDescription>
+                    <FormDescription className="text-gray-400">
                       활성화 시 참여자는 후기를 제출해야 합니다.
                     </FormDescription>
                   </div>
@@ -752,12 +753,12 @@ export default function CampaignEditorForHospital({ campaign }: { campaign: Exte
               control={form.control}
               name="hasShipping"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border border-gray-700 bg-gray-800 p-4">
                   <div className="space-y-0.5">
-                    <FormLabel className="text-base">
+                    <FormLabel className="text-base text-white">
                       배송 여부
                     </FormLabel>
-                    <FormDescription>
+                    <FormDescription className="text-gray-400">
                       활성화 시 참여자는 배송지 정보를 입력해야 합니다.
                     </FormDescription>
                   </div>
@@ -778,16 +779,16 @@ export default function CampaignEditorForHospital({ campaign }: { campaign: Exte
                 name="reviewPolicy"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>후기 정책 설명</FormLabel>
+                    <FormLabel className="text-white">후기 정책 설명</FormLabel>
                     <FormControl>
                       <Textarea
                         placeholder="후기 작성 시 유의사항을 입력하세요"
-                        className="min-h-24"
+                        className="min-h-24 bg-gray-800 text-white border-gray-700"
                         {...field}
                         value={field.value || ""}
                       />
                     </FormControl>
-                    <FormDescription>
+                    <FormDescription className="text-gray-400">
                       참여자에게 보여질 후기 작성 안내사항을 입력하세요. 예: "인스타그램에 #해시태그와 함께 포스팅해 주세요."
                     </FormDescription>
                     <FormMessage />
@@ -798,13 +799,13 @@ export default function CampaignEditorForHospital({ campaign }: { campaign: Exte
           </div>
 
           {/* 필수 항목 알림 */}
-          <Alert className="mb-6 bg-yellow-50 text-yellow-800 border-yellow-200">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>캠페인 옵션 설정 안내</AlertTitle>
-            <AlertDescription>
+          <Alert className="mb-6 bg-gray-800 text-yellow-300 border-yellow-700">
+            <AlertTriangle className="h-4 w-4 text-yellow-300" />
+            <AlertTitle className="text-yellow-300 font-medium">캠페인 옵션 설정 안내</AlertTitle>
+            <AlertDescription className="text-yellow-200">
               <ul className="list-disc pl-5 mt-2 space-y-1">
-                <li>신청 시작일과 종료일은 모든 캠페인에 <strong>필수</strong>입니다.</li>
-                <li>'후기 제출 필요' 옵션을 활성화한 경우, 콘텐츠 등록 기간과 후기 정책 설명은 <strong>필수</strong>입니다.</li>
+                <li>신청 시작일과 종료일은 모든 캠페인에 <strong className="text-yellow-300">필수</strong>입니다.</li>
+                <li>'후기 제출 필요' 옵션을 활성화한 경우, 콘텐츠 등록 기간과 후기 정책 설명은 <strong className="text-yellow-300">필수</strong>입니다.</li>
                 <li>'선정형' 캠페인에는 최대 참여자 수 설정을 권장합니다.</li>
               </ul>
             </AlertDescription>
@@ -815,16 +816,16 @@ export default function CampaignEditorForHospital({ campaign }: { campaign: Exte
             name="content"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>캠페인 상세 내용</FormLabel>
+                <FormLabel className="text-white">캠페인 상세 내용</FormLabel>
                 <FormControl>
                   <Textarea
                     placeholder="캠페인의 상세 내용을 입력하세요"
-                    className="min-h-64"
+                    className="min-h-64 bg-gray-800 text-white border-gray-700"
                     {...field}
                     value={field.value || ""}
                   />
                 </FormControl>
-                <FormDescription>
+                <FormDescription className="text-gray-400">
                   HTML을 포함한 마크다운 형식으로 작성할 수 있습니다.
                 </FormDescription>
                 <FormMessage />
