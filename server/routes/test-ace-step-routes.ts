@@ -11,6 +11,9 @@ const router = Router();
 // ACE-Step 모델 테스트를 위한 음악 생성 엔드포인트
 router.post("/generate", async (req, res) => {
   try {
+    console.log("=== ACE-Step 음악 생성 요청 수신 ===");
+    console.log("요청 본문:", JSON.stringify(req.body, null, 2));
+    
     const { prompt, lyrics, duration, style, guidance_scale, tag_guidance_scale, lyric_guidance_scale } = req.body;
     
     if (!prompt || !lyrics) {
@@ -19,7 +22,14 @@ router.post("/generate", async (req, res) => {
       });
     }
     
-    console.log("ACE-Step 음악 생성 요청:", { prompt, duration });
+    console.log("ACE-Step 음악 생성 처리 시작:", { 
+      prompt, 
+      lyrics_sample: lyrics.slice(0, 50) + "...", 
+      duration,
+      guidance_scale,
+      tag_guidance_scale,
+      lyric_guidance_scale
+    });
     
     // 지원되는 음악 길이 (60, 120, 180, 240초)
     let validatedDuration = 120; // 기본값 2분
@@ -72,12 +82,21 @@ router.post("/generate", async (req, res) => {
       // Replicate API 오류 관련 상세 메시지 추가
       if (errorMessage.includes("Invalid version")) {
         errorMessage = `모델 버전 오류: ${errorMessage}`;
-      } else if (errorMessage.includes("API key")) {
+      } else if (errorMessage.includes("API key") || errorMessage.includes("token") || errorMessage.includes("authentication")) {
         errorMessage = `인증 오류: ${errorMessage}`;
+        console.error("API 키 또는 인증 관련 오류가 의심됩니다");
+        console.log("환경 변수 확인:", {
+          REPLICATE_API_TOKEN_EXISTS: !!process.env.REPLICATE_API_TOKEN,
+          REPLICATE_API_TOKEN_LENGTH: process.env.REPLICATE_API_TOKEN ? process.env.REPLICATE_API_TOKEN.length : 0
+        });
       }
     }
     
+    // 개발자용 디버그 로그 추가
+    console.error("최종 오류 메시지:", errorMessage);
+    
     res.status(500).json({ 
+      success: false,
       error: errorMessage 
     });
   }
