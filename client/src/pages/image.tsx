@@ -1016,36 +1016,39 @@ export default function Image() {
                         <h4 className="font-medium text-[15px] text-neutral-dark line-clamp-1">{image.title}</h4>
                         <div className="flex justify-between items-center">
                           <p className="text-xs text-muted-foreground">{image.createdAt}</p>
-                          <div className="flex gap-3 mr-1">
+                          <div className="flex gap-2 ml-auto flex-shrink-0">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleViewImage(image);
                               }}
-                              className="text-gray-600 hover:text-[#ff2d55] transition-colors p-1"
+                              className="text-gray-600 hover:text-[#ff2d55] transition-colors p-1.5"
                               title="크게 보기"
+                              aria-label="크게 보기"
                             >
-                              <Eye className="h-5 w-5" />
+                              <Eye className="h-4 w-4" />
                             </button>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleShare(image.id);
                               }}
-                              className="text-gray-600 hover:text-[#ff2d55] transition-colors p-1"
+                              className="text-gray-600 hover:text-[#ff2d55] transition-colors p-1.5"
                               title="공유하기"
+                              aria-label="공유하기"
                             >
-                              <Share2 className="h-5 w-5" />
+                              <Share2 className="h-4 w-4" />
                             </button>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDownload(image.id);
                               }}
-                              className="text-gray-600 hover:text-[#ff2d55] transition-colors p-1"
+                              className="text-gray-600 hover:text-[#ff2d55] transition-colors p-1.5"
                               title="다운로드"
+                              aria-label="다운로드"
                             >
-                              <Download className="h-5 w-5" />
+                              <Download className="h-4 w-4" />
                             </button>
                           </div>
                         </div>
