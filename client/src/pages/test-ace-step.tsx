@@ -421,7 +421,7 @@ export default function TestAceStepPage() {
               </div>
 
               {/* 오디오 플레이어 */}
-              {result.audioUrl && (
+              {result.audioUrl && typeof result.audioUrl === 'string' && (
                 <div className="space-y-2">
                   <p className="font-medium">생성된 음악:</p>
                   <audio 
@@ -431,6 +431,14 @@ export default function TestAceStepPage() {
                   />
                   <div className="text-xs text-gray-500 break-all mt-1">
                     URL: {result.audioUrl}
+                  </div>
+                </div>
+              )}
+              {result.audioUrl && typeof result.audioUrl !== 'string' && (
+                <div className="space-y-2">
+                  <p className="font-medium">생성된 음악:</p>
+                  <div className="p-2 bg-yellow-100 rounded text-sm">
+                    오디오 URL이 문자열이 아닌 형식으로 반환되었습니다: {typeof result.audioUrl}
                   </div>
                 </div>
               )}
@@ -501,12 +509,17 @@ export default function TestAceStepPage() {
                             <span className="ml-2 text-xs">(소요 시간: {item.generationTime})</span>
                           )}
                         </p>
-                        {item.success && item.audioUrl && (
+                        {item.success && item.audioUrl && typeof item.audioUrl === 'string' && (
                           <audio 
                             controls 
                             src={item.audioUrl} 
                             className="w-full mt-2"
                           />
+                        )}
+                        {item.success && item.audioUrl && typeof item.audioUrl !== 'string' && (
+                          <div className="p-2 bg-yellow-100 rounded text-sm mt-2">
+                            오디오 URL이 문자열이 아닌 형식으로 반환되었습니다: {typeof item.audioUrl}
+                          </div>
                         )}
                         {!item.success && item.error && (
                           <p className="text-sm font-normal mt-1 text-red-700">
@@ -524,7 +537,9 @@ export default function TestAceStepPage() {
                 <div className="space-y-1">
                   <p className="font-medium">입력 파라미터:</p>
                   <pre className="p-2 bg-gray-100 rounded text-xs overflow-x-auto">
-                    {JSON.stringify(result.input, null, 2)}
+                    {typeof result.input === 'object' ? 
+                      JSON.stringify(result.input, null, 2) : 
+                      `${result.input} (${typeof result.input})`}
                   </pre>
                 </div>
               )}
