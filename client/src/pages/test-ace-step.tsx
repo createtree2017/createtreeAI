@@ -92,8 +92,8 @@ export default function TestAceStepPage() {
 
       if (data && data.success) {
         toast({
-          title: "음악 생성 성공",
-          description: "ACE-Step 모델로 음악을 생성했습니다."
+          title: "음악 생성 성공! 🎵",
+          description: "ACE-Step 모델로 음악을 생성했습니다. 아래에서 재생해 보세요."
         });
       } else {
         toast({
@@ -420,23 +420,35 @@ export default function TestAceStepPage() {
                 </p>
               </div>
 
-              {/* 오디오 플레이어 */}
+              {/* 오디오 플레이어 - 개선된 UI */}
               {result.audioUrl && typeof result.audioUrl === 'string' && (
-                <div className="space-y-2">
-                  <p className="font-medium">생성된 음악:</p>
-                  <audio 
-                    controls 
-                    src={result.audioUrl} 
-                    className="w-full"
-                  />
-                  <div className="text-xs text-gray-500 break-all mt-1">
-                    URL: {result.audioUrl}
+                <div className="space-y-4 p-4 bg-gray-50 rounded-lg border">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-green-700">🎵 생성된 음악</h3>
+                    <div className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                      {duration}초
+                    </div>
+                  </div>
+                  <div className="bg-white p-3 rounded-md shadow-sm">
+                    <audio 
+                      controls 
+                      src={result.audioUrl} 
+                      className="w-full"
+                      preload="auto"
+                      controlsList="nodownload"
+                    />
+                  </div>
+                  <div className="flex items-center text-xs text-gray-500 mt-2">
+                    <span className="font-medium mr-1">파일:</span>
+                    <span className="overflow-hidden overflow-ellipsis whitespace-nowrap">{result.audioUrl}</span>
                   </div>
                 </div>
               )}
               {result.audioUrl && typeof result.audioUrl !== 'string' && (
-                <div className="space-y-2">
-                  <p className="font-medium">생성된 음악:</p>
+                <div className="space-y-2 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                  <div className="flex items-center">
+                    <p className="font-medium text-yellow-800">⚠️ 음악 포맷 이슈</p>
+                  </div>
                   <div className="p-2 bg-yellow-100 rounded text-sm">
                     오디오 URL이 문자열이 아닌 형식으로 반환되었습니다: {typeof result.audioUrl}
                   </div>
