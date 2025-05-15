@@ -1,0 +1,58 @@
+라플아, 대표님께서 Replicate의 `lucataco/ace-step` 모델을 호출하는 정확한 Node.js 예제 코드를 전달해주셨다. 현재 테스트 페이지에서 발생하는 500 Internal Server Error는 이 예제 코드와 우리가 실제로 API에 전달하는 입력 파라미터 간의 불일치 때문일 가능성이 매우 높다.
+
+이 문제를 해결하고 성공적인 음악 생성을 위해 다음 지침을 주의 깊게 따라주길 바란다.
+
+**🎯 목표: 대표님이 제공한 Node.js 예제 코드 및 Replicate 모델의 전체 Input Schema를 정확히 반영하여 `lucataco/ace-step` API 호출 시 발생하는 500 에러를 해결하고, 다양한 조건에서 음악 생성 테스트 성공**
+
+**✅ 1단계: `server/services/music-service.ts`의 ACE-Step API 호출 함수 재검토 및 수정 (가장 중요!):**
+
+1.  **대표님이 제공한 예제 코드 기준으로 `input` 객체 재구성:**
+    * **참고 코드:** (대표님께서 제공해주신 코드)
+      ```javascript
+      const input = {
+          tags: "synth-pop, electronic, pop, synthesizer, drums, bass, piano, 128 BPM, energetic, uplifting, modern",
+          lyrics: "[verse]\nWoke up in a city that's always alive\n..." // (이하 전체 가사)
+      };
+      // const output = await replicate.run("lucataco/ace-step:280fc4f9ee507577f880a167f639c02622421d8fecf492454320311217b688f1", { input });
+      ```
+    * 현재 `music-service.ts` 내의 `generateMusicWithAceStep` (또는 유사 함수)에서 Replicate API를 호출할 때, **`input` 객체의 구조와 내용을 위 예제 코드와 최대한 유사하게 맞춘다.**
+    * 특히 `tags`와 `lyrics` 파라미터의 형식과 내용이 예제와 일치하는지 확인한다.
+
+2.  **Replicate `lucataco/ace-step` 모델의 전체 Input Schema 반영:**
+    * Replicate 모델 페이지([https://replicate.com/lucataco/ace-step](https://replicate.com/lucataco/ace-step))의 **"Schema" 탭 (Input schema)** 에 있는 **모든 입력 파라미터**들을 다시 한번 철저히 확인한다. (대표님 스크린샷 `image_86294d.jpg`, `image_86296c.jpg` 참고)
+    * **다음 주요 파라미터들을 포함하여 `input` 객체를 구성하고, 각 값의 데이터 타입과 형식을 정확히 맞춰야 한다:**
+        * **`tags` (string, 필수):** GPT-4o가 생성한 "상세 음악 생성 지시서"의 키워드들을 쉼표로 구분된 **영어 문자열** 형태로 전달한다. (예제 코드 참고)
+        * **`lyrics` (string, 필수):** GPT-4o가 생성한 가사를 전달한다. `[verse]`, `[chorus]` 등 **구조 태그를 포함**하여 전달한다. (예제 코드 참고)
+        * **`duration` (number, 필수):** 음악 생성 길이를 **숫자(초 단위)**로 전달한다. (예: 1분=60, 2분=120, 3분=180, 4분=240). 모델 설명에 따르면 -1 입력 시 30~240초 랜덤. 우리는 UI에서 선택한 값(60, 120, 180, 240)을 정확히 전달한다.
+        * **`language_code` (string, 선택 사항이지만 중요):** 모델의 "Limitations" 섹션에 "Performance varies by language (eg 10 languages perform best)" 언급 및 이전 조사 내용에 따라, **한국어 가사로 음악을 생성할 경우 이 파라미터에 "ko"를 명시적으로 전달**하는 것을 테스트한다. (만약 해당 파라미터가 Input Schema에 없다면, `tags`나 `lyrics`에 언어 지시를 포함하는 방안 고려)
+        * **`scheduler` (string, 선택 사항):** 기본값("PDM") 사용 또는 다른 옵션 테스트.
+        * **`guidance_type` (string, 선택 사항):** 기본값("audioldm-v2") 사용 또는 다른 옵션 테스트.
+        * **`guidance_scale` (number, 선택 사항):** 기본값(3.5) 사용 또는 값 조정을 통한 변화 테스트.
+        * **`number_of_inference_steps` (integer, 선택 사항):** 기본값(50) 사용 또는 값 조정을 통한 변화 테스트.
+        * **기타 Input Schema에 명시된 모든 파라미터:** 기본값을 사용할지, 아니면 우리가 특정 값을 지정할지 결정하여 `input` 객체에 포함한다. **누락된 필수 파라미터가 없는지 반드시 확인한다.**
+    * **모델 ID 및 버전 해시:** `replicate.run()` 호출 시 사용하는 모델 문자열을 예제 코드에 있는 `"lucataco/ace-step:280fc4f9ee507577f880a167f639c02622421d8fecf492454320311217b688f1"` 또는 Replicate 모델 페이지 "Versions" 탭에서 확인한 **가장 최신이거나 안정적인 버전으로 통일**한다.
+
+3.  **상세 로깅 및 오류 처리 (매우 중요):**
+    * `replicate.run()` 호출 **직전에**, API로 전달되는 **최종 `input` 객체의 모든 키, 값, 각 값의 타입**을 `console.log`를 사용하여 서버 로그에 상세히 출력한다.
+    * `replicate.run()` 호출을 `try...catch` 블록으로 감싸고, `catch` 블록에서 **`error` 객체 전체** (특히 `error.message`, `error.stack`, 그리고 Replicate API가 반환하는 상세 오류 정보가 있다면 `error.response.data.detail` 등)를 서버 로그에 반드시 출력한다.
+
+**✅ 2단계: 단계적 테스트 및 결과 보고:**
+
+1.  **가장 기본적인 영어 예제로 테스트:**
+    * 서버 코드 수정 후, 가장 먼저 **대표님께서 제공해주신 예제 코드의 `input` 내용을 거의 그대로 사용하여** (모델 버전만 확인/통일) `/api/test-ace-step/generate-music` 엔드포인트를 호출해본다. (Postman 또는 테스트 페이지의 간단한 버튼 사용)
+    * 이 기본 호출이 성공하여 오디오 URL을 받아오는지 확인한다. 이것이 성공해야 다음으로 넘어갈 수 있다.
+2.  **파라미터 점진적 변경 및 한국어 테스트:**
+    * 기본 영어 예제 테스트 성공 후, 다음 항목들을 점진적으로 변경하며 테스트한다:
+        * **`lyrics`:** 간단한 한글 가사 (구조 태그 포함)
+        * **`tags`:** 한글 음악 스타일 관련 태그 (모델이 영어 태그만 이해한다면, GPT-4o가 영어로 변환하도록 해야 함 - 이 부분은 추후 논의) 또는 영어로 된 다양한 스타일 태그
+        * **`duration`:** 60, 120, 180, 240 값을 순차적으로 적용
+        * **`language_code`:** (만약 있다면) "ko"로 설정
+3.  **결과 보고 (각 테스트 시도마다):**
+    * **서버 로그:** "Replicate API 호출 직전 입력 데이터" 로그 전체, 발생한 오류 로그 전체 (스택 트레이스 포함), 또는 성공 시 Replicate API 응답 로그 전체.
+    * **프론트엔드 반응:** 테스트 페이지에서 버튼 클릭 시 UI 변화, 콘솔 오류 (만약 있다면).
+    * **생성된 오디오:** 성공 시 오디오 URL 및 해당 음악을 직접 들어본 간략한 평가.
+    * 어떤 파라미터를 어떻게 변경했을 때 어떤 결과가 나왔는지 명확히 설명한다.
+
+**지금 가장 중요한 것은 `music-service.ts`에서 Replicate API로 전달하는 `input` 객체가 `lucataco/ace-step` 모델의 요구사항과 정확히 일치하도록 수정하고, 상세한 로그를 통해 문제를 추적하는 것이다.**
+
+대표님께서 제공해주신 예제 코드가 큰 도움이 될 것이다. 이 코드를 기준으로 차분히 진행하면 500 에러를 해결하고 음악 생성에 성공할 수 있을 것이다. 모든 진행 상황과 결과는 **반드시 한글로 상세히 보고**해주길 바란다.

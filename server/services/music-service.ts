@@ -145,8 +145,8 @@ export async function generateMusicWithAceStep(input: AceStepInput): Promise<str
     let output: any = null;
     let lastError: Error | null = null;
     
-    // 최신 ACE-Step 모델 버전 사용 (2024년 5월 15일 업데이트)
-    const modelVersion = "8d65e3f4f4298a24a95e7b168eec9dacf26fca8258d5f620e2a78b7eef95cf30";
+    // 대표님이 제공해주신 예제 코드의 ACE-Step 모델 버전 사용
+    const modelVersion = "280fc4f9ee507577f880a167f639c02622421d8fecf492454320311217b688f1";
     
     while (attempt <= maxAttempts) {
       try {
@@ -158,10 +158,10 @@ export async function generateMusicWithAceStep(input: AceStepInput): Promise<str
         console.log("버전: ", modelVersion);
         console.log("입력 파라미터:", JSON.stringify(input, null, 2));
         
-        // Replicate API를 통한 음악 생성
+        // Replicate API를 통한 음악 생성 - 대표님 예제 코드와 동일하게 호출
         output = await replicate.run(
-          `lucataco/ace-step:${modelVersion}`,
-          { input }
+          `lucataco/ace-step:${modelVersion}`, 
+          { input: input }
         );
         
         console.log("===== Replicate API 응답 성공 =====");
@@ -220,15 +220,11 @@ export function createAceStepInput(
   duration: number = 120, 
   options: Partial<AceStepInput> = {}
 ): AceStepInput {
-  // 기본 입력 값 정의
+  // 대표님 예제와 동일한 형식으로 최적화
   const input: AceStepInput = {
-    tags: prompt, // 태그로 사용될 프롬프트
-    lyrics: lyrics, // 가사
-    duration: duration, // 기본 120초
-    // 기본 파라미터 설정
-    guidance_scale: 7,
-    lyric_guidance_scale: 10,
-    tag_guidance_scale: 8,
+    tags: prompt, // 태그로 사용될 프롬프트 (영문 태그, 쉼표로 구분)
+    lyrics: lyrics, // 가사 (구조 태그 [verse], [chorus] 등 포함)
+    duration: duration, // 음악 길이 (초 단위, 예: 60, 120, 180, 240)
     ...options // 추가 옵션으로 기본값 덮어쓰기
   };
   
