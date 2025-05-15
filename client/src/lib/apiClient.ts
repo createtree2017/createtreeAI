@@ -226,7 +226,7 @@ export const api = {
   },
   generateMusic: (data: any) => postApi('/api/music/generate', data),
   getMusicList: (filter = '') => getApi(`/api/music${filter ? `?filter=${filter}` : ''}`),
-  shareMedia: (mediaId: string, mediaType: string) => postApi('/api/share', { mediaId, mediaType }),
+  shareMedia: (mediaId: number, mediaType: string) => postApi('/api/share', { mediaId, mediaType }),
   toggleImageSharing: (imageId: number) => postApi(`/api/image/${imageId}/toggle-sharing`, {}),
   toggleFavorite: (itemId: number, type: string) => postApi('/api/gallery/favorite', { itemId, type }),
   
@@ -272,31 +272,46 @@ export const api = {
   uploadTranslations: (formData: FormData) => postApi('/api/admin/translations/upload', formData),
   
   // 파일 다운로드 (특수 처리)
-  downloadMedia: async (url: string, filename = '') => {
+  downloadMedia: async (id: number, type: string) => {
     try {
-      const response = await fetch(url, { credentials: 'include' });
+      console.log(`다운로드 요청: ID=${id}, 타입=${type}`);
+      
+      // 타입에 따라 다른 엔드포인트 사용
+      const endpoint = type === "music" 
+        ? `/api/music/${id}/download` 
+        : `/api/image/${id}/download`;
+      
+      const response = await fetch(endpoint, { 
+        method: 'GET',
+        credentials: 'include'
+      });
       
       if (!response.ok) {
-        throw new Error(`Download failed: ${response.statusText}`);
+        throw new Error(`Download failed: ${response.status} ${response.statusText}`);
       }
       
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
+      
+      // 다운로드 링크 생성 및 클릭
       const link = document.createElement('a');
       link.href = downloadUrl;
-      link.download = filename || url.split('/').pop() || 'download';
+      link.download = `${type}-${id}.${type === 'music' ? 'mp3' : 'jpg'}`;
+      
+      // 모바일 호환성을 위한 코드
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
       
+      // 메모리 누수 방지를 위한 정리
       setTimeout(() => {
         window.URL.revokeObjectURL(downloadUrl);
+        document.body.removeChild(link);
       }, 100);
       
       return true;
     } catch (error) {
       console.error('Media download error:', error);
-      return false;
+      throw error; // 호출자가 에러 처리할 수 있도록 에러 전파
     }
   }
 };
