@@ -146,60 +146,64 @@ export default function MusicGallery({
     queryKey: ["/api/music/list", page, limit, activeTab, selectedStyle, userId],
     enabled: true, // API 경로가 준비되어 활성화
     queryFn: async () => {
+      // 쿼리 파라미터 구성
+      const params = new URLSearchParams();
+      params.append("page", page.toString());
+      params.append("limit", limit.toString());
+      
+      if (activeTab === "instrumental") {
+        params.append("instrumental", "true");
+      } else if (activeTab === "vocal") {
+        params.append("instrumental", "false");
+      }
+      
+      if (selectedStyle) {
+        params.append("style", selectedStyle);
+      }
+      
+      if (userId) {
+        params.append("userId", userId.toString());
+      }
+      
+      console.log(`음악 목록 요청: /api/music/list?${params.toString()}`);
+      
       try {
-        // 쿼리 파라미터 구성
-        const params = new URLSearchParams();
-        params.append("page", page.toString());
-        params.append("limit", limit.toString());
-        
-        if (activeTab === "instrumental") {
-          params.append("instrumental", "true");
-        } else if (activeTab === "vocal") {
-          params.append("instrumental", "false");
-        }
-        
-        if (selectedStyle) {
-          params.append("style", selectedStyle);
-        }
-        
-        if (userId) {
-          params.append("userId", userId.toString());
-        }
-        
         const res = await apiRequest(`/api/music/list`, {
           params: Object.fromEntries(params.entries())
         });
         
-        if (!res.ok) {
-          // API 호출 실패 시 임시 데이터 사용
-          console.warn("음악 목록을 가져오는데 실패했습니다. 임시 데이터 사용");
-          return mockMusicData;
+        // Content-Type 헤더 확인
+        const contentType = res.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          console.error(`음악 목록 API가 JSON이 아닌 응답을 반환했습니다:`, contentType);
+          throw new Error('서버가 유효하지 않은 응답 형식을 반환했습니다');
         }
         
         const data = await res.json();
-        return data || mockMusicData;
+        console.log('API 응답 데이터:', data);
+        
+        // 데이터가 없거나 음악 목록이 비어있는 경우 빈 배열로 초기화
+        if (!data || !data.music) {
+          return { music: [], meta: { page: 1, totalPages: 0, totalItems: 0 } };
+        }
+        
+        return data;
       } catch (error) {
         console.error("음악 목록 요청 오류:", error);
-        // 오류 발생 시 임시 데이터 사용
-        return mockMusicData;
+        throw error; // 오류를 상위로 전파하여 UI에 표시
       }
     }
   });
   
-  // 임시 음악 데이터 필터링 (서버 API 대신 사용)
-  let filteredMusic = [...mockMusicData.music];
-  if (activeTab === "instrumental") {
-    filteredMusic = filteredMusic.filter(music => music.instrumental);
-  } else if (activeTab === "vocal") {
-    filteredMusic = filteredMusic.filter(music => !music.instrumental);
-  }
-  
-  const musicData = {
-    music: filteredMusic,
-    meta: {
-      ...mockMusicData.meta,
-      totalItems: filteredMusic.length
-    }
+  // 서버 데이터 사용
+  const musicData = serverMusicData || { 
+    music: [], 
+    meta: { 
+      page: 1, 
+      totalPages: 0, 
+      totalItems: 0,
+      itemsPerPage: limit
+    } 
   };
   
   // 서버에서 데이터를 가져오는 중인지 여부
@@ -325,21 +329,27 @@ export default function MusicGallery({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">전체</SelectItem>
-              {musicStyles.map((style: string) => (
-                <SelectItem key={style} value={style}>
-                  {style === "lullaby" && "자장가"}
-                  {style === "classical" && "클래식"}
-                  {style === "ambient" && "앰비언트"}
-                  {style === "relaxing" && "릴렉싱"}
-                  {style === "piano" && "피아노"}
-                  {style === "orchestral" && "오케스트라"}
-                  {style === "korean-traditional" && "국악"}
-                  {style === "nature-sounds" && "자연의 소리"}
-                  {style === "meditation" && "명상음악"}
-                  {style === "prenatal" && "태교음악"}
-                  {!["lullaby", "classical", "ambient", "relaxing", "piano", "orchestral", "korean-traditional", "nature-sounds", "meditation", "prenatal"].includes(style) && style}
-                </SelectItem>
-              ))}
+              {musicStyles.filter(style => !!style).map((style: string) => {
+                // 스타일에 따른 표시 이름 결정
+                const displayName = 
+                  style === "lullaby" ? "자장가" :
+                  style === "classical" ? "클래식" :
+                  style === "ambient" ? "앰비언트" :
+                  style === "relaxing" ? "릴렉싱" :
+                  style === "piano" ? "피아노" :
+                  style === "orchestral" ? "오케스트라" :
+                  style === "korean-traditional" ? "국악" :
+                  style === "nature-sounds" ? "자연의 소리" :
+                  style === "meditation" ? "명상음악" :
+                  style === "prenatal" ? "태교음악" :
+                  style; // 기타 다른 스타일은 원래 이름 그대로 사용
+                  
+                return (
+                  <SelectItem key={style} value={style}>
+                    {displayName}
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </div>

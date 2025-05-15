@@ -33,6 +33,13 @@ export const getQueryFn =
         return null;
       }
       
+      // Content-Type 헤더 확인
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error(`API 응답이 JSON 형식이 아닙니다: ${url}`, contentType);
+        throw new Error(`서버가 유효하지 않은 응답 형식을 반환했습니다 (${contentType || '없음'})`);
+      }
+      
       return await response.json() as T;
     } catch (error) {
       console.error(`API error for ${url}:`, error);
@@ -89,14 +96,27 @@ export const apiRequest = async (
       return response;
     }
     
+    // 응답의 Content-Type 확인
+    const contentType = response.headers.get('content-type');
+    const isJson = contentType && contentType.includes('application/json');
+    
+    // 응답 내용 가져오기
     const responseText = await response.text();
     let errorMessage = `API error ${response.status}`;
     
-    try {
-      const errorData = JSON.parse(responseText);
-      errorMessage = errorData.message || errorMessage;
-    } catch {
-      errorMessage = responseText || errorMessage;
+    // JSON 응답인 경우 에러 메시지 추출 시도
+    if (isJson && responseText) {
+      try {
+        const errorData = JSON.parse(responseText);
+        errorMessage = errorData.message || errorData.error || errorMessage;
+      } catch (parseError) {
+        console.warn("JSON 파싱 오류:", parseError);
+        errorMessage = responseText || errorMessage;
+      }
+    } else {
+      // HTML 또는 다른 형식의 응답인 경우
+      errorMessage = "서버가 예상치 못한 응답을 반환했습니다. 관리자에게 문의하세요.";
+      console.error("비정상 응답:", responseText);
     }
     
     const error = new Error(errorMessage);
