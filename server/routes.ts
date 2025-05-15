@@ -35,6 +35,7 @@ import {
   getAvailableMusicStyles, 
   getAvailableDurations 
 } from "./services/topmedia-music";
+import geminiTestRoutes from "./routes/gemini-test-routes";
 import { exportChatHistoryAsHtml, exportChatHistoryAsText } from "./services/export-logs";
 import { exportDevChatAsHtml, exportDevChatAsText } from "./services/dev-chat-export";
 import { AutoChatSaver } from "./services/auto-chat-saver";
@@ -4465,6 +4466,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: error.message || "알 수 없는 오류" });
     }
   });
+
+  // Gemini API 테스트 라우터 등록
+  app.use("/api/test-gemini", geminiTestRoutes);
+  console.log("Gemini API 테스트 라우터가 등록되었습니다 (/api/test-gemini/*)");
 
   const httpServer = createServer(app);
   return httpServer;
