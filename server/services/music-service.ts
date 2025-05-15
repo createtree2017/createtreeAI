@@ -1,6 +1,16 @@
 import Replicate from "replicate";
 import { z } from "zod";
-import { generateLyrics as generateLyricsFromService, translateText, GenerateLyricsRequest } from "./lyrics-service";
+import { generateLyrics as geminiGenerateLyrics } from "./lyrics-service";
+import { translateText } from "./gemini-lyrics-service";
+
+// GenerateLyricsRequest 인터페이스 정의
+export interface GenerateLyricsRequest {
+  prompt: string;
+  genre?: string;
+  mood?: string;
+  language?: string;
+  targetLength?: number;
+}
 
 // Replicate API 클라이언트 초기화
 let replicate: any = null;
@@ -72,13 +82,17 @@ async function translateToEnglish(text: string): Promise<string> {
  */
 export async function generateLyrics(prompt: string): Promise<string> {
   try {
+    console.log(`music-service: "${prompt}" 프롬프트로 가사 생성 시작`);
+    
     // lyrics-service의 가사 생성 기능 사용
-    return await generateLyricsFromService({
-      prompt,
-      genre: "lullaby",
-      mood: "soothing",
-      language: "korean"
-    });
+    const result = await geminiGenerateLyrics(prompt, "lullaby");
+    
+    if (result && result.lyrics) {
+      console.log(`music-service: 가사 생성 완료 (${result.lyrics.length}자)`);
+      return result.lyrics;
+    } else {
+      throw new Error("가사 생성 결과가 없습니다");
+    }
   } catch (error) {
     console.error("가사 생성 중 오류 발생:", error);
     throw new Error(`가사 생성에 실패했습니다: ${error instanceof Error ? error.message : String(error)}`);
@@ -129,13 +143,8 @@ export async function generateMusic(data: CreateSongRequest): Promise<SongGenera
       let lyrics: string | undefined;
       if (!data.instrumental) {
         try {
-          const lyricsRequest: GenerateLyricsRequest = {
-            prompt: data.prompt,
-            genre: data.style || "lullaby",
-            mood: "soothing",
-            language: "korean"
-          };
-          lyrics = await generateLyricsFromService(lyricsRequest);
+          // 개선된 lyrics 생성 기능 사용
+          lyrics = await generateLyrics(data.prompt);
         } catch (lyricsError) {
           console.error("가사 생성 중 오류가 발생했지만 계속 진행합니다:", lyricsError);
           // 가사 생성 실패해도 음악 생성은 계속 진행
@@ -229,14 +238,8 @@ export async function generateMusic(data: CreateSongRequest): Promise<SongGenera
     let lyrics: string | undefined;
     if (!data.instrumental) {
       try {
-        // 개선된 lyrics-service를 사용하여 가사 생성
-        const lyricsRequest: GenerateLyricsRequest = {
-          prompt: data.prompt,
-          genre: data.style || "lullaby",
-          mood: "soothing",
-          language: "korean"
-        };
-        lyrics = await generateLyricsFromService(lyricsRequest);
+        // 개선된 lyrics 생성 기능 사용
+        lyrics = await generateLyrics(data.prompt);
       } catch (lyricsError) {
         console.error("가사 생성 중 오류가 발생했지만 계속 진행합니다:", lyricsError);
         // 가사 생성 실패해도 음악 생성은 계속 진행

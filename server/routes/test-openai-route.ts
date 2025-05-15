@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { generateLyrics, translateText } from '../services/lyrics-service';
+import { generateLyrics } from '../services/lyrics-service';
+import { translateText } from '../services/gemini-lyrics-service';
 
 const testOpenAIRouter = Router();
 

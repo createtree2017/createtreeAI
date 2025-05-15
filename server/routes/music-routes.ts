@@ -6,7 +6,7 @@ import {
   generateMusic, 
   ALLOWED_MUSIC_STYLES 
 } from '../services/music-service';
-import { generateLyrics, generateLyricsSchema } from '../services/lyrics-service';
+import { generateLyrics } from '../services/lyrics-service';
 import { authMiddleware as isAuthenticated } from '../common/middleware/auth';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { z } from 'zod';
@@ -18,10 +18,19 @@ musicRouter.get('/styles', (req, res) => {
   res.json(ALLOWED_MUSIC_STYLES);
 });
 
+// 가사 생성 요청 스키마
+const generateLyricsSchema = z.object({
+  prompt: z.string().min(1, "요청 내용은 필수 항목입니다"),
+  genre: z.string().optional(),
+  mood: z.string().optional(),
+  language: z.enum(["korean", "english"]).default("korean").optional(),
+  targetLength: z.number().optional()
+});
+
 // 가사 생성 엔드포인트
 musicRouter.post('/lyrics', isAuthenticated, async (req, res) => {
   try {
-    // lyrics-service에서 가져온 스키마 활용
+    // 입력 데이터 검증
     const result = generateLyricsSchema.safeParse(req.body);
     if (!result.success) {
       return res.status(400).json({ 
@@ -33,16 +42,18 @@ musicRouter.post('/lyrics', isAuthenticated, async (req, res) => {
     console.log(`가사 생성 요청: ${JSON.stringify(result.data)}`);
     
     // 개선된 lyrics-service의 함수 활용
-    const lyrics = await generateLyrics(result.data);
+    const babyName = result.data.prompt || '아기';
+    const style = result.data.genre || '자장가';
+    const lyrics = await generateLyrics(babyName, style);
     
     // 성공 응답
     res.json({ 
       success: true,
-      lyrics: lyrics,
+      lyrics: lyrics.lyrics,
+      musicPrompt: lyrics.musicPrompt,
       prompt: result.data.prompt,
       genre: result.data.genre,
-      mood: result.data.mood,
-      language: result.data.language
+      mood: result.data.mood
     });
   } catch (error) {
     console.error('가사 생성 오류:', error);
