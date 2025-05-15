@@ -325,43 +325,39 @@ export default function MusicGallery({
         
         <div className="flex items-center gap-2">
           <p className="text-sm whitespace-nowrap">스타일 필터:</p>
-          <Select
+          <select 
+            className="w-[180px] h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none"
             value={selectedStyle || ""}
-            onValueChange={setSelectedStyle}
+            onChange={(e) => setSelectedStyle(e.target.value)}
           >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="스타일 선택" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem key="all" value="">전체</SelectItem>
-              {Array.isArray(musicStyles) && musicStyles
-                .filter((style) => typeof style === 'string' && style.trim() !== '')
-                .map((style) => {
-                  // 스타일에 따른 표시 이름 결정
-                  let displayName = style;
-                  
-                  switch(style) {
-                    case "lullaby": displayName = "자장가"; break;
-                    case "classical": displayName = "클래식"; break;
-                    case "ambient": displayName = "앰비언트"; break;
-                    case "relaxing": displayName = "릴렉싱"; break;
-                    case "piano": displayName = "피아노"; break;
-                    case "orchestral": displayName = "오케스트라"; break;
-                    case "korean-traditional": displayName = "국악"; break;
-                    case "nature-sounds": displayName = "자연의 소리"; break;
-                    case "meditation": displayName = "명상음악"; break;
-                    case "prenatal": displayName = "태교음악"; break;
-                    default: displayName = style;
-                  }
-                  
-                  return (
-                    <SelectItem key={style} value={style}>
-                      {displayName}
-                    </SelectItem>
-                  );
-              })}
-            </SelectContent>
-          </Select>
+            <option value="">전체</option>
+            {Array.isArray(musicStyles) && musicStyles
+              .filter((style) => typeof style === 'string' && style.trim() !== '')
+              .map((style) => {
+                // 스타일에 따른 표시 이름 결정
+                let displayName = style;
+                
+                switch(style) {
+                  case "lullaby": displayName = "자장가"; break;
+                  case "classical": displayName = "클래식"; break;
+                  case "ambient": displayName = "앰비언트"; break;
+                  case "relaxing": displayName = "릴렉싱"; break;
+                  case "piano": displayName = "피아노"; break;
+                  case "orchestral": displayName = "오케스트라"; break;
+                  case "korean-traditional": displayName = "국악"; break;
+                  case "nature-sounds": displayName = "자연의 소리"; break;
+                  case "meditation": displayName = "명상음악"; break;
+                  case "prenatal": displayName = "태교음악"; break;
+                  default: displayName = style;
+                }
+                
+                return (
+                  <option key={style} value={style}>
+                    {displayName}
+                  </option>
+                );
+            })}
+          </select>
         </div>
       </div>
     );
