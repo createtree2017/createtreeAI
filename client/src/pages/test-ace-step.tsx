@@ -166,19 +166,26 @@ export default function TestAceStepPage() {
   // 한국어 가사 테스트
   const handleTestKorean = async () => {
     try {
+      console.log("한국어 가사 테스트 시작");
       setLoading(true);
       setResult(null);
 
-      const res = await apiRequest("/api/test-ace-step/test-korean", {
+      const res = await fetch("/api/test-ace-step/test-korean", {
         method: "POST",
-        data: {
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
           koreanPrompt,
           koreanLyrics,
           duration
-        }
+        })
       });
 
+      console.log("API 응답 상태:", res.status, res.statusText);
+      
       const data = await res.json();
+      console.log("API 응답 데이터:", data);
       setResult(data);
 
       if (data.success) {
@@ -194,6 +201,7 @@ export default function TestAceStepPage() {
         });
       }
     } catch (error) {
+      console.error("한국어 가사 테스트 중 오류:", error);
       toast({
         title: "오류 발생",
         description: error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.",
@@ -210,16 +218,22 @@ export default function TestAceStepPage() {
       setLoading(true);
       setResult(null);
 
-      const res = await apiRequest("/api/test-ace-step/test-duration", {
+      const res = await fetch("/api/test-ace-step/test-duration", {
         method: "POST",
-        data: {
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
           prompt,
           lyrics,
           durations: [60, 120, 180, 240]
-        }
+        })
       });
 
+      console.log("API 응답 상태:", res.status, res.statusText);
+      
       const data = await res.json();
+      console.log("API 응답 데이터:", data);
       setResult(data);
 
       if (data.success) {
@@ -235,6 +249,7 @@ export default function TestAceStepPage() {
         });
       }
     } catch (error) {
+      console.error("다양한 길이 테스트 중 오류:", error);
       toast({
         title: "오류 발생",
         description: error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.",
