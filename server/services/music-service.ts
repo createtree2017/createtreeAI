@@ -12,6 +12,23 @@ export interface GenerateLyricsRequest {
   targetLength?: number;
 }
 
+// AceStep 모델 입력 인터페이스 정의
+export interface AceStepInput {
+  tags: string;
+  lyrics: string;
+  duration: number;
+  scheduler?: string;
+  guidance_type?: string;
+  guidance_scale?: number;
+  number_of_steps?: number;
+  granularity_scale?: number;
+  guidance_interval?: number;
+  cfg_guidance_scale?: number;
+  tag_guidance_scale?: number;
+  lyric_guidance_scale?: number;
+  guidance_interval_decay?: number;
+}
+
 // Replicate API 클라이언트 초기화
 let replicate: any = null;
 try {
@@ -105,6 +122,111 @@ export async function generateLyrics(prompt: string): Promise<string> {
 /**
  * Replicate API를 사용하여 음악 생성하기
  */
+/**
+ * ACE-Step 모델을 사용하여 음악 생성하기
+ * @param input ACE-Step 모델 파라미터
+ * @returns 생성된 음악 URL
+ */
+export async function generateMusicWithAceStep(input: AceStepInput): Promise<string | null> {
+  try {
+    console.log("=== ACE-Step 음악 생성 시작 ===");
+    console.log("입력 매개변수:", JSON.stringify(input, null, 2));
+    
+    // Replicate API 클라이언트가 초기화되었는지 확인
+    if (!replicate) {
+      throw new Error("Replicate API 클라이언트가 초기화되지 않았습니다. API 키가 올바르게 설정되었는지 확인하세요.");
+    }
+    
+    const startTime = Date.now();
+    
+    // 오류 재시도 로직 (3번 시도)
+    let attempt = 1;
+    let maxAttempts = 3;
+    let output: any = null;
+    let lastError: Error | null = null;
+    
+    // 최신 ACE-Step 모델 버전 사용
+    const modelVersion = "280fc4f9ed757f980a167f9539d0262d22df8fcfc92d45b32b322377bd68f9";
+    
+    while (attempt <= maxAttempts) {
+      try {
+        console.log(`ACE-Step 음악 생성 시도 ${attempt}/${maxAttempts}`);
+        
+        // Replicate API를 통한 음악 생성
+        output = await replicate.run(
+          `lucataco/ace-step:${modelVersion}`,
+          { input }
+        );
+        
+        console.log("ACE-Step API 응답:", JSON.stringify(output, null, 2));
+        break; // 성공하면 반복 중단
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        console.error(`ACE-Step 음악 생성 시도 ${attempt}/${maxAttempts} 실패:`, lastError.message);
+        
+        if (error instanceof Error && error.stack) {
+          console.error("오류 스택:", error.stack);
+        }
+        
+        if (attempt < maxAttempts) {
+          // 백오프 지연 - 시도할 때마다 대기 시간 증가 (지수 백오프)
+          const delay = Math.pow(2, attempt) * 1000; // 2초, 4초, 8초...
+          console.log(`${delay}ms 후 재시도...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+        
+        attempt++;
+      }
+    }
+    
+    if (!output) {
+      throw new Error(`${maxAttempts}번의 시도 후에도 ACE-Step 음악 생성에 실패했습니다: ${lastError?.message || '알 수 없는 오류'}`);
+    }
+    
+    const endTime = Date.now();
+    const generationTime = (endTime - startTime) / 1000;
+    
+    console.log(`ACE-Step 음악 생성 완료: ${generationTime.toFixed(2)}초 소요`);
+    console.log("출력 URL:", output);
+    
+    return output as string;
+  } catch (error) {
+    console.error("ACE-Step 음악 생성 중 오류 발생:", error);
+    if (error instanceof Error && error.stack) {
+      console.error("오류 스택:", error.stack);
+    }
+    return null;
+  }
+}
+
+/**
+ * 프롬프트 및 가사를 ACE-Step 입력 형식으로 변환
+ * @param prompt 음악 생성 프롬프트
+ * @param lyrics 가사
+ * @param duration 음악 길이(초)
+ * @returns ACE-Step 입력 파라미터
+ */
+export function createAceStepInput(
+  prompt: string, 
+  lyrics: string, 
+  duration: number = 120, 
+  options: Partial<AceStepInput> = {}
+): AceStepInput {
+  // 기본 입력 값 정의
+  const input: AceStepInput = {
+    tags: prompt, // 태그로 사용될 프롬프트
+    lyrics: lyrics, // 가사
+    duration: duration, // 기본 120초
+    // 기본 파라미터 설정
+    guidance_scale: 7,
+    lyric_guidance_scale: 10,
+    tag_guidance_scale: 8,
+    ...options // 추가 옵션으로 기본값 덮어쓰기
+  };
+  
+  return input;
+}
+
 export async function generateMusic(data: CreateSongRequest): Promise<SongGenerationResult> {
   try {
     // Replicate API 클라이언트가 초기화되었는지 확인
@@ -172,60 +294,17 @@ export async function generateMusic(data: CreateSongRequest): Promise<SongGenera
       };
     }
     
-    // 오류 재시도 로직 추가 (3번 시도)
-    let attempt = 1;
-    let maxAttempts = 3;
-    let output: any = null;
-    let lastError: Error | null = null;
-    
-    while (attempt <= maxAttempts) {
+    // 가사 생성 (instrumental이 false인 경우만)
+    let lyrics: string | undefined;
+    if (!data.instrumental) {
       try {
-        console.log(`음악 생성 시도 ${attempt}/${maxAttempts} - 프롬프트: "${prompt}"`);
-        
-        // Replicate API를 통한 음악 생성
-        // MusicGen Melody 모델 사용 - 고품질 음악 생성
-        output = await replicate.run(
-          "meta/musicgen-melody:5e729892184e758ebf41e5064fc788a76fd56a92f836aa217791409f2244219c",
-          {
-            input: {
-              prompt: prompt,
-              duration: 30, // 기본 30초
-              continuation: false,
-              normalize: true,
-              output_format: "mp3"
-            }
-          }
-        );
-        
-        console.log("Replicate API 응답:", JSON.stringify(output, null, 2));
-        break; // 성공하면 반복 중단
-      } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error));
-        console.error(`음악 생성 시도 ${attempt}/${maxAttempts} 실패:`, lastError.message);
-        
-        if (error instanceof Error && error.stack) {
-          console.error("오류 스택:", error.stack);
-        }
-        
-        if (attempt < maxAttempts) {
-          // 백오프 지연 - 시도할 때마다 대기 시간 증가 (지수 백오프)
-          const delay = Math.pow(2, attempt) * 1000; // 2초, 4초, 8초...
-          console.log(`${delay}ms 후 재시도...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
-        
-        attempt++;
+        // 개선된 lyrics 생성 기능 사용
+        lyrics = await generateLyrics(data.prompt);
+        console.log("생성된 가사:", lyrics);
+      } catch (lyricsError) {
+        console.error("가사 생성 중 오류가 발생했지만 계속 진행합니다:", lyricsError);
+        // 가사 생성 실패해도 음악 생성은 계속 진행
       }
-    }
-    
-    if (!output) {
-      throw new Error(`${maxAttempts}번의 시도 후에도 음악 생성에 실패했습니다: ${lastError?.message || '알 수 없는 오류'}`);
-    }
-    
-    // 출력 결과에서 오디오 URL 추출
-    const audioUrl = output.audio;
-    if (!audioUrl) {
-      throw new Error("음악 생성에 실패했습니다. 오디오 URL을 받지 못했습니다.");
     }
     
     // 태그 생성 - 프롬프트에서 주요 키워드 추출
@@ -237,16 +316,61 @@ export async function generateMusic(data: CreateSongRequest): Promise<SongGenera
       ...(prompt.split(/[\s,]+/).filter(word => word.length > 2 && !["and", "the", "for", "with", "style"].includes(word.toLowerCase())).slice(0, 3))
     ];
     
-    // 가사 생성 (instrumental이 false인 경우만)
-    let lyrics: string | undefined;
-    if (!data.instrumental) {
-      try {
-        // 개선된 lyrics 생성 기능 사용
-        lyrics = await generateLyrics(data.prompt);
-      } catch (lyricsError) {
-        console.error("가사 생성 중 오류가 발생했지만 계속 진행합니다:", lyricsError);
-        // 가사 생성 실패해도 음악 생성은 계속 진행
+    // ACE-Step 모델 사용 여부 (기본값: true로 설정하여 ACE-Step 모델 우선 사용)
+    const useAceStep = true;
+    
+    let audioUrl: string;
+    
+    if (useAceStep && lyrics) {
+      // ACE-Step 모델 사용 (가사가 있는 경우에만 사용)
+      console.log("ACE-Step 모델을 사용하여 음악 생성을 시도합니다...");
+      
+      // 스타일과 감정 키워드 강화
+      const enhancedPrompt = `${prompt}, ${data.style || "lullaby"}, gentle, emotional, high quality, vocals`;
+      
+      // ACE-Step 입력 파라미터 생성
+      const aceStepInput = createAceStepInput(
+        enhancedPrompt,        // 태그로 사용될 프롬프트
+        lyrics,                // 가사
+        120,                   // 2분 (기본 길이)
+        {
+          guidance_scale: 7,   // 가이던스 스케일
+          lyric_guidance_scale: 10, // 가사 가이던스 스케일
+          tag_guidance_scale: 8     // 태그 가이던스 스케일
+        }
+      );
+      
+      // ACE-Step 모델로 음악 생성
+      const aceStepResult = await generateMusicWithAceStep(aceStepInput);
+      
+      if (aceStepResult) {
+        // ACE-Step 모델 결과 사용
+        audioUrl = aceStepResult;
+        console.log("ACE-Step 모델 음악 생성 성공:", audioUrl);
+      } else {
+        // ACE-Step 실패 시 MusicGen으로 폴백
+        console.log("ACE-Step 모델 음악 생성 실패, MusicGen으로 대체합니다.");
+        
+        // MusicGen 모델로 음악 생성
+        const musicGenResult = await generateMusicWithMusicGen(prompt);
+        
+        if (!musicGenResult) {
+          throw new Error("모든 음악 생성 모델이 실패했습니다.");
+        }
+        
+        audioUrl = musicGenResult;
       }
+    } else {
+      // MusicGen 모델 사용 (가사가 없거나 ACE-Step을 사용하지 않는 경우)
+      console.log("MusicGen 모델을 사용하여 음악 생성을 시도합니다...");
+      
+      const musicGenResult = await generateMusicWithMusicGen(prompt);
+      
+      if (!musicGenResult) {
+        throw new Error("MusicGen 모델 음악 생성에 실패했습니다.");
+      }
+      
+      audioUrl = musicGenResult;
     }
     
     return {
@@ -264,5 +388,85 @@ export async function generateMusic(data: CreateSongRequest): Promise<SongGenera
       console.error("오류 스택:", error.stack);
     }
     throw new Error(`음악 생성에 실패했습니다: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+/**
+ * MusicGen Melody 모델을 사용하여 음악 생성하기
+ * @param prompt 음악 생성 프롬프트
+ * @returns 생성된 음악 URL 또는 null (실패 시)
+ */
+async function generateMusicWithMusicGen(prompt: string): Promise<string | null> {
+  try {
+    // Replicate API 클라이언트가 초기화되었는지 확인
+    if (!replicate) {
+      throw new Error("Replicate API 클라이언트가 초기화되지 않았습니다. API 키가 올바르게 설정되었는지 확인하세요.");
+    }
+    
+    // 오류 재시도 로직 추가 (3번 시도)
+    let attempt = 1;
+    let maxAttempts = 3;
+    let output: any = null;
+    let lastError: Error | null = null;
+    
+    while (attempt <= maxAttempts) {
+      try {
+        console.log(`MusicGen 음악 생성 시도 ${attempt}/${maxAttempts} - 프롬프트: "${prompt}"`);
+        
+        // Replicate API를 통한 음악 생성
+        // MusicGen Melody 모델 사용 - 고품질 음악 생성
+        output = await replicate.run(
+          "meta/musicgen-melody:5e729892184e758ebf41e5064fc788a76fd56a92f836aa217791409f2244219c",
+          {
+            input: {
+              prompt: prompt,
+              duration: 30, // 기본 30초
+              continuation: false,
+              normalize: true,
+              output_format: "mp3"
+            }
+          }
+        );
+        
+        console.log("MusicGen API 응답:", JSON.stringify(output, null, 2));
+        break; // 성공하면 반복 중단
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        console.error(`MusicGen 음악 생성 시도 ${attempt}/${maxAttempts} 실패:`, lastError.message);
+        
+        if (error instanceof Error && error.stack) {
+          console.error("오류 스택:", error.stack);
+        }
+        
+        if (attempt < maxAttempts) {
+          // 백오프 지연 - 시도할 때마다 대기 시간 증가 (지수 백오프)
+          const delay = Math.pow(2, attempt) * 1000; // 2초, 4초, 8초...
+          console.log(`${delay}ms 후 재시도...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+        
+        attempt++;
+      }
+    }
+    
+    if (!output) {
+      console.error(`${maxAttempts}번의 시도 후에도 MusicGen 음악 생성에 실패했습니다: ${lastError?.message || '알 수 없는 오류'}`);
+      return null;
+    }
+    
+    // 출력 결과에서 오디오 URL 추출
+    const audioUrl = output.audio;
+    if (!audioUrl) {
+      console.error("MusicGen 음악 생성에 실패했습니다. 오디오 URL을 받지 못했습니다.");
+      return null;
+    }
+    
+    return audioUrl;
+  } catch (error) {
+    console.error("MusicGen 음악 생성 중 오류 발생:", error);
+    if (error instanceof Error && error.stack) {
+      console.error("오류 스택:", error.stack);
+    }
+    return null;
   }
 }
