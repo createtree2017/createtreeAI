@@ -317,13 +317,13 @@ musicRouter.get('/shared/:id', async (req, res) => {
     const safeMusic = {
       id: musicItem.id,
       title: musicItem.title,
-      prompt: musicItem.baby_name || '', // baby_name을 prompt로 사용
+      prompt: (musicItem as any).baby_name || '', // baby_name을 prompt로 사용
       url: musicItem.url,
       tags: [], // 테이블에 tags 필드가 없음
       lyrics: '', // 테이블에 lyrics 필드가 없음
-      style: musicItem.style,
+      style: (musicItem as any).style || '',
       duration: musicItem.duration,
-      createdAt: musicItem.created_at
+      createdAt: (musicItem as any).created_at || musicItem.createdAt
     };
     
     res.json(safeMusic);
@@ -343,7 +343,7 @@ musicRouter.get('/shared', async (req, res) => {
     
     // 데이터베이스에서 모든 음악 조회
     const allMusic = await db.query.music.findMany({
-      orderBy: (music, { desc }) => [desc(music.created_at)]
+      orderBy: (music, { desc }) => [desc(music.createdAt)]
     });
     
     // 테스트를 위해 모든 음악을 공유된 것으로 간주 (실제로는 isPublic 필드로 필터링 필요)
