@@ -569,10 +569,10 @@ export default function FullMusicPlayer({
                 variant="outline"
                 size="sm"
                 onClick={handleDownload}
-                className="ml-auto"
+                className="ml-auto flex-shrink-0" 
               >
                 <Download className="h-4 w-4 mr-1" />
-                다운로드
+                <span className="whitespace-nowrap">다운로드</span>
               </Button>
             </TooltipTrigger>
             <TooltipContent>
