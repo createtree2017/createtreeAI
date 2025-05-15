@@ -240,13 +240,58 @@ musicRouter.get('/:id/download', isAuthenticated, async (req, res) => {
   }
 });
 
-// 음악 공유하기 엔드포인트
+// 음악 공유하기 엔드포인트 (ID 파라미터 방식)
 musicRouter.post('/:id/share', isAuthenticated, async (req, res) => {
   try {
     const musicId = Number(req.params.id);
     const userId = req.user?.id;
     
     if (isNaN(musicId)) {
+      return res.status(400).json({ error: '유효하지 않은 음악 ID입니다.' });
+    }
+    
+    // 음악 정보 조회
+    const musicItem = await db.query.music.findFirst({
+      where: (music, { eq }) => eq(music.id, Number(musicId))
+    });
+    
+    if (!musicItem) {
+      return res.status(404).json({ error: '음악을 찾을 수 없습니다.' });
+    }
+    
+    // 공유 상태로 업데이트 (DB 스키마에 isPublic 필드가 아직 없을 수 있으므로 메타데이터 활용)
+    const metadata = musicItem.metadata as Record<string, any> || {};
+    const isAlreadyPublic = metadata.isPublic === true;
+    
+    if (!isAlreadyPublic) {
+      metadata.isPublic = true;
+      await db.update(music)
+        .set({ metadata: metadata })
+        .where(eq(music.id, Number(musicId)));
+    }
+    
+    // 공유 URL 생성
+    const shareUrl = `${req.protocol}://${req.get('host')}/shared/music/${musicId}`;
+    
+    res.json({ 
+      success: true, 
+      shareUrl,
+      message: '음악이 성공적으로 공유되었습니다.'
+    });
+    
+  } catch (error) {
+    console.error('음악 공유 처리 오류:', error);
+    res.status(500).json({ error: '음악 공유에 실패했습니다.' });
+  }
+});
+
+// 음악 공유하기 엔드포인트 (요청 본문 musicId 방식)
+musicRouter.post('/share', isAuthenticated, async (req, res) => {
+  try {
+    const { musicId } = req.body;
+    const userId = req.user?.id;
+    
+    if (!musicId || isNaN(Number(musicId))) {
       return res.status(400).json({ error: '유효하지 않은 음악 ID입니다.' });
     }
     
@@ -316,13 +361,17 @@ musicRouter.get('/shared/:id', async (req, res) => {
     // 스키마와 실제 DB 구조 간의 차이를 처리하여 클라이언트에 필요한 형태로 데이터 변환
     const safeMusic = {
       id: musicItem.id,
-      title: musicItem.title,
-      prompt: (musicItem as any).baby_name || '', // baby_name을 prompt로 사용
-      url: musicItem.url,
-      tags: [], // 테이블에 tags 필드가 없음
-      lyrics: '', // 테이블에 lyrics 필드가 없음
-      style: (musicItem as any).style || '',
-      duration: musicItem.duration,
+      title: musicItem.title || '무제 음악',
+      prompt: musicItem.prompt || (musicItem as any).baby_name || '',
+      translatedPrompt: (musicItem as any).translatedPrompt || '',
+      url: musicItem.url || '',
+      tags: musicItem.tags || [],
+      lyrics: musicItem.lyrics || '',
+      instrumental: musicItem.instrumental || false,
+      style: (musicItem.metadata && typeof musicItem.metadata === 'object' && (musicItem.metadata as any).style) 
+        ? (musicItem.metadata as any).style 
+        : (musicItem as any).style || '',
+      duration: musicItem.duration || 60,
       createdAt: (musicItem as any).created_at || musicItem.createdAt
     };
     
