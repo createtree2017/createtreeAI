@@ -2,7 +2,9 @@
  * ACE-Step 모델 테스트용 API 라우트
  */
 import { Router } from "express";
-import { AceStepInput, createAceStepInput, generateMusicWithAceStep } from "../services/music-service";
+import { AceStepInput, createAceStepInput } from "../services/music-service";
+// 개선된 직접 호출 방식 사용
+import { generateMusicWithAceStep } from "../services/ace-step-direct";
 import { generateLyrics } from "../services/lyrics-service";
 import { translateText } from "../services/gemini-lyrics-service";
 
