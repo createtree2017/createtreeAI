@@ -259,14 +259,12 @@ musicRouter.post('/:id/share', isAuthenticated, async (req, res) => {
       return res.status(404).json({ error: '음악을 찾을 수 없습니다.' });
     }
     
-    // 공유 상태로 업데이트 (DB 스키마에 isPublic 필드가 아직 없을 수 있으므로 메타데이터 활용)
-    const metadata = musicItem.metadata as Record<string, any> || {};
-    const isAlreadyPublic = metadata.isPublic === true;
+    // 공유 상태로 업데이트 (이제 실제 isPublic 필드 사용)
+    const isAlreadyPublic = musicItem.isPublic === true;
     
     if (!isAlreadyPublic) {
-      metadata.isPublic = true;
       await db.update(music)
-        .set({ metadata: metadata })
+        .set({ isPublic: true })
         .where(eq(music.id, Number(musicId)));
     }
     
@@ -304,14 +302,12 @@ musicRouter.post('/share', isAuthenticated, async (req, res) => {
       return res.status(404).json({ error: '음악을 찾을 수 없습니다.' });
     }
     
-    // 공유 상태로 업데이트 (DB 스키마에 isPublic 필드가 아직 없을 수 있으므로 메타데이터 활용)
-    const metadata = musicItem.metadata as Record<string, any> || {};
-    const isAlreadyPublic = metadata.isPublic === true;
+    // 공유 상태로 업데이트 (이제 실제 isPublic 필드 사용)
+    const isAlreadyPublic = musicItem.isPublic === true;
     
     if (!isAlreadyPublic) {
-      metadata.isPublic = true;
       await db.update(music)
-        .set({ metadata: metadata })
+        .set({ isPublic: true })
         .where(eq(music.id, Number(musicId)));
     }
     
@@ -330,7 +326,7 @@ musicRouter.post('/share', isAuthenticated, async (req, res) => {
   }
 });
 
-// 특정 공유 음악 조회 (메타데이터 이용)
+// 특정 공유 음악 조회
 musicRouter.get('/shared/:id', async (req, res) => {
   try {
     const musicId = Number(req.params.id);
@@ -348,31 +344,23 @@ musicRouter.get('/shared/:id', async (req, res) => {
       return res.status(404).json({ error: '음악을 찾을 수 없습니다.' });
     }
     
-    // 공유 상태 확인 (메타데이터 필드가 없으므로 모든 음악을 일단 공개로 간주)
-    // 실제 프로덕션 환경에서는 isPublic 필드나 metadata.isPublic을 확인해야 함
-    const isPublic = true; // 테스트를 위해 임시로 모든 음악을 공개로 설정
+    // 공유 상태 확인 (isPublic 필드 사용)
+    const isPublic = musicItem.isPublic === true;
     
-    // 모든 음악을 공개로 처리 (실제로는 공유되지 않은 음악은 접근 불가해야 함)
-    // if (!isPublic) {
-    //   return res.status(403).json({ error: '이 음악은 공개되지 않았습니다.' });
-    // }
+    // 공유되지 않은 음악에 대한 접근 제한
+    if (!isPublic) {
+      return res.status(403).json({ error: '이 음악은 공개되지 않았습니다.' });
+    }
     
     // 민감한 정보 제거 후 반환
-    // 스키마와 실제 DB 구조 간의 차이를 처리하여 클라이언트에 필요한 형태로 데이터 변환
     const safeMusic = {
       id: musicItem.id,
-      title: musicItem.title || '무제 음악',
-      prompt: musicItem.prompt || (musicItem as any).baby_name || '',
-      translatedPrompt: (musicItem as any).translatedPrompt || '',
-      url: musicItem.url || '',
-      tags: musicItem.tags || [],
-      lyrics: musicItem.lyrics || '',
-      instrumental: musicItem.instrumental || false,
-      style: (musicItem.metadata && typeof musicItem.metadata === 'object' && (musicItem.metadata as any).style) 
-        ? (musicItem.metadata as any).style 
-        : (musicItem as any).style || '',
-      duration: musicItem.duration || 60,
-      createdAt: (musicItem as any).created_at || musicItem.createdAt
+      title: musicItem.title,
+      url: musicItem.url,
+      lyrics: musicItem.lyrics,
+      instrumental: musicItem.instrumental,
+      duration: musicItem.duration,
+      createdAt: musicItem.createdAt
     };
     
     res.json(safeMusic);
@@ -388,35 +376,40 @@ musicRouter.get('/shared', async (req, res) => {
     // 페이지네이션 파라미터
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
-    const skip = (page - 1) * limit;
+    const offset = (page - 1) * limit;
     
-    // 데이터베이스에서 모든 음악 조회
-    const allMusic = await db.query.music.findMany({
-      orderBy: (music, { desc }) => [desc(music.createdAt)]
+    // 데이터베이스에서 공유된 음악 조회
+    const sharedMusic = await db.query.music.findMany({
+      where: (music, { eq }) => eq(music.isPublic, true),
+      orderBy: (music, { desc }) => [desc(music.createdAt)],
+      limit,
+      offset
     });
     
-    // 테스트를 위해 모든 음악을 공유된 것으로 간주 (실제로는 isPublic 필드로 필터링 필요)
-    const sharedMusic = allMusic;
-    
-    // 페이지네이션 적용
-    const paginatedMusic = sharedMusic.slice(skip, skip + limit);
+    // 총 개수 조회
+    const totalCount = await db.select({
+        count: sql`COUNT(*)`.mapWith(Number)
+      })
+      .from(music)
+      .where(eq(music.isPublic, true));
     
     // 민감한 정보 제거
-    const safeMusic = paginatedMusic.map(item => ({
+    const safeMusic = sharedMusic.map(item => ({
       id: item.id,
       title: item.title,
-      prompt: item.prompt,
       url: item.url,
-      tags: item.tags,
       duration: item.duration,
       createdAt: item.createdAt
     }));
     
     res.json({
       music: safeMusic,
-      total: sharedMusic.length,
-      page,
-      totalPages: Math.ceil(sharedMusic.length / limit)
+      meta: {
+        page,
+        limit,
+        totalCount: Number(totalCount[0]?.count || 0),
+        totalPages: Math.ceil(Number(totalCount[0]?.count || 0) / limit)
+      }
     });
   } catch (error) {
     console.error('공유 음악 목록 조회 오류:', error);
