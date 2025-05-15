@@ -145,18 +145,26 @@ export async function generateMusicWithAceStep(input: AceStepInput): Promise<str
     let output: any = null;
     let lastError: Error | null = null;
     
-    // 최신 ACE-Step 모델 버전 사용
-    const modelVersion = "280fc4f9ed757f980a167f9539d0262d22df8fcfc92d45b32b322377bd68f9";
+    // 최신 ACE-Step 모델 버전 사용 (2024년 5월 15일 업데이트)
+    const modelVersion = "8d65e3f4f4298a24a95e7b168eec9dacf26fca8258d5f620e2a78b7eef95cf30";
     
     while (attempt <= maxAttempts) {
       try {
         console.log(`ACE-Step 음악 생성 시도 ${attempt}/${maxAttempts}`);
+        
+        // API 호출 직전 상세 로깅
+        console.log("===== Replicate API 호출 직전 입력 데이터 =====");
+        console.log("모델: lucataco/ace-step");
+        console.log("버전: ", modelVersion);
+        console.log("입력 파라미터:", JSON.stringify(input, null, 2));
         
         // Replicate API를 통한 음악 생성
         output = await replicate.run(
           `lucataco/ace-step:${modelVersion}`,
           { input }
         );
+        
+        console.log("===== Replicate API 응답 성공 =====");
         
         console.log("ACE-Step API 응답:", JSON.stringify(output, null, 2));
         break; // 성공하면 반복 중단

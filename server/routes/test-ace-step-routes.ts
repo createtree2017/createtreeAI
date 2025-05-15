@@ -60,8 +60,25 @@ router.post("/generate", async (req, res) => {
     });
   } catch (error) {
     console.error("ACE-Step 음악 생성 API 오류:", error);
+    if (error instanceof Error && error.stack) {
+      console.error("오류 스택:", error.stack);
+    }
+    
+    // 오류 응답 상세화
+    let errorMessage = "알 수 없는 오류가 발생했습니다.";
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      
+      // Replicate API 오류 관련 상세 메시지 추가
+      if (errorMessage.includes("Invalid version")) {
+        errorMessage = `모델 버전 오류: ${errorMessage}`;
+      } else if (errorMessage.includes("API key")) {
+        errorMessage = `인증 오류: ${errorMessage}`;
+      }
+    }
+    
     res.status(500).json({ 
-      error: error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다." 
+      error: errorMessage 
     });
   }
 });
