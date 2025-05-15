@@ -112,13 +112,13 @@ export default function TestAceStepPage() {
       if (data.success) {
         toast({
           title: "가사+음악 생성 성공",
-          description: "가사와 음악을 함께 생성했습니다.",
+          description: "가사와 음악을 함께 생성했습니다."
         });
       } else {
         toast({
           title: "가사+음악 생성 실패",
           description: data.error || "알 수 없는 오류가 발생했습니다.",
-          variant: "destructive",
+          variant: "destructive"
         });
       }
     } catch (error) {
@@ -150,13 +150,13 @@ export default function TestAceStepPage() {
       if (data.success) {
         toast({
           title: "한국어 가사 테스트 성공",
-          description: "한국어 가사로 음악을 생성했습니다.",
+          description: "한국어 가사로 음악을 생성했습니다."
         });
       } else {
         toast({
           title: "한국어 가사 테스트 실패",
           description: data.error || "알 수 없는 오류가 발생했습니다.",
-          variant: "destructive",
+          variant: "destructive"
         });
       }
     } catch (error) {
@@ -188,13 +188,13 @@ export default function TestAceStepPage() {
       if (data.success) {
         toast({
           title: "길이 테스트 성공",
-          description: "다양한 길이로 음악을 생성했습니다.",
+          description: "다양한 길이로 음악을 생성했습니다."
         });
       } else {
         toast({
           title: "길이 테스트 실패",
           description: data.error || "알 수 없는 오류가 발생했습니다.",
-          variant: "destructive",
+          variant: "destructive"
         });
       }
     } catch (error) {
