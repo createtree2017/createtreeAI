@@ -28,7 +28,9 @@ testOpenAIRouter.post('/test-lyrics', async (req, res) => {
     console.log("OpenAI 테스트 API 호출 - 가사 생성 시도:", result.data);
     
     // 가사 생성 API 호출
-    const lyrics = await generateLyrics(result.data);
+    const babyName = result.data.prompt || '아기';
+    const style = result.data.genre || '자장가';
+    const lyricsResult = await generateLyrics(babyName, style);
     
     // 성공 응답
     res.status(200).json({ 
@@ -38,15 +40,16 @@ testOpenAIRouter.post('/test-lyrics', async (req, res) => {
         genre: result.data.genre,
         mood: result.data.mood,
         language: result.data.language,
-        lyrics: lyrics
+        lyrics: lyricsResult.lyrics,
+        musicPrompt: lyricsResult.musicPrompt
       },
-      message: 'OpenAI API 호출 성공!'
+      message: 'Gemini API 호출 성공!'
     });
   } catch (error) {
-    console.error('OpenAI 테스트 엔드포인트 오류:', error);
+    console.error('Gemini 테스트 엔드포인트 오류:', error);
     res.status(500).json({ 
       success: false,
-      error: 'OpenAI API 호출 중 오류가 발생했습니다.',
+      error: 'Gemini API 호출 중 오류가 발생했습니다.',
       message: error instanceof Error ? error.message : String(error)
     });
   }

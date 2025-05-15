@@ -1,6 +1,6 @@
 import Replicate from "replicate";
 import { z } from "zod";
-import { generateLyrics as geminiGenerateLyrics } from "./lyrics-service";
+import { generateLyrics as generateLyricsFromService } from "./lyrics-service";
 import { translateText } from "./gemini-lyrics-service";
 
 // GenerateLyricsRequest 인터페이스 정의
@@ -85,7 +85,7 @@ export async function generateLyrics(prompt: string): Promise<string> {
     console.log(`music-service: "${prompt}" 프롬프트로 가사 생성 시작`);
     
     // lyrics-service의 가사 생성 기능 사용
-    const result = await geminiGenerateLyrics(prompt, "lullaby");
+    const result = await generateLyricsFromService(prompt, "lullaby");
     
     if (result && result.lyrics) {
       console.log(`music-service: 가사 생성 완료 (${result.lyrics.length}자)`);
