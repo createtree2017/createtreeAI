@@ -20,7 +20,8 @@ import TestPage from "@/pages/test";
 import TestFirebase from "@/pages/test-firebase";
 import FirebaseTestPage from "@/pages/firebase-test";
 import TestAuthPage from "@/pages/test-auth-page"; 
-import TestLoginPage from "@/pages/test-login"; 
+import TestLoginPage from "@/pages/test-login";
+import TestAceStepPage from "@/pages/test-ace-step"; 
 import HospitalsPage from "@/pages/super/HospitalsPage";
 import UsersPage from "@/pages/super/UsersPage";
 import BottomNavigation from "@/components/BottomNavigation";
@@ -233,6 +234,11 @@ function Router() {
       </Route>
       <Route path="/test-login">
         <TestLoginPage />
+      </Route>
+      <Route path="/test-ace-step">
+        <Layout>
+          <TestAceStepPage />
+        </Layout>
       </Route>
       <Route path="/shared/music/:id">
         <Layout>
