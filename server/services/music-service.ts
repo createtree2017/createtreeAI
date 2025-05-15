@@ -216,10 +216,27 @@ export async function generateMusicWithAceStep(input: AceStepInput): Promise<str
         console.log("버전: ", modelVersion);
         console.log("입력 파라미터:", JSON.stringify(input, null, 2));
         
-        // Replicate API를 통한 음악 생성 - 대표님 예제 코드와 동일하게 호출
+        // Replicate API를 통한 음악 생성 - 대표님 예제 코드와 완전히 동일한 형식으로 호출
+        console.log("대표님 예제 코드와 동일한 방식으로 API 호출 시도");
+        
+        // 입력 데이터 객체 생성 (tags, lyrics만 포함하는 기본 형태)
+        const apiInput: Record<string, any> = {
+          tags: input.tags,
+          lyrics: input.lyrics,
+          duration: input.duration
+        };
+        
+        // 선택적 파라미터 추가 (null, undefined가 아닌 경우만)
+        if (input.guidance_scale) apiInput.guidance_scale = input.guidance_scale;
+        if (input.tag_guidance_scale) apiInput.tag_guidance_scale = input.tag_guidance_scale;
+        if (input.lyric_guidance_scale) apiInput.lyric_guidance_scale = input.lyric_guidance_scale;
+        
+        console.log("API 입력 데이터:", JSON.stringify(apiInput, null, 2));
+        
+        // 대표님 예제와 완전히 동일한 형식! { input } 형태로 한번 더 감싸줌
         output = await replicate.run(
-          `lucataco/ace-step:${modelVersion}`, 
-          { input: input }
+          "lucataco/ace-step:280fc4f9ee507577f880a167f639c02622421d8fecf492454320311217b688f1", 
+          { input: apiInput }
         );
         
         console.log("===== Replicate API 응답 성공 =====");
@@ -280,11 +297,8 @@ export async function generateMusicWithAceStep(input: AceStepInput): Promise<str
           return publicUrl;
         } catch (error) {
           console.error("ReadableStream 처리 중 오류 발생:", error);
-          
-          // 데모 목적의 샘플 오디오 URL (실제 구현에서는 제거해야 함)
-          const sampleUrl = "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0c6ff1bab.mp3";
-          console.log("샘플 오디오 URL 반환:", sampleUrl);
-          return sampleUrl;
+          throw new Error("오디오 스트림을 파일로 저장하는 중 오류가 발생했습니다: " + 
+                         (error instanceof Error ? error.message : String(error)));
         }
       }
       // 다른 객체 유형 (예: {audio: "url"})인 경우
@@ -294,12 +308,9 @@ export async function generateMusicWithAceStep(input: AceStepInput): Promise<str
       } 
       // 출력이 오브젝트이지만 audio 속성이 없는 경우
       else {
-        // Replicate API 응답 구조가 예상과 다를 수 있음
-        console.log("예상치 못한 출력 형식. 샘플 오디오 반환");
-        // 데모 목적의 샘플 오디오 URL (실제 구현에서는 제거해야 함)
-        const sampleUrl = "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0c6ff1bab.mp3";
-        console.log("샘플 오디오 URL 반환:", sampleUrl);
-        return sampleUrl;
+        // Replicate API 응답 구조가 예상과 다른 경우 오류 발생
+        console.log("예상치 못한 출력 형식:", JSON.stringify(output, null, 2));
+        throw new Error("AI 모델 응답이 예상 형식(오디오 URL 또는 스트림)과 다릅니다. 관리자에게 문의해주세요.");
       }
     }
     
