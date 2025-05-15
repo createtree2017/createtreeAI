@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, ApiRequestOptions } from "@/lib/queryClient";
 import { useState } from "react";
+import { Loader2, Music, PenLine, Globe, Clock } from "lucide-react";
 
 interface TestResult {
   success: boolean;
@@ -331,18 +332,44 @@ export default function TestAceStepPage() {
               <Button 
                 onClick={handleGenerateMusicTest}
                 disabled={loading}
-                className="w-full"
+                className="w-full h-12 text-base font-medium relative overflow-hidden group"
               >
-                {loading ? "생성 중..." : "음악 생성 테스트"}
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    음악 생성 중...
+                  </span>
+                ) : (
+                  <>
+                    <span className="flex items-center justify-center gap-2">
+                      <Music className="h-5 w-5" />
+                      음악 생성 테스트
+                    </span>
+                    <span className="absolute bottom-0 left-0 w-full h-1 bg-primary-foreground/20 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></span>
+                  </>
+                )}
               </Button>
 
               <Button 
                 onClick={handleGenerateWithLyrics}
                 disabled={loading}
                 variant="outline"
-                className="w-full"
+                className="w-full h-11 relative overflow-hidden group"
               >
-                가사+음악 통합 테스트
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="flex">
+                        <Music className="h-4 w-4" />
+                        <PenLine className="h-4 w-4 -ml-1" />
+                      </span>
+                      가사+음악 통합 테스트
+                    </span>
+                    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary/30 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></span>
+                  </>
+                )}
               </Button>
             </div>
           </div>
@@ -373,9 +400,22 @@ export default function TestAceStepPage() {
             <Button 
               onClick={handleTestKorean}
               disabled={loading}
-              className="w-full"
+              className="w-full h-12 text-base font-medium relative overflow-hidden group"
             >
-              한국어 가사 테스트
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  생성 중...
+                </span>
+              ) : (
+                <>
+                  <span className="flex items-center justify-center gap-2">
+                    <Globe className="h-5 w-5" />
+                    한국어 가사 테스트
+                  </span>
+                  <span className="absolute bottom-0 left-0 w-full h-1 bg-primary-foreground/20 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></span>
+                </>
+              )}
             </Button>
           </div>
 
