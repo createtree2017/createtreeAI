@@ -225,25 +225,47 @@ export default function MusicGallery({
     });
   };
   
-  const handleShare = (id: number) => {
-    if (navigator.share) {
-      navigator.share({
-        title: "음악 공유",
-        text: "AI로 생성된 음악을 들어보세요!",
-        url: `${window.location.origin}/music/${id}`,
-      }).catch(error => {
-        console.error("공유 실패:", error);
+  const handleShare = async (id: number) => {
+    try {
+      // 공유 API 호출
+      const response = await apiRequest('/api/music/share', {
+        method: 'POST',
+        data: { musicId: id }
       });
-    } else {
-      // 공유 API를 지원하지 않는 브라우저의 경우 클립보드에 복사
-      const url = `${window.location.origin}/music/${id}`;
-      navigator.clipboard.writeText(url).then(() => {
-        toast({
-          title: "링크가 복사되었습니다",
-          description: "링크가 클립보드에 복사되었습니다.",
+      
+      if (!response.ok) {
+        throw new Error("음악 공유 설정 실패");
+      }
+      
+      // 성공적으로 공유 상태로 설정됨
+      const shareUrl = `${window.location.origin}/shared/music/${id}`;
+      
+      // Web Share API 지원 확인
+      if (navigator.share) {
+        navigator.share({
+          title: "음악 공유",
+          text: "창조트리 AI가 생성한 음악을 들어보세요!",
+          url: shareUrl,
+        }).catch(error => {
+          console.error("공유 실패:", error);
         });
-      }).catch(err => {
-        console.error("클립보드 복사 실패:", err);
+      } else {
+        // 공유 API를 지원하지 않는 브라우저의 경우 클립보드에 복사
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          toast({
+            title: "링크가 복사되었습니다",
+            description: "공유 링크가 클립보드에 복사되었습니다.",
+          });
+        }).catch(err => {
+          console.error("클립보드 복사 실패:", err);
+        });
+      }
+    } catch (error) {
+      console.error("공유 기능 오류:", error);
+      toast({
+        title: "공유 실패",
+        description: "음악을 공유할 수 없습니다. 다시 시도해주세요.",
+        variant: "destructive"
       });
     }
   };

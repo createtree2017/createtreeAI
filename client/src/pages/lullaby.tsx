@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, Music } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function LullabyPage() {
   const { user, isLoading } = useAuth();
@@ -29,8 +30,36 @@ export default function LullabyPage() {
     console.log('즐겨찾기에 추가:', id);
   };
   
-  const handleShare = (id: number) => {
-    console.log('공유:', id);
+  const handleShare = async (id: number) => {
+    try {
+      const response = await apiRequest('/api/music/share', {
+        method: 'POST',
+        data: { musicId: id }
+      });
+      
+      if (!response.ok) {
+        throw new Error('음악 공유 설정 실패');
+      }
+      
+      // 성공적으로 공유 상태로 설정됨
+      const shareUrl = `${window.location.origin}/shared/music/${id}`;
+      
+      // Web Share API 지원 확인
+      if (navigator.share) {
+        await navigator.share({
+          title: '자장가 공유',
+          text: '창조트리 AI로 만든 자장가를 들어보세요!',
+          url: shareUrl,
+        });
+      } else {
+        // 클립보드에 복사
+        await navigator.clipboard.writeText(shareUrl);
+        alert('공유 링크가 클립보드에 복사되었습니다.');
+      }
+    } catch (error) {
+      console.error('공유 실패:', error);
+      alert('공유에 실패했습니다. 다시 시도해주세요.');
+    }
   };
   
   // 인증 상태 확인 중 로딩 표시

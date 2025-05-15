@@ -38,7 +38,7 @@ const SharedMusic = () => {
   const [copiedLink, setCopiedLink] = useState(false);
 
   // 공유된 음악 정보 가져오기
-  const { data: music, isLoading, error } = useQuery<SharedMusic>({
+  const { data: music, isLoading, error } = useQuery<SharedMusicData>({
     queryKey: [`/api/music/shared/${id}`],
     retry: 1,
   });
