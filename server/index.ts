@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import path from "path";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { startAutoChatSaver } from "./services/auto-chat-saver";
@@ -7,6 +8,12 @@ import session from "express-session";
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// 업로드 디렉토리를 정적 파일로 제공
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
+// 정적 파일 폴더 (기본 오디오 파일 등을 위해)
+app.use('/static', express.static(path.join(process.cwd(), 'static')));
 
 // CORS 설정 추가 - 세션 쿠키 전달을 위한 credentials 설정 필수
 import cors from 'cors';

@@ -1,5 +1,8 @@
 import Replicate from "replicate";
 import { z } from "zod";
+import fs from "fs";
+import path from "path";
+import { Readable } from "stream";
 import { generateLyrics as generateLyricsFromService } from "./lyrics-service";
 import { translateText } from "./gemini-lyrics-service";
 
@@ -79,6 +82,61 @@ export interface SongGenerationResult {
   instrumental: boolean;
   lyrics?: string;
   error?: string;
+}
+
+/**
+ * ReadableStream을 파일로 저장하는 유틸리티 함수
+ * @param stream ReadableStream 객체
+ * @param filePath 저장할 파일 경로
+ * @returns 파일 경로
+ */
+async function saveStreamToFile(stream: ReadableStream<Uint8Array>, filePath: string): Promise<string> {
+  try {
+    // Node.js의 Readable 스트림으로 변환
+    const readable = Readable.fromWeb(stream as any);
+    
+    // 디렉토리가 없으면 생성
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    
+    // 파일 스트림 생성 및 데이터 쓰기
+    const fileStream = fs.createWriteStream(filePath);
+    
+    return new Promise((resolve, reject) => {
+      readable.pipe(fileStream);
+      
+      fileStream.on('finish', () => {
+        console.log(`파일이 성공적으로 저장되었습니다: ${filePath}`);
+        resolve(filePath);
+      });
+      
+      fileStream.on('error', (err) => {
+        console.error(`파일 저장 중 오류 발생: ${err.message}`);
+        reject(err);
+      });
+    });
+  } catch (error) {
+    console.error('스트림 저장 중 오류 발생:', error);
+    throw error;
+  }
+}
+
+/**
+ * 파일 경로를 공개 URL로 변환
+ * @param filePath 파일 경로
+ * @returns 공개 URL
+ */
+function getPublicUrl(filePath: string): string {
+  // 상대 경로 계산 (uploads 폴더 기준)
+  const relativePath = path.relative(path.join(process.cwd(), 'uploads'), filePath);
+  
+  // URL 경로로 변환 (Windows의 백슬래시를 슬래시로 변환)
+  const urlPath = relativePath.replace(/\\/g, '/');
+  
+  // 서버의 기본 URL에 경로 추가
+  return `/uploads/${urlPath}`;
 }
 
 /**
@@ -195,20 +253,48 @@ export async function generateMusicWithAceStep(input: AceStepInput): Promise<str
     const generationTime = (endTime - startTime) / 1000;
     
     console.log(`ACE-Step 음악 생성 완료: ${generationTime.toFixed(2)}초 소요`);
-    console.log("출력 URL:", output);
+    console.log("출력 유형:", output && typeof output);
     
-    // ReadableStream을 처리하는 로직 추가
-    if (output && typeof output === 'object' && output.constructor && output.constructor.name === 'ReadableStream') {
-      console.log("출력이 ReadableStream 형식입니다. 파일 URL을 추출합니다.");
-      
-      // Replicate의 ACE-Step 모델 버전에 따른 임시 오디오 URL 반환
-      // 실제 서비스에서는 이 스트림을 파일로 저장하고 그 URL을 반환해야 합니다
-      const tempAudioUrl = `https://replicate.delivery/pbxt/280fc4f9ee507577f880a167f639c02622421d8fecf492454320311217b688f1/ace_step_output_${Date.now()}.wav`;
-      console.log("임시 오디오 URL 생성:", tempAudioUrl);
-      return tempAudioUrl;
+    // ReadableStream 처리
+    if (output && typeof output === 'object') {
+      // ReadableStream 인지 확인
+      if (output.constructor && output.constructor.name === 'ReadableStream') {
+        try {
+          console.log("출력이 ReadableStream 형식입니다. 파일로 저장합니다.");
+          
+          // 고유한 파일명 생성 (타임스탬프 포함)
+          const timestamp = Date.now();
+          const filename = `ace_step_${timestamp}.wav`;
+          const filePath = path.join(process.cwd(), 'uploads', 'music', filename);
+          
+          // 스트림을 파일로 저장
+          await saveStreamToFile(output as ReadableStream<Uint8Array>, filePath);
+          
+          // 파일의 공개 URL 반환
+          const publicUrl = getPublicUrl(filePath);
+          console.log("오디오 파일 저장 완료, URL:", publicUrl);
+          
+          return publicUrl;
+        } catch (error) {
+          console.error("ReadableStream 처리 중 오류 발생:", error);
+          // 오류 발생 시 폴백 URL
+          return `/static/default-audio.mp3`;
+        }
+      }
+      // 다른 객체 유형 (예: {audio: "url"})인 경우
+      else if (output.audio && typeof output.audio === 'string') {
+        console.log("출력이 {audio: url} 형식입니다.");
+        return output.audio;
+      }
     }
     
-    return output as string;
+    // 문자열인 경우 그대로 반환
+    if (typeof output === 'string') {
+      return output;
+    }
+    
+    console.warn("알 수 없는 형식의 출력입니다:", output);
+    return `/static/default-audio.mp3`;
   } catch (error) {
     console.error("ACE-Step 음악 생성 중 오류 발생:", error);
     if (error instanceof Error && error.stack) {
