@@ -42,6 +42,7 @@ import CampaignsPage from "@/pages/campaigns";
 import CampaignDetailPage from "@/pages/campaign-detail";
 import HospitalCampaignsPage from "@/pages/hospital-campaigns";
 import HospitalCampaignEditPage from "@/pages/hospital/campaign-edit";
+import SharedMusic from "@/pages/shared-music";
 
 // Main layout component
 function Layout({ children }: { children: React.ReactNode }) {
@@ -232,6 +233,11 @@ function Router() {
       </Route>
       <Route path="/test-login">
         <TestLoginPage />
+      </Route>
+      <Route path="/shared/music/:id">
+        <Layout>
+          <SharedMusic />
+        </Layout>
       </Route>
       <Route path="/unauthorized">
         <div className="min-h-screen flex flex-col items-center justify-center p-4">
