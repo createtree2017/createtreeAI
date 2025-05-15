@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, ApiRequestOptions } from "@/lib/queryClient";
 import { useState } from "react";
 
 interface TestResult {
@@ -69,29 +69,26 @@ export default function TestAceStepPage() {
         lyric_guidance_scale: lyricGuidanceScale
       });
 
-      const res = await apiRequest("/api/test-ace-step/generate", {
+      const res = await fetch("/api/test-ace-step/generate", {
         method: "POST",
-        data: {
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
           prompt,
           lyrics,
           duration,
           guidance_scale: guidanceScale,
           tag_guidance_scale: tagGuidanceScale,
           lyric_guidance_scale: lyricGuidanceScale
-        }
+        })
       });
 
       console.log("API 응답 상태:", res.status, res.statusText);
       
-      let data;
-      try {
-        data = await res.json();
-        console.log("API 응답 데이터:", data);
-        setResult(data);
-      } catch (jsonError) {
-        console.error("JSON 파싱 오류:", jsonError);
-        throw new Error("API 응답을 처리할 수 없습니다: " + jsonError.message);
-      }
+      const data = await res.json();
+      console.log("API 응답 데이터:", data);
+      setResult(data);
 
       if (data && data.success) {
         toast({
@@ -106,6 +103,7 @@ export default function TestAceStepPage() {
         });
       }
     } catch (error) {
+      console.error("음악 생성 중 오류:", error);
       toast({
         title: "오류 발생",
         description: error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.",
@@ -119,19 +117,26 @@ export default function TestAceStepPage() {
   // 가사+음악 통합 테스트
   const handleGenerateWithLyrics = async () => {
     try {
+      console.log("가사+음악 통합 테스트 시작");
       setLoading(true);
       setResult(null);
 
-      const res = await apiRequest("/api/test-ace-step/generate-with-lyrics", {
+      const res = await fetch("/api/test-ace-step/generate-with-lyrics", {
         method: "POST",
-        data: {
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
           prompt,
           duration,
           style: "lullaby"
-        }
+        })
       });
 
+      console.log("API 응답 상태:", res.status, res.statusText);
+      
       const data = await res.json();
+      console.log("API 응답 데이터:", data);
       setResult(data);
 
       if (data.success) {
@@ -147,6 +152,7 @@ export default function TestAceStepPage() {
         });
       }
     } catch (error) {
+      console.error("가사+음악 생성 중 오류:", error);
       toast({
         title: "오류 발생",
         description: error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.",
@@ -163,10 +169,13 @@ export default function TestAceStepPage() {
       setLoading(true);
       setResult(null);
 
-      const res = await apiRequest("POST", "/api/test-ace-step/test-korean", {
-        koreanPrompt,
-        koreanLyrics,
-        duration
+      const res = await apiRequest("/api/test-ace-step/test-korean", {
+        method: "POST",
+        data: {
+          koreanPrompt,
+          koreanLyrics,
+          duration
+        }
       });
 
       const data = await res.json();
@@ -201,10 +210,13 @@ export default function TestAceStepPage() {
       setLoading(true);
       setResult(null);
 
-      const res = await apiRequest("POST", "/api/test-ace-step/test-duration", {
-        prompt,
-        lyrics,
-        durations: [60, 120, 180, 240]
+      const res = await apiRequest("/api/test-ace-step/test-duration", {
+        method: "POST",
+        data: {
+          prompt,
+          lyrics,
+          durations: [60, 120, 180, 240]
+        }
       });
 
       const data = await res.json();
