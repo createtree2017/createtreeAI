@@ -274,8 +274,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 슈퍼관리자 라우트 등록
   app.use("/api/super", superAdminRoutes);
   
-  // 새로운 음악 생성 API 라우트 등록
-  app.use("/api/song", musicRouter);
+  // 음악 관련 API 라우트 등록
+  app.use("/api/music", musicRouter);
   
   // OpenAI API 테스트 라우트 등록
   app.use("/api/test-openai", testOpenAIRouter);

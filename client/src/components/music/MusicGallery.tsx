@@ -329,7 +329,7 @@ export default function MusicGallery({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">전체</SelectItem>
-              {musicStyles.filter(style => !!style).map((style: string) => {
+              {musicStyles.filter((style: string) => !!style).map((style: string) => {
                 // 스타일에 따른 표시 이름 결정
                 const displayName = 
                   style === "lullaby" ? "자장가" :
