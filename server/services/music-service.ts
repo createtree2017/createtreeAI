@@ -220,6 +220,8 @@ export async function generateMusicWithAceStep(input: AceStepInput): Promise<str
         console.log("대표님 예제 코드와 동일한 방식으로 API 호출 시도");
         
         // 입력 데이터 객체 생성 (tags, lyrics만 포함하는 기본 형태)
+        // 원본 테스트 파일에서 확인한 정확한 호출 방식 사용
+        // 정확한 형식: { input: { tags, lyrics, duration, [기타 선택적 매개변수] } }
         const apiInput: Record<string, any> = {
           tags: input.tags,
           lyrics: input.lyrics,
@@ -233,7 +235,10 @@ export async function generateMusicWithAceStep(input: AceStepInput): Promise<str
         
         console.log("API 입력 데이터:", JSON.stringify(apiInput, null, 2));
         
-        // 대표님 예제와 완전히 동일한 형식! { input } 형태로 한번 더 감싸줌
+        // 정확한 모델 해시 값으로 수정
+        // 주의: 테스트 파일에서는 "280fc4f9ed757f980a167f9539d0262d22df8fcfc92d45b32b322377bd68f9" 형식이었으나,
+        // 대표님 예제에서는 "280fc4f9ee507577f880a167f639c02622421d8fecf492454320311217b688f1" 형식을 사용
+        // 대표님 예제 형식을 유지합니다
         output = await replicate.run(
           "lucataco/ace-step:280fc4f9ee507577f880a167f639c02622421d8fecf492454320311217b688f1", 
           { input: apiInput }
@@ -272,12 +277,13 @@ export async function generateMusicWithAceStep(input: AceStepInput): Promise<str
     console.log(`ACE-Step 음악 생성 완료: ${generationTime.toFixed(2)}초 소요`);
     console.log("출력 유형:", output && typeof output);
     
-    // ReadableStream 처리
+    // 출력 처리 (대표님 예제 테스트 코드 참조)
     if (output && typeof output === 'object') {
       console.log("출력 객체 타입:", Object.prototype.toString.call(output));
       console.log("출력 객체 속성:", Object.keys(output));
       
-      // ReadableStream 인지 확인
+      // 테스트에서는 대부분 바로 URL 문자열로 반환됐지만, 이 부분은 보존 (안전성)
+      // ReadableStream 처리
       if (output.constructor && output.constructor.name === 'ReadableStream') {
         try {
           console.log("출력이 ReadableStream 형식입니다. 파일로 저장합니다.");
@@ -301,12 +307,25 @@ export async function generateMusicWithAceStep(input: AceStepInput): Promise<str
                          (error instanceof Error ? error.message : String(error)));
         }
       }
-      // 다른 객체 유형 (예: {audio: "url"})인 경우
+      // 다른 객체 유형 (예: {audio: "url"} 또는 url 프로퍼티가 있는 경우)
       else if (output.audio && typeof output.audio === 'string') {
         console.log("출력이 {audio: url} 형식입니다.");
         return output.audio;
-      } 
-      // 출력이 오브젝트이지만 audio 속성이 없는 경우
+      }
+      else if (output.url && typeof output.url === 'string') {
+        console.log("출력이 {url: ...} 형식입니다.");
+        return output.url;
+      }
+      // 배열인 경우 (테스트 파일에서는 이렇게 처리)
+      else if (Array.isArray(output) && output.length > 0) {
+        console.log("출력이 배열 형식입니다:", output);
+        // 첫 번째 요소가 문자열인 경우 URL로 간주
+        if (typeof output[0] === 'string') {
+          console.log("배열의 첫 요소를 URL로 사용:", output[0]);
+          return output[0];
+        }
+      }
+      // 출력이 오브젝트이지만 예상하는 속성이 없는 경우
       else {
         // Replicate API 응답 구조가 예상과 다른 경우 오류 발생
         console.log("예상치 못한 출력 형식:", JSON.stringify(output, null, 2));

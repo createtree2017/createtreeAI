@@ -30,14 +30,19 @@ interface TestResult {
 export default function TestAceStepPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [prompt, setPrompt] = useState("자장가, 피아노, 부드러운 목소리, 아기가 잠들 수 있는");
+  const [prompt, setPrompt] = useState("synth-pop, electronic, pop, synthesizer, drums, bass, piano, 128 BPM, energetic, uplifting, modern");
   const [lyrics, setLyrics] = useState(
     `[verse]
-자장자장 우리 아가
-달빛 아래 잠들어요
+Woke up in a city that's always alive
+Lights flashing bright as we're taking a drive
+Feeling the rhythm in every street sign
+This is our moment, this is our time
+
 [chorus]
-엄마 품에 안겨서
-꿈나라로 가요`
+We're living in a dream tonight
+Under electric skies so bright
+Nothing's gonna stop us now
+We're living in a dream somehow`
   );
   const [koreanPrompt, setKoreanPrompt] = useState("자장가, 피아노, 부드러운 목소리, 아기가 잠들 수 있는");
   const [koreanLyrics, setKoreanLyrics] = useState(
