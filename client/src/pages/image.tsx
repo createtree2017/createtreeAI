@@ -269,7 +269,9 @@ export default function Image() {
   // Fetch active A/B test for the current concept
   const fetchActiveAbTest = async (conceptId: string) => {
     try {
-      const testData = await getActiveAbTest(conceptId);
+      console.log(`A/B 테스트 데이터 조회, 컨셉 ID: ${conceptId}`);
+      // 현재 API는 컨셉 ID 파라미터를 받지 않고 글로벌 상태의 액티브 테스트를 반환함
+      const testData = await getActiveAbTest();
       if (testData) {
         setActiveAbTest(testData);
         // Reset A/B test images since we have a new test
