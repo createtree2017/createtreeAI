@@ -111,12 +111,29 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
     onSuccess: (data) => {
       console.log("가사 생성 응답:", data);
       if (data.lyrics) {
+        // 타이틀에 프롬프트 추가
+        if (!form.getValues().title) {
+          form.setValue("title", `${form.getValues().prompt}를 위한 자장가`);
+        }
+        
         // 생성된 가사를 프롬프트에 추가
+        let newPrompt = "";
+        
+        // 기존 프롬프트가 있으면 유지
         const currentPrompt = form.getValues().prompt;
-        form.setValue("prompt", `${currentPrompt}\n\n${data.lyrics}`);
+        
+        // 음악 생성 프롬프트가 있으면 우선 사용
+        if (data.musicPrompt) {
+          newPrompt = data.musicPrompt;
+        } else {
+          // 아니면 일반 가사만 추가
+          newPrompt = `${currentPrompt}\n\n${data.lyrics}`;
+        }
+        
+        form.setValue("prompt", newPrompt);
         toast({
           title: "가사가 생성되었습니다",
-          description: "프롬프트에 가사가 추가되었습니다. 필요에 따라 수정해주세요.",
+          description: "Gemini AI가 생성한 가사와 음악 프롬프트가 추가되었습니다.",
         });
       } else if (data.error) {
         toast({
