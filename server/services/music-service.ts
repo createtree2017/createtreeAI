@@ -222,26 +222,22 @@ export async function generateMusicWithAceStep(input: AceStepInput): Promise<str
         // 입력 데이터 객체 생성 (tags, lyrics만 포함하는 기본 형태)
         // 원본 테스트 파일에서 확인한 정확한 호출 방식 사용
         // 정확한 형식: { input: { tags, lyrics, duration, [기타 선택적 매개변수] } }
-        const apiInput: Record<string, any> = {
+        // 대표님 예제 기반으로 심플하게 파라미터 구성
+        // 핵심 필수 파라미터만 포함한 객체 생성
+        const simplifiedInput = {
           tags: input.tags,
           lyrics: input.lyrics,
           duration: input.duration
         };
         
-        // 선택적 파라미터 추가 (null, undefined가 아닌 경우만)
-        if (input.guidance_scale) apiInput.guidance_scale = input.guidance_scale;
-        if (input.tag_guidance_scale) apiInput.tag_guidance_scale = input.tag_guidance_scale;
-        if (input.lyric_guidance_scale) apiInput.lyric_guidance_scale = input.lyric_guidance_scale;
-        
-        console.log("API 입력 데이터:", JSON.stringify(apiInput, null, 2));
+        console.log("===== 심플 입력으로 API 호출 테스트 =====");
+        console.log("단순화된 입력 데이터:", JSON.stringify(simplifiedInput, null, 2));
         
         // 정확한 모델 해시 값으로 수정
-        // 주의: 테스트 파일에서는 "280fc4f9ed757f980a167f9539d0262d22df8fcfc92d45b32b322377bd68f9" 형식이었으나,
-        // 대표님 예제에서는 "280fc4f9ee507577f880a167f639c02622421d8fecf492454320311217b688f1" 형식을 사용
-        // 대표님 예제 형식을 유지합니다
+        // 대표님 예제 방식과 동일하게 단순화된 입력만 사용
         output = await replicate.run(
           "lucataco/ace-step:280fc4f9ee507577f880a167f639c02622421d8fecf492454320311217b688f1", 
-          { input: apiInput }
+          { input: simplifiedInput }
         );
         
         console.log("===== Replicate API 응답 성공 =====");
