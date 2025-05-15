@@ -61,7 +61,19 @@ async function generateMusicWithAceStep(input: AceStepInput): Promise<string | n
     console.log(`음악 생성 완료: ${generationTime.toFixed(2)}초 소요`);
     console.log("출력 URL:", output);
     
-    return output as string;
+    // Replicate API는 객체 또는 문자열을 반환할 수 있음
+    if (typeof output === 'string') {
+      return output;
+    } else if (output && typeof output === 'object') {
+      // 객체인 경우 URL 또는 관련 필드 추출
+      if ('url' in output) {
+        return (output as any).url as string;
+      }
+      // 출력 형식에 따라 다르게 처리 (문자열로 변환)
+      return String(output);
+    }
+    
+    return null;
   } catch (error) {
     console.error("ACE-Step 음악 생성 중 오류 발생:", error);
     return null;
@@ -89,7 +101,13 @@ async function runTests() {
     return;
   }
 
-  const results = [];
+  interface TestResult {
+    name: string;
+    url: string | null;
+    description: string;
+  }
+  
+  const results: TestResult[] = [];
   
   try {
     // 테스트 케이스 1: 기본 60초 음악 생성 (영어 가사)
