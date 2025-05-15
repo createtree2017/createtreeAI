@@ -1,0 +1,64 @@
+라플아, 대표님께서 ACE-Step 테스트 페이지에서 "음악 생성 테스트" 버튼 클릭 시 여전히 500 Internal Server Error가 발생하고 있는 스크린샷(`image_c85d67.jpg`)을 보내주셨다. 모델 버전 ID와 기본적인 input 구조를 수정했음에도 문제가 지속되는 것으로 보아, Replicate API로 전달되는 **실제 데이터 값이나 형식, 또는 API 응답 처리 과정**에 문제가 있을 가능성이 매우 높다.
+
+이 500 에러의 근본 원인을 찾아 해결하는 것을 최우선 목표로 다음 작업을 **매우 꼼꼼하고 단계적으로** 진행해주길 바란다.
+
+**🎯 목표: `/api/test-ace-step/generate-music` 엔드포인트에서 발생하는 500 에러의 정확한 원인 규명 및 해결, Replicate `lucataco/ace-step` 모델을 통한 정상적인 음악 생성 성공**
+
+**✅ 1단계: Replicate API 호출 직전/직후 데이터 상세 로깅 (가장 중요!):**
+
+1.  **`server/services/music-service.ts` 파일의 ACE-Step API 호출 함수 (예: `generateMusicWithAceStepFromReplicate`) 집중 수정:**
+    * `replicate.run("lucataco/ace-step:버전해시", { input: actualInputData })`를 호출하기 **바로 직전에**:
+        * `actualInputData` 객체에 최종적으로 어떤 값들이 담기는지, **각 키(key)와 값(value), 그리고 각 값의 데이터 타입(typeof)을 `console.log`를 사용하여 서버 로그에 매우 상세하게 출력**한다. (JSON.stringify를 사용하여 객체나 배열 내부까지 볼 수 있도록)
+            ```typescript
+            console.log("Replicate API 호출 직전 최종 input 객체 상세:");
+            for (const key in actualInputData) {
+              console.log(`  ${key}: ${JSON.stringify(actualInputData[key])} (타입: ${typeof actualInputData[key]})`);
+            }
+            ```
+    * `replicate.run()` 호출을 `try...catch` 블록으로 감싸고:
+        * **`try` 블록 (성공 시):** `replicate.run()`이 반환하는 `output` 전체를 `console.log("Replicate API 성공 응답:", JSON.stringify(output, null, 2));` 와 같이 서버 로그에 상세히 출력한다. (이것이 오디오 URL인지, 다른 구조인지 확인)
+        * **`catch` 블록 (오류 발생 시):**
+            * `console.error("Replicate API 직접 호출 중 심각한 오류 발생:", error);` (error 객체 전체 로깅)
+            * 만약 `error.response` 객체가 존재하고, 그 안에 Replicate API가 제공하는 상세 오류 정보(예: `error.response.data` 또는 `error.response.data.detail`)가 있다면, 그것도 반드시 로그로 남긴다. **(Replicate가 어떤 이유로 요청을 거부했는지 알 수 있는 가장 중요한 단서!)**
+            ```typescript
+            catch (error: any) {
+              console.error("Replicate API 직접 호출 중 심각한 오류 발생:", error);
+              if (error.response && error.response.data) {
+                console.error("Replicate API 상세 오류 응답:", JSON.stringify(error.response.data, null, 2));
+              }
+              throw new Error(`Replicate API 호출 실패: ${error.message}`);
+            }
+            ```
+
+**✅ 2단계: Replicate `lucataco/ace-step` Input Schema 와 실제 전달값 비교 분석:**
+
+1.  **Input Schema 재확인:** Replicate의 `lucataco/ace-step` 모델 페이지 "Schema" 탭에서 모든 입력 파라미터의 이름, 필수 여부, 데이터 타입, 허용되는 값의 범위/형식을 다시 한번 철저히 확인한다.
+2.  **1단계에서 로깅된 `actualInputData`와 Input Schema 비교:**
+    * **필수 파라미터 누락 여부:** (예: `lyrics`, `tags` 외에 모델이 반드시 필요로 하는 다른 값이 있는가?)
+    * **데이터 타입 일치 여부:** (예: `duration`은 반드시 숫자여야 한다. 문자열로 전달되고 있지는 않은가?)
+    * **값의 형식/범위 준수 여부:**
+        * `lyrics`: 가사 내용에 혹시 모델이 처리하지 못하는 특수문자나 너무 긴 줄바꿈 등이 포함되어 있지는 않은가? 구조 태그(`[verse]`)는 올바르게 사용되었는가?
+        * `tags`: 쉼표로 구분된 문자열 형식이 정확한가? 태그 내용에 부적절한 문자가 포함되지는 않았는가?
+        * `duration`: 모델이 허용하는 범위(예: 30~240초) 내의 값인가?
+    * 이 비교 분석 결과를 상세히 보고한다.
+
+**✅ 3단계: 단계적이고 단순한 입력값으로 테스트 시작:**
+
+1.  **최소한의 파라미터로 테스트:**
+    * 가장 먼저, **Replicate 모델 페이지의 예제 코드에 있는 `input` 객체와 매우 유사하게, 최소한의 필수 파라미터 (예: 짧은 영어 `lyrics`, 간단한 영어 `tags`, 짧은 `duration`)만 사용하여 API 호출을 시도**해본다. (이때, 모델 버전 해시는 예제 코드의 것을 우선 사용하거나, 대표님께서 확인해주신 최신 버전 사용)
+    * 이 최소 테스트가 성공하는지 확인하고, 성공했다면 어떤 입력값을 사용했는지 정확히 기록하여 보고한다.
+2.  **점진적으로 파라미터 변경 및 한국어 테스트:**
+    * 위 최소 테스트가 성공하면, 한 번에 하나씩 파라미터 값을 변경해가며 테스트한다. (예: `lyrics`를 한글로 변경, `duration`을 늘리기, `tags`에 다양한 키워드 추가 등)
+    * 어떤 값을 변경했을 때 오류가 발생하는지 특정한다.
+
+**결과 보고:**
+
+* **매 테스트 시도 시, 서버 로그에 찍힌 "Replicate API 호출 직전 input 객체 상세" 로그 전체, 그리고 "Replicate API 성공 응답" 또는 "Replicate API 직접 호출 중 심각한 오류 발생" 및 "Replicate API 상세 오류 응답" 로그 전체를 정확히 복사하여 보고한다.** 이것이 없으면 원인 분석이 불가능하다.
+* 어떤 입력값으로 테스트했을 때 성공했고, 어떤 입력값에서 오류가 발생했는지 명확히 구분하여 보고한다.
+* 오류의 원인으로 추정되는 부분을 명시하고, 가능하다면 해결 방안에 대한 의견도 함께 제시한다.
+
+**지금 가장 중요한 것은 Replicate API로 전달되는 실제 `input` 데이터가 무엇인지, 그리고 Replicate API가 그에 대해 어떤 구체적인 응답(오류 포함)을 보내는지 서버 로그를 통해 명확히 확인하는 것이다.**
+
+이전 보고에서 "Replicate API가 응답은 성공했지만 빈 객체({})를 반환함" 또는 "출력 타입은 ReadableStream이라고 인식되었지만 실제 데이터는 없음"이라고 언급했는데, 이는 `replicate.run()` 호출 자체가 성공적으로 Replicate 서버와 통신은 했지만, Replicate 모델이 작업을 성공적으로 완료하지 못했거나 예상치 못한 빈 결과를 반환했을 때 나타날 수 있는 현상이다. **상세 오류 로깅을 통해 Replicate가 왜 빈 결과를 주거나 오류를 내는지 파악해야 한다.**
+
+차분하고 꼼꼼하게 디버깅해주길 바란다.

@@ -222,27 +222,78 @@ export async function generateMusicWithAceStep(input: AceStepInput): Promise<str
         // 입력 데이터 객체 생성 (tags, lyrics만 포함하는 기본 형태)
         // 원본 테스트 파일에서 확인한 정확한 호출 방식 사용
         // 정확한 형식: { input: { tags, lyrics, duration, [기타 선택적 매개변수] } }
-        // 대표님 예제 기반으로 심플하게 파라미터 구성
-        // 핵심 필수 파라미터만 포함한 객체 생성
-        const simplifiedInput = {
-          tags: input.tags,
+        // Replicate API 형식에 맞게 가장 기본적인 파라미터만 사용
+        // 키 이름 정확히 확인 - tags가 아닌 prompt일 수 있음
+        console.log("===== Replicate API 호출 직전 최종 input 객체 상세 =====");
+        
+        // 방법 1: tags → prompt로 키 이름 변경 테스트
+        const simplifiedInput1 = {
+          prompt: input.tags,  // tags 대신 prompt 키 사용
           lyrics: input.lyrics,
           duration: input.duration
         };
         
-        console.log("===== 심플 입력으로 API 호출 테스트 =====");
-        console.log("단순화된 입력 데이터:", JSON.stringify(simplifiedInput, null, 2));
+        console.log("방법 1 (prompt 키 사용):");
+        console.log(`  prompt: ${JSON.stringify(simplifiedInput1.prompt)} (타입: ${typeof simplifiedInput1.prompt})`);
+        console.log(`  lyrics: ${JSON.stringify(simplifiedInput1.lyrics)} (타입: ${typeof simplifiedInput1.lyrics})`);
+        console.log(`  duration: ${JSON.stringify(simplifiedInput1.duration)} (타입: ${typeof simplifiedInput1.duration})`);
         
-        // 정확한 모델 해시 값으로 수정
-        // 대표님 예제 방식과 동일하게 단순화된 입력만 사용
-        output = await replicate.run(
-          "lucataco/ace-step:280fc4f9ee507577f880a167f639c02622421d8fecf492454320311217b688f1", 
-          { input: simplifiedInput }
-        );
+        try {
+          console.log("===== Replicate API 호출 시도 (방법 1) =====");
+          // 대표님 예제 방식과 동일하게 단순화된 입력만 사용
+          output = await replicate.run(
+            "lucataco/ace-step:280fc4f9ee507577f880a167f639c02622421d8fecf492454320311217b688f1", 
+            { input: simplifiedInput1 }
+          );
+          
+          console.log("===== Replicate API 응답 성공 (방법 1) =====");
+          console.log("ACE-Step API 응답:", JSON.stringify(output, null, 2));
+          console.log("응답 타입:", typeof output);
+          
+          if (output) {
+            break; // 성공하면 반복 중단
+          } else {
+            throw new Error("API 응답이 비어 있습니다.");
+          }
+        } catch (error) {
+          console.error("방법 1 실패:", error);
+          
+          // 방법 1이 실패하면 방법 2 시도 (원래 방식)
+          const simplifiedInput2 = {
+            tags: input.tags,
+            lyrics: input.lyrics,
+            duration: input.duration
+          };
+          
+          console.log("방법 2 (tags 키 사용):");
+          console.log(`  tags: ${JSON.stringify(simplifiedInput2.tags)} (타입: ${typeof simplifiedInput2.tags})`);
+          console.log(`  lyrics: ${JSON.stringify(simplifiedInput2.lyrics)} (타입: ${typeof simplifiedInput2.lyrics})`);
+          console.log(`  duration: ${JSON.stringify(simplifiedInput2.duration)} (타입: ${typeof simplifiedInput2.duration})`);
+          
+          try {
+            console.log("===== Replicate API 호출 시도 (방법 2) =====");
+            output = await replicate.run(
+              "lucataco/ace-step:280fc4f9ee507577f880a167f639c02622421d8fecf492454320311217b688f1", 
+              { input: simplifiedInput2 }
+            );
+            
+            console.log("===== Replicate API 응답 성공 (방법 2) =====");
+            console.log("ACE-Step API 응답:", JSON.stringify(output, null, 2));
+            console.log("응답 타입:", typeof output);
+            
+            if (output) {
+              break; // 성공하면 반복 중단
+            } else {
+              throw new Error("API 응답이 비어 있습니다.");
+            }
+          } catch (secondError) {
+            console.error("방법 2 실패:", secondError);
+            // 두 방법 모두 실패하면 원래 오류 전파
+            throw error;
+          }
+        }
         
-        console.log("===== Replicate API 응답 성공 =====");
-        
-        console.log("ACE-Step API 응답:", JSON.stringify(output, null, 2));
+        // 중복 로그 제거 (이미 위에서 출력함)
         break; // 성공하면 반복 중단
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
