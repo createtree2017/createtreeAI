@@ -241,10 +241,57 @@ export async function generateMusicWithAceStep(input: AceStepInput): Promise<str
         try {
           console.log("===== Replicate API 호출 시도 (방법 1) =====");
           // 대표님 예제 방식과 동일하게 단순화된 입력만 사용
-          output = await replicate.run(
-            "lucataco/ace-step:280fc4f9ee507577f880a167f639c02622421d8fecf492454320311217b688f1", 
-            { input: simplifiedInput1 }
-          );
+          // 응답 객체 전체 캡처하여 자세한 오류 정보 확인
+          try {
+            // 오류 응답을 더 상세히 캡처하기 위해 저수준 fetch 직접 사용
+            const url = 'https://api.replicate.com/v1/predictions';
+            const headers = {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${process.env.REPLICATE_API_TOKEN}`
+            };
+            
+            // 간단화된 요청 데이터
+            const requestData = {
+              // 표준 Replicate API 형식을 따름
+              version: "280fc4f9ee507577f880a167f639c02622421d8fecf492454320311217b688f1",
+              input: {
+                tags: "electronic, uplifting, cinematic, 120 BPM",
+                lyrics: "[verse]\nTest lyrics here\nSimple test\n[chorus]\nThis is a test",
+                duration: 30
+              }
+            };
+            
+            console.log("직접 호출 요청 데이터:", JSON.stringify(requestData, null, 2));
+            
+            const response = await fetch(url, {
+              method: 'POST',
+              headers: headers,
+              body: JSON.stringify(requestData)
+            });
+            
+            const responseData = await response.json();
+            console.log("API 응답 상태:", response.status, response.statusText);
+            console.log("API 응답 데이터:", JSON.stringify(responseData, null, 2));
+            
+            if (response.ok) {
+              // 성공 시 URL 결과값 추출
+              if (responseData.output && typeof responseData.output === 'string') {
+                output = responseData.output;
+              } else {
+                output = responseData;
+              }
+            } else {
+              throw new Error(`API 오류: ${response.status} ${response.statusText} - ${JSON.stringify(responseData)}`);
+            }
+          } catch (directError) {
+            console.error("직접 API 호출 실패:", directError);
+            
+            // 기존 방식으로 다시 시도
+            output = await replicate.run(
+              "lucataco/ace-step:280fc4f9ee507577f880a167f639c02622421d8fecf492454320311217b688f1", 
+              { input: simplifiedInput1 }
+            );
+          }
           
           console.log("===== Replicate API 응답 성공 (방법 1) =====");
           console.log("ACE-Step API 응답:", JSON.stringify(output, null, 2));
@@ -272,9 +319,23 @@ export async function generateMusicWithAceStep(input: AceStepInput): Promise<str
           
           try {
             console.log("===== Replicate API 호출 시도 (방법 2) =====");
+            
+            // 모델 직접 호출로 수정 - Replicate의 문서 형식대로
+            const model = "lucataco/ace-step";
+            const version = "280fc4f9ee507577f880a167f639c02622421d8fecf492454320311217b688f1";
+            
+            // 매우 기본적인 입력값만 사용 (lyrics는 매우 짧게)
+            const basicInput = {
+              tags: "electronic music, simple test",
+              lyrics: "[verse]\nSimple test\n[chorus]\nTest",
+              duration: 10
+            };
+            
+            console.log("기본 입력으로 시도:", JSON.stringify(basicInput, null, 2));
+            
             output = await replicate.run(
-              "lucataco/ace-step:280fc4f9ee507577f880a167f639c02622421d8fecf492454320311217b688f1", 
-              { input: simplifiedInput2 }
+              `${model}:${version}`, 
+              { input: basicInput }
             );
             
             console.log("===== Replicate API 응답 성공 (방법 2) =====");
