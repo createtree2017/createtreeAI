@@ -84,8 +84,11 @@ export async function generateLyrics(prompt: string): Promise<string> {
   try {
     console.log(`music-service: "${prompt}" 프롬프트로 가사 생성 시작`);
     
-    // lyrics-service의 가사 생성 기능 사용
-    const result = await generateLyricsFromService(prompt, "lullaby");
+    // 스타일은 기본값으로 자장가 사용
+    const style = "자장가";
+    
+    // lyrics-service의 가사 생성 기능 호출
+    const result = await generateLyricsFromService(prompt, style);
     
     if (result && result.lyrics) {
       console.log(`music-service: 가사 생성 완료 (${result.lyrics.length}자)`);

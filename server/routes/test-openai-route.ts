@@ -10,7 +10,7 @@ testOpenAIRouter.post('/test-lyrics', async (req, res) => {
   try {
     // 요청 데이터 검증 스키마
     const testSchema = z.object({
-      prompt: z.string().min(3, "프롬프트는 최소 3자 이상이어야 합니다."),
+      prompt: z.string().min(1, "프롬프트는 필수 항목입니다."),
       genre: z.string().optional(),
       mood: z.string().optional(),
       language: z.string().optional().default("korean")
