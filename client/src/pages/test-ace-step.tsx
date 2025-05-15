@@ -56,10 +56,11 @@ export default function TestAceStepPage() {
   // 음악 생성 테스트
   const handleGenerateMusicTest = async () => {
     try {
+      console.log("음악 생성 테스트 시작");
       setLoading(true);
       setResult(null);
 
-      const res = await apiRequest("POST", "/api/test-ace-step/generate", {
+      console.log("API 요청 전 파라미터:", {
         prompt,
         lyrics,
         duration,
@@ -68,10 +69,31 @@ export default function TestAceStepPage() {
         lyric_guidance_scale: lyricGuidanceScale
       });
 
-      const data = await res.json();
-      setResult(data);
+      const res = await apiRequest("/api/test-ace-step/generate", {
+        method: "POST",
+        data: {
+          prompt,
+          lyrics,
+          duration,
+          guidance_scale: guidanceScale,
+          tag_guidance_scale: tagGuidanceScale,
+          lyric_guidance_scale: lyricGuidanceScale
+        }
+      });
 
-      if (data.success) {
+      console.log("API 응답 상태:", res.status, res.statusText);
+      
+      let data;
+      try {
+        data = await res.json();
+        console.log("API 응답 데이터:", data);
+        setResult(data);
+      } catch (jsonError) {
+        console.error("JSON 파싱 오류:", jsonError);
+        throw new Error("API 응답을 처리할 수 없습니다: " + jsonError.message);
+      }
+
+      if (data && data.success) {
         toast({
           title: "음악 생성 성공",
           description: "ACE-Step 모델로 음악을 생성했습니다."
@@ -100,10 +122,13 @@ export default function TestAceStepPage() {
       setLoading(true);
       setResult(null);
 
-      const res = await apiRequest("POST", "/api/test-ace-step/generate-with-lyrics", {
-        prompt,
-        duration,
-        style: "lullaby"
+      const res = await apiRequest("/api/test-ace-step/generate-with-lyrics", {
+        method: "POST",
+        data: {
+          prompt,
+          duration,
+          style: "lullaby"
+        }
       });
 
       const data = await res.json();
