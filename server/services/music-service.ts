@@ -3,9 +3,20 @@ import { z } from "zod";
 import { generateLyrics as generateLyricsFromService, translateText, GenerateLyricsRequest } from "./lyrics-service";
 
 // Replicate API 클라이언트 초기화
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN,
-});
+let replicate: any = null;
+try {
+  if (process.env.REPLICATE_API_TOKEN) {
+    console.log("Replicate API 클라이언트 초기화 시작...");
+    replicate = new Replicate({
+      auth: process.env.REPLICATE_API_TOKEN,
+    });
+    console.log("Replicate API 클라이언트 초기화 성공");
+  } else {
+    console.warn("REPLICATE_API_TOKEN이 설정되지 않았습니다.");
+  }
+} catch (error) {
+  console.error("Replicate API 클라이언트 초기화 오류:", error);
+}
 
 // 음악 생성시 지원되는 스타일 목록
 export const ALLOWED_MUSIC_STYLES = [
@@ -79,20 +90,72 @@ export async function generateLyrics(prompt: string): Promise<string> {
  */
 export async function generateMusic(data: CreateSongRequest): Promise<SongGenerationResult> {
   try {
+    // Replicate API 클라이언트가 초기화되었는지 확인
+    if (!replicate) {
+      throw new Error("Replicate API 클라이언트가 초기화되지 않았습니다. API 키가 올바르게 설정되었는지 확인하세요.");
+    }
+    
     let prompt = data.prompt;
     let translatedPrompt: string | undefined;
     
     // 한국어 프롬프트인 경우 영어로 번역 (Replicate 모델이 영어 프롬프트에 더 최적화되어 있음)
     if (data.translatePrompt && /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(prompt)) {
-      translatedPrompt = await translateToEnglish(prompt);
-      console.log(`원본 프롬프트: ${prompt}`);
-      console.log(`번역된 프롬프트: ${translatedPrompt}`);
-      prompt = translatedPrompt || prompt; // 번역된 프롬프트로 대체, 실패 시 원본 유지
+      try {
+        translatedPrompt = await translateToEnglish(prompt);
+        console.log(`원본 프롬프트: ${prompt}`);
+        console.log(`번역된 프롬프트: ${translatedPrompt}`);
+        prompt = translatedPrompt || prompt; // 번역된 프롬프트로 대체, 실패 시 원본 유지
+      } catch (translateError) {
+        console.error("번역 중 오류 발생, 원본 프롬프트 사용:", translateError);
+        // 번역 오류 시 원본 유지
+      }
     }
     
     // 스타일 키워드 추가
     if (data.style) {
       prompt = `${prompt}, style: ${data.style}`;
+    }
+    
+    // 테스트 목적으로 더미 URL 반환하는 개발 모드 추가
+    if (process.env.NODE_ENV === 'development' && process.env.USE_DUMMY_MUSIC === 'true') {
+      console.log("개발 모드: 더미 음악 URL 사용");
+      
+      // 기본 테스트용 음원 URL (외부 호스팅된 음원)
+      const dummyAudioUrl = "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0c6ff1bab.mp3";
+      
+      // 가사 생성 (instrumental이 false인 경우만)
+      let lyrics: string | undefined;
+      if (!data.instrumental) {
+        try {
+          const lyricsRequest: GenerateLyricsRequest = {
+            prompt: data.prompt,
+            genre: data.style || "lullaby",
+            mood: "soothing",
+            language: "korean"
+          };
+          lyrics = await generateLyricsFromService(lyricsRequest);
+        } catch (lyricsError) {
+          console.error("가사 생성 중 오류가 발생했지만 계속 진행합니다:", lyricsError);
+          // 가사 생성 실패해도 음악 생성은 계속 진행
+        }
+      }
+      
+      // 태그 생성
+      const tags = [
+        ...(data.style ? [data.style] : []),
+        "음악",
+        "태교",
+        "자장가"
+      ];
+      
+      return {
+        audioUrl: dummyAudioUrl,
+        prompt: data.prompt,
+        translatedPrompt,
+        tags,
+        instrumental: data.instrumental,
+        lyrics
+      };
     }
     
     // 오류 재시도 로직 추가 (3번 시도)
@@ -103,6 +166,8 @@ export async function generateMusic(data: CreateSongRequest): Promise<SongGenera
     
     while (attempt <= maxAttempts) {
       try {
+        console.log(`음악 생성 시도 ${attempt}/${maxAttempts} - 프롬프트: "${prompt}"`);
+        
         // Replicate API를 통한 음악 생성
         // MusicGen Melody 모델 사용 - 고품질 음악 생성
         output = await replicate.run(
@@ -117,10 +182,16 @@ export async function generateMusic(data: CreateSongRequest): Promise<SongGenera
             }
           }
         );
+        
+        console.log("Replicate API 응답:", JSON.stringify(output, null, 2));
         break; // 성공하면 반복 중단
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
         console.error(`음악 생성 시도 ${attempt}/${maxAttempts} 실패:`, lastError.message);
+        
+        if (error instanceof Error && error.stack) {
+          console.error("오류 스택:", error.stack);
+        }
         
         if (attempt < maxAttempts) {
           // 백오프 지연 - 시도할 때마다 대기 시간 증가 (지수 백오프)
@@ -180,6 +251,10 @@ export async function generateMusic(data: CreateSongRequest): Promise<SongGenera
     };
   } catch (error) {
     console.error("음악 생성 중 오류 발생:", error);
+    // 스택 트레이스도 로깅
+    if (error instanceof Error && error.stack) {
+      console.error("오류 스택:", error.stack);
+    }
     throw new Error(`음악 생성에 실패했습니다: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
