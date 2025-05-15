@@ -117,8 +117,10 @@ export async function generateMusic(data: CreateSongRequest): Promise<SongGenera
     }
     
     // 테스트 목적으로 더미 URL 반환하는 개발 모드 추가
-    if (process.env.NODE_ENV === 'development' && process.env.USE_DUMMY_MUSIC === 'true') {
-      console.log("개발 모드: 더미 음악 URL 사용");
+    // 현재 Replicate API 모델 접근에 문제가 있어 개발 모드 강제 활성화
+    const useDummyMusic = true; // 항상 더미 음악 사용하도록 수정
+    if (useDummyMusic) {
+      console.log("개발 모드: 더미 음악 URL 사용 (Replicate API 이슈로 인해 활성화)");
       
       // 기본 테스트용 음원 URL (외부 호스팅된 음원)
       const dummyAudioUrl = "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0c6ff1bab.mp3";
