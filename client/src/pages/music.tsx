@@ -41,13 +41,33 @@ export default function Music() {
   const query = new URLSearchParams(location.split("?")[1] || "");
   const musicId = query.get("id");
   
+  // 세션 스토리지에서 진행 중인 음악 생성 정보 확인
+  const [pendingRequest, setPendingRequest] = useState<any>(null);
+  
+  useEffect(() => {
+    try {
+      const storedRequest = sessionStorage.getItem('current_music_request');
+      if (storedRequest) {
+        const parsedRequest = JSON.parse(storedRequest);
+        setPendingRequest(parsedRequest);
+        
+        // 완료된 음악이 있으면 상태에 설정
+        if (parsedRequest.status === 'completed' && parsedRequest.result) {
+          setGeneratedMusic(parsedRequest.result);
+        }
+      }
+    } catch (error) {
+      console.error('세션 정보 복원 오류:', error);
+    }
+  }, []);
+  
   // Form setup
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      babyName: "",
-      musicStyle: "lullaby",
-      duration: "60",
+      babyName: pendingRequest?.data?.babyName || "",
+      musicStyle: pendingRequest?.data?.musicStyle || "lullaby",
+      duration: pendingRequest?.data?.duration || "60",
     },
   });
   
