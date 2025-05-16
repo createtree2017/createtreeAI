@@ -4,9 +4,20 @@
  */
 import ffmpeg from 'fluent-ffmpeg';
 import { promises as fs } from 'fs';
+import fs_sync from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
+
+// 파일 존재 확인 함수
+async function fileExists(path: string): Promise<boolean> {
+  try {
+    await fs.access(path, fs_sync.constants.F_OK);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
 
 /**
  * 음악과 보컬을 믹싱하여 하나의 오디오 파일로 만듦
@@ -42,17 +53,34 @@ export async function mixAudio(
       console.log(`임시 디렉토리 생성: ${tempDir}`);
     }
     
-    // 개별 파일 경로 생성
-    const sessionId = uuidv4();
+    // 개별 파일 경로 생성 - 단순화된 고유 ID 사용
+    const timestamp = Date.now();
+    const sessionId = `${timestamp}-${Math.floor(Math.random() * 1000)}`;
     const musicPath = join(tempDir, `music-${sessionId}.mp3`);
     const vocalPath = join(tempDir, `vocal-${sessionId}.mp3`);
     const outputPath = join(tempDir, `output-${sessionId}.mp3`);
     
-    // 임시 파일 저장
+    // 파일 존재 여부 확인을 위한 디버깅 로깅
+    console.log(`임시 파일 경로 생성: 
+    - 음악: ${musicPath}
+    - 보컬: ${vocalPath}
+    - 결과: ${outputPath}`);
+
+    // 임시 파일 저장 및 파일 존재 확인
     await fs.writeFile(musicPath, musicBuffer);
     await fs.writeFile(vocalPath, vocalBuffer);
     
+    // 파일이 실제로 저장되었는지 확인
+    const musicExists = await fileExists(musicPath);
+    const vocalExists = await fileExists(vocalPath);
+    
+    console.log(`파일 저장 확인: 음악 파일 존재=${musicExists}, 보컬 파일 존재=${vocalExists}`);
     console.log(`오디오 믹싱 시작 - 음악: ${musicBuffer.length} 바이트, 보컬: ${vocalBuffer.length} 바이트`);
+    
+    // 파일이 없으면 오류 발생
+    if (!musicExists || !vocalExists) {
+      throw new Error(`임시 파일 생성 실패: 음악 파일 존재=${musicExists}, 보컬 파일 존재=${vocalExists}`);
+    }
 
     // ffmpeg을 사용한 믹싱
     return new Promise<Buffer>((resolve, reject) => {

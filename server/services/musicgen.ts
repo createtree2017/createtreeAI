@@ -45,22 +45,34 @@ export async function generateMusic(prompt: string, duration: number = 60): Prom
     const validDuration = Math.min(Math.max(duration, 60), 240);
     console.log(`MusicGen 모델에 전달되는 음악 길이: ${validDuration}초`);
     
-    // Meta의 MusicGen 모델 사용 (더 안정적인 버전)
-    // https://replicate.com/meta/musicgen
+    // 샘플 음악 반환 (API 호출 없이 로컬 파일 사용)
+    console.log('샘플 음악 파일 사용 (임시 대체)');
+    return await getSampleMusic();
+    
+    // 나중에 API가 해결되면 아래 코드를 활성화
+    /*
+    // 사용자 입력에서 음악 스타일 정보 추출
+    const musicStyle = style || 'lullaby';
+    
+    // 음악 생성 프롬프트 개선
+    const enhancedPrompt = `Create a ${validDuration} second ${musicStyle} music for babies. Details: ${prompt}`;
+    
+    console.log(`Replicate API 호출 - 음악 생성 프롬프트: ${enhancedPrompt}`);
+    
+    // 더 안정적인 모델 사용
     const output = await replicate.run(
-      "meta/musicgen:b05b1dff1d8c6dc63d14b0cdb42135378dcb87f6373b0d3d341ede46e59e2b32",
+      "riffusion/riffusion:8cf61ea6c56afd61d8f5b9ffd14d7c216c0a93844ce2d82ac1c9ecc9c7f24e05",
       {
         input: {
-          prompt: prompt,
-          duration: validDuration, // 사용자가 지정한 길이(초)
-          temperature: 1.0,
-          top_p: 0.95,
-          top_k: 250,
-          seed: Math.floor(Math.random() * 10000),
-          output_format: "mp3"
+          prompt_a: enhancedPrompt,
+          prompt_b: enhancedPrompt,
+          alpha: 0.5,
+          num_inference_steps: 50,
+          seed_image_id: "vibes"
         }
       }
     );
+    */
     
     // 결과 URL 확인
     if (!output || typeof output !== 'string') {
