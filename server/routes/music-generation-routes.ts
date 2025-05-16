@@ -71,9 +71,15 @@ router.post('/', upload.single('sampleFile'), async (req, res) => {
     const defaultAudio = await fs.readFile(defaultAudioPath);
     
     // 먼저 샘플 파일로 응답 (비동기 작업 시작 전)
-    // 모든 헤더 문제 방지를 위해 간단한 응답만 보냄
-    res.setHeader('Content-Type', 'audio/mpeg');
-    // 헤더 설정 없이 파일만 전송
+    // 오디오 재생 가능하도록 올바른 MIME 타입 설정
+    res.set({
+      'Content-Type': 'audio/mpeg',
+      'Cache-Control': 'no-cache',
+      'Accept-Ranges': 'bytes',
+      'Access-Control-Allow-Origin': '*'
+    });
+    
+    // 파일 전송
     res.send(defaultAudio);
     
     // 여기서 비동기 작업 시작 (응답 전송 후)
