@@ -372,59 +372,6 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* 기본 설정 옵션 섹션 */}
-            <div className="space-y-3 mb-6">
-              <div className="flex items-center justify-between">
-                <span className="text-white flex items-center gap-2 text-lg font-medium">
-                  Settings
-                </span>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-zinc-400">Song Title</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="Enter song title" 
-                          className="bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-500"
-                          {...field}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="duration"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-zinc-400">음악 길이</FormLabel>
-                      <Select 
-                        onValueChange={(value) => field.onChange(parseInt(value))} 
-                        defaultValue={field.value.toString()}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="bg-zinc-900 border-zinc-800 text-white">
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="bg-zinc-800 border-zinc-700 text-white">
-                          {durationOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value.toString()}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
             
             {/* 프롬프트 입력 */}
             <FormField
@@ -669,11 +616,11 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
               </div>
             </div>
             
-            {/* 추가 옵션 섹션 */}
-            <div className="space-y-3 border-t border-zinc-800 pt-4 transition-all duration-300">
+            {/* 설정 옵션 섹션 */}
+            <div className="space-y-3 mb-6">
               <div className="flex items-center justify-between">
-                <span className="text-white flex items-center gap-2 font-medium">
-                  More Options
+                <span className="text-white flex items-center gap-2 text-lg font-medium">
+                  Settings
                 </span>
               </div>
               
