@@ -1,9 +1,9 @@
 import { v4 as uuidv4 } from 'uuid';
-import { db } from '../db';
+import { db } from '../../db';
 import { music } from '@shared/schema';
 import * as musicgen from './musicgen';
 import * as ttsAi from './tts-ai';
-import * as audioMixer from '../utils/audio-mixer';
+import { mixAudio } from '../utils/audio-mixer';
 import path from 'path';
 import fs from 'fs';
 
@@ -104,14 +104,13 @@ async function processMusicJob(jobId: string): Promise<void> {
     
     // 2. 보컬 합성
     console.log(`[${Date.now()}] 보컬 합성 시작 (${job.params.voiceMode || 'ai'})...`);
-    const voiceParams = {
-      text: lyrics,
-      gender: job.params.gender || 'female_kr'
-    };
-    
+    // 올바른 파라미터로 ttsAi 호출
     let vocalPath;
     try {
-      vocalPath = await ttsAi.synthesizeAi(voiceParams);
+      vocalPath = await ttsAi.synthesizeAi(
+        lyrics,
+        job.params.gender || 'female_kr'
+      );
     } catch (error) {
       console.error('보컬 합성 중 오류:', error);
       vocalPath = path.join(process.cwd(), 'uploads', 'samples', 'sample-vocal.mp3');
@@ -126,11 +125,8 @@ async function processMusicJob(jobId: string): Promise<void> {
     
     let backgroundMusicPath;
     try {
-      backgroundMusicPath = await musicgen.generateMusic({
-        prompt: job.params.prompt || `아기 ${job.params.babyName}를 위한 ${job.params.style || 'lullaby'} 스타일의 음악`,
-        duration: duration,
-        tags: job.params.style || 'lullaby'
-      });
+      const prompt = job.params.prompt || `아기 ${job.params.babyName}를 위한 ${job.params.style || 'lullaby'} 스타일의 음악`;
+      backgroundMusicPath = await musicgen.generateMusic(prompt, duration);
     } catch (error) {
       console.error('배경 음악 생성 중 오류:', error);
       backgroundMusicPath = path.join(process.cwd(), 'uploads', 'samples', 'sample-music.mp3');
@@ -164,11 +160,15 @@ async function processMusicJob(jobId: string): Promise<void> {
       console.log(`파일 존재 확인: 음악 파일 존재=${fs.existsSync(backgroundMusicPath)}, 보컬 파일 존재=${fs.existsSync(vocalPath)}`);
       
       if (fs.existsSync(backgroundMusicPath) && fs.existsSync(vocalPath)) {
-        const musicSize = fs.statSync(backgroundMusicPath).size;
-        const vocalSize = fs.statSync(vocalPath).size;
+        const musicBuffer = await fs.promises.readFile(backgroundMusicPath);
+        const vocalBuffer = await fs.promises.readFile(vocalPath);
+        const musicSize = musicBuffer.length;
+        const vocalSize = vocalBuffer.length;
         console.log(`오디오 믹싱 시작 - 음악: ${musicSize} 바이트, 보컬: ${vocalSize} 바이트`);
         
-        await audioMixer.mixAudioFiles(backgroundMusicPath, vocalPath, outputPath);
+        // mixAudio 함수 사용 (버퍼 기반 믹싱)
+        const mixedBuffer = await mixAudio(musicBuffer, vocalBuffer);
+        await fs.promises.writeFile(outputPath, mixedBuffer);
       } else {
         console.log('파일이 존재하지 않아 샘플 파일 사용');
         outputPath = path.join(process.cwd(), 'uploads', 'samples', 'sample-mixed.mp3');
