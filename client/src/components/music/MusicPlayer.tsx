@@ -163,7 +163,7 @@ export function MusicPlayer({ src, title, duration = 0 }: SimpleMusicPlayerProps
       </CardHeader>
       
       <CardContent>
-        <audio ref={audioRef} src={src} preload="metadata" />
+        <audio ref={audioRef} src={src} preload="metadata" crossOrigin="anonymous" />
         
         {/* Progress bar */}
         <div 
@@ -424,7 +424,7 @@ export default function FullMusicPlayer({
       </CardHeader>
       
       <CardContent>
-        <audio ref={audioRef} src={music.url} preload="metadata" />
+        <audio ref={audioRef} src={music.url} preload="metadata" crossOrigin="anonymous" />
         
         {/* Progress bar */}
         <div 

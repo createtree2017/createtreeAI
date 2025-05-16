@@ -327,26 +327,42 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
       });
       
       if (!res.ok) {
-        const errorData = await res.text();
-        console.error('음악 생성 응답 오류:', errorData);
+        let errorMessage = "음악 생성에 실패했습니다.";
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          errorMessage = await res.text() || errorMessage;
+        }
+        console.error('음악 생성 응답 오류:', errorMessage);
         
         // 세션 스토리지에서 실패한 요청 상태 업데이트
         updatePendingMusicRequestStatus(musicRequestId, "failed");
         
-        throw new Error(errorData || "음악 생성에 실패했습니다.");
+        throw new Error(errorMessage);
       }
       
-      // 바이너리 데이터로 받기
-      const blob = await res.blob();
+      // 이제 서버는 JSON 형태로 응답을 보냄
+      const responseData = await res.json();
+      console.log('음악 생성 응답:', responseData);
+      
+      if (!responseData.success) {
+        throw new Error(responseData.error || "음악 생성에 실패했습니다.");
+      }
       
       // 세션 스토리지에서 성공한 요청 상태 업데이트
       updatePendingMusicRequestStatus(musicRequestId, "completed");
       
-      return { blob, musicRequestId };
+      // 서버에서 제공하는 파일 URL과 Job ID 반환
+      return { 
+        fileUrl: responseData.fileUrl, 
+        jobId: responseData.jobId,
+        musicRequestId 
+      };
     },
     onSuccess: (data) => {
-      // Blob URL 생성
-      const audioUrl = URL.createObjectURL(data.blob);
+      // 이제 서버에서 제공하는 파일 URL 사용
+      const audioUrl = data.fileUrl;
       console.log("음악 생성 완료, URL:", audioUrl);
       
       toast({
@@ -360,7 +376,8 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
           title: form.getValues().title || "새로운 음악",
           url: audioUrl,
           duration: form.getValues().duration,
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
+          jobId: data.jobId
         });
       }
     },
