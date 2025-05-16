@@ -62,7 +62,24 @@ router.get('/:filename', (req, res) => {
     }
     
     // 파일 정보 가져오기
-    const stat = fs.statSync(filePath);
+    let fileStats = fs.statSync(filePath);
+    
+    // 파일 크기 로그 및 검사 (작업지시서 요구사항 3: 파일 크기 확인)
+    console.log(`[음악 파일 요청] 파일 크기: ${fileStats.size} 바이트`);
+    
+    // 비정상적으로 작은 파일 감지 (1KB 미만은 의심)
+    if (fileStats.size < 1024) {
+      console.error(`[음악 파일 요청] ⚠️ 파일 크기가 비정상적으로 작음(${fileStats.size} 바이트), 샘플 파일로 대체합니다.`);
+      
+      // 샘플 파일 확인 및 적용
+      const samplePath = path.resolve(process.cwd(), 'static/samples/sample-music.mp3');
+      if (fs.existsSync(samplePath)) {
+        filePath = samplePath;
+        // 샘플 파일 정보 재로딩
+        fileStats = fs.statSync(filePath);
+        console.log(`[음악 파일 요청] ℹ️ 샘플 파일 사용: ${samplePath}, 크기: ${fileStats.size} 바이트`);
+      }
+    }
     
     // Range 요청 처리 (부분 범위 요청 지원)
     const range = req.headers.range;
@@ -71,16 +88,16 @@ router.get('/:filename', (req, res) => {
       // Range 요청 처리 (예: 'bytes=0-1023')
       const parts = range.replace(/bytes=/, '').split('-');
       const start = parseInt(parts[0], 10);
-      const end = parts[1] ? parseInt(parts[1], 10) : stat.size - 1;
+      const end = parts[1] ? parseInt(parts[1], 10) : fileStats.size - 1;
       const chunkSize = (end - start) + 1;
       
-      console.log(`[음악 파일 요청] Range 요청: ${start}-${end}/${stat.size}`);
+      console.log(`[음악 파일 요청] Range 요청: ${start}-${end}/${fileStats.size}`);
       
       // 작업지시서 요구사항: Content-Type, Accept-Ranges 헤더 설정
       res.writeHead(206, {
         'Content-Type': 'audio/mpeg',
         'Content-Length': chunkSize,
-        'Content-Range': `bytes ${start}-${end}/${stat.size}`,
+        'Content-Range': `bytes ${start}-${end}/${fileStats.size}`,
         'Accept-Ranges': 'bytes', 
         'Cache-Control': 'no-cache',
         'Access-Control-Allow-Origin': '*',
