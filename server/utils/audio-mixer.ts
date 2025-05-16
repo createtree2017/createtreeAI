@@ -23,15 +23,30 @@ export async function mixAudio(
     const musicBuffer = music instanceof ArrayBuffer ? Buffer.from(music) : music;
     const vocalBuffer = vocal instanceof ArrayBuffer ? Buffer.from(vocal) : vocal;
 
-    // 임시 디렉토리 및 파일 경로 생성
-    const tempDirName = `mix-${uuidv4()}`;
-    const tempDir = join(process.cwd(), 'uploads', 'temp', tempDirName);
-    console.log(`임시 디렉토리 생성: ${tempDir}`);
-    await fs.mkdir(tempDir, { recursive: true });
+    // 임시 디렉토리 확인 및 생성
+    const uploadDir = join(process.cwd(), 'uploads');
+    const tempDir = join(uploadDir, 'temp');
     
-    const musicPath = join(tempDir, 'music.mp3');
-    const vocalPath = join(tempDir, 'vocal.mp3');
-    const outputPath = join(tempDir, 'output.mp3');
+    // 디렉토리 존재 확인 및 생성
+    try {
+      await fs.access(uploadDir);
+    } catch (err) {
+      await fs.mkdir(uploadDir, { recursive: true });
+      console.log(`업로드 디렉토리 생성: ${uploadDir}`);
+    }
+    
+    try {
+      await fs.access(tempDir);
+    } catch (err) {
+      await fs.mkdir(tempDir, { recursive: true });
+      console.log(`임시 디렉토리 생성: ${tempDir}`);
+    }
+    
+    // 개별 파일 경로 생성
+    const sessionId = uuidv4();
+    const musicPath = join(tempDir, `music-${sessionId}.mp3`);
+    const vocalPath = join(tempDir, `vocal-${sessionId}.mp3`);
+    const outputPath = join(tempDir, `output-${sessionId}.mp3`);
     
     // 임시 파일 저장
     await fs.writeFile(musicPath, musicBuffer);
@@ -69,7 +84,7 @@ export async function mixAudio(
               await fs.unlink(musicPath);
               await fs.unlink(vocalPath);
               await fs.unlink(outputPath);
-              await fs.rmdir(tempDir);
+              console.log('임시 파일 정리 완료');
             } catch (cleanupError) {
               console.warn('임시 파일 정리 중 오류:', cleanupError);
             }

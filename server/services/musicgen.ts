@@ -40,23 +40,24 @@ export async function generateMusic(prompt: string, duration: number = 60): Prom
       return getSampleMusic();
     }
     
-    // MusicGen 모델 실행 - Facebook 오디오 생성 모델
+    // MusicGen 모델 실행 - 더 안정적인 모델 사용
     // 받은 duration 파라미터를 사용(60~240초 사이)
     const validDuration = Math.min(Math.max(duration, 60), 240);
     console.log(`MusicGen 모델에 전달되는 음악 길이: ${validDuration}초`);
     
+    // Meta의 MusicGen 모델 사용 (더 안정적인 버전)
+    // https://replicate.com/meta/musicgen
     const output = await replicate.run(
-      "facebookresearch/musicgen:7a76a8258b7daf15578f9c5b62c76f11aab29d3c4c0d195c6a8890b79bf9b214",
+      "meta/musicgen:b05b1dff1d8c6dc63d14b0cdb42135378dcb87f6373b0d3d341ede46e59e2b32",
       {
         input: {
           prompt: prompt,
           duration: validDuration, // 사용자가 지정한 길이(초)
-          model_version: "stereo-large",
-          output_format: "mp3",
           temperature: 1.0,
-          classifier_free_guidance: 7.0,
-          continuation: false,
-          continuation_end: false
+          top_p: 0.95,
+          top_k: 250,
+          seed: Math.floor(Math.random() * 10000),
+          output_format: "mp3"
         }
       }
     );
