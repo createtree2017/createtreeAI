@@ -8,7 +8,7 @@ import fs from "fs";
 import 'express-session';
 import { authMiddleware } from "./common/middleware/auth";
 import { DevHistoryManager } from "./services/dev-history-manager";
-import testAceStepRouter from "./routes/test-ace-step-routes";
+import musicGenerationRouter from "./routes/music-generation-routes";
 
 // Express session 타입 확장
 declare module 'express-session' {
@@ -282,9 +282,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // OpenAI API 테스트 라우트 등록
   app.use("/api/test-openai", testOpenAIRouter);
   
-  // ACE-Step API 테스트 라우트 등록
-  app.use("/api/test-ace-step", testAceStepRouter);
-  console.log("ACE-Step 테스트 라우터가 등록되었습니다 (/api/test-ace-step/*)");
+  // 새로운 음악 생성 API 라우트 등록 (MusicGen + Bark)
+  app.use("/api/music-generation", musicGenerationRouter);
+  console.log("새로운 음악 생성 라우터가 등록되었습니다 (/api/music-generation/*)");
   
   // 통합 메뉴 API - 카테고리와 서비스 항목을 함께 제공
   app.get("/api/menu", async (req, res) => {

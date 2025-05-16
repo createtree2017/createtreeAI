@@ -21,7 +21,7 @@ import TestFirebase from "@/pages/test-firebase";
 import FirebaseTestPage from "@/pages/firebase-test";
 import TestAuthPage from "@/pages/test-auth-page"; 
 import TestLoginPage from "@/pages/test-login";
-import TestAceStepPage from "@/pages/test-ace-step"; 
+import MusicGeneratorPage from "@/pages/music-generate"; 
 import HospitalsPage from "@/pages/super/HospitalsPage";
 import UsersPage from "@/pages/super/UsersPage";
 import BottomNavigation from "@/components/BottomNavigation";
@@ -235,9 +235,9 @@ function Router() {
       <Route path="/test-login">
         <TestLoginPage />
       </Route>
-      <Route path="/test-ace-step">
+      <Route path="/music-generate">
         <Layout>
-          <TestAceStepPage />
+          <MusicGeneratorPage />
         </Layout>
       </Route>
       <Route path="/shared/music/:id">
