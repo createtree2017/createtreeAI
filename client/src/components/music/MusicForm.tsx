@@ -249,122 +249,167 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>제목</FormLabel>
-                  <FormControl>
-                    <Input placeholder="음악 제목을 입력하세요" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="prompt"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>프롬프트</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="음악에 대한 설명을 입력하세요. (예: '아기를 위한 편안한 자장가', '태교에 좋은 피아노 멜로디')" 
-                      className="min-h-[120px]"
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <div className="flex justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={generatingLyrics}
-                onClick={handleGenerateLyrics}
-              >
-                {generatingLyrics && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                가사 생성하기
-              </Button>
-            </div>
-            
-            <FormField
-              control={form.control}
-              name="style"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>음악 스타일</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="음악 스타일을 선택하세요" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {musicStyles.map((style: string) => (
-                        <SelectItem key={style} value={style}>
-                          {musicStyleMap[style as keyof typeof musicStyleMap] || style}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            {isAdvancedMode && (
-              <>
+            <Tabs defaultValue="basic" className="w-full">
+              <TabsList className="grid grid-cols-3 mb-4">
+                <TabsTrigger value="basic">기본 정보</TabsTrigger>
+                <TabsTrigger value="lyrics">가사</TabsTrigger>
+                <TabsTrigger value="voice">음성 설정</TabsTrigger>
+              </TabsList>
+              
+              {/* 기본 정보 탭 */}
+              <TabsContent value="basic" className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="instrumental"
+                  name="title"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormItem>
+                      <FormLabel>제목</FormLabel>
                       <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
+                        <Input placeholder="음악 제목을 입력하세요" {...field} />
                       </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>
-                          반주만 생성 (가사 없음)
-                        </FormLabel>
-                      </div>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
                 
                 <FormField
                   control={form.control}
-                  name="translatePrompt"
+                  name="prompt"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormItem>
+                      <FormLabel>프롬프트</FormLabel>
                       <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
+                        <Textarea 
+                          placeholder="음악에 대한 설명을 입력하세요. (예: '아기를 위한 편안한 자장가', '태교에 좋은 피아노 멜로디')" 
+                          className="min-h-[120px]"
+                          {...field} 
                         />
                       </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>
-                          한국어 프롬프트 자동 번역
-                        </FormLabel>
-                      </div>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
-              </>
-            )}
+                
+                <FormField
+                  control={form.control}
+                  name="style"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>음악 스타일</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="음악 스타일을 선택하세요" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {musicStyles.map((style: string) => (
+                            <SelectItem key={style} value={style}>
+                              {musicStyleMap[style as keyof typeof musicStyleMap] || style}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </TabsContent>
+              
+              {/* 가사 탭 */}
+              <TabsContent value="lyrics" className="space-y-4">
+                <div className="flex justify-end mb-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={generatingLyrics}
+                    onClick={handleGenerateLyrics}
+                  >
+                    {generatingLyrics && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    프롬프트로 가사 생성
+                  </Button>
+                </div>
+                
+                <FormField
+                  control={form.control}
+                  name="lyrics"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>가사</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="가사를 입력하거나 위 버튼을 눌러 자동 생성하세요" 
+                          className="min-h-[200px]"
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                {isAdvancedMode && (
+                  <FormField
+                    control={form.control}
+                    name="useLyrics"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>
+                            가사 사용하기 (체크 해제시 반주만 생성)
+                          </FormLabel>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </TabsContent>
+              
+              {/* 음성 설정 탭 */}
+              <TabsContent value="voice" className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="voice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>목소리 선택</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="목소리를 선택하세요" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="female_kr">여성 목소리 (한국어)</SelectItem>
+                          <SelectItem value="male_kr">남성 목소리 (한국어)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="p-4 rounded-md bg-muted">
+                  <p className="text-sm">
+                    선택한 목소리로 가사를 노래합니다. 
+                    MusicGen과 Bark TTS를 조합하여 배경 음악과 음성을 합성합니다.
+                  </p>
+                </div>
+              </TabsContent>
+            </Tabs>
           </form>
         </Form>
       </CardContent>
