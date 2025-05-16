@@ -63,42 +63,42 @@ export default function Profile() {
     <div className="p-5 animate-fadeIn">
       {/* 헤더 */}
       <div className="text-center mb-6">
-        <h2 className="font-heading font-bold text-2xl mb-2">마이페이지</h2>
-        <p className="text-neutral-dark">나의 계정 정보</p>
+        <h2 className="text-2xl font-bold mb-2">마이페이지</h2>
+        <p className="text-neutral-600">나의 계정 정보</p>
       </div>
       
       {/* 프로필 정보 */}
-      <div className="bg-white p-6 rounded-lg shadow-softer border border-neutral-light mb-6">
+      <div className="bg-white p-6 rounded-2xl shadow-md border border-purple-100 mb-6">
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
-          <div className="w-20 h-20 bg-primary-light rounded-full flex items-center justify-center">
-            <UserAvatar className="w-10 h-10 text-primary" />
+          <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center">
+            <UserAvatar className="w-10 h-10 text-purple-600" />
           </div>
           <div className="flex-1 text-center md:text-left">
-            <h3 className="font-semibold text-xl">{user?.username || "사용자"}</h3>
-            <p className="text-sm text-neutral-dark mb-4">{user?.email || "이메일 정보 없음"}</p>
+            <h3 className="font-bold text-xl text-purple-800">{user?.username || "사용자"}</h3>
+            <p className="text-sm text-neutral-600 mb-4">{user?.email || "이메일 정보 없음"}</p>
             
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
-                <UserIcon className="w-4 h-4 text-primary" />
-                <span className="text-sm font-medium text-neutral-dark">계정 유형:</span>
-                <span className="text-sm">{user?.memberType ? MEMBER_TYPE_MAP[user.memberType] || user.memberType : "일반 사용자"}</span>
+                <UserIcon className="w-4 h-4 text-purple-600" />
+                <span className="text-sm font-medium text-purple-800">계정 유형:</span>
+                <span className="text-sm text-neutral-700">{user?.memberType ? MEMBER_TYPE_MAP[user.memberType] || user.memberType : "일반 사용자"}</span>
               </div>
               
               {user?.hospitalId && (
                 <>
                   <div className="flex items-center gap-2">
-                    <Building2 className="w-4 h-4 text-primary" />
-                    <span className="text-sm font-medium text-neutral-dark">소속 병원:</span>
-                    <span className="text-sm">
+                    <Building2 className="w-4 h-4 text-purple-600" />
+                    <span className="text-sm font-medium text-purple-800">소속 병원:</span>
+                    <span className="text-sm text-neutral-700">
                       {isLoadingHospital ? "로딩 중..." : (hospital?.name || `병원 ID ${user.hospitalId}`)}
                     </span>
                   </div>
                   
                   {hospital?.contractStartDate && (
                     <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-primary" />
-                      <span className="text-sm font-medium text-neutral-dark">계약 기간:</span>
-                      <span className="text-sm">
+                      <Calendar className="w-4 h-4 text-purple-600" />
+                      <span className="text-sm font-medium text-purple-800">계약 기간:</span>
+                      <span className="text-sm text-neutral-700">
                         {formatDate(hospital.contractStartDate)} ~ {formatDate(hospital.contractEndDate)}
                       </span>
                     </div>
@@ -107,9 +107,9 @@ export default function Profile() {
               )}
               
               <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-primary" />
-                <span className="text-sm font-medium text-neutral-dark">가입일:</span>
-                <span className="text-sm">
+                <Calendar className="w-4 h-4 text-purple-600" />
+                <span className="text-sm font-medium text-purple-800">가입일:</span>
+                <span className="text-sm text-neutral-700">
                   {user?.createdAt ? formatDate(user.createdAt) : "정보 없음"}
                 </span>
               </div>
@@ -119,19 +119,19 @@ export default function Profile() {
       </div>
 
       {/* 계정 관련 메뉴 */}
-      <div className="bg-white p-4 rounded-lg shadow-softer border border-neutral-light">
-        <h3 className="font-semibold text-lg mb-4 px-2">계정 관리</h3>
+      <div className="bg-white p-4 rounded-2xl shadow-md border border-purple-100">
+        <h3 className="font-bold text-lg mb-4 px-2 text-purple-800">계정 관리</h3>
         
-        <ul className="space-y-1">
-          <li className="hover:bg-neutral-lightest rounded-md transition-colors">
-            <Link to="/gallery" className="flex items-center gap-3 p-3">
-              <Download className="w-5 h-5 text-primary" />
-              <span>나의 갤러리</span>
+        <ul className="space-y-2">
+          <li>
+            <Link to="/gallery" className="flex items-center gap-3 p-3 bg-purple-50 hover:bg-purple-100 rounded-xl transition-colors">
+              <Download className="w-5 h-5 text-purple-600" />
+              <span className="text-purple-800">나의 갤러리</span>
             </Link>
           </li>
-          <li className="hover:bg-neutral-lightest rounded-md transition-colors">
-            <Button variant="ghost" className="w-full justify-start gap-3 p-3 h-auto font-normal">
-              <Settings className="w-5 h-5 text-primary" />
+          <li>
+            <Button variant="ghost" className="w-full justify-start gap-3 p-3 h-auto font-normal bg-purple-50 hover:bg-purple-100 rounded-xl text-purple-800">
+              <Settings className="w-5 h-5 text-purple-600" />
               <span>계정 설정</span>
             </Button>
           </li>
