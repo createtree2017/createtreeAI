@@ -71,14 +71,9 @@ router.post('/', upload.single('sampleFile'), async (req, res) => {
     const defaultAudio = await fs.readFile(defaultAudioPath);
     
     // 먼저 샘플 파일로 응답 (비동기 작업 시작 전)
-    // 파일명에 한글이 있을 수 있으므로 영문만 사용하여 인코딩 문제 방지
-    const safeFileName = `lullaby-${processId}.mp3`;
-    
-    res.set({
-      'Content-Type': 'audio/mpeg',
-      'Content-Disposition': `attachment; filename="${safeFileName}"`
-    });
-    
+    // 모든 헤더 문제 방지를 위해 간단한 응답만 보냄
+    res.setHeader('Content-Type', 'audio/mpeg');
+    // 헤더 설정 없이 파일만 전송
     res.send(defaultAudio);
     
     // 여기서 비동기 작업 시작 (응답 전송 후)
