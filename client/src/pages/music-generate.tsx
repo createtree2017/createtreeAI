@@ -28,7 +28,7 @@ const musicFormSchema = z.object({
   voice: z.string().min(1, '목소리를 선택해주세요'),
   duration: z.number().min(30).max(240),
   styleTags: z.array(z.string()).optional(),
-  translateToEnglish: z.boolean().default(true)
+  translateToEnglish: z.boolean().default(false)
 });
 
 type MusicFormValues = z.infer<typeof musicFormSchema>;
@@ -333,28 +333,7 @@ const MusicGeneratorPage: React.FC = () => {
                       )}
                     />
                     
-                    <FormField
-                      control={form.control}
-                      name="translateToEnglish"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                          <FormControl>
-                            <input
-                              type="checkbox"
-                              checked={field.value}
-                              onChange={field.onChange}
-                              className="mt-1"
-                            />
-                          </FormControl>
-                          <div className="space-y-1 leading-none">
-                            <FormLabel>영어로 번역</FormLabel>
-                            <FormDescription>
-                              한국어 가사를 영어로 번역하여 AI 음성 생성에 사용합니다.
-                            </FormDescription>
-                          </div>
-                        </FormItem>
-                      )}
-                    />
+
                   </TabsContent>
                   
                   {/* 설정 탭 */}
