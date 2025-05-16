@@ -35,7 +35,9 @@ import { AuthProvider, ProtectedRoute } from "@/lib/AuthProvider";
 import { HospitalProvider } from "@/lib/HospitalContext";
 import { ImageProcessingIndicator } from "@/components/ImageProcessingIndicator";
 import { MusicProcessingIndicator } from "@/components/MusicProcessingIndicator";
+import { MusicJobIndicator } from "@/components/MusicJobIndicator";
 import { MusicProcessingProvider } from "@/lib/MusicProcessingState";
+import { MusicJobProvider } from "@/lib/MusicJobContext";
 // 서비스 페이지 컴포넌트 가져오기
 import MaternityPhoto from "@/pages/maternity-photo";
 import FamilyPhoto from "@/pages/family-photo";
@@ -130,6 +132,7 @@ function Layout({ children }: { children: React.ReactNode }) {
           <header className="bg-card h-14 border-b border-border px-6 flex items-center justify-end gap-4">
             <ImageProcessingIndicator />
             <MusicProcessingIndicator />
+            <MusicJobIndicator />
             <ThemeToggle />
           </header>
           
@@ -189,6 +192,7 @@ function Layout({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-3">
               <ImageProcessingIndicator />
               <MusicProcessingIndicator />
+              <MusicJobIndicator />
               <ThemeToggle />
             </div>
           </div>
@@ -468,8 +472,10 @@ function App() {
           <AuthProvider>
             <HospitalProvider>
               <MusicProcessingProvider>
-                <Router />
-                <Toaster />
+                <MusicJobProvider>
+                  <Router />
+                  <Toaster />
+                </MusicJobProvider>
               </MusicProcessingProvider>
             </HospitalProvider>
           </AuthProvider>

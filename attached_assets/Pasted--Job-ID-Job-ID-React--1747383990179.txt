@@ -1,0 +1,239 @@
+음악 생성 요청 → 즉시 Job ID 반환 → 클라이언트는 Job ID만 가지고 전역 폴링 → 언제든 상태 조회
+
+입니다. 이렇게 하면 페이지 전환·탭 이동·리로딩 등 React 컴포넌트 라이프사이클과 완전히 분리되어, “다른 탭으로 넘어가도 멈추거나 초기화되지 않는” 구조가 만들어집니다.
+
+1. 서버: Job 기반 비동기 처리
+Job 큐 엔큐와 상태 조회 API
+
+POST /api/music → 파라미터 받고, 내부에서 비동기로 음악 생성 작업을 큐(메모리, Redis, DB 등)에 등록 → 곧바로 { jobId } 반환
+
+GET /api/music/:jobId/status → { state: "pending"|"processing"|"done"|"error", resultUrl? } 반환
+
+js
+복사
+편집
+// server/routes/music.js
+import express from "express";
+import * as musicQueue from "../services/musicQueue.js";
+const router = express.Router();
+
+// 1) 음악 생성 요청 → jobId 반환
+router.post("/", async (req, res, next) => {
+  try {
+    const jobId = await musicQueue.enqueue(req.body); 
+    res.json({ jobId });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// 2) job 상태 조회
+router.get("/:jobId/status", async (req, res, next) => {
+  try {
+    const status = await musicQueue.getStatus(req.params.jobId);
+    res.json(status);
+  } catch (e) {
+    next(e);
+  }
+});
+
+export default router;
+js
+복사
+편집
+// server/services/musicQueue.js
+// 예시: 간단한 메모리 큐 + Map으로 상태 관리
+const jobs = new Map();
+
+export async function enqueue(params) {
+  const jobId = String(Date.now()) + Math.random();
+  jobs.set(jobId, { state: "pending" });
+  // 실제 작업은 비동기 타이머나 별도 워커에서 수행
+  setImmediate(() => processJob(jobId, params));
+  return jobId;
+}
+
+async function processJob(jobId, { prompt }) {
+  jobs.set(jobId, { state: "processing" });
+  try {
+    // ▶︎ 여기에 실제 음악 생성 로직 호출 (OpenAI 등)
+    const resultUrl = await generateMusicAndStoreUrl(prompt);
+    jobs.set(jobId, { state: "done", resultUrl });
+  } catch (err) {
+    jobs.set(jobId, { state: "error" });
+  }
+}
+
+export function getStatus(jobId) {
+  return jobs.get(jobId) || { state: "error" };
+}
+2. 클라이언트: 전역 Context + 폴링
+MusicJobContext 작성
+
+jobId, status, resultUrl를 전역으로 관리
+
+startJob() 호출 시 POST /api/music → jobId 받고, 상태 "pending" 세팅
+
+useEffect 한 번만 실행되는 폴링으로 GET /api/music/:jobId/status 2초마다 호출
+
+jsx
+복사
+편집
+// client/src/lib/MusicJobContext.jsx
+import React, { createContext, useContext, useState, useEffect } from "react";
+import axios from "axios";
+
+const Ctx = createContext();
+export const useMusicJob = () => useContext(Ctx);
+
+export function MusicJobProvider({ children }) {
+  const [jobId, setJobId]     = useState(() => localStorage.getItem("musicJobId"));
+  const [status, setStatus]   = useState("idle");
+  const [resultUrl, setResultUrl] = useState(null);
+
+  // 1) 페이지 로드 시, 로컬스토리지에 남아있는 jobId가 있으면 폴링 시작
+  useEffect(() => {
+    if (!jobId) return;
+    setStatus("pending");
+    const timer = setInterval(async () => {
+      try {
+        const { data } = await axios.get(`/api/music/${jobId}/status`);
+        setStatus(data.state);
+        if (data.state === "done") {
+          setResultUrl(data.resultUrl);
+          clearInterval(timer);
+        }
+        if (data.state === "error") {
+          clearInterval(timer);
+        }
+      } catch {
+        clearInterval(timer);
+        setStatus("error");
+      }
+    }, 2000);
+    return () => clearInterval(timer);
+  }, [jobId]);
+
+  // 2) 새로 작업 시작
+  const startJob = async (params) => {
+    const { data } = await axios.post("/api/music", params);
+    localStorage.setItem("musicJobId", data.jobId);
+    setJobId(data.jobId);
+    setResultUrl(null);
+    setStatus("pending");
+  };
+
+  return (
+    <Ctx.Provider value={{ jobId, status, resultUrl, startJob }}>
+      {children}
+    </Ctx.Provider>
+  );
+}
+App 최상단에 Provider 래핑
+
+index.js 또는 App.jsx 에 MusicJobProvider 를 <BrowserRouter>보다 바깥에 위치시켜야, 어떤 페이지로 이동해도 살아남습니다.
+
+jsx
+복사
+편집
+// client/src/index.js
+import React from "react";
+import ReactDOM from "react-dom";
+import App from "./App";
+import { MusicJobProvider } from "./lib/MusicJobContext";
+
+ReactDOM.render(
+  <MusicJobProvider>
+    <App />
+  </MusicJobProvider>,
+  document.getElementById("root")
+);
+헤더나 공통 레이아웃에 상태 표시기 추가
+
+jsx
+복사
+편집
+// client/src/components/MusicIndicator.jsx
+import React from "react";
+import { useMusicJob } from "../lib/MusicJobContext";
+
+export default function MusicIndicator() {
+  const { status } = useMusicJob();
+  if (status === "idle" || status === "done") return null;
+  return <div className="indicator">🎵 음악 생성 중… ({status})</div>;
+}
+jsx
+복사
+편집
+// client/src/App.jsx
+import React from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import MusicIndicator from "./components/MusicIndicator";
+import MusicPage from "./pages/MusicPage";
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <MusicIndicator />   {/* 항상 화면 상단에 표시 */}
+      <Routes>
+        <Route path="/music" element={<MusicPage />} />
+        {/* ...other routes */}
+      </Routes>
+    </BrowserRouter>
+  );
+}
+음악 생성 페이지에서 Context 사용
+
+jsx
+복사
+편집
+// client/src/pages/MusicPage.jsx
+import React, { useState } from "react";
+import { useMusicJob } from "../lib/MusicJobContext";
+
+export default function MusicPage() {
+  const [prompt, setPrompt] = useState("");
+  const { status, resultUrl, startJob } = useMusicJob();
+
+  const onSubmit = e => {
+    e.preventDefault();
+    startJob({ prompt });
+  };
+
+  return (
+    <form onSubmit={onSubmit}>
+      <textarea
+        value={prompt}
+        onChange={e => setPrompt(e.target.value)}
+        placeholder="음악 생성 프롬프트"
+      />
+      <button disabled={status === "pending" || status === "processing"}>
+        생성 시작
+      </button>
+
+      {status === "processing" && <p>백그라운드에서 생성 중…</p>}
+      {status === "done" && <audio src={resultUrl} controls autoPlay />}
+      {status === "error" && <p>오류가 발생했습니다.</p>}
+    </form>
+  );
+}
+3. 체크포인트 & 디버깅
+Provider 위치 확인
+
+MusicJobProvider 가 라우터나 페이지 컴포넌트보다 윗단에 있어야 합니다.
+
+useEffect 의 의존성 배열
+
+빈 배열([])이 아닌 [jobId] 로 설정되어야, jobId가 바뀔 때마다 새 폴링이 시작됩니다.
+
+로컬 스토리지 초기화 여부
+
+localStorage.clear() 가 어디선가 호출되고 있지 않은지 확인
+
+React Router vs Next.js
+
+Next.js를 쓰신다면 _app.js 에 Provider를 래핑해야 하고, <Link> 컴포넌트를 써야 전체 페이지 리로드를 막습니다.
+
+Network 탭으로 폴링 확인
+
+탭 이동 후에도 2초 주기로 /api/music/:jobId/status 요청이 나가는지 브라우저 DevTools Network 탭에서 확인
