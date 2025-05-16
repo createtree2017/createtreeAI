@@ -299,6 +299,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/music-generate", musicGenerationRouter);
   console.log("MusicGen+Bark 통합 음악 생성 라우터가 등록되었습니다 (/api/music-generate/*)");
   
+  // 음악 파일 제공 전용 라우트 등록
+  app.use("/api/music-file", musicFileRoutes);
+  console.log("음악 파일 스트리밍 라우터가 등록되었습니다 (/api/music-file/*)");
+  
   // 통합 메뉴 API - 카테고리와 서비스 항목을 함께 제공
   app.get("/api/menu", async (req, res) => {
     try {

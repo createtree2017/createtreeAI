@@ -3,8 +3,7 @@
  * 이 라우트는 로그인 없이도 음악 파일에 접근할 수 있도록 합니다.
  */
 import express from 'express';
-import fs from 'fs/promises';
-import { createReadStream } from 'fs';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -35,16 +34,14 @@ router.get('/:filename', async (req, res) => {
       filePath = path.resolve(process.cwd(), 'uploads/music', filename);
     }
     
-    // 파일 존재 확인
-    try {
-      await fs.access(filePath);
-    } catch (error) {
-      console.error(`파일 접근 오류: ${filePath}`, error);
+    // 파일 존재 확인 (동기 방식으로 변경)
+    if (!fs.existsSync(filePath)) {
+      console.error(`파일 접근 오류: ${filePath}`);
       return res.status(404).json({ error: '파일을 찾을 수 없습니다.' });
     }
     
-    // 파일 정보 가져오기
-    const stat = await fs.stat(filePath);
+    // 파일 정보 가져오기 (동기 방식으로 변경)
+    const stat = fs.statSync(filePath);
     
     // 스트리밍을 위한 헤더 설정
     res.writeHead(200, {

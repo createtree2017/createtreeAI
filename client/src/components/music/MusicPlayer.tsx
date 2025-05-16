@@ -424,7 +424,12 @@ export default function FullMusicPlayer({
       </CardHeader>
       
       <CardContent>
-        <audio ref={audioRef} src={music.url} preload="metadata" crossOrigin="anonymous" />
+        <audio 
+          ref={audioRef} 
+          src={music.url.startsWith('/uploads/') ? `/api/music-file/${music.url.split('/').pop()}` : music.url} 
+          preload="metadata" 
+          crossOrigin="anonymous" 
+        />
         
         {/* Progress bar */}
         <div 
