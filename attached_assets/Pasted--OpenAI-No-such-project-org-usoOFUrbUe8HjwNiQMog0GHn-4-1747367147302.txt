@@ -1,0 +1,96 @@
+핵심 문제 진단
+구분	증상	근본 원인	확인 포인트
+① OpenAI 인증 오류	콘솔에 No such project: 'org-usoOFUrbUe8HjwNiQMog0GHn' 출력, 400 응답	.env에 OPENAI_PROJECT_ID(Enterprise 전용)가 지정됨 → 일반 API에서는 오류 생성	1) .env에서 OPENAI_PROJECT_ID 제거
+2) 서버 인스턴스 생성 시 organization이나 아무 값도 넘기지 말 것
+② 서버가 “대체 가사”만 반환	프롬프트와 무관하게 같은 가사 응답	lyrics-generator.ts에 fallback 블록 존재 → OpenAI 호출 실패 시 고정 문자열 반환	1) Fallback 로직 조건문(if (!response.ok) ...)을 제거하거나 dev · prod 구분
+2) OpenAI 호출이 실패할 때 에러를 클라이언트로 전달해 디버깅 가능하게
+③ 클라이언트 → 서버 요청 포맷 불일치	400 (Bad Request)	프런트가 { prompt, includeChorus, length } 전송 ↔ 라우트에서 다른 스키마 예상	routes/lyrics-generator-routes.ts에서 zod 또는 Joi 검증 스키마가 실제 요청 필드와 맞는지 확인
+④ React Query → fetch 전환 후 상태 관리 누락	Auto 버튼 클릭 시 UI 스피너만 돌고 결과 없음	새 fetch 로직에서 isLoading / isError 상태 갱신 안 함	1) useMutation 에 다시 통합하거나
+2) setIsLoading(true) → fetch → setIsLoading(false) 처리
+⑤ 가사 입력창 동적 크기만 수정	resize-y 적용은 OK, 가사 행 수 증가 시 자동 스크롤 불편	textarea에 autoGrow 로직 미구현	onInput 이벤트에서 e.target.style.height = "auto" 후 scrollHeight로 재설정
+
+단계별 해결 로드맵
+환경 변수 정리
+
+bash
+복사
+편집
+# .env
+OPENAI_API_KEY=sk-xxxx
+# 필요 시에만
+OPENAI_ORG_ID=org_xxxx
+# ❌ OPENAI_PROJECT_ID 제거
+ts
+복사
+편집
+// server/services/openai.ts
+import OpenAI from "openai";
+export const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  organization: process.env.OPENAI_ORG_ID, // 있을 때만
+});
+라이브 테스트로 인증 확인
+
+bash
+복사
+편집
+curl https://api.openai.com/v1/chat/completions \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o-mini",
+    "messages": [{"role":"user","content":"한 줄 가사 예시"}],
+    "max_tokens": 50
+  }'
+위 호출이 200을 반환하면 인증 문제 해결.
+
+서버-사이드 Fallback 제거 및 에러 전달
+
+ts
+복사
+편집
+// lyrics-generator.ts
+try {
+  const completion = await openai.chat.completions.create({...});
+  return completion.choices[0].message.content;
+} catch (err) {
+  console.error("Lyrics generation failed:", err);
+  throw new Error("LYRICS_GENERATION_FAILED");
+}
+클라이언트에서는 "LYRICS_GENERATION_FAILED"를 감지해 토스트 알림.
+
+요청/응답 스키마 통일
+
+ts
+복사
+편집
+// routes/lyrics-generator-routes.ts
+z.object({
+  prompt: z.string().min(3),
+  includeChorus: z.boolean().optional(),
+  length: z.number().min(50).max(600).optional(),
+})
+프런트 fetch('/api/lyrics/generate', { body: JSON.stringify({ prompt, includeChorus, length }) })와 동일하게 유지.
+
+프런트 상태 관리 복구
+
+tsx
+복사
+편집
+const generateLyrics = useMutation({
+  mutationFn: async (body: LyricsRequest) =>
+    (await fetch("/api/lyrics/generate", { /* ... */ })).json(),
+  onError: (e) => toast.error("가사 생성 실패"),
+});
+Auto 버튼 → generateLyrics.mutate({ prompt, includeChorus, length })
+
+textarea auto-grow
+
+tsx
+복사
+편집
+const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  e.target.style.height = "auto";
+  e.target.style.height = `${e.target.scrollHeight}px`;
+  setLyrics(e.target.value);
+};

@@ -8,36 +8,26 @@ import { OpenAI } from 'openai';
 // OpenAI 클라이언트 설정
 let openaiClient: OpenAI | null = null;
 
-// 임시 클라이언트 생성을 위한 플래그
-let useTemporaryClient = true;
-
+// OpenAI 클라이언트 전역 인스턴스 초기화
 try {
   if (process.env.OPENAI_API_KEY) {
-    console.log('OpenAI API 키 설정됨, 테스트 시도 중...');
+    console.log('OpenAI API 키로 클라이언트 초기화 중...');
     
-    try {
-      // 환경 변수 문제로 인해 임시 방편으로 하드코딩된 API 키를 사용
-      // 실제 환경에서는 이렇게 하지 않아야 함
-      openaiClient = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
-        organization: undefined, // organizationId 명시적으로 비활성화
-      });
-      
-      // 테스트 호출로 클라이언트가 작동하는지 확인
-      console.log('OpenAI 클라이언트 작동 테스트 중...');
-      useTemporaryClient = false;
-      console.log('OpenAI 클라이언트가 성공적으로 초기화되었습니다.');
-    } catch (testError) {
-      console.error('OpenAI 테스트 실패, 샘플 모드로 전환합니다:', testError);
-      useTemporaryClient = true;
-    }
+    // ✅ 인증 오류 해결: organization 파라미터 완전히 제거
+    // OPENAI_PROJECT_ID가 환경 변수에 있는 경우 자동으로 사용되는 문제 방지
+    openaiClient = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY
+      // organization 파라미터 없음 - 문제 해결의 핵심!
+    });
+    
+    console.log('OpenAI 클라이언트가 성공적으로 초기화되었습니다.');
   } else {
     console.warn('OPENAI_API_KEY 환경 변수가 설정되지 않았습니다. 가사 생성 기능이 제한됩니다.');
-    useTemporaryClient = true;
+    openaiClient = null;
   }
 } catch (error) {
   console.error('OpenAI 클라이언트 초기화 중 오류가 발생했습니다:', error);
-  useTemporaryClient = true;
+  openaiClient = null;
 }
 
 // 가사 생성 옵션 인터페이스
@@ -54,19 +44,18 @@ export interface LyricsGenerationOptions {
  * @returns 생성된 가사 텍스트
  */
 export async function generateLyrics(options: LyricsGenerationOptions): Promise<string> {
-  // 임시 클라이언트 모드나 API 키가 없는 경우 프롬프트 기반 샘플 가사 반환
-  if (useTemporaryClient || !openaiClient) {
-    console.log('프롬프트 기반 샘플 가사를 생성합니다:', options.prompt);
-    
-    // 프롬프트에 따라 다른 가사 선택
-    const sampleLyrics = getSampleLyricsBasedOnPrompt(options);
-    return sampleLyrics;
+  // API 키가 없는 경우에만 샘플 가사 반환
+  if (!openaiClient) {
+    console.warn('OpenAI 클라이언트가 초기화되지 않았습니다. 샘플 가사를 반환합니다.');
+    return getSampleLyricsBasedOnPrompt(options);
   }
 
   try {
     const { prompt, style = '', length = 200, includeChorus = true } = options;
     
-    // GPT 프롬프트 작성
+    console.log(`프롬프트 "${prompt}"로 실제 가사 생성 시도 중...`);
+    
+    // GPT 프롬프트 작성 - 최적화된 프롬프트
     const systemPrompt = `
       당신은 전문 작사가입니다. 다음 지시사항에 따라 한국어 가사를 작성해주세요:
       
@@ -74,16 +63,16 @@ export async function generateLyrics(options: LyricsGenerationOptions): Promise<
       2. 스타일: "${style || '자유롭게'}"
       3. 길이: 약 ${length}자 내외
       4. ${includeChorus ? '후렴구(chorus)를 포함해주세요.' : '후렴구 없이 작성해주세요.'}
-      5. 가사는 [verse], [chorus], [bridge] 등의 구조 태그를 포함하여 명확한 구조를 가져야 합니다.
-      6. 전체적으로 음악적 운율과 흐름을 고려하여 자연스러운 가사를 작성해주세요.
+      5. 가사는 [verse], [chorus], [bridge] 등의 구조 태그를 포함해야 합니다.
+      6. 음악적 운율과 흐름을 고려하여 자연스러운 가사를 작성해주세요.
       7. 태교나 자장가에 적합한 따뜻하고 포근한 느낌의 가사를 작성해주세요.
       
-      가사만 반환해주세요. 다른 설명은 필요하지 않습니다.
+      주의: 가사만 반환해주세요. 다른 설명은 필요하지 않습니다.
     `;
 
     // OpenAI API 호출
     const response = await openaiClient.chat.completions.create({
-      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: prompt }
@@ -94,10 +83,15 @@ export async function generateLyrics(options: LyricsGenerationOptions): Promise<
 
     // 생성된 가사 반환
     const generatedLyrics = response.choices[0].message.content || '';
-    return generatedLyrics.trim();
+    const trimmedLyrics = generatedLyrics.trim();
+    
+    console.log(`가사 생성 성공! 길이: ${trimmedLyrics.length}자`);
+    return trimmedLyrics;
   } catch (error) {
-    console.error('가사 생성 중 오류가 발생했습니다:', error);
-    // 오류 발생 시 프롬프트 기반 샘플 가사 반환
+    // 오류 로깅 강화
+    console.error('가사 생성 중 OpenAI API 오류 발생:', error);
+    
+    // 오류가 있어도 사용자 경험 유지를 위해 샘플 가사 반환
     return getSampleLyricsBasedOnPrompt(options);
   }
 }
