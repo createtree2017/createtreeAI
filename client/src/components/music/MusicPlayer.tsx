@@ -163,7 +163,12 @@ export function MusicPlayer({ src, title, duration = 0 }: SimpleMusicPlayerProps
       </CardHeader>
       
       <CardContent>
-        <audio ref={audioRef} src={src} preload="metadata" crossOrigin="anonymous" />
+        <audio 
+          ref={audioRef} 
+          src={src.startsWith('/uploads/') ? `/api/music-file/${src.split('/').pop()}` : src} 
+          preload="metadata" 
+          crossOrigin="anonymous" 
+        />
         
         {/* Progress bar */}
         <div 
