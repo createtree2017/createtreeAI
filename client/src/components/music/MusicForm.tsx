@@ -304,8 +304,23 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
       
       console.log('음악 생성 요청 데이터:', Object.fromEntries(formData.entries()));
       
+      // 세션 스토리지에 음악 생성 중임을 저장 (페이지 이동 후에도 상태 유지)
+      const musicRequestId = Date.now().toString();
+      const musicRequest = {
+        id: musicRequestId,
+        title: values.title || "새로운 음악",
+        status: "generating",
+        timestamp: new Date().toISOString(),
+        duration: values.duration
+      };
+      
+      // 세션 스토리지에 진행 중인 음악 생성 요청 저장
+      const pendingRequests = JSON.parse(sessionStorage.getItem('pendingMusicRequests') || '[]');
+      pendingRequests.push(musicRequest);
+      sessionStorage.setItem('pendingMusicRequests', JSON.stringify(pendingRequests));
+      
       // 음악 생성 API 호출
-      // 서버에서 제공하는 라우트를 사용
+      // 서버에서 제공하는 라우트를 사용 - 비동기 처리 방식으로 변경됨
       const res = await fetch('/api/music-generate', {
         method: 'POST',
         body: formData,
@@ -314,15 +329,24 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
       if (!res.ok) {
         const errorData = await res.text();
         console.error('음악 생성 응답 오류:', errorData);
+        
+        // 세션 스토리지에서 실패한 요청 상태 업데이트
+        updatePendingMusicRequestStatus(musicRequestId, "failed");
+        
         throw new Error(errorData || "음악 생성에 실패했습니다.");
       }
       
       // 바이너리 데이터로 받기
-      return await res.blob();
+      const blob = await res.blob();
+      
+      // 세션 스토리지에서 성공한 요청 상태 업데이트
+      updatePendingMusicRequestStatus(musicRequestId, "completed");
+      
+      return { blob, musicRequestId };
     },
-    onSuccess: (blob) => {
+    onSuccess: (data) => {
       // Blob URL 생성
-      const audioUrl = URL.createObjectURL(blob);
+      const audioUrl = URL.createObjectURL(data.blob);
       console.log("음악 생성 완료, URL:", audioUrl);
       
       toast({
@@ -349,6 +373,19 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
       });
     }
   });
+  
+  // 세션 스토리지의 음악 생성 요청 상태 업데이트 헬퍼 함수
+  const updatePendingMusicRequestStatus = (requestId: string, status: "generating" | "completed" | "failed") => {
+    try {
+      const pendingRequests = JSON.parse(sessionStorage.getItem('pendingMusicRequests') || '[]');
+      const updatedRequests = pendingRequests.map((req: any) => 
+        req.id === requestId ? { ...req, status } : req
+      );
+      sessionStorage.setItem('pendingMusicRequests', JSON.stringify(updatedRequests));
+    } catch (e) {
+      console.error("세션 스토리지 업데이트 오류:", e);
+    }
+  };
   
   // 가사 생성 핸들러
   const handleGenerateLyrics = () => {
