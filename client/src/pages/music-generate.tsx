@@ -48,6 +48,7 @@ const MusicGeneratorPage: React.FC = () => {
   const [generatedAudio, setGeneratedAudio] = useState<string | null>(null);
   const [selectedStyle, setSelectedStyle] = useState<string>('lullaby');
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isGeneratingLyrics, setIsGeneratingLyrics] = useState(false);
   const audioRef = React.useRef<HTMLAudioElement>(null);
 
   // 음성 목록 가져오기
@@ -139,6 +140,69 @@ const MusicGeneratorPage: React.FC = () => {
     setIsPlaying(false);
   };
 
+  // 가사 생성 기능 추가
+  const generateLyricsMutation = useMutation({
+    mutationFn: async () => {
+      const prompt = form.getValues('prompt');
+      
+      if (!prompt || prompt.length < 3) {
+        throw new Error('음악 설명을 3자 이상 입력해주세요');
+      }
+      
+      const style = availableStyles.find(s => s.id === selectedStyle);
+      
+      try {
+        const response = await fetch('/api/lyrics/generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            prompt,
+            style: style?.name || '',
+            includeChorus: true
+          })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || '가사 생성 중 오류가 발생했습니다');
+        }
+        
+        return response.json();
+      } catch (error) {
+        console.error('가사 생성 요청 중 오류:', error);
+        throw error;
+      }
+    },
+    onSuccess: (data) => {
+      if (data.lyrics) {
+        form.setValue('lyrics', data.lyrics);
+        toast({
+          title: '가사 생성 완료',
+          description: '프롬프트를 기반으로 가사가 생성되었습니다.'
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        variant: 'destructive',
+        title: '가사 생성 실패',
+        description: error.message || '가사 생성 중 오류가 발생했습니다.'
+      });
+    }
+  });
+  
+  // 가사 생성 처리
+  const handleGenerateLyrics = () => {
+    setIsGeneratingLyrics(true);
+    generateLyricsMutation.mutate(undefined, {
+      onSettled: () => {
+        setIsGeneratingLyrics(false);
+      }
+    });
+  };
+
   // 스타일 선택 처리
   const handleStyleSelect = (styleId: string) => {
     setSelectedStyle(styleId);
@@ -225,7 +289,29 @@ const MusicGeneratorPage: React.FC = () => {
                       name="lyrics"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>가사</FormLabel>
+                          <div className="flex justify-between items-center">
+                            <FormLabel>가사</FormLabel>
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              size="sm"
+                              onClick={handleGenerateLyrics}
+                              disabled={isGeneratingLyrics || !form.getValues('prompt')}
+                              className="mb-2"
+                            >
+                              {isGeneratingLyrics ? (
+                                <>
+                                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                                  가사 생성 중...
+                                </>
+                              ) : (
+                                <>
+                                  <Mic className="mr-2 h-3 w-3" />
+                                  프롬프트로 가사 생성
+                                </>
+                              )}
+                            </Button>
+                          </div>
                           <FormControl>
                             <Textarea
                               placeholder="[verse]
@@ -239,7 +325,8 @@ const MusicGeneratorPage: React.FC = () => {
                             />
                           </FormControl>
                           <FormDescription>
-                            [verse], [chorus] 등의 태그를 사용하여 가사 구조를 명시할 수 있습니다.
+                            <p>위 '프롬프트로 가사 생성' 버튼을 클릭하면 음악 설명을 기반으로 가사를 자동으로 생성합니다.</p>
+                            <p>[verse], [chorus] 등의 태그를 사용하여 가사 구조를 명시할 수 있습니다.</p>
                           </FormDescription>
                           <FormMessage />
                         </FormItem>

@@ -9,6 +9,7 @@ import 'express-session';
 import { authMiddleware } from "./common/middleware/auth";
 import { DevHistoryManager } from "./services/dev-history-manager";
 import musicGenerationRouter from "./routes/music-generation-routes";
+import lyricsGeneratorRouter from "./routes/lyrics-generator-routes";
 
 // Express session 타입 확장
 declare module 'express-session' {
@@ -285,6 +286,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 새로운 음악 생성 API 라우트 등록 (MusicGen + Bark)
   app.use("/api/music-generation", musicGenerationRouter);
   console.log("새로운 음악 생성 라우터가 등록되었습니다 (/api/music-generation/*)");
+  
+  // 가사 생성 API 라우트 등록
+  app.use("/api/lyrics", lyricsGeneratorRouter);
+  console.log("가사 생성 라우터가 등록되었습니다 (/api/lyrics/*)");
   
   // 통합 메뉴 API - 카테고리와 서비스 항목을 함께 제공
   app.get("/api/menu", async (req, res) => {
