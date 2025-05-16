@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
-import Music from "@/pages/music-new";
+import Music from "@/pages/music";
 import Image from "@/pages/image";
 import Chat from "@/pages/chat";
 import Gallery from "@/pages/gallery-simplified";
@@ -21,10 +21,9 @@ import TestFirebase from "@/pages/test-firebase";
 import FirebaseTestPage from "@/pages/firebase-test";
 import TestAuthPage from "@/pages/test-auth-page"; 
 import TestLoginPage from "@/pages/test-login";
-import MusicGeneratorPage from "@/pages/music-generate"; 
+import TestAceStepPage from "@/pages/test-ace-step"; 
 import HospitalsPage from "@/pages/super/HospitalsPage";
 import UsersPage from "@/pages/super/UsersPage";
-import ClearStorage from "@/pages/ClearStorage";
 import BottomNavigation from "@/components/BottomNavigation";
 import Sidebar from "@/components/Sidebar";
 import { SuperAdminLayout } from "@/components/SuperAdminLayout";
@@ -35,10 +34,6 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { AuthProvider, ProtectedRoute } from "@/lib/AuthProvider";
 import { HospitalProvider } from "@/lib/HospitalContext";
 import { ImageProcessingIndicator } from "@/components/ImageProcessingIndicator";
-import { MusicProcessingIndicator } from "@/components/MusicProcessingIndicator";
-import { MusicJobIndicator } from "@/components/MusicJobIndicator";
-import { MusicProcessingProvider } from "@/lib/MusicProcessingState";
-import { MusicJobProvider } from "@/lib/MusicJobContext";
 // 서비스 페이지 컴포넌트 가져오기
 import MaternityPhoto from "@/pages/maternity-photo";
 import FamilyPhoto from "@/pages/family-photo";
@@ -132,8 +127,6 @@ function Layout({ children }: { children: React.ReactNode }) {
           {/* 데스크톱 헤더 추가 - 테마 토글 포함 */}
           <header className="bg-card h-14 border-b border-border px-6 flex items-center justify-end gap-4">
             <ImageProcessingIndicator />
-            <MusicProcessingIndicator />
-            <MusicJobIndicator />
             <ThemeToggle />
           </header>
           
@@ -192,8 +185,6 @@ function Layout({ children }: { children: React.ReactNode }) {
             {/* 상태 표시기 및 테마 토글 */}
             <div className="flex items-center gap-3">
               <ImageProcessingIndicator />
-              <MusicProcessingIndicator />
-              <MusicJobIndicator />
               <ThemeToggle />
             </div>
           </div>
@@ -244,9 +235,9 @@ function Router() {
       <Route path="/test-login">
         <TestLoginPage />
       </Route>
-      <Route path="/music-generate">
+      <Route path="/test-ace-step">
         <Layout>
-          <MusicGeneratorPage />
+          <TestAceStepPage />
         </Layout>
       </Route>
       <Route path="/shared/music/:id">
@@ -295,12 +286,6 @@ function Router() {
             <Chat />
           </Layout>
         </ProtectedRoute>
-      </Route>
-      
-      <Route path="/clear-storage">
-        <Layout>
-          <ClearStorage />
-        </Layout>
       </Route>
       
       <Route path="/gallery">
@@ -478,12 +463,8 @@ function App() {
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <HospitalProvider>
-              <MusicProcessingProvider>
-                <MusicJobProvider>
-                  <Router />
-                  <Toaster />
-                </MusicJobProvider>
-              </MusicProcessingProvider>
+              <Router />
+              <Toaster />
             </HospitalProvider>
           </AuthProvider>
         </QueryClientProvider>

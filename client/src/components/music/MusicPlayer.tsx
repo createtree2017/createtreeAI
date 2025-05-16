@@ -163,12 +163,7 @@ export function MusicPlayer({ src, title, duration = 0 }: SimpleMusicPlayerProps
       </CardHeader>
       
       <CardContent>
-        <audio 
-          ref={audioRef} 
-          src={src.startsWith('/uploads/') ? `/api/music-file/${src.split('/').pop()}` : src} 
-          preload="metadata" 
-          crossOrigin="anonymous" 
-        />
+        <audio ref={audioRef} src={src} preload="metadata" />
         
         {/* Progress bar */}
         <div 
@@ -251,31 +246,15 @@ export default function FullMusicPlayer({
   // Reset when music changes
   useEffect(() => {
     setCurrentTime(0);
-    setIsPlaying(false); // 초기화 시 항상 일시 정지 상태로
+    setIsPlaying(autoPlay);
     
-    // 음악 URL이 변경될 때 audio 요소 로드
     if (audioRef.current) {
-      const audioUrl = music.url.startsWith('/uploads/') 
-        ? `/api/music-file/${music.url.split('/').pop()}` 
-        : music.url;
-      
-      console.log("음악 URL 설정:", audioUrl);
-      audioRef.current.src = audioUrl;
-      audioRef.current.load(); // 명시적으로 로드
-
-      // 로드 완료 후 자동 재생 (설정된 경우)
-      const handleLoaded = () => {
-        if (autoPlay) {
-          audioRef.current?.play().catch(err => {
-            console.error("자동 재생 실패:", err);
-          });
-        }
-      };
-
-      audioRef.current.addEventListener('loadeddata', handleLoaded);
-      return () => {
-        audioRef.current?.removeEventListener('loadeddata', handleLoaded);
-      };
+      if (autoPlay) {
+        audioRef.current.play().catch(err => {
+          console.error("자동 재생 실패:", err);
+          setIsPlaying(false);
+        });
+      }
     }
   }, [music.url, autoPlay]);
   
@@ -445,11 +424,7 @@ export default function FullMusicPlayer({
       </CardHeader>
       
       <CardContent>
-        <audio 
-          ref={audioRef} 
-          preload="metadata" 
-          crossOrigin="anonymous" 
-        />
+        <audio ref={audioRef} src={music.url} preload="metadata" />
         
         {/* Progress bar */}
         <div 

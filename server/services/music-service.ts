@@ -222,139 +222,27 @@ export async function generateMusicWithAceStep(input: AceStepInput): Promise<str
         // 입력 데이터 객체 생성 (tags, lyrics만 포함하는 기본 형태)
         // 원본 테스트 파일에서 확인한 정확한 호출 방식 사용
         // 정확한 형식: { input: { tags, lyrics, duration, [기타 선택적 매개변수] } }
-        // Replicate API 형식에 맞게 가장 기본적인 파라미터만 사용
-        // 키 이름 정확히 확인 - tags가 아닌 prompt일 수 있음
-        console.log("===== Replicate API 호출 직전 최종 input 객체 상세 =====");
-        
-        // 방법 1: tags → prompt로 키 이름 변경 테스트
-        const simplifiedInput1 = {
-          prompt: input.tags,  // tags 대신 prompt 키 사용
+        // 대표님 예제 기반으로 심플하게 파라미터 구성
+        // 핵심 필수 파라미터만 포함한 객체 생성
+        const simplifiedInput = {
+          tags: input.tags,
           lyrics: input.lyrics,
           duration: input.duration
         };
         
-        console.log("방법 1 (prompt 키 사용):");
-        console.log(`  prompt: ${JSON.stringify(simplifiedInput1.prompt)} (타입: ${typeof simplifiedInput1.prompt})`);
-        console.log(`  lyrics: ${JSON.stringify(simplifiedInput1.lyrics)} (타입: ${typeof simplifiedInput1.lyrics})`);
-        console.log(`  duration: ${JSON.stringify(simplifiedInput1.duration)} (타입: ${typeof simplifiedInput1.duration})`);
+        console.log("===== 심플 입력으로 API 호출 테스트 =====");
+        console.log("단순화된 입력 데이터:", JSON.stringify(simplifiedInput, null, 2));
         
-        try {
-          console.log("===== Replicate API 호출 시도 (방법 1) =====");
-          // 대표님 예제 방식과 동일하게 단순화된 입력만 사용
-          // 응답 객체 전체 캡처하여 자세한 오류 정보 확인
-          try {
-            // 오류 응답을 더 상세히 캡처하기 위해 저수준 fetch 직접 사용
-            const url = 'https://api.replicate.com/v1/predictions';
-            const headers = {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${process.env.REPLICATE_API_TOKEN}`
-            };
-            
-            // 간단화된 요청 데이터
-            const requestData = {
-              // 표준 Replicate API 형식을 따름
-              version: "280fc4f9ee507577f880a167f639c02622421d8fecf492454320311217b688f1",
-              input: {
-                tags: "electronic, uplifting, cinematic, 120 BPM",
-                lyrics: "[verse]\nTest lyrics here\nSimple test\n[chorus]\nThis is a test",
-                duration: 30
-              }
-            };
-            
-            console.log("직접 호출 요청 데이터:", JSON.stringify(requestData, null, 2));
-            
-            const response = await fetch(url, {
-              method: 'POST',
-              headers: headers,
-              body: JSON.stringify(requestData)
-            });
-            
-            const responseData = await response.json();
-            console.log("API 응답 상태:", response.status, response.statusText);
-            console.log("API 응답 데이터:", JSON.stringify(responseData, null, 2));
-            
-            if (response.ok) {
-              // 성공 시 URL 결과값 추출
-              if (responseData.output && typeof responseData.output === 'string') {
-                output = responseData.output;
-              } else {
-                output = responseData;
-              }
-            } else {
-              throw new Error(`API 오류: ${response.status} ${response.statusText} - ${JSON.stringify(responseData)}`);
-            }
-          } catch (directError) {
-            console.error("직접 API 호출 실패:", directError);
-            
-            // 기존 방식으로 다시 시도
-            output = await replicate.run(
-              "lucataco/ace-step:280fc4f9ee507577f880a167f639c02622421d8fecf492454320311217b688f1", 
-              { input: simplifiedInput1 }
-            );
-          }
-          
-          console.log("===== Replicate API 응답 성공 (방법 1) =====");
-          console.log("ACE-Step API 응답:", JSON.stringify(output, null, 2));
-          console.log("응답 타입:", typeof output);
-          
-          if (output) {
-            break; // 성공하면 반복 중단
-          } else {
-            throw new Error("API 응답이 비어 있습니다.");
-          }
-        } catch (error) {
-          console.error("방법 1 실패:", error);
-          
-          // 방법 1이 실패하면 방법 2 시도 (원래 방식)
-          const simplifiedInput2 = {
-            tags: input.tags,
-            lyrics: input.lyrics,
-            duration: input.duration
-          };
-          
-          console.log("방법 2 (tags 키 사용):");
-          console.log(`  tags: ${JSON.stringify(simplifiedInput2.tags)} (타입: ${typeof simplifiedInput2.tags})`);
-          console.log(`  lyrics: ${JSON.stringify(simplifiedInput2.lyrics)} (타입: ${typeof simplifiedInput2.lyrics})`);
-          console.log(`  duration: ${JSON.stringify(simplifiedInput2.duration)} (타입: ${typeof simplifiedInput2.duration})`);
-          
-          try {
-            console.log("===== Replicate API 호출 시도 (방법 2) =====");
-            
-            // 모델 직접 호출로 수정 - Replicate의 문서 형식대로
-            const model = "lucataco/ace-step";
-            const version = "280fc4f9ee507577f880a167f639c02622421d8fecf492454320311217b688f1";
-            
-            // 매우 기본적인 입력값만 사용 (lyrics는 매우 짧게)
-            const basicInput = {
-              tags: "electronic music, simple test",
-              lyrics: "[verse]\nSimple test\n[chorus]\nTest",
-              duration: 10
-            };
-            
-            console.log("기본 입력으로 시도:", JSON.stringify(basicInput, null, 2));
-            
-            output = await replicate.run(
-              `${model}:${version}`, 
-              { input: basicInput }
-            );
-            
-            console.log("===== Replicate API 응답 성공 (방법 2) =====");
-            console.log("ACE-Step API 응답:", JSON.stringify(output, null, 2));
-            console.log("응답 타입:", typeof output);
-            
-            if (output) {
-              break; // 성공하면 반복 중단
-            } else {
-              throw new Error("API 응답이 비어 있습니다.");
-            }
-          } catch (secondError) {
-            console.error("방법 2 실패:", secondError);
-            // 두 방법 모두 실패하면 원래 오류 전파
-            throw error;
-          }
-        }
+        // 정확한 모델 해시 값으로 수정
+        // 대표님 예제 방식과 동일하게 단순화된 입력만 사용
+        output = await replicate.run(
+          "lucataco/ace-step:280fc4f9ee507577f880a167f639c02622421d8fecf492454320311217b688f1", 
+          { input: simplifiedInput }
+        );
         
-        // 중복 로그 제거 (이미 위에서 출력함)
+        console.log("===== Replicate API 응답 성공 =====");
+        
+        console.log("ACE-Step API 응답:", JSON.stringify(output, null, 2));
         break; // 성공하면 반복 중단
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));

@@ -224,76 +224,7 @@ export const api = {
     console.log(`API 클라이언트: 이미지 상세 정보 조회 요청 (ID: ${imageId})`);
     return getApi(`/api/image/${imageId}`);
   },
-  generateMusic: (data: any) => {
-    // FormData 생성
-    const formData = new FormData();
-    
-    // 데이터를 FormData에 추가
-    for (const key in data) {
-      if (data[key] !== undefined && data[key] !== null) {
-        formData.append(key, data[key]);
-      }
-    }
-    
-    // 세션 스토리지에 진행 중인 작업 정보 저장 (페이지 이동 후에도 유지)
-    const musicId = `music_${Date.now()}`;
-    sessionStorage.setItem('current_music_request', JSON.stringify({
-      id: musicId,
-      data: data,
-      status: 'pending',
-      startTime: new Date().toISOString()
-    }));
-    
-    // 백그라운드 생성을 위해 업데이트된 엔드포인트 사용
-    return fetch('/api/music-generate', {
-      method: 'POST',
-      body: formData,
-    }).then(response => {
-      if (!response.ok) {
-        // 오류 상태 저장
-        sessionStorage.setItem('current_music_request', JSON.stringify({
-          id: musicId,
-          data: data,
-          status: 'error',
-          error: '음악 생성에 실패했습니다',
-          endTime: new Date().toISOString()
-        }));
-        throw new Error('음악 생성에 실패했습니다');
-      }
-      
-      return response.blob().then(blob => {
-        // 성공 상태 저장
-        const musicItem = {
-          url: URL.createObjectURL(blob),
-          id: Date.now(),
-          title: data.babyName || '새 음악',
-          duration: Number(data.duration) || 60,
-          style: data.musicStyle || 'lullaby',
-          createdAt: new Date().toISOString()
-        };
-        
-        sessionStorage.setItem('current_music_request', JSON.stringify({
-          id: musicId,
-          data: data,
-          status: 'completed',
-          result: musicItem,
-          endTime: new Date().toISOString()
-        }));
-        
-        return musicItem;
-      });
-    }).catch(error => {
-      // 오류 상태 저장
-      sessionStorage.setItem('current_music_request', JSON.stringify({
-        id: musicId,
-        data: data,
-        status: 'error',
-        error: error.message || '음악 생성에 실패했습니다',
-        endTime: new Date().toISOString()
-      }));
-      throw error;
-    });
-  },
+  generateMusic: (data: any) => postApi('/api/music/generate', data),
   getMusicList: (filter = '') => getApi(`/api/music${filter ? `?filter=${filter}` : ''}`),
   shareMedia: (mediaId: number, mediaType: string) => postApi('/api/share', { mediaId, mediaType }),
   toggleImageSharing: (imageId: number) => postApi(`/api/image/${imageId}/toggle-sharing`, {}),

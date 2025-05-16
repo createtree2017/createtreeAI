@@ -8,8 +8,7 @@ import fs from "fs";
 import 'express-session';
 import { authMiddleware } from "./common/middleware/auth";
 import { DevHistoryManager } from "./services/dev-history-manager";
-import musicGenerationRouter from "./routes/music-generation-routes";
-import lyricsGeneratorRouter from "./routes/lyrics-generator-routes";
+import testAceStepRouter from "./routes/test-ace-step-routes";
 
 // Express session 타입 확장
 declare module 'express-session' {
@@ -42,7 +41,6 @@ import { exportChatHistoryAsHtml, exportChatHistoryAsText } from "./services/exp
 import { exportDevChatAsHtml, exportDevChatAsText } from "./services/dev-chat-export";
 import { AutoChatSaver } from "./services/auto-chat-saver";
 import superAdminRoutes from './routes/superAdmin';
-import musicFileRoutes from './routes/music-file-routes';
 import { 
   music, 
   images, 
@@ -98,13 +96,10 @@ const upload = multer({
   storage: storage2,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   fileFilter: (req, file, cb) => {
-    // 더 많은 이미지 형식 허용
-    const allowedTypes = ["image/jpeg", "image/png", "image/heic", "image/webp", "image/gif", "image/svg+xml", "image/bmp", "image/tiff"];
+    const allowedTypes = ["image/jpeg", "image/png", "image/heic"];
     if (!allowedTypes.includes(file.mimetype)) {
-      console.log(`업로드 거부된 파일 형식: ${file.mimetype}, 파일명: ${file.originalname}`);
-      return cb(new Error("허용되는 이미지 형식: JPEG, PNG, HEIC, WEBP, GIF, SVG, BMP, TIFF"));
+      return cb(new Error("Only JPEG, PNG, and HEIC images are allowed"));
     }
-    console.log(`업로드 수락된 파일: ${file.originalname} (${file.mimetype})`);
     cb(null, true);
   },
 });
@@ -287,21 +282,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // OpenAI API 테스트 라우트 등록
   app.use("/api/test-openai", testOpenAIRouter);
   
-  // 새로운 음악 생성 API 라우트 등록 (MusicGen + Bark)
-  app.use("/api/music-generation", musicGenerationRouter);
-  console.log("새로운 음악 생성 라우터가 등록되었습니다 (/api/music-generation/*)");
-  
-  // 가사 생성 API 라우트 등록
-  app.use("/api/lyrics", lyricsGeneratorRouter);
-  console.log("가사 생성 라우터가 등록되었습니다 (/api/lyrics/*)");
-  
-  // MusicGen 기반 음악 생성 API 라우트 등록
-  app.use("/api/music-generate", musicGenerationRouter);
-  console.log("MusicGen+Bark 통합 음악 생성 라우터가 등록되었습니다 (/api/music-generate/*)");
-  
-  // 음악 파일 제공 전용 라우트 등록
-  app.use("/api/music-file", musicFileRoutes);
-  console.log("음악 파일 스트리밍 라우터가 등록되었습니다 (/api/music-file/*)");
+  // ACE-Step API 테스트 라우트 등록
+  app.use("/api/test-ace-step", testAceStepRouter);
+  console.log("ACE-Step 테스트 라우터가 등록되었습니다 (/api/test-ace-step/*)");
   
   // 통합 메뉴 API - 카테고리와 서비스 항목을 함께 제공
   app.get("/api/menu", async (req, res) => {
