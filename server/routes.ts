@@ -97,10 +97,13 @@ const upload = multer({
   storage: storage2,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ["image/jpeg", "image/png", "image/heic"];
+    // 더 많은 이미지 형식 허용
+    const allowedTypes = ["image/jpeg", "image/png", "image/heic", "image/webp", "image/gif", "image/svg+xml", "image/bmp", "image/tiff"];
     if (!allowedTypes.includes(file.mimetype)) {
-      return cb(new Error("Only JPEG, PNG, and HEIC images are allowed"));
+      console.log(`업로드 거부된 파일 형식: ${file.mimetype}, 파일명: ${file.originalname}`);
+      return cb(new Error("허용되는 이미지 형식: JPEG, PNG, HEIC, WEBP, GIF, SVG, BMP, TIFF"));
     }
+    console.log(`업로드 수락된 파일: ${file.originalname} (${file.mimetype})`);
     cb(null, true);
   },
 });
