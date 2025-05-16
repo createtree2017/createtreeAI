@@ -61,14 +61,22 @@ router.post('/', upload.single('sampleFile'), async (req, res) => {
   const processId = Date.now().toString();
   
   // 기본 샘플 파일 경로 설정 - 항상 반환할 파일
-  const defaultAudioPath = './static/default-audio.mp3';
+  // 정상적인 MP3 샘플 파일 사용
+  const defaultAudioPath = './static/samples/sample-music.mp3';
   
   try {
     // 파일이 존재하는지 확인
-    await fs.access(defaultAudioPath);
+    try {
+      await fs.access(defaultAudioPath);
+      console.log(`샘플 오디오 파일 존재 확인: ${defaultAudioPath}`);
+    } catch (error) {
+      console.error(`샘플 오디오 파일이 존재하지 않음: ${defaultAudioPath}`, error);
+      return res.status(500).json({ error: '샘플 오디오 파일을 찾을 수 없습니다.' });
+    }
     
     // 샘플 파일 읽기
     const defaultAudio = await fs.readFile(defaultAudioPath);
+    console.log(`샘플 파일 크기: ${defaultAudio.length} 바이트`);
     
     // 먼저 샘플 파일로 응답 (비동기 작업 시작 전)
     // 일반적인 방식으로는 보기 어려우므로 임시 파일로 저장하고 그 경로 반환
