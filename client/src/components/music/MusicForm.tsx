@@ -21,9 +21,10 @@ import { Loader2, Music, MusicIcon } from "lucide-react";
 const musicFormSchema = z.object({
   title: z.string().min(1, "제목을 입력해주세요"),
   prompt: z.string().min(3, "최소 3글자 이상의 내용을 입력해주세요"),
+  lyrics: z.string().optional(),
+  voice: z.enum(["female_kr", "male_kr"]).default("female_kr"),
   style: z.string().optional(),
-  instrumental: z.boolean().default(false),
-  translatePrompt: z.boolean().default(true)
+  useLyrics: z.boolean().default(true)
 });
 
 type MusicFormValues = z.infer<typeof musicFormSchema>;
@@ -82,22 +83,22 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
     defaultValues: {
       title: "",
       prompt: "",
+      lyrics: "",
+      voice: "female_kr",
       style: "lullaby",
-      instrumental: false,
-      translatePrompt: true,
+      useLyrics: true,
     }
   });
   
   // 가사 생성 뮤테이션
   const generateLyricsMutation = useMutation({
     mutationFn: async (prompt: string) => {
-      const res = await apiRequest("/api/music/lyrics", {
+      const res = await apiRequest("/api/lyrics/generate", {
         method: "POST",
         data: { 
           prompt,
-          genre: form.getValues().style || "lullaby",
-          mood: "soothing",
-          language: "korean"
+          style: form.getValues().style || "lullaby",
+          includeChorus: true
         }
       });
       
@@ -116,24 +117,12 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
           form.setValue("title", `${form.getValues().prompt}를 위한 자장가`);
         }
         
-        // 생성된 가사를 프롬프트에 추가
-        let newPrompt = "";
+        // 생성된 가사를 lyrics 필드에 설정
+        form.setValue("lyrics", data.lyrics);
         
-        // 기존 프롬프트가 있으면 유지
-        const currentPrompt = form.getValues().prompt;
-        
-        // 음악 생성 프롬프트가 있으면 우선 사용
-        if (data.musicPrompt) {
-          newPrompt = data.musicPrompt;
-        } else {
-          // 아니면 일반 가사만 추가
-          newPrompt = `${currentPrompt}\n\n${data.lyrics}`;
-        }
-        
-        form.setValue("prompt", newPrompt);
         toast({
           title: "가사가 생성되었습니다",
-          description: "Gemini AI가 생성한 가사와 음악 프롬프트가 추가되었습니다.",
+          description: "GPT가 생성한 가사가 추가되었습니다.",
         });
       } else if (data.error) {
         toast({
@@ -159,29 +148,50 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
   // 음악 생성 뮤테이션
   const createMusicMutation = useMutation({
     mutationFn: async (values: MusicFormValues) => {
-      const res = await apiRequest("/api/music/create", {
-        method: "POST",
-        data: values
+      // FormData 생성
+      const formData = new FormData();
+      formData.append('prompt', values.prompt);
+      formData.append('voice', values.voice);
+      
+      // 가사가 있고, 가사 사용 옵션이 켜져있으면 가사 추가
+      if (values.lyrics && values.useLyrics) {
+        formData.append('lyrics', values.lyrics);
+      }
+      
+      // 음악 생성 API 호출
+      const res = await fetch('/api/music-generate', {
+        method: 'POST',
+        body: formData,
       });
       
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "음악 생성에 실패했습니다.");
+        const errorData = await res.text();
+        console.error('음악 생성 응답 오류:', errorData);
+        throw new Error(errorData || "음악 생성에 실패했습니다.");
       }
       
-      return await res.json();
+      // 바이너리 데이터로 받기
+      return await res.blob();
     },
-    onSuccess: (data) => {
-      console.log("음악 생성 응답:", data);
+    onSuccess: (blob) => {
+      // Blob URL 생성
+      const audioUrl = URL.createObjectURL(blob);
+      console.log("음악 생성 완료, URL:", audioUrl);
+      
       toast({
         title: "음악 생성 성공",
         description: "음악이 성공적으로 생성되었습니다.",
       });
+      
       if (onMusicGenerated) {
-        onMusicGenerated(data.music);
+        onMusicGenerated({
+          id: Date.now(),
+          title: form.getValues().title || "새로운 음악",
+          url: audioUrl,
+          createdAt: new Date().toISOString()
+        });
       }
-      // 음악 목록 갱신
-      queryClient.invalidateQueries({ queryKey: ["/api/music/list"] });
+      
       // 폼 초기화
       form.reset();
     },
