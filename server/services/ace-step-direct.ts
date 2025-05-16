@@ -31,7 +31,7 @@ export async function generateMusicWithAceStep(input: AceStepInput): Promise<str
     
     // 2. 요청 데이터 준비 - 직접 테스트에서 성공한 형식 그대로 사용
     const requestData = {
-      version: "280fc4f9ee507577f880a167f639c02622421d8fecf492454320311217b688f1",
+      version: "280fc4f9ed757f980a167f9539d0262d22df8fcfc92d45b32b322377bd68f9",
       input: {
         tags: input.tags,
         lyrics: input.lyrics,

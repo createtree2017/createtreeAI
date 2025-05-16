@@ -24,7 +24,9 @@ export async function mixAudio(
     const vocalBuffer = vocal instanceof ArrayBuffer ? Buffer.from(vocal) : vocal;
 
     // 임시 디렉토리 및 파일 경로 생성
-    const tempDir = join(tmpdir(), `mix-${uuidv4()}`);
+    const tempDirName = `mix-${uuidv4()}`;
+    const tempDir = join(process.cwd(), 'uploads', 'temp', tempDirName);
+    console.log(`임시 디렉토리 생성: ${tempDir}`);
     await fs.mkdir(tempDir, { recursive: true });
     
     const musicPath = join(tempDir, 'music.mp3');
