@@ -45,6 +45,7 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
   const [generatingLyrics, setGeneratingLyrics] = useState(false);
   const [showVoiceUploadDialog, setShowVoiceUploadDialog] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [formMode, setFormMode] = useState<"simple" | "custom">("simple");
   
   // 보이스 목록 관련 상태
   const [userVoices, setUserVoices] = useState<Array<{ id: string, name: string }>>([]);
@@ -376,14 +377,16 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
                 <Button 
                   type="button" 
                   variant="ghost" 
-                  className="rounded-full px-6 py-1 bg-black text-white"
+                  className={`rounded-full px-6 py-1 ${formMode === "simple" ? "bg-black text-white" : "text-gray-400"}`}
+                  onClick={() => setFormMode("simple")}
                 >
                   Simple
                 </Button>
                 <Button 
                   type="button" 
                   variant="ghost"
-                  className="rounded-full px-6 py-1 text-gray-400"
+                  className={`rounded-full px-6 py-1 ${formMode === "custom" ? "bg-black text-white" : "text-gray-400"}`}
+                  onClick={() => setFormMode("custom")}
                 >
                   Custom
                 </Button>
@@ -634,7 +637,7 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
             </div>
             
             {/* 추가 옵션 섹션 */}
-            <div className="space-y-3 border-t border-zinc-800 pt-4">
+            <div className={`space-y-3 border-t border-zinc-800 pt-4 ${formMode === 'simple' && 'hidden'}`}>
               <div className="flex items-center justify-between">
                 <span className="text-white flex items-center gap-2 font-medium">
                   More Options
