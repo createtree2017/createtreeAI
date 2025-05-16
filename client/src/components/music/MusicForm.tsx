@@ -348,10 +348,52 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
     }
     
     setGeneratingLyrics(true);
-    generateLyricsMutation.mutate({
-      prompt: prompt,
-      includeChorus: true,
-      length: 200
+    
+    // 직접 API 호출 방식으로 변경
+    fetch('/api/lyrics/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        prompt: prompt,
+        includeChorus: true,
+        length: 200
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success && data.lyrics) {
+        // 타이틀에 프롬프트 추가
+        if (!form.getValues().title) {
+          form.setValue("title", `${prompt}를 위한 노래`);
+        }
+        
+        // 생성된 가사를 lyrics 필드에 설정
+        form.setValue("lyrics", data.lyrics);
+        
+        toast({
+          title: "가사가 생성되었습니다",
+          description: "GPT가 생성한 가사가 추가되었습니다.",
+        });
+      } else {
+        toast({
+          title: "가사 생성 실패",
+          description: data.error || "가사 생성에 실패했습니다.",
+          variant: "destructive",
+        });
+      }
+    })
+    .catch(error => {
+      console.error("가사 생성 오류:", error);
+      toast({
+        title: "가사 생성 실패",
+        description: error.message || "가사 생성에 실패했습니다.",
+        variant: "destructive",
+      });
+    })
+    .finally(() => {
+      setGeneratingLyrics(false);
     });
   };
   
