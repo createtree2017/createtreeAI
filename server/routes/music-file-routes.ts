@@ -74,56 +74,62 @@ router.get('/:filename', (req, res) => {
       const end = parts[1] ? parseInt(parts[1], 10) : stat.size - 1;
       const chunkSize = (end - start) + 1;
       
-      console.log(`Range 요청: ${start}-${end}/${stat.size}`);
+      console.log(`[음악 파일 요청] Range 요청: ${start}-${end}/${stat.size}`);
       
-      // 스트리밍 헤더 설정 (범위 응답)
+      // 작업지시서 요구사항: Content-Type, Accept-Ranges 헤더 설정
       res.writeHead(206, {
         'Content-Type': 'audio/mpeg',
         'Content-Length': chunkSize,
         'Content-Range': `bytes ${start}-${end}/${stat.size}`,
-        'Accept-Ranges': 'bytes',
-        'Cache-Control': 'public, max-age=86400',
-        'Access-Control-Allow-Origin': '*'
+        'Accept-Ranges': 'bytes', 
+        'Cache-Control': 'no-cache',
+        'Access-Control-Allow-Origin': '*',
+        'Content-Disposition': `attachment; filename="${encodeURIComponent(filename)}"`
       });
       
       // 범위 스트리밍
       const stream = fs.createReadStream(filePath, { start, end });
       stream.on('error', (err) => {
-        console.error(`스트림 오류: ${err.message}`);
+        console.error(`[음악 파일 요청] ❌ 스트림 오류: ${err.message}`);
+        // 작업지시서 요구사항: 파일 오류 시 404 반환
         if (!res.headersSent) {
-          res.status(500).json({ error: '파일 스트리밍 실패' });
+          res.status(404).json({ error: '파일 스트리밍 실패' });
         }
       });
       
       stream.pipe(res);
     } else {
       // 전체 파일 응답
-      console.log(`전체 파일 전송: ${stat.size} 바이트`);
+      console.log(`[음악 파일 요청] 전체 파일 전송: ${stat.size} 바이트`);
       
-      // 스트리밍 헤더 설정
+      // 작업지시서 요구사항: Content-Type, Accept-Ranges 헤더 설정
       res.writeHead(200, {
         'Content-Type': 'audio/mpeg',
         'Content-Length': stat.size,
         'Accept-Ranges': 'bytes',
-        'Cache-Control': 'public, max-age=86400',
-        'Access-Control-Allow-Origin': '*'
+        'Cache-Control': 'no-cache',
+        'Access-Control-Allow-Origin': '*',
+        'Content-Disposition': `attachment; filename="${encodeURIComponent(filename)}"`
       });
       
       // 파일 스트리밍
       const stream = fs.createReadStream(filePath);
       stream.on('error', (err) => {
-        console.error(`스트림 오류: ${err.message}`);
+        console.error(`[음악 파일 요청] ❌ 스트림 오류: ${err.message}`);
+        // 작업지시서 요구사항: 파일 오류 시 404 반환
         if (!res.headersSent) {
-          res.status(500).json({ error: '파일 스트리밍 실패' });
+          res.status(404).json({ error: '파일 스트리밍 실패' });
         }
       });
       
       stream.pipe(res);
     }
   } catch (error) {
-    console.error('음악 파일 제공 중 오류 발생:', error);
+    console.error('[음악 파일 요청] ❌ 오류 발생:', error);
+    
+    // 작업지시서 요구사항: 파일이 존재하지 않거나 오류 시 404 반환
     if (!res.headersSent) {
-      res.status(500).json({ error: '서버 오류가 발생했습니다.' });
+      res.status(404).json({ error: '파일을 찾을 수 없거나 접근할 수 없습니다.' });
     }
   }
 });
