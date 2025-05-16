@@ -71,16 +71,36 @@ router.post('/', upload.single('sampleFile'), async (req, res) => {
     const defaultAudio = await fs.readFile(defaultAudioPath);
     
     // 먼저 샘플 파일로 응답 (비동기 작업 시작 전)
-    // 오디오 재생 가능하도록 올바른 MIME 타입 설정
-    res.set({
-      'Content-Type': 'audio/mpeg',
-      'Cache-Control': 'no-cache',
-      'Accept-Ranges': 'bytes',
-      'Access-Control-Allow-Origin': '*'
-    });
+    // 일반적인 방식으로는 보기 어려우므로 임시 파일로 저장하고 그 경로 반환
+    const timestamp = Date.now();
+    const tempDir = './uploads/temp';
     
-    // 파일 전송
-    res.send(defaultAudio);
+    // 임시 디렉토리 확인
+    try {
+      await fs.mkdir(tempDir, { recursive: true });
+    } catch (err) {
+      console.error('디렉토리 생성 오류:', err);
+    }
+    
+    // 임시 파일 경로 생성
+    const tempFileName = `temp-music-${timestamp}.mp3`;
+    const tempFilePath = path.join(tempDir, tempFileName);
+    
+    // 파일 저장
+    await fs.writeFile(tempFilePath, defaultAudio);
+    
+    // 웹 경로로 변환
+    const webPath = `/uploads/temp/${tempFileName}`;
+    
+    // 파일 저장 로그
+    console.log(`임시 음악 파일 저장됨: ${tempFilePath}, 웹 경로: ${webPath}`);
+    
+    // 결과 URL 전송
+    res.json({ 
+      success: true, 
+      fileUrl: webPath,
+      jobId: processId
+    });
     
     // 여기서 비동기 작업 시작 (응답 전송 후)
     // 응답은 이미 전송되었으므로 이 작업의 성공/실패는 클라이언트에 영향을 주지 않음
