@@ -1,75 +1,107 @@
 /**
- * 새로운 음악 생성 API 라우트
- * MusicGen + Bark 통합 서비스
+ * 음악 생성 API 라우트
+ * MusicGen, Bark TTS, 음성 클론 및 오디오 믹싱 기능을 통합
  */
-import express from 'express';
-import { z } from 'zod';
-import { createKoreanSong, MusicGenerationRequest } from '../services/music-generation';
-import { authMiddleware } from '../common/middleware/auth';
+import { Router } from 'express';
+import multer from 'multer';
+import { generateLyrics } from '../services/lyrics-generator';
+import { generateMusic } from '../services/musicgen';
+import { synthesizeAi } from '../services/tts-ai';
+import { cloneVoice } from '../services/voice-clone';
+import { mixAudio } from '../utils/audio-mixer';
 
-const router = express.Router();
-
-// 음악 생성 요청 검증을 위한 Zod 스키마
-const musicGenerationSchema = z.object({
-  prompt: z.string().min(3, "음악 설명은 최소 3자 이상이어야 합니다"),
-  lyrics: z.string().min(10, "가사는 최소 10자 이상이어야 합니다"),
-  voice: z.string().min(1, "목소리를 선택해주세요"),
-  duration: z.number().min(30).max(240),
-  styleTags: z.array(z.string()).optional(),
-  translateToEnglish: z.boolean().default(true)
+// 파일 업로드를 위한 Multer 설정
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 최대 10MB 파일
+  },
 });
 
-// 사용 가능한 목소리 목록 API 
+const router = Router();
+
+/**
+ * @route POST /api/music-generate
+ * @desc 음악 생성 API
+ * @access Public
+ */
+router.post('/', upload.single('sampleFile'), async (req, res) => {
+  try {
+    console.log('음악 생성 요청 수신:', req.body);
+    
+    // 요청 파라미터 검증
+    const { prompt, voiceOption = 'ai', gender = 'female_kr' } = req.body;
+    
+    if (!prompt) {
+      return res.status(400).json({ 
+        error: '음악 설명(prompt)이 필요합니다' 
+      });
+    }
+
+    // 가사 생성
+    console.log('가사 생성 시작...');
+    const lyrics = await generateLyrics({
+      prompt: prompt,
+      includeChorus: true
+    });
+    console.log('가사 생성 완료:', lyrics.substring(0, 100) + '...');
+
+    // 음성 합성 (TTS 또는 음성 클론)
+    console.log(`보컬 합성 시작 (${voiceOption === 'custom' ? '사용자 음성' : 'AI 목소리'})...`);
+    let vocal;
+    if (voiceOption === 'custom') {
+      // 사용자 음성 클론 사용
+      if (!req.file) {
+        return res.status(400).json({ 
+          error: '사용자 목소리 샘플 파일이 필요합니다' 
+        });
+      }
+      vocal = await cloneVoice(req.file.buffer, lyrics);
+    } else {
+      // AI TTS 사용
+      vocal = await synthesizeAi(lyrics, gender as 'male_kr' | 'female_kr');
+    }
+    console.log('보컬 합성 완료');
+
+    // 배경 음악 생성
+    console.log('배경 음악 생성 시작...');
+    const music = await generateMusic(prompt);
+    console.log('배경 음악 생성 완료');
+
+    // 오디오 믹싱 (배경 음악 + 보컬)
+    console.log('오디오 믹싱 시작...');
+    const final = await mixAudio(music, vocal);
+    console.log('오디오 믹싱 완료');
+
+    // 최종 결과 전송
+    res.set({
+      'Content-Type': 'audio/mpeg',
+      'Content-Disposition': 'attachment; filename="generated-music.mp3"'
+    });
+    
+    res.send(final);
+  } catch (error) {
+    console.error('음악 생성 중 오류가 발생했습니다:', error);
+    res.status(500).json({ 
+      error: '음악 생성에 실패했습니다',
+      message: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+/**
+ * @route GET /api/music-generate/voices
+ * @desc 사용 가능한 AI 음성 목록 반환
+ * @access Public
+ */
 router.get('/voices', (req, res) => {
-  // 현재 지원되는 목소리 목록 반환
+  // 사용 가능한 AI 음성 목록
   const voices = [
-    { id: 'female', name: '여성', description: '부드러운 여성 목소리' },
-    { id: 'male', name: '남성', description: '차분한 남성 목소리' },
-    { id: 'child', name: '아이', description: '밝고 귀여운 아이 목소리' }
+    { id: 'female_kr', name: '여성 (한국어)' },
+    { id: 'male_kr', name: '남성 (한국어)' }
   ];
   
   res.json({ voices });
-});
-
-// 음악 생성 API 엔드포인트
-router.post('/generate', authMiddleware, async (req, res) => {
-  try {
-    // 입력값 검증
-    const validationResult = musicGenerationSchema.safeParse(req.body);
-    
-    if (!validationResult.success) {
-      console.error('음악 생성 요청 검증 실패:', validationResult.error);
-      return res.status(400).json({
-        error: '입력값 검증 실패',
-        details: validationResult.error.format()
-      });
-    }
-    
-    // 검증된 데이터로 음악 생성 요청
-    const requestData: MusicGenerationRequest = validationResult.data;
-    console.log('음악 생성 요청 시작:', requestData);
-    
-    // 음악 생성 서비스 호출
-    const result = await createKoreanSong(requestData);
-    
-    console.log('음악 생성 완료');
-    
-    // 결과 반환
-    return res.status(200).json({
-      success: true,
-      message: '음악이 성공적으로 생성되었습니다',
-      audioUrl: result.publicUrl,
-      audioPath: result.filePath,
-      duration: requestData.duration
-    });
-  } catch (error) {
-    console.error('음악 생성 중 오류 발생:', error);
-    
-    return res.status(500).json({
-      error: '음악 생성 중 오류가 발생했습니다',
-      message: error instanceof Error ? error.message : '알 수 없는 오류'
-    });
-  }
 });
 
 export default router;

@@ -1,89 +1,95 @@
 /**
- * MusicGen 음악 생성 서비스
- * Facebook의 MusicGen 모델을 사용하여 텍스트 프롬프트 기반 음악 생성
+ * MusicGen 서비스
+ * Replicate API의 MusicGen 모델을 사용하여 배경 음악을 생성
  */
 import Replicate from 'replicate';
+import fetch from 'node-fetch';
+import { promises as fs } from 'fs';
+import path from 'path';
+import { tmpdir } from 'os';
+import { v4 as uuidv4 } from 'uuid';
 
-// Replicate 클라이언트 설정
-let replicateClient: Replicate | null = null;
-
-try {
-  if (process.env.REPLICATE_API_TOKEN) {
-    replicateClient = new Replicate({ 
-      auth: process.env.REPLICATE_API_TOKEN 
-    });
-    console.log('Replicate 클라이언트가 성공적으로 초기화되었습니다.');
-  } else {
-    console.warn('REPLICATE_API_TOKEN 환경 변수가 설정되지 않았습니다. 음악 생성 기능이 제한됩니다.');
-  }
-} catch (error) {
-  console.error('Replicate 클라이언트 초기화 중 오류가 발생했습니다:', error);
+// Replicate API 키 확인
+if (!process.env.REPLICATE_API_TOKEN) {
+  console.error('REPLICATE_API_TOKEN 환경 변수가 설정되지 않았습니다.');
 }
 
+// Replicate 클라이언트 초기화
+const replicate = process.env.REPLICATE_API_TOKEN
+  ? new Replicate({ auth: process.env.REPLICATE_API_TOKEN })
+  : null;
+
 /**
- * 텍스트 프롬프트 기반 음악 생성
- * @param prompt 음악 생성 프롬프트
- * @param duration 음악 길이(초)
- * @returns 생성된 음악의 ArrayBuffer 또는 URL
+ * MusicGen 모델을 사용하여 배경 음악 생성
+ * @param prompt 음악 생성을 위한 프롬프트 (스타일 설명)
+ * @returns 생성된 음악의 Buffer 또는 ArrayBuffer
  */
-export async function generateMusic(prompt: string, duration: number = 30): Promise<ArrayBuffer | string> {
-  // Replicate 클라이언트가 초기화되지 않은 경우
-  if (!replicateClient) {
-    console.warn('Replicate 클라이언트가 초기화되지 않았습니다. 샘플 음악을 반환합니다.');
-    return getSampleMusicUrl();
-  }
-
+export async function generateMusic(prompt: string): Promise<Buffer | ArrayBuffer> {
   try {
-    console.log(`음악 생성 시작 - 프롬프트: "${prompt}", 길이: ${duration}초`);
-
-    // Facebook의 MusicGen 모델을 사용하여 음악 생성
-    const output: any = await replicateClient.run(
-      'facebook/musicgen-large', 
-      { 
-        input: { 
+    console.log('MusicGen으로 음악 생성 시작:', prompt);
+    
+    // 공백 프롬프트 처리
+    if (!prompt || prompt.trim() === '') {
+      prompt = '편안한 피아노 멜로디와 잔잔한 오케스트라가 있는 자장가';
+    }
+    
+    // Replicate API가 없는 경우 샘플 반환
+    if (!replicate) {
+      console.warn('Replicate API 토큰이 없어 샘플 음악을 반환합니다.');
+      return getSampleMusic();
+    }
+    
+    // MusicGen 모델 실행
+    const output = await replicate.run(
+      "meta/musicgen:7be0f12c54a93b483e8d307cb2f7196e2ae9e835597fcd4454e3e7a1500d7cc9",
+      {
+        input: {
+          model_version: "melody", // melody 또는 large
           prompt: prompt,
-          duration: duration 
-        } 
+          duration: 15, // 최대 30초까지 가능
+          output_format: "mp3", // mp3 또는 wav
+          normalization_strategy: "peak", // peak 또는 loudness
+          classifier_free_guidance: 5, // 3-15 사이 값
+        }
       }
     );
-
-    // 모델 응답에서 음악 URL 추출
-    const audioUrl = output?.audio || output?.[0];
     
-    if (!audioUrl) {
-      console.error('MusicGen 모델이 유효한 오디오 URL을 반환하지 않았습니다:', output);
-      return getSampleMusicUrl();
+    // 결과 URL 확인
+    if (!output || typeof output !== 'string') {
+      throw new Error('음악 생성에 실패했습니다: 유효한 출력이 없습니다.');
     }
-
-    console.log(`음악 생성 완료 - URL: ${audioUrl}`);
-
-    // 오디오 다운로드
-    try {
-      const response = await fetch(audioUrl);
-      if (!response.ok) {
-        throw new Error(`음악 다운로드 실패: ${response.status} ${response.statusText}`);
-      }
-      const arrayBuffer = await response.arrayBuffer();
-      return arrayBuffer;
-    } catch (downloadError) {
-      console.error('음악 다운로드 중 오류:', downloadError);
-      // 다운로드 실패 시 URL 반환
-      return audioUrl;
+    
+    console.log('MusicGen 음악 생성 완료, URL:', output);
+    
+    // 원격 URL에서 파일 다운로드
+    const response = await fetch(output);
+    if (!response.ok) {
+      throw new Error(`음악 다운로드에 실패했습니다: ${response.status} ${response.statusText}`);
     }
+    
+    // 응답을 ArrayBuffer로 변환
+    const buffer = await response.arrayBuffer();
+    
+    return buffer;
   } catch (error) {
-    console.error('음악 생성 중 오류가 발생했습니다:', error);
-    return getSampleMusicUrl();
+    console.error('MusicGen 음악 생성 중 오류가 발생했습니다:', error);
+    // 오류 발생 시 샘플 음악 반환
+    console.warn('오류로 인해 샘플 음악을 반환합니다.');
+    return getSampleMusic();
   }
 }
 
 /**
- * 샘플 음악 URL 반환 (API 실패 시 폴백용)
- * @returns 샘플 음악 URL
+ * 샘플 음악 파일 반환 (API 실패 시 폴백용)
+ * @returns 샘플 음악 Buffer
  */
-function getSampleMusicUrl(): string {
-  // 기본 샘플 음악 URL
-  return 'https://storage.googleapis.com/magentadata/datasets/maestro/v3.0.0/2018/MIDI-Unprocessed_Chamber3_MID--AUDIO_10_R3_2018_wav--1.wav';
+async function getSampleMusic(): Promise<Buffer> {
+  try {
+    // 내장된 샘플 음악 파일 경로
+    const samplePath = path.join(process.cwd(), 'static', 'samples', 'sample-music.mp3');
+    return await fs.readFile(samplePath);
+  } catch (error) {
+    console.error('샘플 음악 파일 읽기 실패:', error);
+    throw new Error('음악 생성 및 샘플 음악 로딩에 모두 실패했습니다.');
+  }
 }
-
-// 모듈 초기화 시 로그
-console.log(`MusicGen 서비스가 ${replicateClient ? '정상적으로' : '제한된 모드로'} 초기화되었습니다.`);

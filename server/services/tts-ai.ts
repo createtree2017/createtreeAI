@@ -3,22 +3,19 @@
  * Bark TTS 모델을 사용하여 텍스트를 자연스러운 음성으로 변환
  */
 import Replicate from 'replicate';
+import fetch from 'node-fetch';
+import { promises as fs } from 'fs';
+import path from 'path';
 
-// Replicate 클라이언트 설정
-let replicateClient: Replicate | null = null;
-
-try {
-  if (process.env.REPLICATE_API_TOKEN) {
-    replicateClient = new Replicate({ 
-      auth: process.env.REPLICATE_API_TOKEN 
-    });
-    console.log('Replicate 클라이언트가 성공적으로 초기화되었습니다.');
-  } else {
-    console.warn('REPLICATE_API_TOKEN 환경 변수가 설정되지 않았습니다. TTS 기능이 제한됩니다.');
-  }
-} catch (error) {
-  console.error('Replicate 클라이언트 초기화 중 오류가 발생했습니다:', error);
+// Replicate API 키 확인
+if (!process.env.REPLICATE_API_TOKEN) {
+  console.error('REPLICATE_API_TOKEN 환경 변수가 설정되지 않았습니다.');
 }
+
+// Replicate 클라이언트 초기화
+const replicate = process.env.REPLICATE_API_TOKEN
+  ? new Replicate({ auth: process.env.REPLICATE_API_TOKEN })
+  : null;
 
 /**
  * 텍스트를 AI 음성으로 합성
@@ -27,54 +24,75 @@ try {
  * @returns 생성된 오디오의 ArrayBuffer 또는 URL
  */
 export async function synthesizeAi(
-  lyrics: string, 
+  lyrics: string,
   gender: 'male_kr' | 'female_kr' = 'female_kr'
-): Promise<ArrayBuffer | string> {
-  // Replicate 클라이언트가 초기화되지 않은 경우
-  if (!replicateClient) {
-    console.warn('Replicate 클라이언트가 초기화되지 않았습니다. 샘플 음성을 반환합니다.');
-    return getSampleVoiceUrl();
-  }
-
+): Promise<Buffer | ArrayBuffer> {
   try {
-    console.log(`TTS 합성 시작 - 텍스트 길이: ${lyrics.length}자, 성별: ${gender}`);
-
-    // Suno의 Bark 모델을 사용하여 TTS 생성
-    const output: any = await replicateClient.run(
-      'suno/bark', 
-      { 
-        input: { 
-          text: lyrics,
-          speaker_id: gender 
-        } 
-      }
-    );
-
-    // 모델 응답에서 오디오 URL 추출
-    const audioUrl = output?.audio || output?.[0];
+    console.log('Bark TTS 음성 합성 시작:', { gender, lyricsLength: lyrics.length });
     
-    if (!audioUrl) {
-      console.error('Bark 모델이 유효한 오디오 URL을 반환하지 않았습니다:', output);
+    // 가사가 비어있는 경우 처리
+    if (!lyrics || lyrics.trim() === '') {
+      lyrics = '안녕하세요. 이 노래를 들어주셔서 감사합니다.';
+    }
+    
+    // 가사가 너무 긴 경우 처리 (Bark 모델은 일정 길이 이상 처리 불가)
+    const MAX_LENGTH = 400;
+    if (lyrics.length > MAX_LENGTH) {
+      console.warn(`가사가 너무 깁니다. ${lyrics.length}자 -> ${MAX_LENGTH}자로 축소합니다.`);
+      lyrics = lyrics.substring(0, MAX_LENGTH) + '...';
+    }
+    
+    // Replicate API가 없는 경우 샘플 반환
+    if (!replicate) {
+      console.warn('Replicate API 토큰이 없어 샘플 음성을 반환합니다.');
       return getSampleVoiceUrl();
     }
-
-    console.log(`TTS 합성 완료 - URL: ${audioUrl}`);
-
-    // 오디오 다운로드
-    try {
-      const response = await fetch(audioUrl);
-      if (!response.ok) {
-        throw new Error(`음성 다운로드 실패: ${response.status} ${response.statusText}`);
+    
+    // 한국어 여성 음성용 스피커 ID
+    const femaleKrSpeakerId = 'v2/ko_female'
+    
+    // 한국어 남성 음성용 스피커 ID
+    const maleKrSpeakerId = 'v2/ko_male'
+    
+    // 선택한 성별에 맞는 스피커 ID 사용
+    const speakerId = gender === 'male_kr' ? maleKrSpeakerId : femaleKrSpeakerId;
+    
+    // Bark TTS 모델 실행
+    const output = await replicate.run(
+      "suno/bark:b76242b40d67c76ab6742e987628a2a9ac019e11d56ab96c4e91ce03b79b2787",
+      {
+        input: {
+          prompt: lyrics,
+          speaker: speakerId,
+          language: "ko", // 한국어
+          audio_out_bitrate: "128k",
+          temperature: 0.7,
+          silent_beginning_in_sec: 0.1
+        }
       }
-      const arrayBuffer = await response.arrayBuffer();
-      return arrayBuffer;
-    } catch (downloadError) {
-      console.error('음성 다운로드 중 오류:', downloadError);
-      // 다운로드 실패 시 URL 반환
-      return audioUrl;
+    );
+    
+    // 결과 URL 확인
+    if (!output || !output.audio_url || typeof output.audio_url !== 'string') {
+      throw new Error('음성 합성에 실패했습니다: 유효한 출력이 없습니다.');
     }
+    
+    console.log('Bark TTS 음성 합성 완료, URL:', output.audio_url);
+    
+    // 원격 URL에서 파일 다운로드
+    const response = await fetch(output.audio_url);
+    if (!response.ok) {
+      throw new Error(`음성 다운로드에 실패했습니다: ${response.status} ${response.statusText}`);
+    }
+    
+    // 응답을 ArrayBuffer로 변환
+    const buffer = await response.arrayBuffer();
+    
+    return buffer;
   } catch (error) {
-    console.error('TTS 합성 중 오류가 발생했습니다:', error);
+    console.error('Bark TTS 음성 합성 중 오류가 발생했습니다:', error);
+    // 오류 발생 시 샘플 반환
+    console.warn('오류로 인해 샘플 음성을 반환합니다.');
     return getSampleVoiceUrl();
   }
 }
@@ -83,10 +101,13 @@ export async function synthesizeAi(
  * 샘플 음성 URL 반환 (API 실패 시 폴백용)
  * @returns 샘플 음성 URL
  */
-function getSampleVoiceUrl(): string {
-  // 기본 샘플 음성 URL
-  return 'https://storage.googleapis.com/download.tensorflow.org/data/speech_commands_v0.01/yes.wav';
+async function getSampleVoiceUrl(): Promise<Buffer> {
+  try {
+    // 내장된 샘플 음성 파일 경로
+    const samplePath = path.join(process.cwd(), 'static', 'samples', 'sample-voice.mp3');
+    return await fs.readFile(samplePath);
+  } catch (error) {
+    console.error('샘플 음성 파일 읽기 실패:', error);
+    throw new Error('음성 합성 및 샘플 음성 로딩에 모두 실패했습니다.');
+  }
 }
-
-// 모듈 초기화 시 로그
-console.log(`TTS 서비스가 ${replicateClient ? '정상적으로' : '제한된 모드로'} 초기화되었습니다.`);
