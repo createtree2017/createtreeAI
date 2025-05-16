@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { AudioPlayer } from "@/components/ui/audio-player";
 import { apiRequest } from "@/lib/apiClient";
 import { useMusicProcessing } from "@/lib/MusicProcessingState";
+import { useMusicJob } from "@/lib/MusicJobContext";
 
 // 폼 유효성 검증 스키마
 const formSchema = z.object({
@@ -44,11 +45,34 @@ export default function Music() {
   // 글로벌 음악 생성 상태 가져오기
   const { isGenerating: isGeneratingGlobal, generatedMusic: globalGeneratedMusic, startGeneration, finishGeneration } = useMusicProcessing();
   
+  // 새로운 Job 기반 음악 생성 컨텍스트
+  const { 
+    jobId, 
+    status: jobStatus, 
+    resultUrl, 
+    resultId,
+    error: jobError,
+    formData: jobFormData,
+    startJob,
+    clearJob,
+    setFormData: setJobFormData
+  } = useMusicJob();
+  
   // 로컬 음악 상태 (URL에서 ID로 직접 열었을 경우 사용)
   const [localGeneratedMusic, setLocalGeneratedMusic] = useState<MusicItem | null>(null);
   
-  // 표시할 음악 (글로벌 상태가 우선)
-  const generatedMusic = globalGeneratedMusic || localGeneratedMusic;
+  // Job 기반 상태에서 음악 정보 구성
+  const jobMusic = resultId && resultUrl ? {
+    id: resultId,
+    title: jobFormData.title || `${jobFormData.babyName}의 ${jobFormData.musicStyle}`,
+    duration: Number(jobFormData.duration) || 60,
+    style: jobFormData.musicStyle || 'lullaby',
+    url: resultUrl,
+    createdAt: new Date().toISOString()
+  } : null;
+  
+  // 표시할 음악 (Job 상태가 최우선, 그 다음 글로벌 상태, 마지막으로 로컬 상태)
+  const generatedMusic = jobMusic || globalGeneratedMusic || localGeneratedMusic;
   
   // URL에서 음악 ID 추출
   const query = new URLSearchParams(location.split("?")[1] || "");
@@ -148,76 +172,65 @@ export default function Music() {
     }
   }, [musicId, musicList]);
   
-  // 음악 생성 뮤테이션
+  // 음악 생성 뮤테이션 - 새로운 Job 기반 시스템 사용
   const { mutate: generateMusicMutation, isPending: isGeneratingLocal } = useMutation({
     mutationFn: async (data: FormValues) => {
-      // 전역 상태에 생성 시작을 알림
+      // 이전 전역 상태와의 호환성을 위해 유지
       startGeneration(data);
       
       // 음악 생성 중임을 표시
       toast({
         title: "음악 생성 시작",
-        description: "음악을 생성하는 중입니다. 잠시만 기다려주세요.",
+        description: "음악을 생성하는 중입니다. 다른 페이지로 이동해도 백그라운드에서 계속 처리됩니다.",
       });
       
-      // FormData 생성
-      const formData = new FormData();
-      formData.append("babyName", data.babyName);
-      formData.append("title", `${data.babyName}의 ${data.musicStyle}`);
-      formData.append("style", data.musicStyle);
-      formData.append("duration", data.duration);
-      formData.append("prompt", `아기 ${data.babyName}를 위한 ${data.musicStyle} 스타일의 음악`);
-      formData.append("voiceMode", "ai");
-      formData.append("gender", "female_kr");
-      formData.append("lyrics", `아기 ${data.babyName}를 위한 자장가\n사랑스러운 우리 아기\n편안하게 잠들어요`);
+      // Job API 요청을 위한 데이터 준비
+      const jobParams = {
+        babyName: data.babyName,
+        title: `${data.babyName}의 ${data.musicStyle}`,
+        musicStyle: data.musicStyle,
+        style: data.musicStyle,
+        duration: data.duration,
+        prompt: `아기 ${data.babyName}를 위한 ${data.musicStyle} 스타일의 음악`,
+        voiceMode: "ai",
+        gender: "female_kr",
+        lyrics: `아기 ${data.babyName}를 위한 자장가\n사랑스러운 우리 아기\n편안하게 잠들어요`
+      };
       
-      // API 요청
-      const response = await fetch("/api/music-generate", {
-        method: "POST",
-        body: formData,
-      });
+      // 전역 Job 컨텍스트를 통해 작업 시작
+      await startJob(jobParams);
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "음악 생성에 실패했습니다");
-      }
-      
-      // 일반 JSON 응답인 경우 처리
-      const jsonData = await response.json();
-      
-      // 생성된 음악 정보
+      // 실제 음악이 생성될 때까지 오래 걸리므로 임시 응답 반환
       return {
-        url: jsonData.url || `/api/music/${jsonData.id}/audio`,
-        id: jsonData.id || Date.now(),
-        title: jsonData.title || `${data.babyName}의 ${data.musicStyle}`,
-        duration: jsonData.duration || parseInt(data.duration),
-        style: jsonData.style || data.musicStyle,
-        createdAt: jsonData.createdAt || new Date().toISOString(),
+        pending: true
       };
     },
-    onSuccess: (data) => {
-      // 로컬 상태와 전역 상태 모두 업데이트
-      setLocalGeneratedMusic(data);
-      finishGeneration(data);
-      
-      toast({
-        title: "음악 생성 완료",
-        description: "아기를 위한 음악이 생성되었습니다.",
-      });
+    onSuccess: () => {
       // 음악 목록 업데이트
       queryClient.invalidateQueries({ queryKey: ["/api/music/list"] });
     },
     onError: (error: Error) => {
       toast({
-        title: "음악 생성 실패",
+        title: "음악 생성 요청 실패",
         description: error.message,
         variant: "destructive",
       });
     },
   });
   
-  // 전역과 로컬 상태 통합 - 하나라도 생성 중이면 생성 중으로 표시
-  const isGenerating = isGeneratingLocal || isGeneratingGlobal;
+  // 모든 처리 상태 통합 - Job, 전역, 로컬 중 하나라도 처리 중이면 생성 중으로 표시
+  const isGenerating = isGeneratingLocal || isGeneratingGlobal || jobStatus === 'pending' || jobStatus === 'processing';
+  
+  // Job 오류가 있으면 토스트로 표시
+  useEffect(() => {
+    if (jobError) {
+      toast({
+        title: "음악 생성 오류",
+        description: jobError,
+        variant: "destructive",
+      });
+    }
+  }, [jobError, toast]);
   
   // 음악 공유 뮤테이션
   const { mutate: shareMusicMutation, isPending: isSharing } = useMutation({

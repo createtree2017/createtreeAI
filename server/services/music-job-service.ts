@@ -159,7 +159,10 @@ async function processMusicJob(jobId: string): Promise<void> {
       
       console.log(`파일 존재 확인: 음악 파일 존재=${fs.existsSync(backgroundMusicPath)}, 보컬 파일 존재=${fs.existsSync(vocalPath)}`);
       
-      if (fs.existsSync(backgroundMusicPath) && fs.existsSync(vocalPath)) {
+      // backgroundMusicPath와 vocalPath가 Buffer 또는 ArrayBuffer인 경우 처리
+      if (typeof backgroundMusicPath === 'string' && typeof vocalPath === 'string' && 
+          fs.existsSync(backgroundMusicPath) && fs.existsSync(vocalPath)) {
+        // 파일 경로인 경우 파일 읽기
         const musicBuffer = await fs.promises.readFile(backgroundMusicPath);
         const vocalBuffer = await fs.promises.readFile(vocalPath);
         const musicSize = musicBuffer.length;
@@ -167,6 +170,16 @@ async function processMusicJob(jobId: string): Promise<void> {
         console.log(`오디오 믹싱 시작 - 음악: ${musicSize} 바이트, 보컬: ${vocalSize} 바이트`);
         
         // mixAudio 함수 사용 (버퍼 기반 믹싱)
+        const mixedBuffer = await mixAudio(musicBuffer, vocalBuffer);
+        await fs.promises.writeFile(outputPath, mixedBuffer);
+      } else if (backgroundMusicPath instanceof Buffer || backgroundMusicPath instanceof ArrayBuffer || 
+                vocalPath instanceof Buffer || vocalPath instanceof ArrayBuffer) {
+        // Buffer 또는 ArrayBuffer인 경우 직접 처리
+        const musicBuffer = backgroundMusicPath instanceof ArrayBuffer ? Buffer.from(backgroundMusicPath) : backgroundMusicPath;
+        const vocalBuffer = vocalPath instanceof ArrayBuffer ? Buffer.from(vocalPath) : vocalPath;
+        
+        console.log(`오디오 믹싱 시작 - 음악: ${musicBuffer.length} 바이트, 보컬: ${vocalBuffer.length} 바이트`);
+        
         const mixedBuffer = await mixAudio(musicBuffer, vocalBuffer);
         await fs.promises.writeFile(outputPath, mixedBuffer);
       } else {
@@ -199,14 +212,18 @@ async function processMusicJob(jobId: string): Promise<void> {
       const relativeUrl = `/uploads/music/${finalFileName}`;
       
       // DB에 저장
+      // 스타일 태그 생성
+      const styleTag = job.params.style || 'lullaby';
+      const tagsArray = [styleTag];
+      
       const [savedMusic] = await db.insert(music).values({
         title: job.params.title || `${job.params.babyName}의 ${job.params.style || 'lullaby'}`,
+        prompt: job.params.prompt || `아기 ${job.params.babyName}를 위한 ${job.params.style || 'lullaby'} 스타일의 음악`,
         duration: duration,
-        style: job.params.style || 'lullaby',
+        tags: tagsArray,
         url: relativeUrl,
         userId: job.userId,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        lyrics: lyrics
       }).returning();
       
       savedMusicId = savedMusic.id;
