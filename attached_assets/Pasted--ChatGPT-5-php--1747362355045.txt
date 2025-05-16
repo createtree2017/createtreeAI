@@ -1,0 +1,239 @@
+라플이가 제대로 확인할 수 있는 방식으로 작업지시서 작성하고, 한번에 복사해서 보낼 수 있게 박스 하나에 넣어서 만들어
+
+
+ChatGPT의 말:
+
+5초 동안 생각함
+php
+복사
+편집
+📦  창조AI ― 음악 생성 모듈 전환 작업지시서  (라플이용 · 그대로 복사 ↩️)
+
+────────────────────────────────────────────
+■ 1. 핵심 변경점
+  ① ACE-Step → **MusicGen(반주) + Bark(한국어 TTS) + Voice-Cloning** 구조로 교체  
+  ② 사용자 프롬프트로 → 한글 가사 자동 생성(GPT-4 Turbo)  
+  ③ 보컬 옵션 : ▷ AI 목소리(male_kr / female_kr) ▷ 사용자 음성 샘플(Voice-Clone)
+  ④ 반주·보컬 ffmpeg 믹싱 → MP3 스트림/다운로드
+
+────────────────────────────────────────────
+■ 2. 불필요 파일 삭제
+  • client/src/pages/test-ace-step.tsx  
+  • server/routes/test-ace-step-routes.ts  
+  • server/services/ace-step*.ts (ACE-Step 관련 전체)
+
+────────────────────────────────────────────
+■ 3. 서버 코드 추가/수정
+
+1) 가사 생성 서비스
+──────────────────
+📄 server/services/lyrics-generator.ts
+```ts
+export async function generateLyrics(prompt: string) {
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const sys = 'You are a Korean lyricist. Return ONLY Korean lyrics.';
+  const { choices } = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    messages: [{ role: 'system', content: sys },
+               { role: 'user',   content: prompt }]
+  });
+  return choices[0].message.content.trim();
+}
+📄 server/routes/lyrics-generator-routes.ts
+
+ts
+복사
+편집
+import { Router } from 'express';
+import { generateLyrics } from '../services/lyrics-generator';
+const router = Router();
+
+router.post('/', async (req, res) => {
+  const { prompt } = req.body;
+  if (!prompt) return res.status(400).json({ error: 'prompt required' });
+  try {
+    const lyrics = await generateLyrics(prompt);
+    res.json({ lyrics });
+  } catch (e) {
+    res.status(500).json({ error: 'lyric-generation failed' });
+  }
+});
+export default router;
+반주 생성 (MusicGen)
+──────────────────
+📄 server/services/musicgen.ts
+
+ts
+복사
+편집
+import Replicate from 'replicate';
+const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
+
+export async function generateMusic(prompt: string) {
+  const output:any = await replicate.run(
+    'facebook/musicgen-large', { input: { prompt, duration: 30 } }
+  );
+  const url = output?.audio;                 // 모델 응답 확인
+  return await fetch(url).then(r => r.arrayBuffer());
+}
+AI 보컬 (Bark TTS)
+──────────────────
+📄 server/services/tts-ai.ts
+
+ts
+복사
+편집
+export async function synthesizeAi(lyrics:string, gender:'male_kr'|'female_kr'){
+  // Bark TTS 예시 호출 (Replicate)
+  const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
+  const output:any = await replicate.run('suno/bark', {
+    input:{ text: lyrics, speaker_id: gender }
+  });
+  const url = output?.audio;
+  return await fetch(url).then(r=>r.arrayBuffer());
+}
+사용자 보컬 (Voice Cloning)
+──────────────────
+📄 server/services/voice-clone.ts
+
+ts
+복사
+편집
+export async function cloneVoice(sample:Buffer, text:string){
+  // 예시: clone-api.io 사용
+  const resp = await fetch('https://api.clone-voice.io/generate', {
+    method:'POST',
+    headers:{ 'Authorization':`Bearer ${process.env.VOICE_CLONE_KEY}` },
+    body: new Blob([sample, JSON.stringify({ text })])  // 실제 API 규격 맞춰 수정
+  });
+  return await resp.arrayBuffer();
+}
+오디오 믹싱
+──────────────────
+📄 server/utils/audio-mixer.ts
+
+ts
+복사
+편집
+import ffmpeg from 'fluent-ffmpeg';
+import { tmpdir } from 'os'; import { mkdtempSync, writeFileSync, readFileSync } from 'fs';
+export async function mixAudio(music:Buffer, vocal:Buffer){
+  const dir = mkdtempSync(`${tmpdir()}/mix-`);
+  const m = `${dir}/music.mp3`, v = `${dir}/vocal.mp3`, o = `${dir}/out.mp3`;
+  writeFileSync(m, Buffer.from(music)); writeFileSync(v, Buffer.from(vocal));
+
+  return new Promise<Buffer>((res,rej)=>{
+    ffmpeg().addInput(m).addInput(v)
+      .complexFilter(['[0:a][1:a]amix=inputs=2:duration=longest'])
+      .output(o).on('end',()=>res(readFileSync(o))).on('error',rej).run();
+  });
+}
+통합 라우터
+──────────────────
+📄 server/routes/music-generation-routes.ts
+
+ts
+복사
+편집
+import { Router } from 'express';
+import multer from 'multer';
+import { generateLyrics } from '../services/lyrics-generator';
+import { generateMusic }  from '../services/musicgen';
+import { synthesizeAi }   from '../services/tts-ai';
+import { cloneVoice }     from '../services/voice-clone';
+import { mixAudio }       from '../utils/audio-mixer';
+
+const upload = multer(); const router = Router();
+
+router.post('/', upload.single('sampleFile'), async (req,res)=>{
+  try{
+    const { prompt, voiceOption, gender = 'male_kr' } = req.body;
+    if(!prompt) return res.status(400).json({error:'prompt required'});
+
+    const lyrics = await generateLyrics(prompt);
+    const vocal  = voiceOption==='custom'
+        ? await cloneVoice(req.file?.buffer!, lyrics)
+        : await synthesizeAi(lyrics, gender);
+
+    const music  = await generateMusic(prompt);
+    const final  = await mixAudio(music, vocal);
+
+    res.type('audio/mpeg').send(Buffer.from(final));
+  }catch(e){console.error(e);res.status(500).json({error:'music-generation failed'});}
+});
+export default router;
+서버 엔트리 등록
+──────────────────
+📄 server/routes.ts
+
+ts
+복사
+편집
+import lyricsRouter from './routes/lyrics-generator-routes';
+import musicRouter  from './routes/music-generation-routes';
+
+app.use('/api/lyrics',          lyricsRouter);
+app.use('/api/music-generate',  musicRouter);
+────────────────────────────────────────────
+■ 4. 클라이언트 수정 (React – Vite)
+
+📄 client/src/pages/music-generate.tsx
+
+‘영어 번역’ 체크박스 삭제
+
+상태
+
+ts
+복사
+편집
+const [prompt, setPrompt] = useState('');
+const [lyrics, setLyrics] = useState('');
+const [voiceOpt,setVoice] = useState<'ai'|'custom'>('ai');
+const [gender,  setGender]= useState<'male_kr'|'female_kr'>('male_kr');
+const [file,    setFile]  = useState<File|null>(null);
+가사 생성 버튼 → /api/lyrics
+
+ts
+복사
+편집
+const genLyrics = async ()=>{
+  const { data } = await axios.post('/api/lyrics',{ prompt });
+  setLyrics(data.lyrics);
+};
+음악 생성 버튼 → /api/music-generate
+
+ts
+복사
+편집
+const generateMusic = async ()=>{
+  const fd = new FormData();
+  fd.append('prompt', prompt);
+  fd.append('voiceOption', voiceOpt);
+  if(voiceOpt==='ai') fd.append('gender', gender);
+  if(file) fd.append('sampleFile', file);
+  const { data } = await axios.post('/api/music-generate', fd,
+               { responseType:'blob' });
+  const url = URL.createObjectURL(new Blob([data],{type:'audio/mpeg'}));
+  setAudioUrl(url);
+};
+라우터
+
+tsx
+복사
+편집
+<Route path="/music-generate" element={<MusicGeneratePage />} />
+────────────────────────────────────────────
+■ 5. 환경 변수 (Replit Secrets)
+
+OPENAI_API_KEY = sk-proj-************************
+REPLICATE_API_TOKEN = r8_****************************
+VOICE_CLONE_KEY = *******************************
+
+────────────────────────────────────────────
+■ 6. QA 체크리스트
+□ 프롬프트 → 한글 가사 생성 OK
+□ AI 보컬 male_kr / female_kr 합성 OK
+□ 사용자 음성 클론 업로드 & 합성 OK
+□ 반주 생성 OK (30초)
+□ 믹스된 MP3 재생·다운로드 OK
+□ 에러 발생 시 JSON 에러 메시지 확인
