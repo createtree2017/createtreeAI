@@ -279,8 +279,18 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
       formData.append('styleTags', values.styleTags.join(','));
       formData.append('voiceMode', values.voiceMode);
       
+      // 서버에서 요구하는 필수 매개변수 추가
+      // 스타일 태그 중 첫 번째 항목을 style 값으로 사용
+      const style = values.styleTags.length > 0 ? values.styleTags[0] : 'lullaby';
+      formData.append('style', style);
+      
+      // 제목을 아기 이름으로 사용 (없으면 '아기')
+      const babyName = values.title || '아기';
+      formData.append('babyName', babyName);
+      
       if (values.voiceMode === 'ai') {
         formData.append('voiceGender', values.voiceGender);
+        formData.append('gender', values.voiceGender); // 서버 API 호환성을 위해 추가
       } else if (values.voiceMode === 'clone' && values.voiceId) {
         formData.append('voiceId', values.voiceId);
       }
@@ -289,6 +299,8 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
       if (values.lyrics && values.useLyrics) {
         formData.append('lyrics', values.lyrics);
       }
+      
+      console.log('음악 생성 요청 데이터:', Object.fromEntries(formData.entries()));
       
       // 음악 생성 API 호출
       const res = await fetch('/api/music/generate', {
@@ -584,9 +596,24 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
               </div>
               
               <div className="relative">
-                <Input 
-                  placeholder="Enter style tags" 
-                  className="bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-500"
+                <FormField
+                  control={form.control}
+                  name="styleTags"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input 
+                          value={field.value.map(id => {
+                            const tag = availableStyleTags.find(t => t.id === id);
+                            return tag ? tag.name : id;
+                          }).join(', ')}
+                          readOnly
+                          placeholder="선택된 스타일 태그" 
+                          className="bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-500"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
                 />
                 
                 <div className="mt-2 flex flex-wrap gap-2">
