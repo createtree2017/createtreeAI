@@ -11,7 +11,8 @@ router.post('/', async (req, res) => {
   try {
     const userId = req.user?.id || null;
     const jobId = await musicJobService.enqueueMusicJob(req.body, userId);
-    res.status(201).json({ jobId });
+    // 상태 코드 200으로 변경 (클라이언트 호환성을 위해)
+    res.status(200).json({ jobId });
   } catch (error) {
     console.error('음악 생성 작업 등록 실패:', error);
     res.status(500).json({ 
