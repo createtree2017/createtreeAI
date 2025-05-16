@@ -198,7 +198,7 @@ export function MusicJobProvider({ children }: { children: ReactNode }) {
     }
   };
   
-  // 작업 초기화
+  // 작업 초기화 - 상태 초기화 및 타이머 지우기
   const clearJob = () => {
     setJobId(null);
     setStatus('idle');
@@ -206,6 +206,12 @@ export function MusicJobProvider({ children }: { children: ReactNode }) {
     setResultId(null);
     setError(null);
     localStorage.removeItem(JOB_ID_KEY);
+    
+    // 추가: 서버에 작업 취소 요청 (실제 서버 취소 API가 구현되면 활성화)
+    // if (jobId) {
+    //   fetch(`/api/music-jobs/${jobId}/cancel`, { method: "POST" })
+    //     .catch(err => console.error("작업 취소 실패:", err));
+    // }
   };
   
   // 폼 데이터 설정
