@@ -30,18 +30,40 @@ router.post('/', upload.single('sampleFile'), async (req, res) => {
     console.log('음악 생성 요청 수신:', req.body);
     
     // 요청 파라미터 검증
-    const { prompt, voiceOption = 'ai', gender = 'female_kr' } = req.body;
+    const { 
+      prompt, 
+      babyName, 
+      style, 
+      title,
+      duration = 60,
+      voiceOption = 'ai', 
+      gender = 'female_kr' 
+    } = req.body;
     
+    // 필수 매개변수 확인
     if (!prompt) {
       return res.status(400).json({ 
         error: '음악 설명(prompt)이 필요합니다' 
+      });
+    }
+    
+    if (!babyName) {
+      return res.status(400).json({ 
+        error: '아기 이름(babyName)이 필요합니다' 
+      });
+    }
+    
+    if (!style) {
+      return res.status(400).json({ 
+        error: '음악 스타일(style)이 필요합니다' 
       });
     }
 
     // 가사 생성
     console.log('가사 생성 시작...');
     const lyrics = await generateLyrics({
-      prompt: prompt,
+      prompt: `아기 ${babyName}를 위한 ${style} 스타일의 음악: ${prompt}`,
+      style: style,
       includeChorus: true
     });
     console.log('가사 생성 완료:', lyrics.substring(0, 100) + '...');
