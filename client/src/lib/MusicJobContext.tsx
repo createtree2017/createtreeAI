@@ -61,6 +61,21 @@ const isServerRestarted = (lastStartTime: number): boolean => {
   return parseInt(storedTime) < lastStartTime;
 };
 
+// 접속 시마다 서버 재시작 체크를 위해 데이터 강제 초기화 플래그
+const FORCE_RESET_KEY = "music_job_force_reset";
+const shouldForceReset = () => {
+  const now = new Date().getTime();
+  const lastCheck = parseInt(localStorage.getItem(FORCE_RESET_KEY) || '0');
+  const hoursPassed = (now - lastCheck) / (1000 * 60 * 60);
+  
+  // 1시간 이상 지나면 강제 초기화
+  if (hoursPassed >= 1) {
+    localStorage.setItem(FORCE_RESET_KEY, now.toString());
+    return true;
+  }
+  return false;
+};
+
 // 초기 접속 시 현재 서버 시작 시간 설정
 const currentServerStartTime = setServerStartTime();
 
@@ -78,10 +93,12 @@ const MusicJobContext = createContext<MusicJobContextType | null>(null);
 export function MusicJobProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const [jobId, setJobId] = useState<string | null>(() => {
-    // 서버 재시작 시 기존 작업 ID 초기화
+    // 서버 재시작 또는 강제 초기화 조건 확인
     const savedJobId = localStorage.getItem(JOB_ID_KEY);
-    if (savedJobId && isServerRestarted(currentServerStartTime)) {
-      console.log('서버가 재시작되었습니다. 이전 작업을 초기화합니다.');
+    
+    // 서버 재시작 또는 강제 초기화 조건에 해당하면 작업 초기화
+    if (savedJobId && (isServerRestarted(currentServerStartTime) || shouldForceReset())) {
+      console.log('서버가 재시작되었거나 오래된 작업입니다. 이전 작업을 초기화합니다.');
       localStorage.removeItem(JOB_ID_KEY);
       return null;
     }
