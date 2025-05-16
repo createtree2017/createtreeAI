@@ -107,6 +107,7 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
       voiceGender: "female_kr",
       voiceId: "",
       useLyrics: true,
+      lyricMode: "fullSong"
     }
   });
   
@@ -304,7 +305,8 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
       console.log('음악 생성 요청 데이터:', Object.fromEntries(formData.entries()));
       
       // 음악 생성 API 호출
-      const res = await fetch('/api/music/generate', {
+      // 서버에서 제공하는 라우트를 사용
+      const res = await fetch('/api/music-generate', {
         method: 'POST',
         body: formData,
       });
@@ -586,7 +588,7 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
                       </Badge>
                       <Badge 
                         variant="outline" 
-                        className={`cursor-pointer ${form.watch('lyricMode') === 'fullSong' 
+                        className={`cursor-pointer ${form.getValues().lyricMode === 'fullSong' 
                           ? "bg-gradient-to-r from-amber-500 to-rose-500 text-white border-transparent" 
                           : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 border-zinc-700"}`}
                         onClick={() => form.setValue('lyricMode', 'fullSong')}
