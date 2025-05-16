@@ -10,9 +10,11 @@ let openaiClient: OpenAI | null = null;
 
 try {
   if (process.env.OPENAI_API_KEY) {
+    // OPENAI_PROJECT_ID를 명시적으로 무시하고 API 키만 사용
+    console.log('OpenAI 클라이언트 초기화 - OPENAI_PROJECT_ID 무시함');
     openaiClient = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
-      // organizationId 항목 제거 - 오류의 원인
+      organization: undefined, // organizationId 명시적으로 undefined 설정
     });
     console.log('OpenAI 클라이언트가 성공적으로 초기화되었습니다.');
   } else {
