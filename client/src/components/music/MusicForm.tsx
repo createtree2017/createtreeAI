@@ -475,7 +475,7 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
                         id="instrumental-mode"
                         checked={!field.value}
                         onCheckedChange={(checked) => field.onChange(!checked)}
-                        className="data-[state=checked]:bg-zinc-700"
+                        className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-amber-500 data-[state=checked]:to-rose-500"
                       />
                       <Label htmlFor="instrumental-mode" className="text-sm text-zinc-400">
                         Instrumental
@@ -483,7 +483,7 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
                     </div>
                     
                     <div className="ml-auto flex gap-2">
-                      <Badge variant="outline" className="bg-zinc-800 text-zinc-400 hover:bg-zinc-700 cursor-pointer border-zinc-700">
+                      <Badge variant="outline" className="bg-gradient-to-r from-amber-500 to-rose-500 opacity-50 hover:opacity-100 text-white cursor-pointer border-transparent">
                         By Line
                       </Badge>
                       <Badge variant="outline" className="bg-zinc-800 text-zinc-400 hover:bg-zinc-700 cursor-pointer border-zinc-700">
@@ -637,7 +637,7 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
             </div>
             
             {/* 추가 옵션 섹션 */}
-            <div className={`space-y-3 border-t border-zinc-800 pt-4 ${formMode === 'simple' && 'hidden'}`}>
+            <div className={`space-y-3 border-t border-zinc-800 pt-4 transition-all duration-300 ${formMode === 'simple' ? 'hidden' : 'block'}`}>
               <div className="flex items-center justify-between">
                 <span className="text-white flex items-center gap-2 font-medium">
                   More Options
