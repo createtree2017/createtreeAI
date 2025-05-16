@@ -8,23 +8,24 @@ import { OpenAI } from 'openai';
 // OpenAI 클라이언트 설정
 let openaiClient: OpenAI | null = null;
 
-// OpenAI 클라이언트 초기화 - 직접 설정 방식으로 해결
+// OpenAI 클라이언트 초기화 - 정확한 프로젝트 ID 설정
 try {
   // API 키 확인
   if (!process.env.OPENAI_API_KEY) {
     console.warn('OPENAI_API_KEY 환경 변수가 설정되지 않았습니다. 가사 생성 기능이 제한됩니다.');
     openaiClient = null;
   } else {
-    console.log('OpenAI 클라이언트 새 방식으로 초기화 중...');
+    console.log('OpenAI 클라이언트 프로젝트 ID 방식으로 초기화 중...');
     
-    // 📌 환경 변수 무시하고 직접 OpenAI 설정
-    // 조직 ID 또는 프로젝트 ID 사용안함 - 단순히 API 키만 사용
+    // ✅ 중요: 테스트 완료된 설정
+    // 1. project 파라미터에 정확한 프로젝트 ID 설정 (이전에는 organization에 조직 ID가 잘못 지정됨)
+    // 2. 정확한 프로젝트 ID: proj_Oys314rjaCBEfb2D5lpE5Xtj
     openaiClient = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
-      // 모든 추가 설정은 제외 - 최소한의 설정만 사용
+      project: 'proj_Oys314rjaCBEfb2D5lpE5Xtj', // 하드코딩된 프로젝트 ID (정확한 값)
     });
     
-    console.log('OpenAI 클라이언트 초기화 완료 (심플 모드)');
+    console.log('OpenAI 클라이언트 초기화 성공 - 프로젝트 ID: proj_Oys314rjaCBEfb2D5lpE5Xtj');
   }
 } catch (error) {
   console.error('OpenAI 클라이언트 초기화 오류:', error);
