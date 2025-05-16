@@ -45,34 +45,61 @@ export async function generateMusic(prompt: string, duration: number = 60): Prom
     const validDuration = Math.min(Math.max(duration, 60), 240);
     console.log(`MusicGen 모델에 전달되는 음악 길이: ${validDuration}초`);
     
-    // 샘플 음악 반환 (API 호출 없이 로컬 파일 사용)
-    console.log('샘플 음악 파일 사용 (임시 대체)');
-    return await getSampleMusic();
+    // Replicate API가 정상 동작하는지 로그 출력
+    console.log(`Replicate API 토큰 상태: ${process.env.REPLICATE_API_TOKEN ? '설정됨' : '미설정'}`);
     
-    // 나중에 API가 해결되면 아래 코드를 활성화
-    /*
-    // 사용자 입력에서 음악 스타일 정보 추출
-    const musicStyle = style || 'lullaby';
-    
-    // 음악 생성 프롬프트 개선
-    const enhancedPrompt = `Create a ${validDuration} second ${musicStyle} music for babies. Details: ${prompt}`;
-    
-    console.log(`Replicate API 호출 - 음악 생성 프롬프트: ${enhancedPrompt}`);
-    
-    // 더 안정적인 모델 사용
-    const output = await replicate.run(
-      "riffusion/riffusion:8cf61ea6c56afd61d8f5b9ffd14d7c216c0a93844ce2d82ac1c9ecc9c7f24e05",
-      {
-        input: {
-          prompt_a: enhancedPrompt,
-          prompt_b: enhancedPrompt,
-          alpha: 0.5,
-          num_inference_steps: 50,
-          seed_image_id: "vibes"
+    try {
+      // 사용자 입력에서 음악 스타일 정보 추출
+      const musicStyle = prompt.toLowerCase().includes('lullaby') ? 'lullaby' : 
+                        prompt.toLowerCase().includes('classical') ? 'classical' : 'lullaby';
+      
+      // 음악 생성 프롬프트 개선
+      const enhancedPrompt = `Create a ${validDuration} second ${musicStyle} music for babies. Details: ${prompt}`;
+      
+      console.log(`Replicate API 호출 - 음악 생성 프롬프트: ${enhancedPrompt}`);
+      
+      // 최신 MusicGen 모델 사용
+      const output = await replicate.run(
+        "meta/musicgen:7a76a8258b23fae65c5a22debb8841d1d7e816b75c2f24218cd2bd8573787906",
+        {
+          input: {
+            prompt: enhancedPrompt,
+            duration: validDuration,
+            model_version: "melody",
+            output_format: "mp3",
+            continuation: false,
+            normalization_strategy: "peak",
+            classifier_free_guidance: 3
+          }
         }
+      );
+      
+      console.log('MusicGen API 응답:', output);
+      
+      // 결과 URL 확인
+      if (!output || !output.audio) {
+        console.error('API 호출 결과 없음, 샘플 음악 사용');
+        return await getSampleMusic();
       }
-    );
-    */
+      
+      const audioUrl = output.audio;
+      console.log('MusicGen 음악 생성 완료, URL:', audioUrl);
+      
+      // 원격 URL에서 파일 다운로드
+      const response = await fetch(audioUrl);
+      if (!response.ok) {
+        throw new Error(`음악 다운로드에 실패했습니다: ${response.status} ${response.statusText}`);
+      }
+      
+      // 응답을 ArrayBuffer로 변환
+      const buffer = await response.arrayBuffer();
+      return Buffer.from(buffer);
+      
+    } catch (apiError) {
+      console.error('Replicate API 호출 실패:', apiError);
+      console.log('API 오류로 인해 샘플 음악 반환');
+      return await getSampleMusic();
+    }
     
     // 결과 URL 확인
     if (!output || typeof output !== 'string') {
