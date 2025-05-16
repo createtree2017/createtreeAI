@@ -39,6 +39,7 @@ import MaternityPhoto from "@/pages/maternity-photo";
 import FamilyPhoto from "@/pages/family-photo";
 import Stickers from "@/pages/stickers";
 import Lullaby from "@/pages/lullaby";
+import SunoMusicPage from "@/pages/suno-music";
 import CampaignsPage from "@/pages/campaigns";
 import CampaignDetailPage from "@/pages/campaign-detail";
 import HospitalCampaignsPage from "@/pages/hospital-campaigns";
@@ -341,6 +342,14 @@ function Router() {
         <ProtectedRoute>
           <Layout>
             <Lullaby />
+          </Layout>
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/suno-music">
+        <ProtectedRoute>
+          <Layout>
+            <SunoMusicPage />
           </Layout>
         </ProtectedRoute>
       </Route>
