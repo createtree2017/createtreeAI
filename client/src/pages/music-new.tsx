@@ -64,7 +64,7 @@ export default function Music() {
   // Job 기반 상태에서 음악 정보 구성
   const jobMusic = resultId && resultUrl ? {
     id: resultId,
-    title: jobFormData.title || `${jobFormData.babyName}의 ${jobFormData.musicStyle}`,
+    title: `${jobFormData.babyName}의 ${jobFormData.musicStyle}`,
     duration: Number(jobFormData.duration) || 60,
     style: jobFormData.musicStyle || 'lullaby',
     url: resultUrl,
@@ -263,12 +263,24 @@ export default function Music() {
     },
   });
   
-  // 폼 제출 핸들러 - 전역 상태 활용
+  // 폼 제출 핸들러 - Job 기반 시스템 활용
   const onSubmit = (data: FormValues) => {
-    // 전역 상태에 폼 데이터 저장
+    // 전역 상태에 폼 데이터 저장 (이전 시스템과의 호환성 유지)
     setGlobalFormData(data);
-    // 음악 생성 시작
+    
+    // Job 상태에 폼 데이터 저장
+    setJobFormData(data);
+    
+    // 음악 생성 시작 - Job 기반 뮤테이션 사용
     generateMusicMutation(data);
+    
+    // MusicJobIndicator 컴포넌트가 표시되도록 스크롤
+    setTimeout(() => {
+      const indicator = document.getElementById('music-job-indicator');
+      if (indicator) {
+        indicator.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 500);
   };
   
   // 공유 버튼 클릭 핸들러
@@ -408,7 +420,29 @@ export default function Music() {
           <div className="bg-card rounded-lg shadow-lg p-6">
             <h2 className="text-xl font-bold mb-4">생성된 음악</h2>
             
-            {generatedMusic ? (
+            {jobStatus === 'pending' || jobStatus === 'processing' ? (
+              <div className="space-y-4">
+                <div className="p-4 rounded-lg bg-muted">
+                  <h3 className="font-medium">
+                    {jobFormData.babyName}의 {jobFormData.musicStyle}
+                  </h3>
+                  <p className="text-sm text-muted-foreground animate-pulse">
+                    음악 생성 중... {jobStatus === 'processing' ? '처리 중' : '대기 중'}
+                  </p>
+                </div>
+                
+                <div className="flex flex-col items-center justify-center py-8">
+                  <svg className="animate-spin h-10 w-10 mb-4 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <p className="text-sm text-center text-muted-foreground">
+                    음악 생성은 몇 분 정도 소요됩니다.<br />
+                    다른 페이지로 이동해도 계속 처리됩니다.
+                  </p>
+                </div>
+              </div>
+            ) : generatedMusic ? (
               <div className="space-y-4">
                 <div className="p-4 rounded-lg bg-muted">
                   <h3 className="font-medium">{generatedMusic.title}</h3>
