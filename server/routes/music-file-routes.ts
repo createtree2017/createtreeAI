@@ -117,12 +117,12 @@ router.get('/:filename', (req, res) => {
       stream.pipe(res);
     } else {
       // 전체 파일 응답
-      console.log(`[음악 파일 요청] 전체 파일 전송: ${stat.size} 바이트`);
+      console.log(`[음악 파일 요청] 전체 파일 전송: ${fileStats.size} 바이트`);
       
       // 작업지시서 요구사항: Content-Type, Accept-Ranges 헤더 설정
       res.writeHead(200, {
         'Content-Type': 'audio/mpeg',
-        'Content-Length': stat.size,
+        'Content-Length': fileStats.size,
         'Accept-Ranges': 'bytes',
         'Cache-Control': 'no-cache',
         'Access-Control-Allow-Origin': '*',
