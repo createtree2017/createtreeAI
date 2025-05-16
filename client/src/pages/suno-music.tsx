@@ -201,8 +201,39 @@ export default function SunoMusicPage() {
   }, [statusData, toast]);
   
   // 폼 제출 핸들러
-  const onSubmit = (values: FormValues) => {
-    generateMusicMutation(values);
+  const onSubmit = async (values: FormValues) => {
+    console.log('폼 제출 값:', values);
+    try {
+      const response = await fetch('/api/suno/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(values)
+      });
+      
+      if (!response.ok) {
+        throw new Error('음악 생성 요청 실패');
+      }
+      
+      const data = await response.json();
+      console.log('음악 생성 응답:', data);
+      
+      if (data.jobId) {
+        setCurrentJobId(data.jobId);
+        toast({
+          title: '음악 생성 시작',
+          description: '음악 생성이 시작되었습니다. 완료될 때까지 기다려주세요.',
+        });
+      }
+    } catch (error) {
+      console.error('음악 생성 오류:', error);
+      toast({
+        title: '음악 생성 오류',
+        description: '음악 생성 중 오류가 발생했습니다.',
+        variant: 'destructive',
+      });
+    }
   };
   
   // 오디오 플레이어 컴포넌트
