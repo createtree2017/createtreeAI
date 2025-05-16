@@ -348,7 +348,11 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
     }
     
     setGeneratingLyrics(true);
-    generateLyricsMutation.mutate(prompt);
+    generateLyricsMutation.mutate({
+      prompt: prompt,
+      includeChorus: true,
+      length: 200
+    });
   };
   
   // 폼 제출 핸들러
