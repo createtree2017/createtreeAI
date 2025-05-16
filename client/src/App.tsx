@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
-import Music from "@/pages/music";
+import Music from "@/pages/music-new";
 import Image from "@/pages/image";
 import Chat from "@/pages/chat";
 import Gallery from "@/pages/gallery-simplified";

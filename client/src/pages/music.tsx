@@ -43,9 +43,27 @@ export default function Music() {
   
   // 세션 스토리지에서 진행 중인 음악 생성 정보 확인
   const [pendingRequest, setPendingRequest] = useState<any>(null);
+  const [formDefaultValues, setFormDefaultValues] = useState({
+    babyName: "",
+    musicStyle: "lullaby",
+    duration: "60",
+  });
   
   useEffect(() => {
     try {
+      // 로컬 스토리지에서 마지막으로 입력한 폼 데이터 가져오기
+      const savedFormData = localStorage.getItem('music_form_data');
+      if (savedFormData) {
+        const parsedFormData = JSON.parse(savedFormData);
+        setFormDefaultValues(parsedFormData);
+        
+        // 폼 값을 업데이트 (React Hook Form의 setValue 사용)
+        Object.entries(parsedFormData).forEach(([key, value]) => {
+          form.setValue(key as any, value as any);
+        });
+      }
+      
+      // 세션 스토리지에서 진행 중인 음악 생성 정보 가져오기
       const storedRequest = sessionStorage.getItem('current_music_request');
       if (storedRequest) {
         const parsedRequest = JSON.parse(storedRequest);
@@ -64,17 +82,28 @@ export default function Music() {
   // Form setup
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      babyName: pendingRequest?.data?.babyName || "",
-      musicStyle: pendingRequest?.data?.musicStyle || "lullaby",
-      duration: pendingRequest?.data?.duration || "60",
-    },
+    defaultValues: formDefaultValues,
   });
+  
+  // 폼 값이 변경될 때마다 로컬 스토리지에 저장
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      if (value.babyName || value.musicStyle || value.duration) {
+        localStorage.setItem('music_form_data', JSON.stringify({
+          babyName: value.babyName || "",
+          musicStyle: value.musicStyle || "lullaby",
+          duration: value.duration || "60",
+        }));
+      }
+    });
+    
+    return () => subscription.unsubscribe();
+  }, [form.watch]);
   
   // Fetch music list
   const { data: musicList, isLoading: isLoadingMusic } = useQuery({
     queryKey: ["/api/music"],
-    queryFn: getMusicList,
+    queryFn: () => getMusicList(),
   });
   
   // Fetch individual music if ID is provided
