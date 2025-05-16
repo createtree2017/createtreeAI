@@ -42,6 +42,7 @@ import { exportChatHistoryAsHtml, exportChatHistoryAsText } from "./services/exp
 import { exportDevChatAsHtml, exportDevChatAsText } from "./services/dev-chat-export";
 import { AutoChatSaver } from "./services/auto-chat-saver";
 import superAdminRoutes from './routes/superAdmin';
+import musicFileRoutes from './routes/music-file-routes';
 import { 
   music, 
   images, 
