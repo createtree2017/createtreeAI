@@ -72,30 +72,46 @@ type FormValues = z.infer<typeof formSchema>;
 
 // 음악 생성 요청 함수
 const createMusic = async (data: FormValues) => {
-  const response = await apiRequest('/api/suno/create', {
+  const response = await fetch('/api/suno/create', {
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
     body: JSON.stringify(data),
   });
   
-  return response;
+  if (!response.ok) {
+    throw new Error('음악 생성 요청 실패');
+  }
+  
+  return await response.json();
 };
 
 // 음악 생성 상태 확인 함수
 const checkMusicStatus = async (jobId: string) => {
-  const response = await apiRequest(`/api/suno/status/${jobId}`, {
+  const response = await fetch(`/api/suno/status/${jobId}`, {
     method: 'GET',
   });
   
-  return response;
+  if (!response.ok) {
+    throw new Error('상태 확인 요청 실패');
+  }
+  
+  return await response.json();
 };
 
 // 음악 목록 조회 함수
 const getMusicList = async () => {
-  const response = await apiRequest('/api/suno/list', {
+  const response = await fetch('/api/suno/list', {
     method: 'GET',
   });
   
-  return response.data;
+  if (!response.ok) {
+    throw new Error('음악 목록 조회 요청 실패');
+  }
+  
+  const data = await response.json();
+  return data.data || [];
 };
 
 export default function SunoMusicPage() {

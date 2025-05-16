@@ -105,7 +105,7 @@ export class SunoService {
     try {
       console.log('[Suno Service] Puppeteer 브라우저 초기화 중...');
       this.browser = await puppeteer.launch({
-        headless: 'new',  // 완전 Headless 모드
+        headless: true,  // 헤드리스 모드 사용
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -130,10 +130,12 @@ export class SunoService {
           value: cookie.value,
           domain: cookie.domain.startsWith('.') ? cookie.domain.substring(1) : cookie.domain,
           path: cookie.path,
-          expires: cookie.expirationDate ? cookie.expirationDate : -1,
+          expires: cookie.expirationDate ? Math.floor(cookie.expirationDate) : -1,
           httpOnly: cookie.httpOnly,
           secure: cookie.secure,
-          sameSite: cookie.sameSite === 'lax' ? 'Lax' : cookie.sameSite === 'strict' ? 'Strict' : 'None',
+          sameSite: cookie.sameSite.toLowerCase() === 'lax' ? 'Lax' : 
+                   cookie.sameSite.toLowerCase() === 'strict' ? 'Strict' : 
+                   'None' as puppeteer.CookieSameSite,
         }));
         
         await this.page.setCookie(...puppeteerCookies);
