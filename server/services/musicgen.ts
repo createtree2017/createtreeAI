@@ -71,69 +71,109 @@ export async function generateMusic(prompt: string, duration: number = 60): Prom
       });
       
       // 음악 생성 API 호출 - 음악 생성 전용 모델 사용
+      // 입력 파라미터 로깅
+      const inputParams = {
+        model: "melody",
+        prompt: enhancedPrompt,
+        duration: validDuration,
+        output_format: "mp3",
+        temperature: 1,
+        top_k: 250,
+        top_p: 0.99,
+        classifier_free_guidance: 3
+      };
+      
+      console.log('[Replicate API] 입력 파라미터:', JSON.stringify(inputParams, null, 2));
+      console.log('[Replicate API] 호출 모델: metacomp/musicgen-v0.1:49a3ac32438e86f8e5016b8a4e44d9b8c6875f2e6898e4eb44132001445fa96e');
+      
+      // API 호출 시작 시간 기록
+      const apiStartTime = Date.now();
+      
       const apiPromise = replicate.run(
         "metacomp/musicgen-v0.1:49a3ac32438e86f8e5016b8a4e44d9b8c6875f2e6898e4eb44132001445fa96e",
         {
-          input: {
-            model: "melody",
-            prompt: enhancedPrompt,
-            duration: validDuration,
-            output_format: "mp3",
-            temperature: 1,
-            top_k: 250,
-            top_p: 0.99,
-            classifier_free_guidance: 3
-          }
+          input: inputParams
         }
       );
       
       // API 호출 또는 타임아웃 기다리기
-      const output = await Promise.race([apiPromise, timeoutPromise]);
+      let output;
+      try {
+        output = await Promise.race([apiPromise, timeoutPromise]);
+        console.log(`[Replicate API] 응답 시간: ${Date.now() - apiStartTime}ms`);
+      } catch (error) {
+        console.error('[Replicate API] 호출 실패:', error);
+        console.error('[Replicate API] 에러 상세:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+        throw error;
+      }
       
-      console.log('Replicate API 응답:', output);
+      // 응답 상세 로깅 (작업지시서 요구사항)
+      console.log('[Replicate API] 응답 전체:', JSON.stringify(output, null, 2));
+      console.log('[Replicate API] 응답 타입:', typeof output);
       
       // 응답 형식 확인 및 URL 추출
-      console.log('API 응답 형식:', typeof output, output);
-      
       let audioUrl;
       if (typeof output === 'string') {
         // 문자열 URL 응답 (일부 모델)
         audioUrl = output;
+        console.log('[Replicate API] 문자열 URL 응답:', audioUrl);
       } else if (output && typeof output === 'object') {
         // 객체 응답 검사 (metacomp/musicgen 모델)
         if (Array.isArray(output)) {
           // 배열인 경우 첫 번째 항목 사용
           audioUrl = output[0];
-          console.log('배열 응답에서 첫 번째 항목 사용:', audioUrl);
+          console.log('[Replicate API] 배열 응답에서 첫 번째 항목 추출:', audioUrl);
         } else {
           // 객체인 경우 가능한 속성 확인
           // @ts-ignore - 객체 속성 동적 접근
           audioUrl = output.audio || output.output || output.url || Object.values(output)[0];
-          console.log('객체 응답에서 오디오 URL 추출:', audioUrl);
+          console.log('[Replicate API] 객체 응답에서 오디오 URL 추출:', audioUrl);
         }
       }
       
-      // URL을 얻지 못한 경우
+      // URL을 얻지 못한 경우 (작업지시서 요구사항: 샘플 파일 반환)
       if (!audioUrl) {
-        console.warn('API 응답에서 오디오 URL을 추출할 수 없음, 샘플 음악 사용');
+        console.warn('[Replicate API] ⚠️ 오디오 URL 추출 실패, 샘플 파일 사용:');
+        const samplePath = path.join(process.cwd(), 'static', 'samples', 'sample-music.mp3');
+        console.log('[Replicate API] 샘플 파일 경로:', samplePath);
         return await getSampleMusic();
       }
       
       // 파일 다운로드
-      console.log('오디오 URL 획득:', audioUrl);
+      console.log('[Replicate API] 최종 오디오 URL:', audioUrl);
       
       try {
+        console.log('[음악 다운로드] 시작...');
         const response = await fetch(audioUrl);
         
         if (!response.ok) {
-          throw new Error(`음악 다운로드에 실패했습니다: ${response.status} ${response.statusText}`);
+          console.error(`[음악 다운로드] 실패: HTTP ${response.status} ${response.statusText}`);
+          // 작업지시서 요구사항: API 또는 다운로드 실패 시 샘플 파일 반환
+          return await getSampleMusic();
         }
+        
+        // 응답 헤더 로깅
+        console.log('[음악 다운로드] 응답 헤더:', 
+          Object.fromEntries([...response.headers.entries()]));
       
         // 응답을 Buffer로 변환
         const buffer = await response.arrayBuffer();
-        return Buffer.from(buffer);
+        const resultBuffer = Buffer.from(buffer);
+        
+        // 파일 크기 로깅
+        console.log(`[음악 다운로드] 완료: ${resultBuffer.length} 바이트`);
+        
+        // 파일 크기가 너무 작으면 샘플 반환 (작업지시서 요구사항)
+        if (resultBuffer.length < 10000) {
+          console.warn(`[음악 다운로드] 파일 크기가 너무 작음(${resultBuffer.length} 바이트), 샘플 사용`);
+          return await getSampleMusic();
+        }
+        
+        return resultBuffer;
       } catch (downloadError) {
-        console.error('음악 파일 다운로드 중 오류:', downloadError);
+        console.error('[음악 다운로드] 오류:', downloadError);
+        console.log('[음악 다운로드] 오류로 인해 샘플 파일 반환');
+        // 작업지시서 요구사항: 오류 발생 시 샘플 파일 반환
         return await getSampleMusic();
       }
       

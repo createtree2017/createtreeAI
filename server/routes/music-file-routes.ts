@@ -1,6 +1,7 @@
 /**
  * 음악 파일 전용 공개 라우트 
  * 이 라우트는 로그인 없이도 음악 파일에 접근할 수 있도록 합니다.
+ * 작업지시서 요구사항: Content-Type, Accept-Ranges 설정, 인증 우회
  */
 import express from 'express';
 import fs from 'fs';
@@ -18,28 +19,46 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 router.get('/:filename', (req, res) => {
   try {
     const filename = req.params.filename;
-    // 파일명 유효성 검사
+    
+    // 파일명 유효성 검사 (영문, 숫자, 대시, 언더스코어, 점만 허용)
     if (!filename || !filename.match(/^[a-zA-Z0-9_\-\.]+\.mp3$/)) {
+      console.error(`유효하지 않은 파일명 요청: ${filename}`);
       return res.status(400).json({ error: '유효하지 않은 파일명입니다.' });
     }
 
-    // 파일 경로 (임시 폴더 / 영구 폴더)
+    // 파일 경로 결정
     let filePath = '';
+    let fallbackPath = '';
     
-    // 템프 파일인 경우 (temp-music로 시작하는 파일)
+    // 1. 기본 경로 설정
     if (filename.startsWith('temp-music-')) {
+      // 임시 파일 경로
       filePath = path.resolve(process.cwd(), 'uploads/temp', filename);
     } else {
-      // 정규 음악 파일인 경우 (정규 음악 저장소에서 찾기)
+      // 정규 음악 파일 경로
       filePath = path.resolve(process.cwd(), 'uploads/music', filename);
     }
     
-    console.log(`음악 파일 요청: ${filename}, 경로: ${filePath}`);
+    // 2. 대체 파일 경로 (샘플 음악)
+    fallbackPath = path.resolve(process.cwd(), 'static/samples/sample-music.mp3');
     
-    // 파일 존재 확인 (동기 방식)
+    console.log(`[음악 파일 요청] 파일명: ${filename}`);
+    console.log(`[음악 파일 요청] 경로: ${filePath}`);
+    console.log(`[음악 파일 요청] 대체 경로: ${fallbackPath}`);
+    
+    // 파일 존재 확인 (동기 방식) - 없으면 샘플 파일 반환
     if (!fs.existsSync(filePath)) {
-      console.error(`파일 접근 오류: ${filePath}`);
-      return res.status(404).json({ error: '파일을 찾을 수 없습니다.' });
+      console.error(`[음악 파일 요청] ⚠️ 파일 없음: ${filePath}`);
+      
+      // 요청된 파일이 없는 경우 - 샘플 파일 사용 시도
+      if (fs.existsSync(fallbackPath)) {
+        console.log(`[음악 파일 요청] ℹ️ 샘플 파일 사용: ${fallbackPath}`);
+        filePath = fallbackPath;
+      } else {
+        // 샘플 파일도 없는 경우 404 반환
+        console.error(`[음악 파일 요청] ❌ 샘플 파일도 없음: ${fallbackPath}`);
+        return res.status(404).json({ error: '파일을 찾을 수 없습니다.' });
+      }
     }
     
     // 파일 정보 가져오기
