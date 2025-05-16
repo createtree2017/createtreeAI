@@ -69,7 +69,13 @@ export default function Music() {
   
   // Generate music mutation
   const { mutate: generateMusicMutation, isPending: isGenerating } = useMutation({
-    mutationFn: (data: { babyName: string; style: string; duration: number }) => generateMusic(data),
+    mutationFn: (data: { babyName: string; style: string; duration: number }) => generateMusic({
+      ...data,
+      prompt: `아기 ${data.babyName}를 위한 ${data.style} 스타일의 음악`,
+      title: `${data.babyName}의 ${data.style}`,
+      voiceOption: 'ai',
+      gender: 'female_kr'
+    }),
     onSuccess: (data) => {
       setGeneratedMusic(data);
       queryClient.invalidateQueries({ queryKey: ["/api/music"] });
