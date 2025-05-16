@@ -14,6 +14,7 @@ import { Music as MusicIcon, PlayCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AudioPlayer } from "@/components/ui/audio-player";
 import { apiRequest } from "@/lib/apiClient";
+import { useMusicProcessing } from "@/lib/MusicProcessingState";
 
 // 폼 유효성 검증 스키마
 const formSchema = z.object({
@@ -40,7 +41,14 @@ const FORM_STORAGE_KEY = "music_form_data";
 export default function Music() {
   const [location] = useLocation();
   const { toast } = useToast();
-  const [generatedMusic, setGeneratedMusic] = useState<MusicItem | null>(null);
+  // 글로벌 음악 생성 상태 가져오기
+  const { isGenerating: isGeneratingGlobal, generatedMusic: globalGeneratedMusic, startGeneration, finishGeneration } = useMusicProcessing();
+  
+  // 로컬 음악 상태 (URL에서 ID로 직접 열었을 경우 사용)
+  const [localGeneratedMusic, setLocalGeneratedMusic] = useState<MusicItem | null>(null);
+  
+  // 표시할 음악 (글로벌 상태가 우선)
+  const generatedMusic = globalGeneratedMusic || localGeneratedMusic;
   
   // URL에서 음악 ID 추출
   const query = new URLSearchParams(location.split("?")[1] || "");
@@ -124,14 +132,17 @@ export default function Music() {
     if (musicId && Array.isArray(musicList) && musicList.length > 0) {
       const foundMusic = musicList.find((item) => item.id === Number(musicId));
       if (foundMusic) {
-        setGeneratedMusic(foundMusic);
+        setLocalGeneratedMusic(foundMusic);
       }
     }
   }, [musicId, musicList]);
   
   // 음악 생성 뮤테이션
-  const { mutate: generateMusicMutation, isPending: isGenerating } = useMutation({
+  const { mutate: generateMusicMutation, isPending: isGeneratingLocal } = useMutation({
     mutationFn: async (data: FormValues) => {
+      // 전역 상태에 생성 시작을 알림
+      startGeneration(data);
+      
       // 음악 생성 중임을 표시
       toast({
         title: "음악 생성 시작",
@@ -160,21 +171,24 @@ export default function Music() {
         throw new Error(errorData.error || "음악 생성에 실패했습니다");
       }
       
-      // 응답이 Blob인 경우 처리
-      const blob = await response.blob();
+      // 일반 JSON 응답인 경우 처리
+      const jsonData = await response.json();
       
       // 생성된 음악 정보
       return {
-        url: URL.createObjectURL(blob),
-        id: Date.now(),
-        title: `${data.babyName}의 ${data.musicStyle}`,
-        duration: parseInt(data.duration),
-        style: data.musicStyle,
-        createdAt: new Date().toISOString(),
+        url: jsonData.url || `/api/music/${jsonData.id}/audio`,
+        id: jsonData.id || Date.now(),
+        title: jsonData.title || `${data.babyName}의 ${data.musicStyle}`,
+        duration: jsonData.duration || parseInt(data.duration),
+        style: jsonData.style || data.musicStyle,
+        createdAt: jsonData.createdAt || new Date().toISOString(),
       };
     },
     onSuccess: (data) => {
-      setGeneratedMusic(data);
+      // 로컬 상태와 전역 상태 모두 업데이트
+      setLocalGeneratedMusic(data);
+      finishGeneration(data);
+      
       toast({
         title: "음악 생성 완료",
         description: "아기를 위한 음악이 생성되었습니다.",
@@ -190,6 +204,9 @@ export default function Music() {
       });
     },
   });
+  
+  // 전역과 로컬 상태 통합 - 하나라도 생성 중이면 생성 중으로 표시
+  const isGenerating = isGeneratingLocal || isGeneratingGlobal;
   
   // 음악 공유 뮤테이션
   const { mutate: shareMusicMutation, isPending: isSharing } = useMutation({
@@ -411,7 +428,7 @@ export default function Music() {
                   <div 
                     key={item.id}
                     className="flex items-center p-2 rounded-md hover:bg-muted cursor-pointer"
-                    onClick={() => setGeneratedMusic(item)}
+                    onClick={() => setLocalGeneratedMusic(item)}
                   >
                     <PlayCircle className="mr-2 h-5 w-5 text-primary" />
                     <div>
