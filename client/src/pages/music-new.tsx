@@ -89,7 +89,7 @@ export default function Music() {
     queryKey: ["/api/music/list"],
     queryFn: async () => {
       try {
-        const response = await apiRequest("GET", "/api/music/list");
+        const response = await fetch("/api/music/list");
         if (!response.ok) {
           return [];
         }
@@ -107,7 +107,7 @@ export default function Music() {
     queryKey: ["/api/music/styles"],
     queryFn: async () => {
       try {
-        const response = await apiRequest("GET", "/api/music/styles");
+        const response = await fetch("/api/music/styles");
         if (!response.ok) {
           return [];
         }
@@ -194,7 +194,13 @@ export default function Music() {
   // 음악 공유 뮤테이션
   const { mutate: shareMusicMutation, isPending: isSharing } = useMutation({
     mutationFn: async (musicId: number) => {
-      const response = await apiRequest("POST", "/api/music/share", { musicId });
+      const response = await fetch("/api/music/share", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ musicId }),
+      });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || "음악 공유에 실패했습니다");
@@ -370,6 +376,7 @@ export default function Music() {
                 <AudioPlayer 
                   src={generatedMusic.url} 
                   title={generatedMusic.title}
+                  duration={generatedMusic.duration}
                 />
                 
                 <Button 
