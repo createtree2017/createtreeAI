@@ -490,7 +490,7 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
                     <FormControl>
                       <Textarea 
                         placeholder="가사를 입력하거나 Auto 버튼을 눌러 자동 생성하세요" 
-                        className="min-h-[160px] bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-500 resize-none"
+                        className="min-h-[160px] bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-500 resize-y"
                         {...field} 
                       />
                     </FormControl>

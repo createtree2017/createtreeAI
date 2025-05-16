@@ -11,7 +11,8 @@ let openaiClient: OpenAI | null = null;
 try {
   if (process.env.OPENAI_API_KEY) {
     openaiClient = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
+      apiKey: process.env.OPENAI_API_KEY,
+      // organizationId 항목 제거 - 오류의 원인
     });
     console.log('OpenAI 클라이언트가 성공적으로 초기화되었습니다.');
   } else {
