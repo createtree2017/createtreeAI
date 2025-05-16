@@ -61,8 +61,9 @@ router.post('/', upload.single('sampleFile'), async (req, res) => {
   const processId = Date.now().toString();
   
   // 기본 샘플 파일 경로 설정 - 항상 반환할 파일
-  // 정상적인 MP3 샘플 파일 사용
-  const defaultAudioPath = './static/samples/sample-music.mp3';
+  // 절대 경로로 정상적인 MP3 샘플 파일 사용
+  const rootDir = process.cwd();
+  const defaultAudioPath = path.join(rootDir, 'static', 'samples', 'sample-music.mp3');
   
   try {
     // 파일이 존재하는지 확인

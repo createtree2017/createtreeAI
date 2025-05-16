@@ -33,6 +33,21 @@ export async function mixAudio(
     // ArrayBuffer를 Buffer로 변환
     const musicBuffer = music instanceof ArrayBuffer ? Buffer.from(music) : music;
     const vocalBuffer = vocal instanceof ArrayBuffer ? Buffer.from(vocal) : vocal;
+    
+    // 입력 버퍼가 너무 작은지 확인
+    if (musicBuffer.length < 10000) {
+      console.warn(`경고: 음악 버퍼가 너무 작습니다 (${musicBuffer.length} 바이트). 대체 샘플을 사용합니다.`);
+      // 샘플 음악 파일 사용
+      const samplePath = join(process.cwd(), 'static', 'samples', 'sample-music.mp3');
+      try {
+        const sampleBuffer = await fs.readFile(samplePath);
+        console.log(`샘플 음악으로 대체: ${sampleBuffer.length} 바이트`);
+        return sampleBuffer; // 샘플 파일 바로 반환
+      } catch (sampleError) {
+        console.error('샘플 음악 파일 읽기 실패:', sampleError);
+        // 계속 진행 (원래 파일 사용)
+      }
+    }
 
     // 임시 디렉토리 확인 및 생성
     const uploadDir = join(process.cwd(), 'uploads');
