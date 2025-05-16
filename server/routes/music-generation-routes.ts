@@ -87,7 +87,12 @@ router.post('/', upload.single('sampleFile'), async (req, res) => {
 
     // 배경 음악 생성
     console.log('배경 음악 생성 시작...');
-    const music = await generateMusic(prompt);
+    // 문자열로 전달된 duration을 숫자로 변환
+    const durationInSeconds = parseInt(duration as string, 10) || 60;
+    // 60-240초 범위 내에서 제한
+    const validDuration = Math.min(Math.max(durationInSeconds, 60), 240);
+    console.log(`음악 길이: ${validDuration}초로 설정`);
+    const music = await generateMusic(prompt, validDuration);
     console.log('배경 음악 생성 완료');
 
     // 오디오 믹싱 (배경 음악 + 보컬)

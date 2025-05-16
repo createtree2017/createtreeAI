@@ -22,9 +22,10 @@ const replicate = process.env.REPLICATE_API_TOKEN
 /**
  * MusicGen 모델을 사용하여 배경 음악 생성
  * @param prompt 음악 생성을 위한 프롬프트 (스타일 설명)
+ * @param duration 음악 길이(초), 60-240초 사이 값
  * @returns 생성된 음악의 Buffer 또는 ArrayBuffer
  */
-export async function generateMusic(prompt: string): Promise<Buffer | ArrayBuffer> {
+export async function generateMusic(prompt: string, duration: number = 60): Promise<Buffer | ArrayBuffer> {
   try {
     console.log('MusicGen으로 음악 생성 시작:', prompt);
     
@@ -39,17 +40,23 @@ export async function generateMusic(prompt: string): Promise<Buffer | ArrayBuffe
       return getSampleMusic();
     }
     
-    // MusicGen 모델 실행
+    // MusicGen 모델 실행 - Facebook 오디오 생성 모델
+    // 받은 duration 파라미터를 사용(60~240초 사이)
+    const validDuration = Math.min(Math.max(duration, 60), 240);
+    console.log(`MusicGen 모델에 전달되는 음악 길이: ${validDuration}초`);
+    
     const output = await replicate.run(
-      "meta/musicgen:7be0f12c54a93b483e8d307cb2f7196e2ae9e835597fcd4454e3e7a1500d7cc9",
+      "facebookresearch/musicgen:7a76a8258b7daf15578f9c5b62c76f11aab29d3c4c0d195c6a8890b79bf9b214",
       {
         input: {
-          model_version: "melody", // melody 또는 large
           prompt: prompt,
-          duration: 15, // 최대 30초까지 가능
-          output_format: "mp3", // mp3 또는 wav
-          normalization_strategy: "peak", // peak 또는 loudness
-          classifier_free_guidance: 5, // 3-15 사이 값
+          duration: validDuration, // 사용자가 지정한 길이(초)
+          model_version: "stereo-large",
+          output_format: "mp3",
+          temperature: 1.0,
+          classifier_free_guidance: 7.0,
+          continuation: false,
+          continuation_end: false
         }
       }
     );
