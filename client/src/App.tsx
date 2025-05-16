@@ -34,6 +34,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { AuthProvider, ProtectedRoute } from "@/lib/AuthProvider";
 import { HospitalProvider } from "@/lib/HospitalContext";
 import { ImageProcessingIndicator } from "@/components/ImageProcessingIndicator";
+import { MusicProcessingIndicator } from "@/components/MusicProcessingIndicator";
+import { MusicProcessingProvider } from "@/lib/MusicProcessingState";
 // 서비스 페이지 컴포넌트 가져오기
 import MaternityPhoto from "@/pages/maternity-photo";
 import FamilyPhoto from "@/pages/family-photo";
@@ -127,6 +129,7 @@ function Layout({ children }: { children: React.ReactNode }) {
           {/* 데스크톱 헤더 추가 - 테마 토글 포함 */}
           <header className="bg-card h-14 border-b border-border px-6 flex items-center justify-end gap-4">
             <ImageProcessingIndicator />
+            <MusicProcessingIndicator />
             <ThemeToggle />
           </header>
           
@@ -185,6 +188,7 @@ function Layout({ children }: { children: React.ReactNode }) {
             {/* 상태 표시기 및 테마 토글 */}
             <div className="flex items-center gap-3">
               <ImageProcessingIndicator />
+              <MusicProcessingIndicator />
               <ThemeToggle />
             </div>
           </div>
@@ -463,8 +467,10 @@ function App() {
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <HospitalProvider>
-              <Router />
-              <Toaster />
+              <MusicProcessingProvider>
+                <Router />
+                <Toaster />
+              </MusicProcessingProvider>
             </HospitalProvider>
           </AuthProvider>
         </QueryClientProvider>
