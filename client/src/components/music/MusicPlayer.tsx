@@ -251,15 +251,31 @@ export default function FullMusicPlayer({
   // Reset when music changes
   useEffect(() => {
     setCurrentTime(0);
-    setIsPlaying(autoPlay);
+    setIsPlaying(false); // 초기화 시 항상 일시 정지 상태로
     
+    // 음악 URL이 변경될 때 audio 요소 로드
     if (audioRef.current) {
-      if (autoPlay) {
-        audioRef.current.play().catch(err => {
-          console.error("자동 재생 실패:", err);
-          setIsPlaying(false);
-        });
-      }
+      const audioUrl = music.url.startsWith('/uploads/') 
+        ? `/api/music-file/${music.url.split('/').pop()}` 
+        : music.url;
+      
+      console.log("음악 URL 설정:", audioUrl);
+      audioRef.current.src = audioUrl;
+      audioRef.current.load(); // 명시적으로 로드
+
+      // 로드 완료 후 자동 재생 (설정된 경우)
+      const handleLoaded = () => {
+        if (autoPlay) {
+          audioRef.current?.play().catch(err => {
+            console.error("자동 재생 실패:", err);
+          });
+        }
+      };
+
+      audioRef.current.addEventListener('loadeddata', handleLoaded);
+      return () => {
+        audioRef.current?.removeEventListener('loadeddata', handleLoaded);
+      };
     }
   }, [music.url, autoPlay]);
   
@@ -431,7 +447,6 @@ export default function FullMusicPlayer({
       <CardContent>
         <audio 
           ref={audioRef} 
-          src={music.url.startsWith('/uploads/') ? `/api/music-file/${music.url.split('/').pop()}` : music.url} 
           preload="metadata" 
           crossOrigin="anonymous" 
         />

@@ -1,0 +1,98 @@
+명확하게 진단해드리겠습니다.
+현재까지의 조치와 증상을 보면 "파일 제공 라우터, MIME 타입, Range 지원 등"은 개선했지만
+오디오는 여전히 재생 불가이고, 브라우저 콘솔엔 아래와 같은 에러가 반복되고 있습니다:
+
+NotSupportedError: Failed to load because no supported source was found.
+
+SyntaxError: Unexpected token '<', "<!DOCTYPE ... → 즉, MP3 대신 HTML 반환
+
+음악 파일 요청에서 404, 401, 혹은 HTML이 반환됨
+
+결론:
+음악 생성 후 반환하는 파일 경로/URL 자체가 실제 mp3 파일이 아니라 HTML 페이지(주로 로그인/에러페이지)를 반환하고 있기 때문입니다.
+즉, “오디오 파일 경로로 요청을 보냈는데 mp3 파일이 아니라 HTML이 내려옴” → 브라우저는 이걸 오디오로 인식하지 않음.
+
+실제 문제 원인 정리
+1. 인증 문제 or 라우팅 문제로 인한 HTML 반환
+로그인 안 한 상태, 혹은 파일 경로가 잘못되어 static mp3가 아니라 HTML/에러페이지가 반환됨
+
+특히 Replit이나 서버 프록시, express에서 파일이 없을 때 자동으로 HTML을 반환하는 경우가 많음
+
+2. 파일 생성/저장 경로가 다르거나 파일이 존재하지 않음
+음악 생성 후 실제 mp3 파일이 /uploads/temp/ 등에 저장되지 않거나,
+
+저장 위치와 URL에서 참조하는 경로가 달라서 요청이 무조건 404/HTML로 빠짐
+
+3. 올바른 MIME 타입과 Range 헤더 미설정
+이미 많이 시도하신 부분이지만, 위 두 가지가 해결되지 않으면 아무 효과 없음
+
+디버그 순서 (이대로 점검하면 100% 원인 찾음)
+1. 생성된 mp3 파일이 실제로 서버에 존재하는지
+서버 터미널(혹은 Replit Shell)에서 아래 커맨드로 직접 확인하세요:
+
+bash
+복사
+편집
+ls -al ./uploads/temp/
+최근 생성된 파일이 있는지, 사이즈가 0이 아닌지 확인
+
+없다면 아예 음악 생성이 실패한 것
+
+2. 직접 브라우저에서 mp3 파일 주소를 입력해보기
+예를 들어,
+
+bash
+복사
+편집
+http://localhost:5000/uploads/temp/temp-music-1744710710.mp3
+혹은 실제 서버 도메인/포트에 맞게 접근해서
+
+다운로드/재생이 되는지,
+
+아니면 HTML, 404, 혹은 로그인 페이지가 나오는지 확인
+
+(결과가 HTML이면 그 안에 "로그인", "에러", "404"라는 문구가 있을 것)
+
+3. 오디오 플레이어가 참조하는 URL을 콘솔에 직접 찍어서 확인
+MusicPlayer.tsx 등에서
+
+js
+복사
+편집
+console.log('AUDIO SRC', playerSrc);
+→ 실제로 mp3 확장자로 끝나는지, 아니면 /login 또는 / 혹은 .html로 끝나는지 체크
+
+4. 서버 라우터에서 직접 파일을 읽어 응답하는 코드 점검
+최종적으로 아래 코드 구조가 확실해야 함:
+
+js
+복사
+편집
+import fs from 'fs';
+import path from 'path';
+app.get('/music/:filename', (req, res) => {
+    const filePath = path.resolve(__dirname, '../uploads/temp', req.params.filename);
+    if (!fs.existsSync(filePath)) {
+        return res.status(404).send('Not Found');
+    }
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Accept-Ranges', 'bytes');
+    fs.createReadStream(filePath).pipe(res);
+});
+100% 해결 플랜
+음악 생성 후 실제 mp3 파일이 해당 경로에 존재하는지 확인
+
+오디오 URL을 직접 브라우저에 붙여서 HTML/JSON/404가 아닌 실제 음악이 재생되는지 확인
+
+MusicPlayer가 URL을 잘못 참조하고 있지 않은지, 로그인 필요가 없는 static/public 경로인지 확인
+
+그래도 안 되면, 서버 라우터에서 존재하지 않는 파일 요청시 반드시 404 반환하도록 코드를 보강
+
+최종 권장 코드 샘플
+파일 저장: /uploads/temp/
+
+서버 라우터: /music/:filename
+
+MusicPlayer: src={'/music/'+filename}
+
+브라우저 직접 접근시 음악 다운로드 또는 재생
