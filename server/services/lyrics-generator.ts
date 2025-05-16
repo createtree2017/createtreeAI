@@ -8,25 +8,26 @@ import { OpenAI } from 'openai';
 // OpenAI 클라이언트 설정
 let openaiClient: OpenAI | null = null;
 
-// OpenAI 클라이언트 전역 인스턴스 초기화
+// OpenAI 클라이언트 초기화 - 직접 설정 방식으로 해결
 try {
-  if (process.env.OPENAI_API_KEY) {
-    console.log('OpenAI API 키로 클라이언트 초기화 중...');
-    
-    // ✅ 인증 오류 해결: organization 파라미터 완전히 제거
-    // OPENAI_PROJECT_ID가 환경 변수에 있는 경우 자동으로 사용되는 문제 방지
-    openaiClient = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
-      // organization 파라미터 없음 - 문제 해결의 핵심!
-    });
-    
-    console.log('OpenAI 클라이언트가 성공적으로 초기화되었습니다.');
-  } else {
+  // API 키 확인
+  if (!process.env.OPENAI_API_KEY) {
     console.warn('OPENAI_API_KEY 환경 변수가 설정되지 않았습니다. 가사 생성 기능이 제한됩니다.');
     openaiClient = null;
+  } else {
+    console.log('OpenAI 클라이언트 새 방식으로 초기화 중...');
+    
+    // 📌 환경 변수 무시하고 직접 OpenAI 설정
+    // 조직 ID 또는 프로젝트 ID 사용안함 - 단순히 API 키만 사용
+    openaiClient = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+      // 모든 추가 설정은 제외 - 최소한의 설정만 사용
+    });
+    
+    console.log('OpenAI 클라이언트 초기화 완료 (심플 모드)');
   }
 } catch (error) {
-  console.error('OpenAI 클라이언트 초기화 중 오류가 발생했습니다:', error);
+  console.error('OpenAI 클라이언트 초기화 오류:', error);
   openaiClient = null;
 }
 
