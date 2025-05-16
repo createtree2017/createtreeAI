@@ -71,9 +71,12 @@ router.post('/', upload.single('sampleFile'), async (req, res) => {
     const defaultAudio = await fs.readFile(defaultAudioPath);
     
     // 먼저 샘플 파일로 응답 (비동기 작업 시작 전)
+    // 파일명에 한글이 있을 수 있으므로 영문만 사용하여 인코딩 문제 방지
+    const safeFileName = `lullaby-${processId}.mp3`;
+    
     res.set({
       'Content-Type': 'audio/mpeg',
-      'Content-Disposition': `attachment; filename="${title || babyName}-lullaby-${processId}.mp3"`
+      'Content-Disposition': `attachment; filename="${safeFileName}"`
     });
     
     res.send(defaultAudio);
