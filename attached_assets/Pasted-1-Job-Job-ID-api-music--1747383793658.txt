@@ -1,0 +1,151 @@
+1. 워크플로우 전환: 즉시 Job 발급 + 백그라운드 처리
+음악 생성 요청 → Job ID 반환
+클라이언트가 /api/music 같은 엔드포인트로 생성 요청을 보내면, 서버는 즉시 jobId 만 반환하고 내부에서는 비동기로 음악을 만드는 구조로 바꿉니다.
+
+js
+복사
+편집
+// server/routes/music.js (Express 예시)
+router.post("/", async (req, res) => {
+  const jobId = await musicService.enqueueMusicJob(req.body);
+  res.json({ jobId });
+});
+
+router.get("/:jobId/status", async (req, res) => {
+  const status = await musicService.getJobStatus(req.params.jobId);
+  res.json(status); // { state: "pending"|"processing"|"done"|"error", resultUrl? }
+});
+클라이언트에선 Job ID만 저장
+
+localStorage.setItem("musicJobId", jobId);
+
+전역 상태(Context/Redux 등)에도 같은 값을 넣어 둡니다.
+
+App 최상위에서 폴링 로직 가동
+/ 루트에 감싼 MusicJobProvider 안에서, useEffect(() ⇒ { … }, []) 빈 배열(deps)로 한 번만 실행되는 폴링 타이머를 만듭니다.
+
+jsx
+복사
+편집
+// client/src/lib/MusicJobContext.jsx
+import { createContext, useContext, useEffect, useState } from "react";
+import axios from "axios";
+
+const MusicJobContext = createContext();
+export function useMusicJob() { return useContext(MusicJobContext); }
+
+export function MusicJobProvider({ children }) {
+  const [jobId, setJobId] = useState(() => localStorage.getItem("musicJobId"));
+  const [status, setStatus] = useState("idle"); // idle, pending, processing, done, error
+  const [resultUrl, setResultUrl] = useState(null);
+
+  useEffect(() => {
+    if (!jobId) return;
+    let timer = setInterval(async () => {
+      try {
+        const { data } = await axios.get(`/api/music/${jobId}/status`);
+        setStatus(data.state);
+        if (data.state === "done") {
+          setResultUrl(data.resultUrl);
+          clearInterval(timer);
+        }
+        if (data.state === "error") {
+          clearInterval(timer);
+        }
+      } catch {
+        clearInterval(timer);
+        setStatus("error");
+      }
+    }, 2000);
+    return () => clearInterval(timer);
+  }, [jobId]);
+
+  const startJob = async (params) => {
+    const { data } = await axios.post("/api/music", params);
+    localStorage.setItem("musicJobId", data.jobId);
+    setJobId(data.jobId);
+    setStatus("pending");
+    setResultUrl(null);
+  };
+
+  return (
+    <MusicJobContext.Provider value={{ jobId, status, resultUrl, startJob }}>
+      {children}
+    </MusicJobContext.Provider>
+  );
+}
+App 최상단에 Provider 설정
+
+jsx
+복사
+편집
+// client/src/App.jsx
+import { MusicJobProvider } from "./lib/MusicJobContext";
+import Header from "./components/Header";
+import Routes from "./Routes";
+
+function App() {
+  return (
+    <MusicJobProvider>
+      <Header />     {/* 여기서 전역 진행 상태 표시 */}
+      <Routes />
+    </MusicJobProvider>
+  );
+}
+export default App;
+Header 혹은 전역 Indicator
+
+jsx
+복사
+편집
+// client/src/components/MusicIndicator.jsx
+import { useMusicJob } from "../lib/MusicJobContext";
+
+export default function MusicIndicator() {
+  const { status } = useMusicJob();
+  if (status === "idle" || status === "done") return null;
+  return (
+    <div className="music-indicator">
+      🎵 음악 생성 중… ({status})
+    </div>
+  );
+}
+음악 생성 페이지에서 startJob 호출
+
+jsx
+복사
+편집
+// client/src/pages/MusicPage.jsx
+import { useState } from "react";
+import { useMusicJob } from "../lib/MusicJobContext";
+
+export default function MusicPage() {
+  const [prompt, setPrompt] = useState("");
+  const { status, resultUrl, startJob } = useMusicJob();
+
+  const handleSubmit = e => {
+    e.preventDefault();
+    startJob({ prompt });
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <textarea value={prompt} onChange={e=>setPrompt(e.target.value)} />
+      <button disabled={status==="pending"||status==="processing"}>
+        생성 시작
+      </button>
+      {status==="processing" && <p>백그라운드에서 생성 중…</p>}
+      {status==="done" && <audio src={resultUrl} controls autoPlay />}
+    </form>
+  );
+}
+이렇게 구현해야 하는 이유
+Job ID 기반 비동기 처리: 컴포넌트가 언마운트돼도 서버 쪽 작업은 계속되고, 클라이언트는 언제든 jobId 로 상태를 조회(polling)만 하면 됩니다.
+
+Provider 레벨 폴링: MusicPage가 아닌 다른 탭·페이지로 이동해도 MusicJobProvider 는 사라지지 않으므로 폴링이 끊기지 않습니다.
+
+로컬 스토리지 저장: 새로고침·다른 탭 복귀 후에도 jobId 와 status 가 유지됩니다.
+
+전역 Indicator: 헤더나 공통 레이아웃 영역에 “생성 중” 표시를 띄워 놓으면, 사용자에게 작업이 여전히 진행 중임을 명확히 보여줄 수 있습니다.
+
+이 구조로 바꾸면 “다른 탭으로 이동 → 돌아왔더니 초기화” 문제는 완전히 사라지며, Sora 서비스처럼 백그라운드에서 작업이 계속되고, 완료 시점에만 결과를 띄워줄 수 있게 됩니다.
