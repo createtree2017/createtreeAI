@@ -45,7 +45,7 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
   const [generatingLyrics, setGeneratingLyrics] = useState(false);
   const [showVoiceUploadDialog, setShowVoiceUploadDialog] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [formMode, setFormMode] = useState<"simple" | "custom">("simple");
+  // 이전 Simple/Custom 모드 삭제
   
   // 보이스 목록 관련 상태
   const [userVoices, setUserVoices] = useState<Array<{ id: string, name: string }>>([]);
@@ -371,25 +371,58 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
       <div className="bg-black rounded-xl shadow-lg text-white p-6 mb-4">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* 모드 선택 버튼 (Simple/Custom) */}
-            <div className="flex justify-center mb-4">
-              <div className="bg-zinc-800 rounded-full inline-flex p-1">
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  className={`rounded-full px-6 py-1 ${formMode === "simple" ? "bg-black text-white" : "text-gray-400"}`}
-                  onClick={() => setFormMode("simple")}
-                >
-                  Simple
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="ghost"
-                  className={`rounded-full px-6 py-1 ${formMode === "custom" ? "bg-black text-white" : "text-gray-400"}`}
-                  onClick={() => setFormMode("custom")}
-                >
-                  Custom
-                </Button>
+            {/* 기본 설정 옵션 섹션 */}
+            <div className="space-y-3 mb-6">
+              <div className="flex items-center justify-between">
+                <span className="text-white flex items-center gap-2 text-lg font-medium">
+                  Settings
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-zinc-400">Song Title</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Enter song title" 
+                          className="bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-500"
+                          {...field}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="duration"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-zinc-400">음악 길이</FormLabel>
+                      <Select 
+                        onValueChange={(value) => field.onChange(parseInt(value))} 
+                        defaultValue={field.value.toString()}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="bg-zinc-900 border-zinc-800 text-white">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="bg-zinc-800 border-zinc-700 text-white">
+                          {durationOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value.toString()}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
               </div>
             </div>
             
@@ -637,7 +670,7 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
             </div>
             
             {/* 추가 옵션 섹션 */}
-            <div className={`space-y-3 border-t border-zinc-800 pt-4 transition-all duration-300 ${formMode === 'simple' ? 'hidden' : 'block'}`}>
+            <div className="space-y-3 border-t border-zinc-800 pt-4 transition-all duration-300">
               <div className="flex items-center justify-between">
                 <span className="text-white flex items-center gap-2 font-medium">
                   More Options
