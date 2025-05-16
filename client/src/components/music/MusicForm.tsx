@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Music, MusicIcon } from "lucide-react";
 
 // 음악 생성 폼 검증 스키마
@@ -410,34 +411,42 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
                 </div>
               </TabsContent>
             </Tabs>
+            
+            <div className="mt-6 flex justify-between">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => form.reset()}
+                disabled={createMusicMutation.isPending}
+              >
+                초기화
+              </Button>
+              <Button 
+                type="submit"
+                disabled={createMusicMutation.isPending}
+              >
+                {createMusicMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    음악 생성 중...
+                  </>
+                ) : (
+                  <>
+                    <Music className="mr-2 h-4 w-4" />
+                    음악 생성하기
+                  </>
+                )}
+              </Button>
+            </div>
           </form>
         </Form>
       </CardContent>
       
-      <CardFooter className="flex justify-between">
-        <Button
-          variant="outline"
-          onClick={() => form.reset()}
-          disabled={createMusicMutation.isPending}
-        >
-          취소
-        </Button>
-        <Button 
-          onClick={form.handleSubmit(onSubmit)}
-          disabled={createMusicMutation.isPending}
-        >
-          {createMusicMutation.isPending ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              음악 생성 중...
-            </>
-          ) : (
-            <>
-              <Music className="mr-2 h-4 w-4" />
-              음악 생성하기
-            </>
-          )}
-        </Button>
+      <CardFooter className="flex-col space-y-2">
+        <div className="text-xs text-muted-foreground">
+          <p>MusicGen + Bark TTS 기술로 생성된 음악은 약 30~60초 길이로 제공됩니다.</p>
+          <p>생성에는 약 1~2분이 소요될 수 있습니다.</p>
+        </div>
       </CardFooter>
     </Card>
   );
