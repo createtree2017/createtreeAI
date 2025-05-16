@@ -10,7 +10,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // 업로드 디렉토리를 정적 파일로 제공
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads'), {
+  setHeaders: (res, path) => {
+    if (path.endsWith('.mp3')) {
+      res.set('Content-Type', 'audio/mpeg');
+      res.set('Accept-Ranges', 'bytes');
+    }
+  }
+}));
 
 // 정적 파일 폴더 (기본 오디오 파일 등을 위해)
 app.use('/static', express.static(path.join(process.cwd(), 'static')));
