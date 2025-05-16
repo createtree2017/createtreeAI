@@ -70,16 +70,19 @@ export async function generateMusic(prompt: string, duration: number = 60): Prom
         setTimeout(() => reject(new Error('API 호출 시간 초과')), 30000); // 30초 제한
       });
       
-      // 음악 생성 API 호출
+      // 음악 생성 API 호출 - 음악 생성 전용 모델 사용
       const apiPromise = replicate.run(
-        "riffusion/riffusion:8cf61ea6c56afd61d8f5b9ffd14d7c216c0a93844ce2d82ac1c9ecc9c7f24e05",
+        "metacomp/musicgen-v0.1:49a3ac32438e86f8e5016b8a4e44d9b8c6875f2e6898e4eb44132001445fa96e",
         {
           input: {
-            prompt_a: enhancedPrompt,
-            prompt_b: enhancedPrompt,
-            alpha: 0.5,
-            num_inference_steps: 50,
-            seed_image_id: "vibes"
+            model: "melody",
+            prompt: enhancedPrompt,
+            duration: validDuration,
+            output_format: "mp3",
+            temperature: 1,
+            top_k: 250,
+            top_p: 0.99,
+            classifier_free_guidance: 3
           }
         }
       );
@@ -89,14 +92,24 @@ export async function generateMusic(prompt: string, duration: number = 60): Prom
       
       console.log('Replicate API 응답:', output);
       
-      if (!output || typeof output !== 'string') {
+      // 응답 형식 확인 및 URL 추출
+      console.log('API 응답 형식:', typeof output, output);
+      
+      let audioUrl;
+      if (typeof output === 'string') {
+        // 문자열 URL 응답 (일부 모델)
+        audioUrl = output;
+      } else if (output && typeof output === 'object') {
+        // 객체 응답 (metacomp/musicgen 모델)
+        audioUrl = output.audio || output.output || output;
+      } else {
         console.warn('API 응답이 예상 형식이 아님, 샘플 음악 사용');
         return await getSampleMusic();
       }
       
       // 파일 다운로드
-      console.log('오디오 URL 획득:', output);
-      const response = await fetch(output);
+      console.log('오디오 URL 획득:', audioUrl);
+      const response = await fetch(audioUrl);
       
       if (!response.ok) {
         throw new Error(`음악 다운로드에 실패했습니다: ${response.status} ${response.statusText}`);
