@@ -48,7 +48,14 @@ export async function generateMusic(prompt: string, duration: number = 60): Prom
     // Replicate API가 정상 동작하는지 로그 출력
     console.log(`Replicate API 토큰 상태: ${process.env.REPLICATE_API_TOKEN ? '설정됨' : '미설정'}`);
     
+    // 간단한 모델로 테스트
     try {
+      // 음악 생성이 실패하는 경우를 위한 안전장치: 샘플 음악 반환
+      if (process.env.USE_SAMPLE_MUSIC === 'true') {
+        console.log('환경 변수에 의해 샘플 음악을 사용합니다.');
+        return await getSampleMusic();
+      }
+      
       // 사용자 입력에서 음악 스타일 정보 추출
       const musicStyle = prompt.toLowerCase().includes('lullaby') ? 'lullaby' : 
                         prompt.toLowerCase().includes('classical') ? 'classical' : 'lullaby';
@@ -58,40 +65,44 @@ export async function generateMusic(prompt: string, duration: number = 60): Prom
       
       console.log(`Replicate API 호출 - 음악 생성 프롬프트: ${enhancedPrompt}`);
       
-      // 최신 MusicGen 모델 사용
-      const output = await replicate.run(
-        "meta/musicgen:7a76a8258b23fae65c5a22debb8841d1d7e816b75c2f24218cd2bd8573787906",
+      // 테스트용 - API 호출 시간 제한 설정
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('API 호출 시간 초과')), 30000); // 30초 제한
+      });
+      
+      // 음악 생성 API 호출
+      const apiPromise = replicate.run(
+        "riffusion/riffusion:8cf61ea6c56afd61d8f5b9ffd14d7c216c0a93844ce2d82ac1c9ecc9c7f24e05",
         {
           input: {
-            prompt: enhancedPrompt,
-            duration: validDuration,
-            model_version: "melody",
-            output_format: "mp3",
-            continuation: false,
-            normalization_strategy: "peak",
-            classifier_free_guidance: 3
+            prompt_a: enhancedPrompt,
+            prompt_b: enhancedPrompt,
+            alpha: 0.5,
+            num_inference_steps: 50,
+            seed_image_id: "vibes"
           }
         }
       );
       
-      console.log('MusicGen API 응답:', output);
+      // API 호출 또는 타임아웃 기다리기
+      const output = await Promise.race([apiPromise, timeoutPromise]);
       
-      // 결과 URL 확인
-      if (!output || !output.audio) {
-        console.error('API 호출 결과 없음, 샘플 음악 사용');
+      console.log('Replicate API 응답:', output);
+      
+      if (!output || typeof output !== 'string') {
+        console.warn('API 응답이 예상 형식이 아님, 샘플 음악 사용');
         return await getSampleMusic();
       }
       
-      const audioUrl = output.audio;
-      console.log('MusicGen 음악 생성 완료, URL:', audioUrl);
+      // 파일 다운로드
+      console.log('오디오 URL 획득:', output);
+      const response = await fetch(output);
       
-      // 원격 URL에서 파일 다운로드
-      const response = await fetch(audioUrl);
       if (!response.ok) {
         throw new Error(`음악 다운로드에 실패했습니다: ${response.status} ${response.statusText}`);
       }
       
-      // 응답을 ArrayBuffer로 변환
+      // 응답을 Buffer로 변환
       const buffer = await response.arrayBuffer();
       return Buffer.from(buffer);
       
@@ -100,24 +111,6 @@ export async function generateMusic(prompt: string, duration: number = 60): Prom
       console.log('API 오류로 인해 샘플 음악 반환');
       return await getSampleMusic();
     }
-    
-    // 결과 URL 확인
-    if (!output || typeof output !== 'string') {
-      throw new Error('음악 생성에 실패했습니다: 유효한 출력이 없습니다.');
-    }
-    
-    console.log('MusicGen 음악 생성 완료, URL:', output);
-    
-    // 원격 URL에서 파일 다운로드
-    const response = await fetch(output);
-    if (!response.ok) {
-      throw new Error(`음악 다운로드에 실패했습니다: ${response.status} ${response.statusText}`);
-    }
-    
-    // 응답을 ArrayBuffer로 변환
-    const buffer = await response.arrayBuffer();
-    
-    return buffer;
   } catch (error) {
     console.error('MusicGen 음악 생성 중 오류가 발생했습니다:', error);
     // 오류 발생 시 샘플 음악 반환
