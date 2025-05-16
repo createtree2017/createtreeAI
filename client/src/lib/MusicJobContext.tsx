@@ -44,6 +44,26 @@ interface MusicJobContextType {
 const JOB_ID_KEY = "music_job_id";
 const FORM_DATA_KEY = "music_form_data";
 
+// 서버 재시작 상황을 감지하여 작업 초기화 - 현재 시간 기준 플래그
+const LAST_SERVER_START_KEY = "server_start_time";
+
+// 현재 서버 세션 식별용 타임스탬프 저장
+const setServerStartTime = () => {
+  const now = Date.now();
+  localStorage.setItem(LAST_SERVER_START_KEY, now.toString());
+  return now;
+};
+
+// 서버가 재시작되었는지 확인
+const isServerRestarted = (lastStartTime: number): boolean => {
+  const storedTime = localStorage.getItem(LAST_SERVER_START_KEY);
+  if (!storedTime) return true;
+  return parseInt(storedTime) < lastStartTime;
+};
+
+// 초기 접속 시 현재 서버 시작 시간 설정
+const currentServerStartTime = setServerStartTime();
+
 // 기본 폼 데이터
 const defaultFormData = {
   babyName: "",
@@ -57,7 +77,17 @@ const MusicJobContext = createContext<MusicJobContextType | null>(null);
 // Provider 컴포넌트
 export function MusicJobProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
-  const [jobId, setJobId] = useState<string | null>(() => localStorage.getItem(JOB_ID_KEY));
+  const [jobId, setJobId] = useState<string | null>(() => {
+    // 서버 재시작 시 기존 작업 ID 초기화
+    const savedJobId = localStorage.getItem(JOB_ID_KEY);
+    if (savedJobId && isServerRestarted(currentServerStartTime)) {
+      console.log('서버가 재시작되었습니다. 이전 작업을 초기화합니다.');
+      localStorage.removeItem(JOB_ID_KEY);
+      return null;
+    }
+    return savedJobId;
+  });
+  
   const [status, setStatus] = useState<JobState>("idle");
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [resultId, setResultId] = useState<number | null>(null);

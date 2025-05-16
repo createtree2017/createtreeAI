@@ -24,6 +24,7 @@ import TestLoginPage from "@/pages/test-login";
 import MusicGeneratorPage from "@/pages/music-generate"; 
 import HospitalsPage from "@/pages/super/HospitalsPage";
 import UsersPage from "@/pages/super/UsersPage";
+import ClearStorage from "@/pages/ClearStorage";
 import BottomNavigation from "@/components/BottomNavigation";
 import Sidebar from "@/components/Sidebar";
 import { SuperAdminLayout } from "@/components/SuperAdminLayout";
@@ -294,6 +295,12 @@ function Router() {
             <Chat />
           </Layout>
         </ProtectedRoute>
+      </Route>
+      
+      <Route path="/clear-storage">
+        <Layout>
+          <ClearStorage />
+        </Layout>
       </Route>
       
       <Route path="/gallery">
