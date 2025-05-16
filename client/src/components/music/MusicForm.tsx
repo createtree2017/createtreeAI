@@ -31,7 +31,8 @@ const musicFormSchema = z.object({
   voiceMode: z.enum(["ai", "clone"]).default("ai"),
   voiceGender: z.enum(["female_kr", "male_kr"]).default("female_kr"),
   voiceId: z.string().optional(),
-  useLyrics: z.boolean().default(true)
+  useLyrics: z.boolean().default(true),
+  lyricMode: z.enum(["byLine", "fullSong"]).default("fullSong")
 });
 
 type MusicFormValues = z.infer<typeof musicFormSchema>;
@@ -574,10 +575,22 @@ export default function MusicForm({ onMusicGenerated }: MusicFormProps) {
                     </div>
                     
                     <div className="ml-auto flex gap-2">
-                      <Badge variant="outline" className="bg-gradient-to-r from-amber-500 to-rose-500 opacity-50 hover:opacity-100 text-white cursor-pointer border-transparent">
+                      <Badge 
+                        variant="outline" 
+                        className={`cursor-pointer ${form.getValues().lyricMode === 'byLine' 
+                          ? "bg-gradient-to-r from-amber-500 to-rose-500 text-white border-transparent" 
+                          : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 border-zinc-700"}`}
+                        onClick={() => form.setValue('lyricMode', 'byLine')}
+                      >
                         By Line
                       </Badge>
-                      <Badge variant="outline" className="bg-zinc-800 text-zinc-400 hover:bg-zinc-700 cursor-pointer border-zinc-700">
+                      <Badge 
+                        variant="outline" 
+                        className={`cursor-pointer ${form.watch('lyricMode') === 'fullSong' 
+                          ? "bg-gradient-to-r from-amber-500 to-rose-500 text-white border-transparent" 
+                          : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 border-zinc-700"}`}
+                        onClick={() => form.setValue('lyricMode', 'fullSong')}
+                      >
                         Full Song
                       </Badge>
                     </div>
