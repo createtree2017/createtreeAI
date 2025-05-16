@@ -54,7 +54,7 @@ export function MusicProcessingProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('로컬 스토리지 데이터 로드 오류:', error);
     }
-  });
+  }, []);
 
   const startGeneration = (data: { babyName: string; musicStyle: string; duration: string }) => {
     setIsGenerating(true);

@@ -71,26 +71,37 @@ export default function Music() {
     };
   };
   
-  // 폼 설정
+  // 전역 상태에서 폼 데이터 가져오기
+  const { formData: globalFormData, setFormData: setGlobalFormData } = useMusicProcessing();
+  
+  // 폼 설정 (전역 상태 사용)
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: getSavedFormData(),
+    defaultValues: {
+      babyName: globalFormData.babyName || getSavedFormData().babyName,
+      musicStyle: globalFormData.musicStyle || getSavedFormData().musicStyle,
+      duration: globalFormData.duration || getSavedFormData().duration
+    },
   });
   
-  // 폼 값이 변경될 때마다 로컬 스토리지에 저장
+  // 폼 값이 변경될 때마다 전역 상태와 로컬 스토리지에 저장
   useEffect(() => {
     const subscription = form.watch((formValues) => {
       if (formValues.babyName || formValues.musicStyle || formValues.duration) {
-        localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify({
+        const newFormData = {
           babyName: formValues.babyName || "",
           musicStyle: formValues.musicStyle || "lullaby",
           duration: formValues.duration || "60",
-        }));
+        };
+        
+        // 전역 상태와 로컬 스토리지 모두 업데이트
+        setGlobalFormData(newFormData);
+        localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(newFormData));
       }
     });
     
     return () => subscription.unsubscribe();
-  }, [form.watch]);
+  }, [form.watch, setGlobalFormData]);
   
   // 음악 목록 가져오기
   const { data: musicList = [], isLoading: isLoadingMusic } = useQuery({
@@ -239,8 +250,11 @@ export default function Music() {
     },
   });
   
-  // 폼 제출 핸들러
+  // 폼 제출 핸들러 - 전역 상태 활용
   const onSubmit = (data: FormValues) => {
+    // 전역 상태에 폼 데이터 저장
+    setGlobalFormData(data);
+    // 음악 생성 시작
     generateMusicMutation(data);
   };
   
@@ -428,7 +442,11 @@ export default function Music() {
                   <div 
                     key={item.id}
                     className="flex items-center p-2 rounded-md hover:bg-muted cursor-pointer"
-                    onClick={() => setLocalGeneratedMusic(item)}
+                    onClick={() => {
+                      // 로컬 상태와 전역 상태 모두 업데이트
+                      setLocalGeneratedMusic(item);
+                      finishGeneration(item);
+                    }}
                   >
                     <PlayCircle className="mr-2 h-5 w-5 text-primary" />
                     <div>
