@@ -133,6 +133,27 @@ const AuthPage = () => {
                 </TabsContent>
                 
 
+                {/* 모바일 인증 추가 섹션 */}
+                <div className="mt-6 border-t pt-4">
+                  <h3 className="text-sm font-medium mb-2 flex items-center gap-1">
+                    <Smartphone size={16} />
+                    모바일 간편 로그인
+                  </h3>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    세션 쿠키 문제로 인증에 실패하는 경우 사용하세요
+                  </p>
+                  <MobileLoginBypass 
+                    onLogin={(userData) => {
+                      toast({
+                        title: "모바일 로그인 성공",
+                        description: `${userData.fullName || userData.email} 님으로 로그인되었습니다.`,
+                      });
+                      
+                      // 로그인 후 상태 업데이트 및 리디렉션
+                      setTimeout(() => setLocation("/"), 1000);
+                    }}
+                  />
+                </div>
               </Tabs>
             </CardContent>
           </Card>

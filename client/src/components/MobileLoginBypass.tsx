@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'wouter/use-location';
+import { useLocation } from 'wouter';
 
 interface MobileBypassProps {
   onLogin: (userData: any) => void;
@@ -18,7 +18,7 @@ interface MobileBypassProps {
 
 export function MobileLoginBypass({ onLogin }: MobileBypassProps) {
   const { toast } = useToast();
-  const navigate = useNavigate();
+  const [, navigate] = useLocation();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
