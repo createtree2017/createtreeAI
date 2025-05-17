@@ -26,6 +26,7 @@ import ConceptManagement from "@/components/admin/ConceptManagement";
 import CampaignManagement from "@/components/admin/CampaignManagement";
 import CampaignApplicationManagement from "@/components/admin/CampaignApplicationManagement";
 import MilestoneManagement from "@/components/admin/MilestoneManagement";
+import MilestoneCategoryManagement from "@/components/admin/MilestoneCategoryManagement";
 import { getQueryFn } from '@/lib/queryClient';
 import { 
   getLanguages, 
@@ -759,11 +760,28 @@ export default function AdminPage() {
           <div className="space-y-6">
             <h2 className="text-2xl font-bold">마일스톤 관리</h2>
             
-            <div className="mt-4">
-              <ErrorBoundary>
-                <MilestoneManagement />
-              </ErrorBoundary>
-            </div>
+            <Tabs defaultValue="milestone-items">
+              <TabsList>
+                <TabsTrigger value="milestone-items">마일스톤</TabsTrigger>
+                <TabsTrigger value="milestone-categories">카테고리</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="milestone-items">
+                <div className="mt-4">
+                  <ErrorBoundary>
+                    <MilestoneManagement />
+                  </ErrorBoundary>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="milestone-categories">
+                <div className="mt-4">
+                  <ErrorBoundary>
+                    <MilestoneCategoryManagement />
+                  </ErrorBoundary>
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
         </TabsContent>
         
