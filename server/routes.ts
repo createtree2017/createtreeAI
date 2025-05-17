@@ -247,6 +247,8 @@ const conceptSchema = z.object({
 
 // 인증 라우트 가져오기
 import authRoutes from "./routes/auth";
+// 세션 체크 라우터 추가 (모바일 로그인 문제 해결용)
+import sessionCheckRoutes from "./routes/session-check";
 // 인증 서비스 가져오기
 import { initPassport } from "./services/auth";
 import cookieParser from "cookie-parser";
@@ -4726,6 +4728,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Gemini API 테스트 라우터 등록
   app.use("/api/test-gemini", geminiTestRoutes);
   console.log("Gemini API 테스트 라우터가 등록되었습니다 (/api/test-gemini/*)");
+  
+  // 세션 체크 라우터 등록 (모바일 로그인 문제 해결용)
+  app.use("/api/session-check", sessionCheckRoutes);
+  console.log("세션 체크 라우터가 등록되었습니다 (/api/session-check)");
 
   const httpServer = createServer(app);
   return httpServer;
