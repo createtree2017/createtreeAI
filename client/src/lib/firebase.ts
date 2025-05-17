@@ -50,6 +50,16 @@ const firebaseConfig = {
 console.log("[Firebase 초기화] 현재 도메인:", window.location.hostname);
 console.log("[Firebase 초기화] authDomain 설정:", firebaseConfig.authDomain);
 
+// 모바일 환경에서 리디렉션 처리를 위한 설정
+// Firebase는 특정 규칙으로 authDomain을 확인하기 때문에 이 설정이 중요합니다
+if (window.location.hostname.includes('replit')) {
+  console.log("[Firebase 초기화] Replit 환경 감지, 도메인 자동 설정");
+  
+  // Replit 환경에서는 Firebase의 기본 authDomain을 사용
+  // 이렇게 하면 리디렉션 후에도 도메인 미스매치 없이 인증 처리 가능
+  firebaseConfig.authDomain = "createtreeai.firebaseapp.com";
+}
+
 /**
  * Firebase 앱 초기화 함수
  * 이미 초기화된 앱이 있으면 그것을 사용하고, 없으면 새로 초기화합니다.

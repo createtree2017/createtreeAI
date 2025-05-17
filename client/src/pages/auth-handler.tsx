@@ -8,6 +8,11 @@ import { Loader2 } from "lucide-react";
 /**
  * Firebase 인증 리디렉션을 처리하는 전용 페이지
  * Google 로그인 리디렉션 후 이 페이지에서 인증 결과를 처리합니다.
+ * 
+ * 모바일에서 작동하도록 개선된 버전:
+ * - 오류 발생 시 더 많은 디버깅 정보 제공
+ * - 리디렉션 후 인증 상태 감지 최적화
+ * - 자동 로그인 처리 및 홈 리디렉션
  */
 const AuthHandlerPage = () => {
   const [location, setLocation] = useLocation();

@@ -39,37 +39,40 @@ const LoginForm: React.FC = () => {
     login(values);
   };
   
-  // Google 로그인 핸들러
-  const handleGoogleLogin = () => {
+  // Google 로그인 핸들러 - 단순화 및 직접 호출 방식
+  const handleGoogleLogin = async () => {
     try {
       console.log("Google 로그인 버튼 클릭됨");
-      console.log("현재 도메인:", window.location.origin);
       
-      // Firebase 승인 도메인 확인
-      const allowedDomains = [
-        "localhost",
-        "createtreeai.firebaseapp.com",
-        "createtreeai.web.app",
-        "code-craft-ctcreatetree.replit.app",
-        "d0d77b78-7584-4870-90de-7e90bf483a1c-00-2fox4esnjilty.kirk.replit.dev"
-      ];
+      // 모바일 환경 감지
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      console.log("모바일 환경 감지:", isMobile ? "예" : "아니오");
       
-      // 현재 Replit 도메인 추출
-      const currentDomain = window.location.hostname;
-      console.log("승인 도메인 목록:", allowedDomains);
-      console.log("현재 도메인이 승인됨:", allowedDomains.some(domain => 
-        window.location.origin.includes(domain)));
-      
-      // 도메인 체크 (내부 확인용)
-      if (currentDomain.includes("replit") || currentDomain.includes("kirk.replit.dev")) {
-        console.log(`현재 도메인(${currentDomain})으로 Firebase 로그인을 시도합니다.`);
+      if (isMobile) {
+        // 모바일에서는 단순 리다이렉트 방식 사용
+        import('firebase/auth').then(async ({ getAuth, signInWithRedirect, GoogleAuthProvider }) => {
+          try {
+            const auth = getAuth();
+            const provider = new GoogleAuthProvider();
+            
+            // 리다이렉트 로그인으로 인증 - 더 간단한 접근 방식
+            console.log("모바일 환경에서 리다이렉트 로그인 시도 중...");
+            await signInWithRedirect(auth, provider);
+            
+            // 리다이렉트 되기 때문에 이 아래 코드는 실행되지 않음
+            console.log("리다이렉트 로그인 시작됨 (이 메시지는 표시되지 않아야 함)");
+          } catch (error) {
+            console.error("Google 리다이렉트 로그인 오류:", error);
+            alert("Google 로그인 중 오류가 발생했습니다.");
+          }
+        });
+      } else {
+        // 데스크탑에서는 기존 방식 사용
+        loginWithGoogle();
       }
-      
-      // Google 로그인 시작
-      loginWithGoogle();
     } catch (error) {
       console.error("Google 로그인 버튼 오류:", error);
-      alert("Google 로그인을 시작할 수 없습니다. 브라우저 콘솔에서 상세 오류를 확인해주세요.");
+      alert("Google 로그인을 시작할 수 없습니다.");
     }
   };
 
