@@ -472,15 +472,18 @@ export default function MilestonesPage() {
   // Save pregnancy profile
   const saveProfile = async (profileData: Partial<PregnancyProfile>) => {
     try {
+      console.log("저장할 프로필 데이터:", profileData);
       const response = await fetch('/api/pregnancy-profile', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(profileData),
+        credentials: 'include'
       });
       
       const data = await response.json();
+      console.log("서버 응답:", data, "상태 코드:", response.status);
       
       if (response.ok) {
         setProfile(data);
@@ -493,6 +496,7 @@ export default function MilestonesPage() {
         // Refresh milestones
         fetchAvailableMilestones();
       } else {
+        console.error("프로필 저장 오류:", data);
         toast({
           title: "오류",
           description: data.error || "프로필 저장에 실패했습니다",

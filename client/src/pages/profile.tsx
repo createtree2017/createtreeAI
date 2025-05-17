@@ -67,7 +67,7 @@ export default function Profile() {
         <p className="text-neutral-600">나의 계정 정보</p>
       </div>
       
-      {/* 프로필 정보 */}
+      {/* 프로필 정보 - Suno 스타일 */}
       <div className="bg-white p-6 rounded-2xl shadow-md border border-purple-100 mb-6">
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
           <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center">
@@ -75,21 +75,21 @@ export default function Profile() {
           </div>
           <div className="flex-1 text-center md:text-left">
             <h3 className="font-bold text-xl text-purple-800">{user?.username || "사용자"}</h3>
-            <p className="text-sm text-neutral-600 mb-4">{user?.email || "이메일 정보 없음"}</p>
+            <p className="text-sm text-purple-500 mb-4">{user?.email || "이메일 정보 없음"}</p>
             
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
                 <UserIcon className="w-4 h-4 text-purple-600" />
-                <span className="text-sm font-medium text-purple-800">계정 유형:</span>
-                <span className="text-sm text-neutral-700">{user?.memberType ? MEMBER_TYPE_MAP[user.memberType] || user.memberType : "일반 사용자"}</span>
+                <span className="text-sm font-medium text-purple-700">계정 유형:</span>
+                <span className="text-sm text-purple-800">{user?.memberType ? MEMBER_TYPE_MAP[user.memberType] || user.memberType : "일반 사용자"}</span>
               </div>
               
               {user?.hospitalId && (
                 <>
                   <div className="flex items-center gap-2">
                     <Building2 className="w-4 h-4 text-purple-600" />
-                    <span className="text-sm font-medium text-purple-800">소속 병원:</span>
-                    <span className="text-sm text-neutral-700">
+                    <span className="text-sm font-medium text-purple-700">소속 병원:</span>
+                    <span className="text-sm text-purple-800">
                       {isLoadingHospital ? "로딩 중..." : (hospital?.name || `병원 ID ${user.hospitalId}`)}
                     </span>
                   </div>
@@ -97,8 +97,8 @@ export default function Profile() {
                   {hospital?.contractStartDate && (
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4 text-purple-600" />
-                      <span className="text-sm font-medium text-purple-800">계약 기간:</span>
-                      <span className="text-sm text-neutral-700">
+                      <span className="text-sm font-medium text-purple-700">계약 기간:</span>
+                      <span className="text-sm text-purple-800">
                         {formatDate(hospital.contractStartDate)} ~ {formatDate(hospital.contractEndDate)}
                       </span>
                     </div>
@@ -108,8 +108,8 @@ export default function Profile() {
               
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-purple-600" />
-                <span className="text-sm font-medium text-purple-800">가입일:</span>
-                <span className="text-sm text-neutral-700">
+                <span className="text-sm font-medium text-purple-700">가입일:</span>
+                <span className="text-sm text-purple-800">
                   {user?.createdAt ? formatDate(user.createdAt) : "정보 없음"}
                 </span>
               </div>
@@ -124,13 +124,13 @@ export default function Profile() {
         
         <ul className="space-y-2">
           <li>
-            <Link to="/gallery" className="flex items-center gap-3 p-3 bg-purple-50 hover:bg-purple-100 rounded-xl transition-colors">
+            <Link to="/gallery" className="group flex items-center gap-3 p-3 bg-purple-50 hover:bg-purple-100 rounded-xl transition-colors">
               <Download className="w-5 h-5 text-purple-600" />
-              <span className="text-purple-800">나의 갤러리</span>
+              <span className="text-purple-800 group-hover:text-purple-900">나의 갤러리</span>
             </Link>
           </li>
           <li>
-            <Button variant="ghost" className="w-full justify-start gap-3 p-3 h-auto font-normal bg-purple-50 hover:bg-purple-100 rounded-xl text-purple-800">
+            <Button variant="ghost" className="w-full justify-start gap-3 p-3 h-auto font-normal bg-purple-50 hover:bg-purple-100 rounded-xl text-purple-800 hover:text-purple-900">
               <Settings className="w-5 h-5 text-purple-600" />
               <span>계정 설정</span>
             </Button>
