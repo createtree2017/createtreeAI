@@ -1764,6 +1764,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // 모든 마일스톤 카테고리 조회
+  app.get("/api/milestone-categories", async (req, res) => {
+    try {
+      const { getAllMilestoneCategories } = await import("./services/milestones");
+      const categories = await getAllMilestoneCategories();
+      return res.status(200).json(categories);
+    } catch (error) {
+      console.error("Error fetching milestone categories:", error);
+      return res.status(500).json({ 
+        error: "Failed to fetch milestone categories",
+        message: error instanceof Error ? error.message : "마일스톤 카테고리 조회 중 오류가 발생했습니다." 
+      });
+    }
+  });
+  
   app.get("/api/milestones/available", authMiddleware, async (req, res) => {
     try {
       // 현재 로그인한 사용자 ID 사용
