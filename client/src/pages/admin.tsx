@@ -691,6 +691,7 @@ export default function AdminPage() {
           <TabsTrigger value="chat-menu">채팅 메뉴</TabsTrigger>
           <TabsTrigger value="image-menu">이미지 생성</TabsTrigger>
           <TabsTrigger value="campaigns">캠페인</TabsTrigger>
+          <TabsTrigger value="milestones">마일스톤</TabsTrigger>
           <TabsTrigger value="ui-content">UI 컨텐츠 관리</TabsTrigger>
           <TabsTrigger value="test-menu">TEST</TabsTrigger>
           <TabsTrigger value="languages">언어 설정</TabsTrigger>
