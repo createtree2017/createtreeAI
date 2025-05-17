@@ -328,6 +328,63 @@ router.post("/logout", (req, res) => {
   });
 });
 
+// 프로필 완성 API
+router.post("/complete-profile", async (req, res) => {
+  try {
+    // 사용자 인증 확인
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "로그인이 필요합니다." });
+    }
+    
+    // 요청 데이터 검증
+    const { hospitalId, phoneNumber, dueDate } = req.body;
+    
+    if (!hospitalId || !phoneNumber) {
+      return res.status(400).json({ message: "필수 정보가 누락되었습니다." });
+    }
+    
+    const user = req.user as any;
+    
+    // 사용자 정보 업데이트
+    await db.update(users)
+      .set({
+        hospitalId: parseInt(hospitalId),
+        phoneNumber: phoneNumber,
+        dueDate: dueDate ? new Date(dueDate) : undefined,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, user.id));
+    
+    // 세션 상태 갱신
+    if (req.session.user) {
+      req.session.user.needSignup = false;
+      
+      // 세션 저장
+      req.session.save((saveErr) => {
+        if (saveErr) {
+          console.error("[Complete Profile] 세션 저장 오류:", saveErr);
+          return res.status(500).json({ message: "세션 저장 중 오류가 발생했습니다." });
+        }
+        
+        return res.status(200).json({ 
+          message: "프로필 정보가 성공적으로 저장되었습니다.",
+          success: true
+        });
+      });
+    } else {
+      return res.status(200).json({ 
+        message: "프로필 정보가 저장되었습니다.",
+        success: true
+      });
+    }
+  } catch (error) {
+    console.error("[Complete Profile] 오류:", error);
+    return res.status(500).json({ 
+      message: "사용자 정보 업데이트 중 오류가 발생했습니다." 
+    });
+  }
+});
+
 // 현재 로그인한 사용자 정보 조회 API
 router.get("/me", (req, res) => {
   try {

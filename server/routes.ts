@@ -4730,6 +4730,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/test-gemini", geminiTestRoutes);
   console.log("Gemini API 테스트 라우터가 등록되었습니다 (/api/test-gemini/*)");
   
+  // 병원 목록 조회 API 
+  app.get("/api/hospitals", async (req, res) => {
+    try {
+      // 임포트 추가
+      const { hospitals } = await import("@shared/schema");
+      const { eq, asc } = await import("drizzle-orm");
+      
+      const hospitalsList = await db.query.hospitals.findMany({
+        where: eq(hospitals.isActive, true),
+        orderBy: asc(hospitals.name),
+        columns: {
+          id: true,
+          name: true,
+          slug: true,
+          address: true,
+          logoUrl: true
+        }
+      });
+      
+      return res.json(hospitalsList);
+    } catch (error) {
+      console.error("병원 목록 조회 오류:", error);
+      return res.status(500).json({ error: "병원 목록을 가져오는 중 오류가 발생했습니다." });
+    }
+  });
+
   // 세션 체크 라우터 등록 (모바일 로그인 문제 해결용)
   app.use("/api/session-check", sessionCheckRoutes);
   console.log("세션 체크 라우터가 등록되었습니다 (/api/session-check)");
