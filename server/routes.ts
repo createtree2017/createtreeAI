@@ -1698,14 +1698,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Milestone and Pregnancy Profile endpoints
-  // For testing, using userId=1, in a real app this would come from authentication
-  const TEST_USER_ID = 1;
   
   // Get or update the pregnancy profile
-  app.get("/api/pregnancy-profile", async (req, res) => {
+  app.get("/api/pregnancy-profile", authMiddleware, async (req, res) => {
     try {
+      // 현재 로그인한 사용자 ID 사용
+      const userId = req.user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ error: "인증이 필요합니다" });
+      }
+      
+      console.log("[프로필 조회] 사용자 ID:", userId);
+      
       const { getOrCreatePregnancyProfile } = await import("./services/milestones");
-      const profile = await getOrCreatePregnancyProfile(TEST_USER_ID);
+      const profile = await getOrCreatePregnancyProfile(userId);
       return res.json(profile || { error: "No profile found" });
     } catch (error) {
       console.error("Error fetching pregnancy profile:", error);
@@ -1713,8 +1720,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post("/api/pregnancy-profile", async (req, res) => {
+  app.post("/api/pregnancy-profile", authMiddleware, async (req, res) => {
     try {
+      // 현재 로그인한 사용자 ID 사용
+      const userId = req.user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ error: "인증이 필요합니다" });
+      }
+      
+      console.log("[프로필 저장] 사용자 ID:", userId);
+      
       const { updatePregnancyProfile } = await import("./services/milestones");
       const profileData = req.body;
       
@@ -1723,7 +1739,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         profileData.dueDate = new Date(profileData.dueDate);
       }
       
-      const profile = await updatePregnancyProfile(TEST_USER_ID, profileData);
+      const profile = await updatePregnancyProfile(userId, profileData);
       
       if (!profile) {
         return res.status(400).json({ error: "Failed to update profile - dueDate is required" });
@@ -1748,10 +1764,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.get("/api/milestones/available", async (req, res) => {
+  app.get("/api/milestones/available", authMiddleware, async (req, res) => {
     try {
+      // 현재 로그인한 사용자 ID 사용
+      const userId = req.user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ error: "인증이 필요합니다" });
+      }
+      
+      console.log("[마일스톤 가능 목록] 사용자 ID:", userId);
+      
       const { getAvailableMilestones } = await import("./services/milestones");
-      const milestones = await getAvailableMilestones(TEST_USER_ID);
+      const milestones = await getAvailableMilestones(userId);
       return res.json(milestones);
     } catch (error) {
       console.error("Error fetching available milestones:", error);
@@ -1759,10 +1784,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.get("/api/milestones/completed", async (req, res) => {
+  app.get("/api/milestones/completed", authMiddleware, async (req, res) => {
     try {
+      // 현재 로그인한 사용자 ID 사용
+      const userId = req.user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ error: "인증이 필요합니다" });
+      }
+      
+      console.log("[마일스톤 완료 목록] 사용자 ID:", userId);
+      
       const { getUserCompletedMilestones } = await import("./services/milestones");
-      const milestones = await getUserCompletedMilestones(TEST_USER_ID);
+      const milestones = await getUserCompletedMilestones(userId);
       return res.json(milestones);
     } catch (error) {
       console.error("Error fetching completed milestones:", error);
@@ -1770,13 +1804,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post("/api/milestones/:milestoneId/complete", async (req, res) => {
+  app.post("/api/milestones/:milestoneId/complete", authMiddleware, async (req, res) => {
     try {
+      // 현재 로그인한 사용자 ID 사용
+      const userId = req.user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ error: "인증이 필요합니다" });
+      }
+      
       const { milestoneId } = req.params;
       const { notes, photoUrl } = req.body;
       
+      console.log("[마일스톤 완료 처리] 사용자 ID:", userId, "마일스톤 ID:", milestoneId);
+      
       const { completeMilestone } = await import("./services/milestones");
-      const result = await completeMilestone(TEST_USER_ID, milestoneId, notes, photoUrl);
+      const result = await completeMilestone(userId, milestoneId, notes, photoUrl);
       
       return res.json(result);
     } catch (error) {
@@ -1785,10 +1828,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.get("/api/milestones/stats", async (req, res) => {
+  app.get("/api/milestones/stats", authMiddleware, async (req, res) => {
     try {
+      // 현재 로그인한 사용자 ID 사용
+      const userId = req.user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ error: "인증이 필요합니다" });
+      }
+      
+      console.log("[마일스톤 통계] 사용자 ID:", userId);
+      
       const { getUserAchievementStats } = await import("./services/milestones");
-      const stats = await getUserAchievementStats(TEST_USER_ID);
+      const stats = await getUserAchievementStats(userId);
       return res.json(stats);
     } catch (error) {
       console.error("Error fetching achievement stats:", error);
