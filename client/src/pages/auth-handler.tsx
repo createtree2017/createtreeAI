@@ -111,9 +111,18 @@ const AuthHandlerPage = () => {
             // 세션 쿠키 확인 (디버깅용)
             console.log("[AuthHandler] 현재 쿠키:", document.cookie);
             
-            // 홈으로 리디렉션
+            // 저장된 리디렉션 URL이 있으면 해당 URL로, 없으면 홈으로 리디렉션
+            const savedRedirectUrl = localStorage.getItem('login_redirect_url');
+            console.log("[AuthHandler] 리디렉션 예정 URL:", savedRedirectUrl || "/");
+            
             setTimeout(() => {
-              window.location.href = "/";
+              // 리디렉션 URL 사용 후 삭제
+              if (savedRedirectUrl) {
+                localStorage.removeItem('login_redirect_url');
+                window.location.href = savedRedirectUrl;
+              } else {
+                window.location.href = "/";
+              }
             }, 1500);
           } catch (err) {
             console.error("[AuthHandler] 토큰 처리 중 오류:", err);

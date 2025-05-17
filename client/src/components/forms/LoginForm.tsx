@@ -55,8 +55,14 @@ const LoginForm: React.FC = () => {
             const auth = getAuth();
             const provider = new GoogleAuthProvider();
             
-            // 리다이렉트 로그인으로 인증 - 더 간단한 접근 방식
+            // 리다이렉트 로그인으로 인증 - Firebase 기본 경로 사용
             console.log("모바일 환경에서 리다이렉트 로그인 시도 중...");
+            
+            // 리다이렉션 전 URL 저장 (로그인 완료 후 돌아올 경로)
+            localStorage.setItem('login_redirect_url', window.location.href);
+            
+            // Firebase 기본 경로(/__/auth/handler)로 리다이렉션하도록 설정
+            // 이 경로는 Firebase가 기본적으로 지원하는 경로입니다
             await signInWithRedirect(auth, provider);
             
             // 리다이렉트 되기 때문에 이 아래 코드는 실행되지 않음
