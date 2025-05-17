@@ -350,28 +350,31 @@ router.get("/admin-check", (req, res) => {
   return res.json({ isAdmin: true });
 });
 
-// Firebase 로그인 API
+// Firebase 로그인 API - ID 토큰 지원 추가
 router.post("/firebase-login", async (req, res) => {
   try {
-    const { user: firebaseUser } = req.body;
+    // 요청에서 사용자 정보와 ID 토큰 추출
+    const { user: firebaseUser, idToken } = req.body;
 
-    if (!firebaseUser || !firebaseUser.uid || !firebaseUser.email) {
+    // ID 토큰 로깅 (개발 및 디버깅 용도)
+    console.log("[Firebase Auth] 로그인 요청 - ID 토큰:", idToken ? `제공됨 (${idToken.length} 자)` : "제공되지 않음");
+
+    // 기본 사용자 정보 검증 
+    if (!firebaseUser || !firebaseUser.uid) {
       return res.status(400).json({ message: "유효하지 않은 Firebase 사용자 정보입니다." });
     }
 
     console.log("[Firebase Auth] 로그인 요청:", { 
       uid: firebaseUser.uid, 
-      email: firebaseUser.email,
-      displayName: firebaseUser.displayName 
+      email: firebaseUser.email || "이메일 없음",
+      displayName: firebaseUser.displayName || "이름 없음"
     });
 
     // Firebase 인증 처리
     const userData: FirebaseUserData = {
       uid: firebaseUser.uid,
-      email: firebaseUser.email,
-      displayName: firebaseUser.displayName,
-      // photoUrl 필드는 데이터베이스에 존재하지 않아 제거
-      // phoneNumber: firebaseUser.phoneNumber // phone_number 필드도 데이터베이스에 존재하지 않음
+      email: firebaseUser.email || "",
+      displayName: firebaseUser.displayName || "",
     };
 
     // 사용자 조회 또는 생성
@@ -381,8 +384,28 @@ router.post("/firebase-login", async (req, res) => {
       return res.status(500).json({ message: "사용자 처리 중 오류가 발생했습니다." });
     }
 
-    // 사용자 로그인 처리 (세션에 저장)
-    // Passport를 통한 로그인
+    // 세션에 직접 값 추가 (세션 강화를 위한 중요 정보)
+    req.session.userId = user.id;
+    req.session.firebaseUid = firebaseUser.uid;
+    req.session.userEmail = firebaseUser.email;
+    req.session.userRole = user.role || 'user';
+    req.session.isAdmin = user.role === 'admin';
+    req.session.isHospitalAdmin = user.role === 'hospital_admin';
+
+    // 세션 강제 저장
+    await new Promise<void>((resolve, reject) => {
+      req.session.save((err) => {
+        if (err) {
+          console.error("[Firebase Auth] 세션 저장 오류:", err);
+          reject(err);
+        } else {
+          console.log("[Firebase Auth] 세션 저장 성공, 세션 ID:", req.sessionID);
+          resolve();
+        }
+      });
+    });
+
+    // 사용자 로그인 처리 (Passport를 통한 로그인)
     req.login(user, async (loginErr) => {
       if (loginErr) {
         console.error("[Firebase Auth] 로그인 오류:", loginErr);
@@ -390,17 +413,39 @@ router.post("/firebase-login", async (req, res) => {
       }
 
       console.log("[Firebase Auth] 로그인 성공:", user.id);
-      console.log("[Firebase Auth] 세션 및 인증 상태: isAuthenticated=", req.isAuthenticated());
+      console.log("[Firebase Auth] 세션 및 인증 상태:", {
+        isAuthenticated: req.isAuthenticated(),
+        sessionID: req.sessionID,
+        sessionCookie: req.session.cookie ? "설정됨" : "없음",
+        user: user.id
+      });
+
+      // 명시적 세션 쿠키 설정 (모바일 환경을 위한 강화)
+      const isProduction = process.env.NODE_ENV === 'production';
+      const isHttps = process.env.PROTOCOL === 'https' || isProduction;
+
+      // 세션 쿠키 명시적 설정
+      res.cookie('connect.sid', req.sessionID, {
+        httpOnly: true,
+        secure: isHttps,
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7일
+        sameSite: 'lax',
+        path: '/'
+      });
 
       // 응답
       return res.status(200).json({
         user: sanitizeUser(user),
-        message: "Firebase 로그인 성공"
+        message: "Firebase 로그인 성공",
+        sessionId: req.sessionID // 디버깅 용도로 세션 ID 포함
       });
     });
   } catch (error) {
     console.error("[Firebase Auth] 오류:", error);
-    return res.status(500).json({ message: "서버 오류가 발생했습니다." });
+    return res.status(500).json({ 
+      message: "서버 오류가 발생했습니다.",
+      error: error instanceof Error ? error.message : "알 수 없는 오류" 
+    });
   }
 });
 
