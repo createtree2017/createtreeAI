@@ -84,14 +84,24 @@ export async function handleFirebaseAuth(firebaseUser: FirebaseUserData) {
     user = updatedUser;
   }
   
-  // 5. 디버깅 정보 추가
+  // 5. 추가 정보 입력 필요 여부 확인
+  // 전화번호 또는 출산예정일이 없는 경우 추가 정보 입력이 필요함
+  const needSignup = !user.phoneNumber || !user.dueDate;
+  
+  // 디버깅 정보 추가
   console.log(`[Firebase Auth 처리 완료] 
   - 사용자 ID: ${user.id}
   - 이메일: ${user.email}
   - 사용자명: ${user.username}
   - 회원 유형: ${user.memberType}
-  - Firebase UID: ${user.firebaseUid}`);
+  - Firebase UID: ${user.firebaseUid}
+  - 전화번호: ${user.phoneNumber || '(없음)'}
+  - 출산예정일: ${user.dueDate ? user.dueDate.toISOString().split('T')[0] : '(없음)'}
+  - 추가 정보 입력 필요: ${needSignup ? '예' : '아니오'}`);
   
-  // 세션 생성을 위해 필요한 정보만 반환
-  return user;
+  // needSignup 속성 추가하여 반환
+  return {
+    ...user,
+    needSignup
+  };
 }

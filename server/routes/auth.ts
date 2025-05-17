@@ -523,6 +523,7 @@ router.post("/firebase-login", async (req, res) => {
         email: user.email || "",
         displayName: user.fullName || user.username || "사용자",
         memberType: memberType,
+        needSignup: user.needSignup || false  // 추가 정보 입력 필요 여부
       };
 
       // 3. 개별 필드 저장 (추가 백업)

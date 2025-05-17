@@ -30,6 +30,9 @@ router.get('/', (req, res) => {
 
   // 인증되었을 경우 사용자 정보 반환
   if (req.isAuthenticated && req.isAuthenticated()) {
+    // 추가 정보 입력 필요 여부 확인
+    const needSignup = req.session.user?.needSignup || false;
+    
     return res.json({ 
       authenticated: true,
       session: {
@@ -40,7 +43,9 @@ router.get('/', (req, res) => {
         id: req.session.userId,
         role: req.session.userRole,
         // passport ID도 포함
-        passport_id: req.session.passport?.user
+        passport_id: req.session.passport?.user,
+        // 추가 정보 입력 필요 여부
+        needSignup: needSignup
       }
     });
   }
