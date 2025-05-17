@@ -227,7 +227,6 @@ export default function MilestoneManagement() {
   // 마일스톤 삭제 뮤테이션
   const deleteMilestoneMutation = useMutation({
     mutationFn: async (milestoneId: string) => {
-      // 관리자용 엔드포인트는 아직 없으므로 일반 마일스톤 엔드포인트를 사용
       return apiRequest(`/api/admin/milestones/${milestoneId}`, {
         method: 'DELETE'
       });
