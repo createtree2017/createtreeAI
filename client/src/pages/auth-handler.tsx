@@ -20,6 +20,15 @@ const AuthHandlerPage = () => {
       try {
         console.log("[AuthHandler] Firebase 리디렉션 결과 처리 시작...");
         console.log("[AuthHandler] 현재 URL:", window.location.href);
+        console.log("[AuthHandler] 현재 경로:", window.location.pathname);
+        
+        // 로컬 스토리지에서 리디렉션 정보 확인
+        const redirectStarted = localStorage.getItem('auth_redirect_started');
+        const redirectTime = localStorage.getItem('auth_redirect_time');
+        
+        console.log("[AuthHandler] 리디렉션 상태:", 
+          redirectStarted ? "시작됨" : "시작되지 않음", 
+          redirectTime ? `(${new Date(parseInt(redirectTime)).toLocaleTimeString()})` : "");
         
         // URL에서 파라미터 추출
         const urlParams = new URLSearchParams(window.location.search);

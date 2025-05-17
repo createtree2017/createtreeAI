@@ -219,6 +219,9 @@ function Router() {
       <Route path="/__/auth/handler">
         <AuthHandlerPage />
       </Route>
+      <Route path="/auth/callback">
+        <AuthHandlerPage />
+      </Route>
       <Route path="/login">
         <LoginPage />
       </Route>
