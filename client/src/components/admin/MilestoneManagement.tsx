@@ -174,8 +174,6 @@ export default function MilestoneManagement() {
   // 마일스톤 생성 뮤테이션
   const createMilestoneMutation = useMutation({
     mutationFn: async (data: MilestoneFormValues) => {
-      // 관리자용 엔드포인트는 아직 없으므로 일반 마일스톤 엔드포인트를 사용
-      // 향후 관리자 전용 API가 개발되면 변경 필요
       return apiRequest('/api/admin/milestones', {
         method: 'POST',
         data
@@ -203,7 +201,6 @@ export default function MilestoneManagement() {
   // 마일스톤 수정 뮤테이션
   const updateMilestoneMutation = useMutation({
     mutationFn: async (data: MilestoneFormValues) => {
-      // 관리자용 엔드포인트는 아직 없으므로 일반 마일스톤 엔드포인트를 사용
       return apiRequest(`/api/admin/milestones/${data.milestoneId}`, {
         method: 'PUT',
         data

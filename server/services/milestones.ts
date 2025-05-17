@@ -287,3 +287,88 @@ export async function getUserAchievementStats(userId: number) {
     recentlyCompleted: completedMilestones.slice(0, 5) // Most recent 5
   };
 }
+
+/**
+ * 관리자용 마일스톤 CRUD 함수
+ */
+
+/**
+ * 마일스톤 생성 함수
+ */
+export async function createMilestone(milestoneData: {
+  title: string;
+  description: string;
+  category: string;
+  weekStart: number;
+  weekEnd: number;
+  badgeEmoji: string;
+  badgeImageUrl?: string;
+  encouragementMessage: string;
+  order: number;
+  isActive: boolean;
+}) {
+  const milestoneId = `${milestoneData.category}-${Date.now()}`;
+  
+  const [newMilestone] = await db.insert(milestones).values({
+    ...milestoneData,
+    milestoneId,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  }).returning();
+  
+  return newMilestone;
+}
+
+/**
+ * 마일스톤 업데이트 함수
+ */
+export async function updateMilestone(
+  milestoneId: string,
+  milestoneData: Partial<{
+    title: string;
+    description: string;
+    category: string;
+    weekStart: number;
+    weekEnd: number;
+    badgeEmoji: string;
+    badgeImageUrl: string | null;
+    encouragementMessage: string;
+    order: number;
+    isActive: boolean;
+  }>
+) {
+  const [updatedMilestone] = await db.update(milestones)
+    .set({
+      ...milestoneData,
+      updatedAt: new Date()
+    })
+    .where(eq(milestones.milestoneId, milestoneId))
+    .returning();
+    
+  return updatedMilestone;
+}
+
+/**
+ * 마일스톤 삭제 함수
+ */
+export async function deleteMilestone(milestoneId: string) {
+  // 먼저 해당 마일스톤과 관련된 모든 유저 마일스톤 데이터 삭제
+  await db.delete(userMilestones)
+    .where(eq(userMilestones.milestoneId, milestoneId));
+  
+  // 이후 마일스톤 삭제
+  const [deletedMilestone] = await db.delete(milestones)
+    .where(eq(milestones.milestoneId, milestoneId))
+    .returning();
+    
+  return deletedMilestone;
+}
+
+/**
+ * 특정 마일스톤 가져오기
+ */
+export async function getMilestoneById(milestoneId: string) {
+  return db.query.milestones.findFirst({
+    where: eq(milestones.milestoneId, milestoneId)
+  });
+}

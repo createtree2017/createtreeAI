@@ -3444,6 +3444,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to get banners" });
     }
   });
+
+  // 관리자용 마일스톤 API 엔드포인트
+  app.post("/api/admin/milestones", async (req, res) => {
+    try {
+      const { 
+        createMilestone 
+      } = await import("./services/milestones");
+      
+      const milestone = await createMilestone(req.body);
+      return res.status(201).json(milestone);
+    } catch (error) {
+      console.error("Error creating milestone:", error);
+      return res.status(500).json({ 
+        error: "Failed to create milestone",
+        message: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+  });
+
+  app.put("/api/admin/milestones/:milestoneId", async (req, res) => {
+    try {
+      const { milestoneId } = req.params;
+      const { 
+        updateMilestone,
+        getMilestoneById 
+      } = await import("./services/milestones");
+      
+      // 마일스톤이 존재하는지 확인
+      const existingMilestone = await getMilestoneById(milestoneId);
+      if (!existingMilestone) {
+        return res.status(404).json({ error: "Milestone not found" });
+      }
+      
+      const updatedMilestone = await updateMilestone(milestoneId, req.body);
+      return res.json(updatedMilestone);
+    } catch (error) {
+      console.error("Error updating milestone:", error);
+      return res.status(500).json({ 
+        error: "Failed to update milestone",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.delete("/api/admin/milestones/:milestoneId", async (req, res) => {
+    try {
+      const { milestoneId } = req.params;
+      const { 
+        deleteMilestone,
+        getMilestoneById 
+      } = await import("./services/milestones");
+      
+      // 마일스톤이 존재하는지 확인
+      const existingMilestone = await getMilestoneById(milestoneId);
+      if (!existingMilestone) {
+        return res.status(404).json({ error: "Milestone not found" });
+      }
+      
+      const deletedMilestone = await deleteMilestone(milestoneId);
+      return res.json(deletedMilestone);
+    } catch (error) {
+      console.error("Error deleting milestone:", error);
+      return res.status(500).json({ 
+        error: "Failed to delete milestone",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
   
   app.post("/api/admin/banners", async (req, res) => {
     try {
