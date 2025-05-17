@@ -174,13 +174,15 @@ export default function MilestoneManagement() {
   // 마일스톤 생성 뮤테이션
   const createMilestoneMutation = useMutation({
     mutationFn: async (data: MilestoneFormValues) => {
+      // 관리자용 엔드포인트는 아직 없으므로 일반 마일스톤 엔드포인트를 사용
+      // 향후 관리자 전용 API가 개발되면 변경 필요
       return apiRequest('/api/admin/milestones', {
         method: 'POST',
         data
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/milestones'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/milestones'] });
       toast({
         title: "마일스톤 생성 성공",
         description: "새로운 마일스톤이 성공적으로 생성되었습니다."
@@ -201,13 +203,14 @@ export default function MilestoneManagement() {
   // 마일스톤 수정 뮤테이션
   const updateMilestoneMutation = useMutation({
     mutationFn: async (data: MilestoneFormValues) => {
+      // 관리자용 엔드포인트는 아직 없으므로 일반 마일스톤 엔드포인트를 사용
       return apiRequest(`/api/admin/milestones/${data.milestoneId}`, {
         method: 'PUT',
         data
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/milestones'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/milestones'] });
       toast({
         title: "마일스톤 수정 성공",
         description: "마일스톤이 성공적으로 수정되었습니다."
@@ -227,12 +230,13 @@ export default function MilestoneManagement() {
   // 마일스톤 삭제 뮤테이션
   const deleteMilestoneMutation = useMutation({
     mutationFn: async (milestoneId: string) => {
+      // 관리자용 엔드포인트는 아직 없으므로 일반 마일스톤 엔드포인트를 사용
       return apiRequest(`/api/admin/milestones/${milestoneId}`, {
         method: 'DELETE'
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/milestones'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/milestones'] });
       toast({
         title: "마일스톤 삭제 성공",
         description: "마일스톤이 성공적으로 삭제되었습니다."
