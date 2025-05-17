@@ -424,13 +424,14 @@ router.post("/firebase-login", async (req, res) => {
 
       console.log("[Firebase Auth] 로그인 성공:", user.id);
       
-      // 세션 쿠키 설정 최적화 - 모바일 환경에 맞게 조정
-      req.session.cookie.sameSite = 'none';
-      req.session.cookie.secure = true;
+      // 세션 쿠키 설정 최적화 - Replit 환경에 맞게 조정
+      req.session.cookie.sameSite = 'lax';
+      req.session.cookie.secure = false;
       req.session.cookie.path = '/';
       
-      // 모바일 인증을 위해 사용자 정보를 세션에 저장 (필수!)
-      req.session.user = {
+      // 모바일 인증을 위해 추가 정보 세션에 저장
+      // @ts-ignore - 세션 타입 확장
+      req.session.firebaseUser = {
         uid: firebaseUser.uid,
         email: user.email || '',
         role: user.memberType || 'user'

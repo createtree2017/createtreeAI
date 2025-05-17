@@ -249,6 +249,8 @@ const conceptSchema = z.object({
 import authRoutes from "./routes/auth";
 // 세션 체크 라우터 추가 (모바일 로그인 문제 해결용)
 import sessionCheckRoutes from "./routes/session-check";
+// JWT 토큰 인증 라우터 추가 (모바일 인증 문제 해결)
+import jwtAuthRoutes from "./routes/jwt-auth";
 // 인증 서비스 가져오기
 import { initPassport } from "./services/auth";
 import cookieParser from "cookie-parser";
@@ -261,15 +263,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 쿠키 파서 미들웨어 등록
   app.use(cookieParser());
   
-  // 세션 미들웨어 등록 (모바일 환경 대응 강화)
+  // 세션 미들웨어 등록 (모바일 환경 대응 강화 - Replit 환경 최적화)
   app.use(session({
     secret: process.env.SESSION_SECRET || 'create-tree-mobile-session-secret',
     resave: false,
-    saveUninitialized: false, // 빈 세션은 저장하지 않음
+    saveUninitialized: true, // 세션을 항상 저장
     cookie: {
       httpOnly: true,
-      secure: true,             // HTTPS 환경 필수!
-      sameSite: "none",         // 모바일 리디렉션 허용
+      secure: false,            // Replit은 HTTP로 동작할 수 있음
+      sameSite: 'lax',          // 크로스 사이트 리퀘스트 허용
       path: '/',
       maxAge: 86400000          // 1일 (24시간)
     }
@@ -4731,6 +4733,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 세션 체크 라우터 등록 (모바일 로그인 문제 해결용)
   app.use("/api/session-check", sessionCheckRoutes);
   console.log("세션 체크 라우터가 등록되었습니다 (/api/session-check)");
+  
+  // JWT 토큰 인증 라우터 등록 (모바일 전용)
+  app.use("/api/jwt-auth", jwtAuthRoutes);
+  console.log("JWT 토큰 인증 라우터가 등록되었습니다 (/api/jwt-auth/*)");
 
   const httpServer = createServer(app);
   return httpServer;
