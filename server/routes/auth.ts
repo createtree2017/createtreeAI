@@ -331,9 +331,28 @@ router.post("/logout", (req, res) => {
 // 프로필 완성 API
 router.post("/complete-profile", async (req, res) => {
   try {
-    // 사용자 인증 확인
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "로그인이 필요합니다." });
+    // 사용자 인증 확인 - 세션 및 Firebase 인증 모두 확인
+    const authStatus = req.isAuthenticated();
+    const sessionUserId = req.session.userId || (req.session.passport && req.session.passport.user);
+    
+    // 상세 로그 추가
+    console.log(`
+===================================================
+[프로필 완성 요청]
+- 인증 상태: ${authStatus}
+- 세션 ID: ${req.session.id || '없음'}
+- 세션 사용자 ID: ${sessionUserId || '없음'}
+- 세션 사용자 객체: ${req.session.user ? JSON.stringify(req.session.user) : '없음'}
+- 요청 쿠키: ${req.headers.cookie || '없음'}
+===================================================
+    `);
+    
+    // 세션 인증 확인
+    if (!authStatus && !sessionUserId) {
+      return res.status(401).json({ 
+        message: "로그인이 필요합니다.",
+        details: "세션이 만료되었거나 인증되지 않았습니다."
+      });
     }
     
     // 요청 데이터 검증
@@ -343,44 +362,91 @@ router.post("/complete-profile", async (req, res) => {
       return res.status(400).json({ message: "필수 정보가 누락되었습니다." });
     }
     
-    const user = req.user as any;
+    // 사용자 ID 확인 (여러 소스에서 확인)
+    let userId = 0;
+    
+    if (req.user && (req.user as any).id) {
+      // Passport 인증 사용자
+      userId = (req.user as any).id;
+    } else if (req.session.userId) {
+      // 세션에 직접 저장된 사용자 ID
+      userId = req.session.userId;
+    } else if (req.session.passport && req.session.passport.user) {
+      // Passport 세션 사용자 ID
+      userId = req.session.passport.user;
+    } else if (req.session.user && req.session.user.id) {
+      // 세션에 직접 저장된 사용자 객체
+      userId = req.session.user.id;
+    }
+    
+    if (!userId) {
+      return res.status(401).json({ 
+        message: "유효한 사용자 ID를 찾을 수 없습니다.", 
+        details: "세션이 만료되었거나 손상되었습니다." 
+      });
+    }
+    
+    console.log(`[프로필 완성] 사용자 ID 확인: ${userId}`);
     
     // 사용자 정보 업데이트
     await db.update(users)
       .set({
         hospitalId: parseInt(hospitalId),
         phoneNumber: phoneNumber,
-        dueDate: dueDate ? new Date(dueDate) : undefined,
+        dueDate: dueDate ? new Date(dueDate) : null,
         updatedAt: new Date()
       })
-      .where(eq(users.id, user.id));
+      .where(eq(users.id, userId));
+    
+    // 업데이트된 사용자 정보 조회
+    const updatedUser = await db.query.users.findFirst({
+      where: eq(users.id, userId)
+    });
+    
+    if (!updatedUser) {
+      return res.status(500).json({ message: "사용자 정보 업데이트 후 조회 실패" });
+    }
+    
+    console.log(`[프로필 완성] 사용자 정보 업데이트 성공: ID=${userId}, 전화번호=${phoneNumber}, 병원=${hospitalId}`);
     
     // 세션 상태 갱신
     if (req.session.user) {
       req.session.user.needSignup = false;
       
-      // 세션 저장
-      req.session.save((saveErr) => {
-        if (saveErr) {
-          console.error("[Complete Profile] 세션 저장 오류:", saveErr);
-          return res.status(500).json({ message: "세션 저장 중 오류가 발생했습니다." });
-        }
-        
-        return res.status(200).json({ 
-          message: "프로필 정보가 성공적으로 저장되었습니다.",
-          success: true
-        });
-      });
-    } else {
-      return res.status(200).json({ 
-        message: "프로필 정보가 저장되었습니다.",
-        success: true
-      });
+      if (typeof req.session.user === 'object') {
+        req.session.user.phoneNumber = phoneNumber;
+        req.session.user.hospitalId = parseInt(hospitalId);
+      }
     }
+    
+    // 세션 저장 (비동기)
+    req.session.save((saveErr) => {
+      if (saveErr) {
+        console.error("[Complete Profile] 세션 저장 오류:", saveErr);
+        // 세션 저장 실패해도 DB는 업데이트되었으므로 성공 응답
+      }
+      
+      console.log("[프로필 완성] 세션 저장 완료");
+    });
+    
+    // 즉시 성공 응답 반환
+    return res.status(200).json({ 
+      message: "프로필 정보가 성공적으로 저장되었습니다.",
+      success: true,
+      user: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        fullName: updatedUser.fullName,
+        phoneNumber: updatedUser.phoneNumber,
+        hospitalId: updatedUser.hospitalId,
+        dueDate: updatedUser.dueDate
+      }
+    });
   } catch (error) {
     console.error("[Complete Profile] 오류:", error);
     return res.status(500).json({ 
-      message: "사용자 정보 업데이트 중 오류가 발생했습니다." 
+      message: "사용자 정보 업데이트 중 오류가 발생했습니다.",
+      details: error instanceof Error ? error.message : "알 수 없는 오류"
     });
   }
 });

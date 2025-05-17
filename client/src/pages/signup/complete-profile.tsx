@@ -84,6 +84,25 @@ const CompleteProfilePage = () => {
       setIsSubmitting(true);
       console.log("[프로필 완성] 제출 데이터:", data);
 
+      // 먼저 클라이언트에서 로그인 상태 확인
+      const authStatusCookie = document.cookie
+        .split("; ")
+        .find(row => row.startsWith("auth_status="));
+      
+      if (!authStatusCookie) {
+        // 로그인 쿠키가 없으면 사용자에게 알림
+        toast({
+          title: "로그인이 필요합니다",
+          description: "로그인 세션이 만료되었습니다. 다시 로그인해주세요.",
+          variant: "destructive",
+        });
+        // 로그인 페이지로 리디렉션
+        setTimeout(() => {
+          window.location.replace("/auth");
+        }, 2000);
+        return;
+      }
+
       // 서버에 프로필 정보 저장 요청
       const response = await fetch("/api/auth/complete-profile", {
         method: "POST",
@@ -95,8 +114,33 @@ const CompleteProfilePage = () => {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`프로필 저장 실패: ${errorText}`);
+        // 오류 응답 확인 (JSON 형식인지 텍스트인지)
+        const contentType = response.headers.get("content-type");
+        let errorMessage;
+        
+        if (contentType && contentType.includes("application/json")) {
+          const errorData = await response.json();
+          errorMessage = errorData.message || "프로필 저장에 실패했습니다";
+        } else {
+          errorMessage = await response.text();
+        }
+        
+        // 인증 오류인 경우 (401)
+        if (response.status === 401) {
+          toast({
+            title: "인증 오류",
+            description: "로그인 세션이 만료되었습니다. 다시 로그인해주세요.",
+            variant: "destructive",
+          });
+          
+          // 로그인 페이지로 리디렉션
+          setTimeout(() => {
+            window.location.replace("/auth");
+          }, 2000);
+          return;
+        }
+        
+        throw new Error(`프로필 저장 실패: ${errorMessage}`);
       }
 
       // 성공 처리
