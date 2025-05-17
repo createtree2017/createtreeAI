@@ -265,14 +265,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(session({
     secret: process.env.SESSION_SECRET || 'create-tree-mobile-session-secret',
     resave: false,
-    saveUninitialized: true, // 빈 세션도 저장 허용
+    saveUninitialized: false, // 빈 세션은 저장하지 않음
     cookie: {
       httpOnly: true,
-      // 모바일 환경에서 Replit 도메인에서도 쿠키가 전송되도록 설정
-      secure: false, // 개발 환경에서는 false로 설정
-      sameSite: 'lax', // 모바일 브라우저 호환성
+      secure: true,             // HTTPS 환경 필수!
+      sameSite: "none",         // 모바일 리디렉션 허용
       path: '/',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7일로 연장
+      maxAge: 86400000          // 1일 (24시간)
     }
   }));
   
