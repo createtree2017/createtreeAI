@@ -51,14 +51,7 @@ import { z } from "zod";
 import { Edit, Plus, Trash2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
-// 마일스톤 카테고리 정의
-const MILESTONE_CATEGORIES = [
-  { id: "baby_development", name: "태아 발달", description: "태아의 발달 단계와 관련된 마일스톤" },
-  { id: "maternal_health", name: "산모 건강", description: "산모의 건강과 관련된 마일스톤" },
-  { id: "preparations", name: "준비 사항", description: "출산 및 육아 준비와 관련된 마일스톤" },
-  { id: "medical_checkups", name: "의료 검진", description: "산전 검진 및 의료 관련 마일스톤" },
-  { id: "emotional_wellbeing", name: "정서적 웰빙", description: "정서적 건강과 관련된 마일스톤" },
-];
+// 마일스톤 카테고리는 API에서 가져옵니다
 
 // 마일스톤 유효성 검사 스키마
 const milestoneFormSchema = z.object({
@@ -286,9 +279,23 @@ export default function MilestoneManagement() {
     setIsEditDialogOpen(true);
   };
 
+  // 카테고리 목록 가져오기
+  const { data: categories = [] } = useQuery({
+    queryKey: ['/api/milestone-categories'],
+    queryFn: async () => {
+      try {
+        const response = await apiRequest('/api/milestone-categories') as any;
+        return Array.isArray(response) ? response : [];
+      } catch (error) {
+        console.error("카테고리 데이터 로딩 중 오류:", error);
+        return [];
+      }
+    }
+  });
+
   // 카테고리 이름 가져오기
   const getCategoryName = (categoryId: string) => {
-    const category = MILESTONE_CATEGORIES.find(cat => cat.id === categoryId);
+    const category = categories.find((cat: any) => cat.categoryId === categoryId);
     return category ? category.name : categoryId;
   };
 
