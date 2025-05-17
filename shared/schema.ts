@@ -499,7 +499,6 @@ export type MilestoneCategory = typeof milestoneCategories.$inferSelect;
 export type MilestoneCategoryInsert = typeof milestoneCategories.$inferInsert;
 export type Milestone = typeof milestones.$inferSelect;
 export type MilestoneInsert = typeof milestones.$inferInsert;
-export const insertMilestoneSchema = createInsertSchema(milestones);
 export const insertUserMilestoneSchema = createInsertSchema(userMilestones);
 export const insertPregnancyProfileSchema = createInsertSchema(pregnancyProfiles);
 

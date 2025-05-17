@@ -4,6 +4,7 @@
 import { db } from "../../db";
 import { 
   milestones, 
+  milestoneCategories,
   userMilestones, 
   pregnancyProfiles,
   eq, 
@@ -371,4 +372,95 @@ export async function getMilestoneById(milestoneId: string) {
   return db.query.milestones.findFirst({
     where: eq(milestones.milestoneId, milestoneId)
   });
+}
+
+/**
+ * 마일스톤 카테고리 관리 함수
+ */
+
+/**
+ * 모든 마일스톤 카테고리 조회
+ */
+export async function getAllMilestoneCategories() {
+  return db.query.milestoneCategories.findMany({
+    orderBy: [asc(milestoneCategories.order)]
+  });
+}
+
+/**
+ * 특정 마일스톤 카테고리 조회
+ */
+export async function getMilestoneCategoryById(categoryId: string) {
+  return db.query.milestoneCategories.findFirst({
+    where: eq(milestoneCategories.categoryId, categoryId)
+  });
+}
+
+/**
+ * 마일스톤 카테고리 생성
+ */
+export async function createMilestoneCategory(categoryData: {
+  categoryId: string;
+  name: string;
+  description?: string;
+  emoji?: string;
+  order?: number;
+  isActive?: boolean;
+}) {
+  const [newCategory] = await db.insert(milestoneCategories).values({
+    ...categoryData,
+    emoji: categoryData.emoji || "📌",
+    order: categoryData.order || 0,
+    isActive: categoryData.isActive ?? true,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  }).returning();
+  
+  return newCategory;
+}
+
+/**
+ * 마일스톤 카테고리 업데이트
+ */
+export async function updateMilestoneCategory(
+  categoryId: string,
+  categoryData: Partial<{
+    name: string;
+    description: string;
+    emoji: string;
+    order: number;
+    isActive: boolean;
+  }>
+) {
+  const [updatedCategory] = await db.update(milestoneCategories)
+    .set({
+      ...categoryData,
+      updatedAt: new Date()
+    })
+    .where(eq(milestoneCategories.categoryId, categoryId))
+    .returning();
+    
+  return updatedCategory;
+}
+
+/**
+ * 마일스톤 카테고리 삭제
+ * 주의: 카테고리를 참조하는 마일스톤이 있는 경우 삭제하지 않음
+ */
+export async function deleteMilestoneCategory(categoryId: string) {
+  // 먼저 해당 카테고리를 참조하는 마일스톤이 있는지 확인
+  const referencingMilestones = await db.query.milestones.findMany({
+    where: eq(milestones.categoryId, categoryId)
+  });
+  
+  if (referencingMilestones.length > 0) {
+    throw new Error("카테고리를 참조하는 마일스톤이 있어 삭제할 수 없습니다.");
+  }
+  
+  // 이후 카테고리 삭제
+  const [deletedCategory] = await db.delete(milestoneCategories)
+    .where(eq(milestoneCategories.categoryId, categoryId))
+    .returning();
+    
+  return deletedCategory;
 }

@@ -3513,6 +3513,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // 마일스톤 카테고리 관리 API 엔드포인트
+  app.get("/api/milestone-categories", async (req, res) => {
+    try {
+      const { getAllMilestoneCategories } = await import("./services/milestones");
+      const categories = await getAllMilestoneCategories();
+      return res.json(categories);
+    } catch (error) {
+      console.error("Error fetching milestone categories:", error);
+      return res.status(500).json({ 
+        error: "카테고리 목록을 가져오는데 실패했습니다",
+        message: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+  });
+  
+  app.get("/api/milestone-categories/:categoryId", async (req, res) => {
+    try {
+      const { categoryId } = req.params;
+      const { getMilestoneCategoryById } = await import("./services/milestones");
+      
+      const category = await getMilestoneCategoryById(categoryId);
+      if (!category) {
+        return res.status(404).json({ error: "카테고리를 찾을 수 없습니다" });
+      }
+      
+      return res.json(category);
+    } catch (error) {
+      console.error("Error fetching milestone category:", error);
+      return res.status(500).json({ 
+        error: "카테고리 정보를 가져오는데 실패했습니다",
+        message: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+  });
+  
+  app.post("/api/admin/milestone-categories", async (req, res) => {
+    try {
+      const { createMilestoneCategory } = await import("./services/milestones");
+      
+      const newCategory = await createMilestoneCategory(req.body);
+      return res.status(201).json(newCategory);
+    } catch (error) {
+      console.error("Error creating milestone category:", error);
+      return res.status(500).json({ 
+        error: "카테고리 생성에 실패했습니다",
+        message: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+  });
+  
+  app.put("/api/admin/milestone-categories/:categoryId", async (req, res) => {
+    try {
+      const { categoryId } = req.params;
+      const { 
+        updateMilestoneCategory,
+        getMilestoneCategoryById 
+      } = await import("./services/milestones");
+      
+      // 카테고리가 존재하는지 확인
+      const existingCategory = await getMilestoneCategoryById(categoryId);
+      if (!existingCategory) {
+        return res.status(404).json({ error: "카테고리를 찾을 수 없습니다" });
+      }
+      
+      const updatedCategory = await updateMilestoneCategory(categoryId, req.body);
+      return res.json(updatedCategory);
+    } catch (error) {
+      console.error("Error updating milestone category:", error);
+      return res.status(500).json({ 
+        error: "카테고리 업데이트에 실패했습니다",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+  
+  app.delete("/api/admin/milestone-categories/:categoryId", async (req, res) => {
+    try {
+      const { categoryId } = req.params;
+      const { 
+        deleteMilestoneCategory,
+        getMilestoneCategoryById 
+      } = await import("./services/milestones");
+      
+      // 카테고리가 존재하는지 확인
+      const existingCategory = await getMilestoneCategoryById(categoryId);
+      if (!existingCategory) {
+        return res.status(404).json({ error: "카테고리를 찾을 수 없습니다" });
+      }
+      
+      const deletedCategory = await deleteMilestoneCategory(categoryId);
+      return res.json(deletedCategory);
+    } catch (error) {
+      console.error("Error deleting milestone category:", error);
+      return res.status(500).json({ 
+        error: "카테고리 삭제에 실패했습니다",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+  
   app.post("/api/admin/banners", async (req, res) => {
     try {
       const bannerData = insertBannerSchema.parse(req.body);
