@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { getAuth, getRedirectResult } from "firebase/auth";
+import { getAuth, getRedirectResult, GoogleAuthProvider } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 import { Loader2 } from "lucide-react";
 
 /**
@@ -19,7 +20,25 @@ const AuthHandlerPage = () => {
       try {
         console.log("[AuthHandler] Firebase 리디렉션 결과 처리 시작...");
         console.log("[AuthHandler] 현재 URL:", window.location.href);
+        
+        // URL에서 파라미터 추출
+        const urlParams = new URLSearchParams(window.location.search);
+        console.log("[AuthHandler] URL 파라미터:", Object.fromEntries(urlParams.entries()));
+        
+        // 현재 위치의 파라미터 확인
+        if (window.location.hash) {
+          console.log("[AuthHandler] URL 해시 존재:", window.location.hash);
+        }
+        
         const auth = getAuth();
+        
+        // 사용할 provider 설정
+        const provider = new GoogleAuthProvider();
+        
+        // 디버깅용 로그
+        console.log("[AuthHandler] Firebase Auth 상태:", auth ? "초기화됨" : "초기화되지 않음");
+        console.log("[AuthHandler] 현재 사용자:", auth.currentUser ? 
+          `${auth.currentUser.displayName || auth.currentUser.email}` : "로그인되지 않음");
         
         // 리디렉션 결과 가져오기 시도 (최대 3번)
         let result = null;
@@ -36,7 +55,7 @@ const AuthHandlerPage = () => {
             } else {
               console.log("[AuthHandler] 리디렉션 결과 없음, 재시도...");
               // 잠시 대기
-              await new Promise(resolve => setTimeout(resolve, 500));
+              await new Promise(resolve => setTimeout(resolve, 1000));
             }
           } catch (err) {
             console.error(`[AuthHandler] 리디렉션 결과 가져오기 오류 (시도 ${attempts}/3):`, err);
@@ -57,33 +76,86 @@ const AuthHandlerPage = () => {
             displayName: result.user.displayName || ""
           };
 
-          console.log("[AuthHandler] 서버에 Firebase 인증 정보 전송");
-          const response = await fetch("/api/auth/firebase-login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ user: userData }),
-            credentials: "include"
-          });
+          try {
+            console.log("[AuthHandler] 서버에 Firebase 인증 정보 전송");
+            const response = await fetch("/api/auth/firebase-login", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ user: userData }),
+              credentials: "include"
+            });
 
-          if (!response.ok) {
-            const errorData = await response.text();
-            throw new Error(`서버 인증 실패: ${errorData}`);
+            console.log("[AuthHandler] 서버 응답 상태:", response.status);
+            
+            if (!response.ok) {
+              const errorText = await response.text();
+              console.error("[AuthHandler] 서버 인증 실패:", errorText);
+              throw new Error(`서버 인증 실패: ${errorText}`);
+            }
+
+            const data = await response.json();
+            console.log("[AuthHandler] 서버 인증 성공:", data);
+            
+            // 사용자 정보 캐시 업데이트
+            queryClient.setQueryData(["/api/auth/me"], data.user);
+            
+            setStatus("success");
+            toast({
+              title: "Google 로그인 성공",
+              description: "환영합니다! 홈페이지로 이동합니다."
+            });
+
+            // 홈으로 리디렉션 (1초 지연)
+            setTimeout(() => {
+              window.location.href = "/";
+            }, 1000);
+          } catch (error) {
+            console.error("[AuthHandler] 서버 인증 처리 중 오류:", error);
+            setStatus("error");
+            setErrorMessage(error instanceof Error ? error.message : "서버 인증 중 오류가 발생했습니다");
+            
+            // 로그인 페이지로 리디렉션 (3초 지연)
+            setTimeout(() => {
+              window.location.href = "/auth";
+            }, 3000);
           }
-
-          const data = await response.json();
-          console.log("[AuthHandler] 서버 인증 성공:", data);
-          
-          setStatus("success");
-          toast({
-            title: "Google 로그인 성공",
-            description: "환영합니다! 홈페이지로 이동합니다."
-          });
-
-          // 홈으로 리디렉션 (1초 지연)
-          setTimeout(() => {
-            window.location.href = "/";
-          }, 1000);
         } else {
+          // 결과가 없을 경우 추가 처리 시도 (URL 해시/토큰 처리)
+          console.log("[AuthHandler] 표준 리디렉션 결과 없음, 대체 방법 시도");
+          
+          // URL에서 해시 파라미터 확인
+          if (window.location.hash && window.location.hash.includes("id_token=")) {
+            console.log("[AuthHandler] ID 토큰 존재, 직접 처리 시도");
+            try {
+              // 해시에서 토큰 정보 추출
+              const hashParams = new URLSearchParams(window.location.hash.substring(1));
+              const idToken = hashParams.get("id_token");
+              const accessToken = hashParams.get("access_token");
+              
+              if (idToken) {
+                console.log("[AuthHandler] ID 토큰 추출 성공");
+                // 여기서 ID 토큰을 사용한 추가 로직 구현 가능
+                
+                // 사용자가 다시 로그인하도록 유도
+                setStatus("error");
+                setErrorMessage("인증 정보를 처리하는 중 문제가 발생했습니다. 다시 로그인해 주세요.");
+                toast({
+                  title: "로그인 처리 중 오류",
+                  description: "다시 로그인 해주세요",
+                  variant: "destructive"
+                });
+                
+                // 로그인 페이지로 리디렉션
+                setTimeout(() => {
+                  window.location.href = "/auth";
+                }, 2000);
+                return;
+              }
+            } catch (error) {
+              console.error("[AuthHandler] 해시 파라미터 처리 오류:", error);
+            }
+          }
+          
           console.log("[AuthHandler] 리디렉션 결과 없음, 로그인 페이지로 이동");
           setStatus("error");
           setErrorMessage("인증 정보가 없습니다. 다시 로그인해 주세요.");
