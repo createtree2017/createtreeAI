@@ -1819,7 +1819,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("[마일스톤 완료 처리] 사용자 ID:", userId, "마일스톤 ID:", milestoneId);
       
       const { completeMilestone } = await import("./services/milestones");
-      const result = await completeMilestone(userId, milestoneId, notes, photoUrl);
+      const result = await completeMilestone(userId, milestoneId, notes);
       
       return res.json(result);
     } catch (error) {
