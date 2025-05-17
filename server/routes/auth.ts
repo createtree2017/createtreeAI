@@ -164,6 +164,13 @@ declare module 'express-session' {
     userRole?: string;
     isAdmin?: boolean;
     isHospitalAdmin?: boolean;
+    // 직접 사용자 객체 저장을 위한 필드 추가
+    user?: {
+      uid: string;
+      email: string;
+      role: string;
+      [key: string]: any;
+    };
   }
 }
 
@@ -428,7 +435,15 @@ router.post("/firebase-login", async (req, res) => {
       req.session.userRole = memberType;
       req.session.isAdmin = memberType === 'admin' || memberType === 'superadmin';
       
-      // 세션 강제 저장
+      // [핵심 수정] - Firebase 로그인 시 세션 저장 후 응답 반환
+      // req.session.user 명시적 저장 - 이 부분이 매우 중요
+      req.session.user = {
+        uid: firebaseUser.uid,
+        email: user.email || '',
+        role: memberType
+      };
+      
+      // 세션 저장 완료 후 응답 반환 - 비동기 완료 보장
       req.session.save((saveErr) => {
         if (saveErr) {
           console.error("[Firebase Auth] 세션 저장 오류:", saveErr);
@@ -436,15 +451,8 @@ router.post("/firebase-login", async (req, res) => {
         }
         
         console.log("[Firebase Auth] 세션 저장 성공!");
-        console.log("[Firebase Auth] 세션 및 인증 상태:", {
-          isAuthenticated: req.isAuthenticated?.() || false,
-          sessionID: req.sessionID,
-          sessionData: {
-            passport: !!req.session.passport,
-            user: !!req.session.user,
-            userId: req.session.userId
-          }
-        });
+        console.log("[Firebase Auth] 세션 사용자 정보 저장됨:", req.session.user);
+        console.log("[Firebase Auth] 세션 인증 상태:", req.isAuthenticated());
         
         // 클라이언트에서 접근 가능한 상태 표시 쿠키 (인증 용도 아님)
         res.cookie('auth_status', 'logged_in', {
@@ -453,10 +461,10 @@ router.post("/firebase-login", async (req, res) => {
           path: '/'
         });
         
-        // 응답 전송
+        // 세션 저장 완료 후 응답 전송
         return res.status(200).json({
           user: sanitizeUser(user),
-          message: "Firebase 로그인 성공",
+          message: "로그인 성공",
           sessionId: req.sessionID,
           auth: { success: true, memberType }
         });
