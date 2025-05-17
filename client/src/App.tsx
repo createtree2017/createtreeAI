@@ -216,6 +216,9 @@ function Router() {
       <Route path="/auth">
         <AuthPage />
       </Route>
+      <Route path="/__/auth/handler">
+        <AuthHandlerPage />
+      </Route>
       <Route path="/login">
         <LoginPage />
       </Route>
