@@ -8,8 +8,10 @@ import RegisterForm from "../components/forms/RegisterForm";
 import { useAuthContext } from "@/lib/AuthProvider";
 import FloatingBabyItems from "@/components/FloatingBabyItems";
 import { getAuth, getRedirectResult } from "firebase/auth";
-import { Loader2 } from "lucide-react";
+import { Loader2, Smartphone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { MobileLoginBypass } from "@/components/MobileLoginBypass";
+import { Button } from "@/components/ui/button";
 
 const AuthPage = () => {
   const [location, setLocation] = useLocation();
