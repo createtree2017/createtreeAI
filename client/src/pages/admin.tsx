@@ -755,6 +755,18 @@ export default function AdminPage() {
           </div>
         </TabsContent>
         
+        <TabsContent value="milestones">
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">마일스톤 관리</h2>
+            
+            <div className="mt-4">
+              <ErrorBoundary>
+                <MilestoneManagement />
+              </ErrorBoundary>
+            </div>
+          </div>
+        </TabsContent>
+        
         <TabsContent value="ui-content">
           <div className="space-y-6">
             <h2 className="text-2xl font-bold">UI 컨텐츠 관리</h2>

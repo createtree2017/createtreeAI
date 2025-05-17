@@ -89,7 +89,7 @@ export default function MilestoneManagement() {
     queryKey: ['/api/admin/milestones'],
     queryFn: async () => {
       const response = await apiRequest('/api/admin/milestones');
-      return response;
+      return response as any[]; // 타입 확정을 위한 type assertion
     }
   });
 
