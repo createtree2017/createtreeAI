@@ -18,8 +18,30 @@ const AuthHandlerPage = () => {
     const processRedirectResult = async () => {
       try {
         console.log("[AuthHandler] Firebase 리디렉션 결과 처리 시작...");
+        console.log("[AuthHandler] 현재 URL:", window.location.href);
         const auth = getAuth();
-        const result = await getRedirectResult(auth);
+        
+        // 리디렉션 결과 가져오기 시도 (최대 3번)
+        let result = null;
+        let attempts = 0;
+        
+        while (!result && attempts < 3) {
+          attempts++;
+          console.log(`[AuthHandler] 리디렉션 결과 가져오기 시도 (${attempts}/3)...`);
+          
+          try {
+            result = await getRedirectResult(auth);
+            if (result) {
+              console.log("[AuthHandler] 리디렉션 결과 성공적으로 가져옴");
+            } else {
+              console.log("[AuthHandler] 리디렉션 결과 없음, 재시도...");
+              // 잠시 대기
+              await new Promise(resolve => setTimeout(resolve, 500));
+            }
+          } catch (err) {
+            console.error(`[AuthHandler] 리디렉션 결과 가져오기 오류 (시도 ${attempts}/3):`, err);
+          }
+        }
 
         if (result && result.user) {
           console.log("[AuthHandler] 리디렉션 로그인 성공, 사용자 정보:", {

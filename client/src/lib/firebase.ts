@@ -35,12 +35,20 @@ if (!import.meta.env.VITE_FIREBASE_APP_ID) {
 // Firebase 구성 설정
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
+  // authDomain이 Firebase 콘솔에 등록되어 있는 도메인과 일치해야 합니다
+  // 기본값으로 Firebase 프로젝트의 기본 도메인을 사용하되
+  // 환경변수로 재정의 가능하도록 설정
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 
+              `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
   messagingSenderId: "527763789648",
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
+
+// 실행 환경 확인
+console.log("[Firebase 초기화] 현재 도메인:", window.location.hostname);
+console.log("[Firebase 초기화] authDomain 설정:", firebaseConfig.authDomain);
 
 /**
  * Firebase 앱 초기화 함수

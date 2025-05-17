@@ -320,10 +320,24 @@ export function useAuth() {
           
           if (isMobile) {
             console.log("[Google 로그인] 모바일 환경 감지, 리디렉션 방식으로 로그인 시도");
+            
+            // 리디렉션 URL 설정 (특별히 Firebase가 인식하는 경로로 지정)
+            // 이 경로는 Firebase 인증 리디렉션을 처리하는 페이지입니다
+            // auth-handler 페이지가 이 URL의 결과를 처리합니다
+            const redirectUrl = `${window.location.origin}/__/auth/handler`;
+            console.log("[Google 로그인] 리디렉션 URL:", redirectUrl);
+            
             // 리디렉션 방식으로 로그인 시도
+            googleProvider.setCustomParameters({
+              // 모바일에 최적화된 인증 흐름 사용
+              prompt: 'select_account',
+              // 리디렉션 URL 명시적 지정
+              redirect_uri: redirectUrl
+            });
+            
             await signInWithRedirect(firebaseAuth, googleProvider);
             // 리디렉션 후 이 함수는 실행되지 않음
-            return { success: true }; // 리디렉션 시작 표시
+            return { success: true, redirected: true }; // 리디렉션 시작 표시
           } else {
             console.log("[Google 로그인] 데스크탑 환경, 팝업 방식으로 로그인 시도");
             // 팝업 방식으로 로그인 시도
