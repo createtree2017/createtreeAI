@@ -25,6 +25,7 @@ import ServiceItemManagement from "@/components/admin/ServiceItemManagement";
 import ConceptManagement from "@/components/admin/ConceptManagement";
 import CampaignManagement from "@/components/admin/CampaignManagement";
 import CampaignApplicationManagement from "@/components/admin/CampaignApplicationManagement";
+import MilestoneManagement from "@/components/admin/MilestoneManagement";
 import { getQueryFn } from '@/lib/queryClient';
 import { 
   getLanguages, 
