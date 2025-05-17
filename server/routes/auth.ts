@@ -151,12 +151,19 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// TypeScript에서 Session 타입 확장
+// TypeScript에서 Session 타입 확장 (모바일 Firebase 인증 지원)
 declare module 'express-session' {
   interface SessionData {
     passport: {
       user: number;
     };
+    // Firebase 인증 관련 세션 필드
+    userId?: number;
+    firebaseUid?: string;
+    userEmail?: string;
+    userRole?: string;
+    isAdmin?: boolean;
+    isHospitalAdmin?: boolean;
   }
 }
 

@@ -26,6 +26,14 @@ declare module 'express-session' {
       aspectRatio?: string; // 이미지 종횡비 추가
       dbImageId?: number; // 실제 DB에 저장된 ID도 추가
     };
+
+    // Firebase 인증 관련 세션 필드 추가
+    userId?: number;
+    firebaseUid?: string;
+    userEmail?: string;
+    userRole?: string;
+    isAdmin?: boolean;
+    isHospitalAdmin?: boolean;
   }
 }
 // Chat 시스템에서는 simple 버전으로 import하고, 이미지는 DALL-E 3 버전을 사용
@@ -251,15 +259,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 쿠키 파서 미들웨어 등록
   app.use(cookieParser());
   
-  // 세션 미들웨어 등록
+  // 세션 미들웨어 등록 (모바일 환경 대응 강화)
   app.use(session({
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    secret: process.env.SESSION_SECRET || 'create-tree-mobile-session-secret',
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true, // 빈 세션도 저장 허용
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 24 * 60 * 60 * 1000 // 24시간
+      // 모바일 환경에서 Replit 도메인에서도 쿠키가 전송되도록 설정
+      secure: false, // 개발 환경에서는 false로 설정
+      sameSite: 'lax', // 모바일 브라우저 호환성
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7일로 연장
     }
   }));
   

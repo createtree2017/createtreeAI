@@ -20,20 +20,21 @@ const AuthHandlerPage = () => {
       try {
         console.log("[AuthHandler] 인증 처리 시작...");
         
-        // Firebase 모듈 동적 로드 (필요한 기능만)
-        const { initializeApp } = await import('firebase/app');
-        const { getAuth, getRedirectResult } = await import('firebase/auth');
+        // Firebase 모듈 동적 로드 (필요한 모든 기능 로드)
+        const { initializeApp, getApps, getApp } = await import('firebase/app');
+        const { getAuth, getRedirectResult, signOut } = await import('firebase/auth');
         
         // Firebase 설정 (인증 도메인을 고정)
         const firebaseConfig = {
           apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-          authDomain: "createtreeai.firebaseapp.com",
+          authDomain: "createtreeai.firebaseapp.com", // 고정 도메인 사용
           projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
           appId: import.meta.env.VITE_FIREBASE_APP_ID
         };
         
-        // Firebase 초기화 (별도 앱 ID 사용)
-        const app = initializeApp(firebaseConfig, "auth-handler");
+        // Firebase 앱 중복 초기화 방지 - 기존 앱이 있으면 재사용
+        console.log("[AuthHandler] 기존 Firebase 앱 수:", getApps().length);
+        const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
         const auth = getAuth(app);
         
         console.log("[AuthHandler] Firebase 초기화 완료, 리디렉션 결과 확인");
@@ -44,63 +45,94 @@ const AuthHandlerPage = () => {
         if (result && result.user) {
           console.log("[AuthHandler] 리디렉션 로그인 성공!");
           
-          // 중요: ID 토큰 가져오기 - 이것이 핵심
-          const idToken = await result.user.getIdToken();
-          console.log("[AuthHandler] ID 토큰 획득 성공 (토큰 길이:", idToken.length, ")");
-          
-          // 사용자 추가 정보 (UI 표시용)
-          const userData = {
-            name: result.user.displayName || "사용자",
-            email: result.user.email || "",
-            uid: result.user.uid
-          };
-          
-          console.log("[AuthHandler] 사용자 정보:", 
-            userData.name, 
-            userData.email ? `(${userData.email.substring(0, 3)}...)` : "", 
-            `(uid: ${userData.uid.substring(0, 5)}...)`
-          );
-          
-          // 서버 인증 API 호출 (ID 토큰 사용)
-          console.log("[AuthHandler] 서버에 ID 토큰 전송 중...");
-          const response = await fetch("/api/auth/firebase-login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-              idToken,
-              user: {
-                uid: userData.uid,
-                email: userData.email,
-                displayName: userData.name
-              }
-            }),
-            credentials: "include" // 세션 쿠키를 받기 위해 필수
-          });
-          
-          // 응답 확인
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error("[AuthHandler] 서버 인증 실패:", response.status, errorText);
-            throw new Error(`서버 인증 실패 (${response.status}): ${errorText || "알 수 없는 오류"}`);
+          try {
+            // 중요: ID 토큰 가져오기 - 이것이 핵심
+            const idToken = await result.user.getIdToken();
+            console.log("[AuthHandler] ID 토큰 획득 성공 (토큰 길이:", idToken.length, ")");
+            
+            // 사용자 추가 정보 (UI 표시용)
+            const userData = {
+              name: result.user.displayName || "사용자",
+              email: result.user.email || "",
+              uid: result.user.uid
+            };
+            
+            console.log("[AuthHandler] 사용자 정보:", 
+              userData.name, 
+              userData.email ? `(${userData.email.substring(0, 3)}...)` : "", 
+              `(uid: ${userData.uid.substring(0, 5)}...)`
+            );
+            
+            // 서버 인증 API 호출 (ID 토큰 사용)
+            console.log("[AuthHandler] 서버에 ID 토큰 전송 중...");
+            const response = await fetch("/api/auth/firebase-login", {
+              method: "POST",
+              headers: { 
+                "Content-Type": "application/json",
+                "Cache-Control": "no-cache, no-store"
+              },
+              body: JSON.stringify({ 
+                idToken,
+                user: {
+                  uid: userData.uid,
+                  email: userData.email,
+                  displayName: userData.name
+                }
+              }),
+              credentials: "include" // 세션 쿠키를 받기 위해 필수
+            });
+            
+            // 응답 확인
+            if (!response.ok) {
+              const errorText = await response.text();
+              console.error("[AuthHandler] 서버 인증 실패:", response.status, errorText);
+              throw new Error(`서버 인증 실패 (${response.status}): ${errorText || "알 수 없는 오류"}`);
+            }
+            
+            // 서버 응답 처리
+            const data = await response.json();
+            console.log("[AuthHandler] 서버 인증 성공:", data);
+            
+            // Firebase에서 로그아웃 (중요: 서버 세션은 유지하고 Firebase만 로그아웃)
+            // 이렇게 하면 다음 로그인 시 항상 새로운 인증 과정을 거치게 됨
+            console.log("[AuthHandler] Firebase 로그아웃 처리 중...");
+            await signOut(auth);
+            console.log("[AuthHandler] Firebase 로그아웃 완료");
+            
+            // 성공 상태로 변경
+            setStatus("success");
+            
+            // 토스트 메시지
+            toast({
+              title: "로그인 성공",
+              description: `${userData.name}님, 환영합니다!`
+            });
+            
+            // 세션 쿠키 확인 (디버깅용)
+            console.log("[AuthHandler] 현재 쿠키:", document.cookie);
+            
+            // 홈으로 리디렉션
+            setTimeout(() => {
+              window.location.href = "/";
+            }, 1500);
+          } catch (err) {
+            console.error("[AuthHandler] 토큰 처리 중 오류:", err);
+            setStatus("error");
+            setErrorMessage(err instanceof Error ? err.message : "인증 처리 중 오류가 발생했습니다");
+            
+            // 에러 발생 시 Firebase 로그아웃
+            try {
+              await signOut(auth);
+              console.log("[AuthHandler] 오류 후 Firebase 로그아웃 완료");
+            } catch (logoutErr) {
+              console.error("[AuthHandler] 로그아웃 오류:", logoutErr);
+            }
+            
+            // 로그인 페이지로 리디렉션
+            setTimeout(() => {
+              window.location.href = "/auth";
+            }, 2000);
           }
-          
-          // 서버 응답 처리
-          const data = await response.json();
-          console.log("[AuthHandler] 서버 인증 성공:", data);
-          
-          // 성공 상태로 변경
-          setStatus("success");
-          
-          // 토스트 메시지
-          toast({
-            title: "로그인 성공",
-            description: `${userData.name}님, 환영합니다!`
-          });
-          
-          // 홈으로 리디렉션
-          setTimeout(() => {
-            window.location.href = "/";
-          }, 1500);
         } else {
           console.log("[AuthHandler] 리디렉션 결과 없음 (로그인하지 않음)");
           setStatus("error");
