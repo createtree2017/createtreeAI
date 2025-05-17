@@ -166,14 +166,30 @@ const AuthHandlerPage = () => {
               console.error("[AuthHandler] 세션 확인 오류:", err);
             }
             
-            // 4. 페이지 리디렉션 처리
+            // 4. 세션 확인 - 추가 정보 필요 여부 확인
+            const checkSession = await fetch("/api/auth/me", { 
+              credentials: "include",
+              headers: { 'Cache-Control': 'no-cache, no-store' }
+            });
+            const sessionInfo = await checkSession.json();
+            console.log("[AuthHandler] 세션 확인 완료:", sessionInfo);
+            
+            // 5. 페이지 리디렉션 처리
             setTimeout(() => {
               // 리디렉션 URL 사용 후 삭제
-              if (savedRedirectUrl) {
-                localStorage.removeItem('login_redirect_url');
-                // 새 창에서 열기가 아닌 완전 페이지 이동으로 처리
+              localStorage.removeItem('login_redirect_url');
+              
+              // 추가 회원정보 입력이 필요한 경우 추가 정보 입력 페이지로 이동
+              if (sessionInfo?.needSignup === true) {
+                console.log("[AuthHandler] 추가 정보 입력 필요, 프로필 작성 페이지로 이동");
+                window.location.replace("/signup/complete-profile");
+              } else if (savedRedirectUrl) {
+                // 저장된 리디렉션 URL이 있는 경우
+                console.log("[AuthHandler] 저장된 리디렉션 URL로 이동:", savedRedirectUrl);
                 window.location.replace(savedRedirectUrl);
               } else {
+                // 기본 홈페이지로 이동
+                console.log("[AuthHandler] 홈페이지로 이동");
                 window.location.replace("/");
               }
             }, 2000);
