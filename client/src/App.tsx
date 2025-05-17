@@ -14,6 +14,7 @@ import Profile from "@/pages/profile";
 import Admin from "@/pages/admin";
 import Milestones from "@/pages/milestones";
 import AuthPage from "@/pages/auth";
+import AuthHandlerPage from "@/pages/auth-handler";
 import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
 import TestPage from "@/pages/test";
