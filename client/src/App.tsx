@@ -21,6 +21,7 @@ import TestPage from "@/pages/test";
 import TestFirebase from "@/pages/test-firebase";
 import FirebaseTestPage from "@/pages/firebase-test";
 import TestAuthPage from "@/pages/test-auth-page"; 
+import CompleteProfilePage from "@/pages/signup/complete-profile";
 import TestLoginPage from "@/pages/test-login";
 import TestAceStepPage from "@/pages/test-ace-step"; 
 import HospitalsPage from "@/pages/super/HospitalsPage";
@@ -227,6 +228,9 @@ function Router() {
       </Route>
       <Route path="/register">
         <RegisterPage />
+      </Route>
+      <Route path="/signup/complete-profile">
+        <CompleteProfilePage />
       </Route>
       <Route path="/test">
         <TestPage />

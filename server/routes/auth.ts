@@ -355,7 +355,17 @@ router.get("/me", (req, res) => {
     console.log(
       `인증된 사용자 정보: ID=${req.user.id}, 이름=${req.user.username || req.user.email || "알 수 없음"}`,
     );
-    return res.json(req.user);
+    
+    // 추가 정보 입력 필요 여부 확인
+    const user = req.user as any;
+    const needSignup = !user.hospitalId || !user.phoneNumber;
+    console.log(`추가 정보 입력 필요 여부: ${needSignup}, 병원ID: ${user.hospitalId}, 전화번호: ${user.phoneNumber}`);
+    
+    // 사용자 정보에 추가 정보 입력 필요 여부 표시
+    return res.json({
+      ...req.user,
+      needSignup
+    });
   } catch (error) {
     console.error("사용자 정보 조회 오류:", error);
     return res.status(500).json({ message: "서버 오류가 발생했습니다." });
