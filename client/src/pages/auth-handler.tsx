@@ -111,19 +111,51 @@ const AuthHandlerPage = () => {
             // 세션 쿠키 확인 (디버깅용)
             console.log("[AuthHandler] 현재 쿠키:", document.cookie);
             
-            // 저장된 리디렉션 URL이 있으면 해당 URL로, 없으면 홈으로 리디렉션
+            // 모바일 환경에서 더 안정적인 인증 처리를 위한 로직
+            // 1. 인증 상태 로컬 스토리지 저장 (백업용)
+            localStorage.setItem('auth_status', 'logged_in');
+            
+            // TypeScript 오류 수정 - userData 객체는 Firebase 사용자 데이터를 담고 있음
+            // userData는 { name, email, uid } 형태이므로 uid를 사용자 ID로 저장
+            localStorage.setItem('auth_user_id', userData.uid);
+            localStorage.setItem('auth_user_email', userData.email || '');
+            localStorage.setItem('auth_timestamp', Date.now().toString());
+            
+            // 2. 저장된 리디렉션 URL 확인
             const savedRedirectUrl = localStorage.getItem('login_redirect_url');
             console.log("[AuthHandler] 리디렉션 예정 URL:", savedRedirectUrl || "/");
             
+            // 3. 리디렉션 전 API 요청 (세션 확인)
+            console.log("[AuthHandler] 세션 확인 중...");
+            try {
+              // 임시 AJAX 요청으로 세션이 제대로 설정되었는지 확인
+              const checkSessionResponse = await fetch('/api/auth/check-session', {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                  'Cache-Control': 'no-cache, no-store'
+                }
+              });
+              
+              console.log("[AuthHandler] 세션 확인 응답:", 
+                checkSessionResponse.status, 
+                checkSessionResponse.ok ? '세션 정상' : '세션 오류'
+              );
+            } catch (err) {
+              console.error("[AuthHandler] 세션 확인 오류:", err);
+            }
+            
+            // 4. 페이지 리디렉션 처리
             setTimeout(() => {
               // 리디렉션 URL 사용 후 삭제
               if (savedRedirectUrl) {
                 localStorage.removeItem('login_redirect_url');
-                window.location.href = savedRedirectUrl;
+                // 새 창에서 열기가 아닌 완전 페이지 이동으로 처리
+                window.location.replace(savedRedirectUrl);
               } else {
-                window.location.href = "/";
+                window.location.replace("/");
               }
-            }, 1500);
+            }, 2000);
           } catch (err) {
             console.error("[AuthHandler] 토큰 처리 중 오류:", err);
             setStatus("error");

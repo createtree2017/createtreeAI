@@ -395,9 +395,12 @@ router.post("/firebase-login", async (req, res) => {
     req.session.userId = user.id;
     req.session.firebaseUid = firebaseUser.uid;
     req.session.userEmail = firebaseUser.email;
-    req.session.userRole = user.role || 'user';
-    req.session.isAdmin = user.role === 'admin';
-    req.session.isHospitalAdmin = user.role === 'hospital_admin';
+    
+    // memberType 필드 사용하여 역할 설정 (user.role이 아님)
+    const memberType = user.memberType || 'general';
+    req.session.userRole = memberType;
+    req.session.isAdmin = memberType === 'admin' || memberType === 'superadmin';
+    req.session.isHospitalAdmin = memberType === 'hospital_admin';
 
     // 세션 강제 저장
     await new Promise<void>((resolve, reject) => {
