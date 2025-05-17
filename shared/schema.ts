@@ -369,6 +369,19 @@ export const abTestResultsRelations = relations(abTestResults, ({ one }) => ({
   })
 }));
 
+// 마일스톤 카테고리 테이블
+export const milestoneCategories = pgTable("milestone_categories", {
+  id: serial("id").primaryKey(),
+  categoryId: text("category_id").notNull().unique(), // 카테고리 식별자 (예: "baby_development")
+  name: text("name").notNull(), // 카테고리 표시 이름 (예: "태아 발달")
+  description: text("description"), // 카테고리 설명
+  emoji: text("emoji").default("📌"), // 카테고리 대표 이모지
+  order: integer("order").default(0), // 표시 순서
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Pregnancy milestone system tables
 export const milestones = pgTable("milestones", {
   id: serial("id").primaryKey(),
@@ -380,7 +393,7 @@ export const milestones = pgTable("milestones", {
   badgeEmoji: text("badge_emoji").notNull(), // Emoji representing the badge
   badgeImageUrl: text("badge_image_url"), // Optional image URL for the badge
   encouragementMessage: text("encouragement_message").notNull(), // Message to show when milestone is reached
-  category: text("category").notNull(), // e.g., "baby_development", "maternal_health", "preparations"
+  categoryId: text("category_id").references(() => milestoneCategories.categoryId).notNull(), // 카테고리 참조
   order: integer("order").default(0),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -410,8 +423,16 @@ export const pregnancyProfiles = pgTable("pregnancy_profiles", {
 });
 
 // Define relations for milestone tables
-export const milestonesRelations = relations(milestones, ({ many }) => ({
-  userMilestones: many(userMilestones)
+export const milestoneCategoriesRelations = relations(milestoneCategories, ({ many }) => ({
+  milestones: many(milestones)
+}));
+
+export const milestonesRelations = relations(milestones, ({ many, one }) => ({
+  userMilestones: many(userMilestones),
+  category: one(milestoneCategories, {
+    fields: [milestones.categoryId],
+    references: [milestoneCategories.categoryId]
+  })
 }));
 
 export const userMilestonesRelations = relations(userMilestones, ({ one }) => ({
@@ -467,6 +488,17 @@ export const insertConceptCategorySchema = createInsertSchema(conceptCategories)
 export const insertAbTestSchema = createInsertSchema(abTests);
 export const insertAbTestVariantSchema = createInsertSchema(abTestVariants);
 export const insertAbTestResultSchema = createInsertSchema(abTestResults);
+export const insertMilestoneCategorySchema = createInsertSchema(milestoneCategories, {
+  categoryId: (schema) => schema.min(2, '카테고리 ID는 2글자 이상이어야 합니다'),
+  name: (schema) => schema.min(2, '카테고리 이름은 2글자 이상이어야 합니다'),
+});
+export const insertMilestoneSchema = createInsertSchema(milestones);
+
+// 타입 정의
+export type MilestoneCategory = typeof milestoneCategories.$inferSelect;
+export type MilestoneCategoryInsert = typeof milestoneCategories.$inferInsert;
+export type Milestone = typeof milestones.$inferSelect;
+export type MilestoneInsert = typeof milestones.$inferInsert;
 export const insertMilestoneSchema = createInsertSchema(milestones);
 export const insertUserMilestoneSchema = createInsertSchema(userMilestones);
 export const insertPregnancyProfileSchema = createInsertSchema(pregnancyProfiles);
