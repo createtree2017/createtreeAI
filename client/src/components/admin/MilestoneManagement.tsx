@@ -84,12 +84,54 @@ export default function MilestoneManagement() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedMilestone, setSelectedMilestone] = useState<any>(null);
 
+  // API 응답의 인터페이스 정의
+  interface MilestoneResponse {
+    [category: string]: Array<{
+      id: number;
+      milestoneId: string;
+      title: string;
+      description: string;
+      weekStart: number;
+      weekEnd: number;
+      badgeEmoji: string;
+      badgeImageUrl?: string;
+      encouragementMessage: string;
+      order: number;
+      isActive: boolean;
+    }>;
+  }
+  
   // 마일스톤 목록 가져오기
   const { data: milestones = [], isLoading } = useQuery({
-    queryKey: ['/api/admin/milestones'],
+    queryKey: ['/api/milestones'],
     queryFn: async () => {
-      const response = await apiRequest('/api/admin/milestones');
-      return response as any[]; // 타입 확정을 위한 type assertion
+      try {
+        // apiRequest의 반환 타입을 명시적으로 지정
+        const response = await apiRequest('/api/milestones') as unknown as MilestoneResponse;
+        
+        // API 응답이 객체 형태로 카테고리별로 구성되어 있으므로 배열로 변환
+        if (response && typeof response === 'object') {
+          const allMilestones: any[] = [];
+          
+          Object.keys(response).forEach(category => {
+            if (Array.isArray(response[category])) {
+              response[category].forEach(milestone => {
+                // 카테고리 정보 추가
+                allMilestones.push({
+                  ...milestone,
+                  category
+                });
+              });
+            }
+          });
+          
+          return allMilestones;
+        }
+        return [];
+      } catch (error) {
+        console.error("마일스톤 데이터 로딩 중 오류:", error);
+        return [];
+      }
     }
   });
 
