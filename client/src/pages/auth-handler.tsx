@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { useJwtAuth } from "@/hooks/useJwtAuth";
 
 /**
  * Firebase 인증 리디렉션을 처리하는 전용 페이지
@@ -14,6 +15,7 @@ const AuthHandlerPage = () => {
   const { toast } = useToast();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const { mobileLogin } = useJwtAuth(); // JWT 토큰 기반 모바일 인증 훅
 
   useEffect(() => {
     const handleAuth = async () => {
@@ -63,7 +65,26 @@ const AuthHandlerPage = () => {
               `(uid: ${userData.uid.substring(0, 5)}...)`
             );
             
-            // 서버 인증 API 호출 (ID 토큰 사용)
+            // 모바일 환경에서는 JWT 토큰 기반 인증 사용 (세션 쿠키 문제 해결)
+            console.log("[AuthHandler] 모바일 환경에서 JWT 토큰 방식 적용");
+            
+            // Firebase UID로 JWT 토큰 요청 (토큰 기반 인증)
+            mobileLogin({
+              firebaseUid: userData.uid,
+              email: userData.email || ''
+            });
+            
+            // 로컬 스토리지에 인증 정보 백업 저장
+            localStorage.setItem('firebase_auth', JSON.stringify({
+              uid: userData.uid,
+              email: userData.email || '',
+              displayName: userData.name,
+              timestamp: Date.now()
+            }));
+            
+            console.log("[AuthHandler] JWT 토큰 인증 요청 후 로컬 스토리지 백업 완료");
+            
+            // 백업 방법: 서버 인증 API도 호출 (두 가지 방식 모두 시도)
             console.log("[AuthHandler] 서버에 ID 토큰 전송 중...");
             const response = await fetch("/api/auth/firebase-login", {
               method: "POST",
