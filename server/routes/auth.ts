@@ -1,26 +1,29 @@
 import { Router, Request, Response } from "express";
 import passport from "passport";
 import { db } from "../../db";
-import { 
-  users, 
-  roles, 
-  userRoles, 
-  insertUserSchema, 
-  insertRoleSchema, 
-  insertUserRoleSchema 
+import {
+  users,
+  roles,
+  userRoles,
+  insertUserSchema,
+  insertRoleSchema,
+  insertUserRoleSchema,
 } from "@shared/schema";
 import { eq } from "drizzle-orm";
-import { 
-  hashPassword, 
-  sanitizeUser, 
-  generateToken, 
+import {
+  hashPassword,
+  sanitizeUser,
+  generateToken,
   generateRefreshToken,
   refreshAccessToken,
   invalidateRefreshToken,
   authenticateJWT,
-  checkRole
+  checkRole,
 } from "../services/auth";
-import { FirebaseUserData, handleFirebaseAuth } from "../services/firebase-auth";
+import {
+  FirebaseUserData,
+  handleFirebaseAuth,
+} from "../services/firebase-auth";
 
 const router = Router();
 
@@ -36,7 +39,9 @@ router.post("/register", async (req, res) => {
     });
 
     if (existingUser) {
-      return res.status(400).json({ message: "이미 사용 중인 사용자명입니다." });
+      return res
+        .status(400)
+        .json({ message: "이미 사용 중인 사용자명입니다." });
     }
 
     // 이메일 중복 검사 (이메일이 있는 경우)
@@ -46,7 +51,9 @@ router.post("/register", async (req, res) => {
       });
 
       if (existingEmail) {
-        return res.status(400).json({ message: "이미 사용 중인 이메일입니다." });
+        return res
+          .status(400)
+          .json({ message: "이미 사용 중인 이메일입니다." });
       }
     }
 
@@ -56,7 +63,7 @@ router.post("/register", async (req, res) => {
     try {
       // 사용자 생성 - createdAt과 updatedAt을 SQL 레벨에서 DEFAULT(current_timestamp)로 처리
       console.log("회원가입 요청 데이터:", validatedData); // 로깅 추가
-      
+
       // name 필드가 있으면 fullName에 매핑, 아니면 fullName 사용
       const userValues = {
         username: validatedData.username,
@@ -67,14 +74,11 @@ router.post("/register", async (req, res) => {
         memberType: validatedData.memberType || "general",
         hospitalId: validatedData.hospitalId || null, // 병원 ID 추가
         // 추가 필드
-        promoCode: null
+        promoCode: null,
       };
 
       // 사용자 생성
-      const newUser = await db
-        .insert(users)
-        .values(userValues)
-        .returning();
+      const newUser = await db.insert(users).values(userValues).returning();
 
       if (!newUser || newUser.length === 0) {
         return res.status(500).json({ message: "사용자 생성에 실패했습니다." });
@@ -97,7 +101,7 @@ router.post("/register", async (req, res) => {
             updatedAt: new Date(),
           })
           .returning();
-        
+
         roleId = newRole[0].id;
       }
 
@@ -113,7 +117,7 @@ router.post("/register", async (req, res) => {
         ...newUser[0],
         roles: ["user"],
       };
-      
+
       const accessToken = generateToken(userWithRoles);
       const refreshToken = await generateRefreshToken(newUser[0].id);
 
@@ -131,20 +135,20 @@ router.post("/register", async (req, res) => {
       });
     } catch (dbError: any) {
       console.error("DB 저장 오류:", dbError);
-      
+
       // 구체적인 오류 메시지 제공
-      if (dbError.code === '23505') {
+      if (dbError.code === "23505") {
         return res.status(400).json({ message: "이미 등록된 계정입니다." });
       }
-      
+
       throw dbError; // 다른 오류는 상위 catch 블록으로 전달
     }
   } catch (error: any) {
     console.error("회원가입 오류:", error);
     if (error.name === "ZodError") {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: "입력 데이터가 유효하지 않습니다.",
-        errors: error.errors 
+        errors: error.errors,
       });
     }
     return res.status(500).json({ message: "서버 오류가 발생했습니다." });
@@ -152,7 +156,7 @@ router.post("/register", async (req, res) => {
 });
 
 // TypeScript에서 Session 타입 확장 (모바일 Firebase 인증 지원)
-declare module 'express-session' {
+declare module "express-session" {
   interface SessionData {
     passport: {
       user: number;
@@ -177,75 +181,81 @@ declare module 'express-session' {
 // 로그인 API (세션 기반)
 router.post("/login", (req, res, next) => {
   // 로그인 요청 데이터 디버깅
-  console.log('로그인 요청 - 사용자명:', req.body.username);
-  
+  console.log("로그인 요청 - 사용자명:", req.body.username);
+
   passport.authenticate("local", (err: any, user: any, info: any) => {
     try {
       if (err) {
-        console.error('로그인 인증 오류:', err);
+        console.error("로그인 인증 오류:", err);
         return next(err);
       }
-      
+
       if (!user) {
-        console.log('로그인 실패 - 사용자 정보 없음, 이유:', info?.message);
-        return res.status(401).json({ message: info?.message || "로그인 실패" });
+        console.log("로그인 실패 - 사용자 정보 없음, 이유:", info?.message);
+        return res
+          .status(401)
+          .json({ message: info?.message || "로그인 실패" });
       }
-      
-      console.log('인증 성공 - 사용자:', user.username, '(ID:', user.id, ')');
-      
+
+      console.log("인증 성공 - 사용자:", user.username, "(ID:", user.id, ")");
+
       // req.login()을 사용하여 세션에 사용자 저장
       req.login(user, (loginErr) => {
         if (loginErr) {
-          console.error('req.login 호출 오류:', loginErr);
+          console.error("req.login 호출 오류:", loginErr);
           return next(loginErr);
         }
-        
+
         // 세션 정보 디버깅 로그
         const sessionInfo = {
           id: req.session.id,
-          passport: req.session.passport ? JSON.stringify(req.session.passport) : '없음',
-          cookie: req.session.cookie ? {
-            originalMaxAge: req.session.cookie.originalMaxAge,
-            expires: req.session.cookie.expires,
-            secure: req.session.cookie.secure,
-            httpOnly: req.session.cookie.httpOnly
-          } : '없음'
+          passport: req.session.passport
+            ? JSON.stringify(req.session.passport)
+            : "없음",
+          cookie: req.session.cookie
+            ? {
+                originalMaxAge: req.session.cookie.originalMaxAge,
+                expires: req.session.cookie.expires,
+                secure: req.session.cookie.secure,
+                httpOnly: req.session.cookie.httpOnly,
+              }
+            : "없음",
         };
-        
-        console.log('로그인 성공, 세션 정보:', sessionInfo);
-        console.log('req.isAuthenticated():', req.isAuthenticated());
-        console.log('req.sessionID:', req.sessionID);
-        
+
+        console.log("로그인 성공, 세션 정보:", sessionInfo);
+        console.log("req.isAuthenticated():", req.isAuthenticated());
+        console.log("req.sessionID:", req.sessionID);
+
         // 중요: 세션 강제 저장 - 항상 세션 저장 보장
         req.session.save((saveErr) => {
           if (saveErr) {
-            console.error('세션 저장 오류:', saveErr);
+            console.error("세션 저장 오류:", saveErr);
             return next(saveErr);
           }
-          
+
           // 응답 - 사용자 정보만 반환 (토큰 없음)
-          console.log('세션 저장 완료, 응답 전송');
-          
+          console.log("세션 저장 완료, 응답 전송");
+
           // 세션 쿠키 설정 강화
-          const isProduction = process.env.NODE_ENV === 'production';
-          const isHttps = process.env.PROTOCOL === 'https' || isProduction;
-          
+          const isProduction = process.env.NODE_ENV === "production";
+          const isHttps = process.env.PROTOCOL === "https" || isProduction;
+
           // 명시적으로 세션 쿠키 세팅 추가
-          res.cookie('connect.sid', req.sessionID, {
+          res.cookie("connect.sid", req.sessionID, {
             httpOnly: true,
             secure: isHttps,
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7일
-            sameSite: isHttps ? 'none' : 'lax',
-            path: '/'
+            sameSite: isHttps ? "none" : "lax",
+            path: "/",
           });
-          
+
           return res.json({
-            user: sanitizeUser(user)
+            user: sanitizeUser(user),
           });
         });
       });
     } catch (error) {
-      console.error('로그인 처리 중 예외 발생:', error);
+      console.error("로그인 처리 중 예외 발생:", error);
       return next(error);
     }
   })(req, res, next);
@@ -254,20 +264,22 @@ router.post("/login", (req, res, next) => {
 // 토큰 갱신 API
 router.post("/refresh-token", async (req, res) => {
   const refreshToken = req.cookies.refreshToken;
-  
+
   if (!refreshToken) {
     return res.status(401).json({ message: "리프레시 토큰이 없습니다." });
   }
-  
+
   try {
     const newAccessToken = await refreshAccessToken(refreshToken);
-    
+
     if (!newAccessToken) {
       // 쿠키 삭제
       res.clearCookie("refreshToken");
-      return res.status(401).json({ message: "유효하지 않거나 만료된 토큰입니다." });
+      return res
+        .status(401)
+        .json({ message: "유효하지 않거나 만료된 토큰입니다." });
     }
-    
+
     return res.json({
       accessToken: newAccessToken,
     });
@@ -280,35 +292,37 @@ router.post("/refresh-token", async (req, res) => {
 // 로그아웃 API (세션 기반)
 router.post("/logout", (req, res) => {
   // 디버깅 정보 출력
-  console.log('로그아웃 요청: isAuthenticated=', req.isAuthenticated());
-  console.log('세션:', req.session);
-  console.log('쿠키:', req.cookies);
-  
+  console.log("로그아웃 요청: isAuthenticated=", req.isAuthenticated());
+  console.log("세션:", req.session);
+  console.log("쿠키:", req.cookies);
+
   // req.logout() 사용하여 세션에서 사용자 정보 제거
   req.logout((err) => {
     if (err) {
       console.error("로그아웃 오류:", err);
-      return res.status(500).json({ message: "로그아웃 중 오류가 발생했습니다." });
+      return res
+        .status(500)
+        .json({ message: "로그아웃 중 오류가 발생했습니다." });
     }
-    
+
     // 세션 파기
     req.session.destroy((sessionErr) => {
       if (sessionErr) {
         console.error("세션 파기 오류:", sessionErr);
       }
-      
+
       // 쿠키 삭제 - Replit 환경에서의 설정을 고려
-      const isProduction = process.env.NODE_ENV === 'production';
-      const isHttps = process.env.PROTOCOL === 'https' || isProduction;
-      
+      const isProduction = process.env.NODE_ENV === "production";
+      const isHttps = process.env.PROTOCOL === "https" || isProduction;
+
       res.clearCookie("connect.sid", {
         httpOnly: true,
         secure: isHttps,
-        sameSite: isHttps ? 'none' : 'lax',
-        path: '/'
+        sameSite: isHttps ? "none" : "lax",
+        path: "/",
       });
-      
-      console.log('로그아웃 완료, 쿠키 삭제됨');
+
+      console.log("로그아웃 완료, 쿠키 삭제됨");
       return res.json({ message: "로그아웃 성공" });
     });
   });
@@ -322,23 +336,25 @@ router.get("/me", (req, res) => {
 ===================================================
 [인증 상태 확인]
 - 요청 경로: ${req.path}
-- 요청 헤더: ${JSON.stringify(req.headers['cookie'] || '(없음)')}
+- 요청 헤더: ${JSON.stringify(req.headers["cookie"] || "(없음)")}
 - isAuthenticated 함수 존재 여부: ${!!req.isAuthenticated}
-- 인증 상태: ${req.isAuthenticated ? req.isAuthenticated() : 'undefined'}
+- 인증 상태: ${req.isAuthenticated ? req.isAuthenticated() : "undefined"}
 - 세션 존재 여부: ${!!req.session}
-- 세션 ID: ${req.session.id || '(없음)'}
+- 세션 ID: ${req.session.id || "(없음)"}
 - 세션 쿠키 설정: ${JSON.stringify(req.session.cookie || {})}
 - 사용자 정보 존재 여부: ${!!req.user}
-- passport 세션 데이터: ${JSON.stringify(req.session.passport || '(없음)')}
+- passport 세션 데이터: ${JSON.stringify(req.session.passport || "(없음)")}
 ===================================================
     `);
 
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "로그인이 필요합니다." });
     }
-    
+
     // 이미 인증된 사용자 정보가 req.user에 있음
-    console.log(`인증된 사용자 정보: ID=${req.user.id}, 이름=${req.user.username || req.user.email || '알 수 없음'}`);
+    console.log(
+      `인증된 사용자 정보: ID=${req.user.id}, 이름=${req.user.username || req.user.email || "알 수 없음"}`,
+    );
     return res.json(req.user);
   } catch (error) {
     console.error("사용자 정보 조회 오류:", error);
@@ -351,16 +367,21 @@ router.get("/admin-check", (req, res) => {
   if (!req.isAuthenticated()) {
     return res.status(401).json({ message: "로그인이 필요합니다." });
   }
-  
+
   // 사용자의 역할이나 memberType을 확인
   const user = req.user as any;
-  const isAdmin = user.memberType === 'admin' || user.memberType === 'superadmin' || 
-                 (user.roles && user.roles.some((role: string) => ['admin', 'superadmin'].includes(role)));
-  
+  const isAdmin =
+    user.memberType === "admin" ||
+    user.memberType === "superadmin" ||
+    (user.roles &&
+      user.roles.some((role: string) =>
+        ["admin", "superadmin"].includes(role),
+      ));
+
   if (!isAdmin) {
     return res.status(403).json({ message: "관리자 권한이 필요합니다." });
   }
-  
+
   return res.json({ isAdmin: true });
 });
 
@@ -371,17 +392,22 @@ router.post("/firebase-login", async (req, res) => {
     const { user: firebaseUser, idToken } = req.body;
 
     // ID 토큰 로깅 (개발 및 디버깅 용도)
-    console.log("[Firebase Auth] 로그인 요청 - ID 토큰:", idToken ? `제공됨 (${idToken.length} 자)` : "제공되지 않음");
+    console.log(
+      "[Firebase Auth] 로그인 요청 - ID 토큰:",
+      idToken ? `제공됨 (${idToken.length} 자)` : "제공되지 않음",
+    );
 
-    // 기본 사용자 정보 검증 
+    // 기본 사용자 정보 검증
     if (!firebaseUser || !firebaseUser.uid) {
-      return res.status(400).json({ message: "유효하지 않은 Firebase 사용자 정보입니다." });
+      return res
+        .status(400)
+        .json({ message: "유효하지 않은 Firebase 사용자 정보입니다." });
     }
 
-    console.log("[Firebase Auth] 로그인 요청:", { 
-      uid: firebaseUser.uid, 
+    console.log("[Firebase Auth] 로그인 요청:", {
+      uid: firebaseUser.uid,
       email: firebaseUser.email || "이메일 없음",
-      displayName: firebaseUser.displayName || "이름 없음"
+      displayName: firebaseUser.displayName || "이름 없음",
     });
 
     // Firebase 인증 처리
@@ -395,86 +421,105 @@ router.post("/firebase-login", async (req, res) => {
     const user = await handleFirebaseAuth(userData);
 
     if (!user) {
-      return res.status(500).json({ message: "사용자 처리 중 오류가 발생했습니다." });
+      return res
+        .status(500)
+        .json({ message: "사용자 처리 중 오류가 발생했습니다." });
     }
-    
+
     // 로그인 처리 전 세션 준비
-    const memberType = user.memberType || 'general';
-    
+    const memberType = user.memberType || "general";
+
     // Passport 로그인 처리 (req.login 사용)
     req.login(user, (loginErr) => {
       if (loginErr) {
         console.error("[Firebase Auth] 로그인 오류:", loginErr);
-        return res.status(500).json({ message: "로그인 처리 중 오류가 발생했습니다." });
+        return res
+          .status(500)
+          .json({ message: "로그인 처리 중 오류가 발생했습니다." });
       }
-      
+
       // 세션 쿠키 설정 (모바일 최적화)
-      req.session.cookie.sameSite = 'lax';
+      req.session.cookie.sameSite = "lax";
       req.session.cookie.secure = false;
-      req.session.cookie.path = '/';
+      req.session.cookie.path = "/";
       req.session.cookie.httpOnly = true;
-      
+
       // ===== 세션에 인증 정보 저장 =====
       // 1. Passport 표준 방식
       req.session.passport = { user: user.id };
-      
+
       // 2. 세션에 사용자 정보 직접 저장 (추가 백업)
       // @ts-ignore - 세션 타입 확장
       req.session.user = {
         id: user.id,
         uid: firebaseUser.uid,
-        email: user.email || '',
-        displayName: user.fullName || user.username || '사용자',
-        memberType: memberType
+        email: user.email || "",
+        displayName: user.fullName || user.username || "사용자",
+        memberType: memberType,
       };
-      
+
       // 3. 개별 필드 저장 (추가 백업)
       req.session.userId = user.id;
       req.session.firebaseUid = firebaseUser.uid;
-      req.session.userEmail = user.email || '';
+      req.session.userEmail = user.email || "";
       req.session.userRole = memberType;
-      req.session.isAdmin = memberType === 'admin' || memberType === 'superadmin';
-      
+      req.session.isAdmin =
+        memberType === "admin" || memberType === "superadmin";
+
       // [핵심 수정] - Firebase 로그인 시 세션 저장 후 응답 반환
       // req.session.user 명시적 저장 - 이 부분이 매우 중요
+      
+      // 회원 정보 부족 여부 확인 (hospitalId나 phoneNumber가 없으면 추가 정보 입력 필요)
+      const needSignup = !user.hospitalId || !user.phoneNumber;
+      console.log("[Firebase Auth] 추가 정보 입력 필요:", needSignup, { 
+        hospitalId: user.hospitalId, 
+        phoneNumber: user.phoneNumber 
+      });
+      
       req.session.user = {
         uid: firebaseUser.uid,
-        email: user.email || '',
-        role: memberType
+        email: user.email || "",
+        role: memberType,
+        needSignup: needSignup // 추가 정보 입력 필요 여부 플래그 추가
       };
-      
+
       // 세션 저장 완료 후 응답 반환 - 비동기 완료 보장
       req.session.save((saveErr) => {
         if (saveErr) {
           console.error("[Firebase Auth] 세션 저장 오류:", saveErr);
-          return res.status(500).json({ message: "세션 저장 중 오류가 발생했습니다." });
+          return res
+            .status(500)
+            .json({ message: "세션 저장 중 오류가 발생했습니다." });
         }
-        
+
         console.log("[Firebase Auth] 세션 저장 성공!");
-        console.log("[Firebase Auth] 세션 사용자 정보 저장됨:", req.session.user);
+        console.log(
+          "[Firebase Auth] 세션 사용자 정보 저장됨:",
+          req.session.user,
+        );
         console.log("[Firebase Auth] 세션 인증 상태:", req.isAuthenticated());
-        
+
         // 클라이언트에서 접근 가능한 상태 표시 쿠키 (인증 용도 아님)
-        res.cookie('auth_status', 'logged_in', {
+        res.cookie("auth_status", "logged_in", {
           httpOnly: false,
           maxAge: 7 * 24 * 60 * 60 * 1000, // 7일
-          path: '/'
+          path: "/",
         });
-        
+
         // 세션 저장 완료 후 응답 전송
         return res.status(200).json({
           user: sanitizeUser(user),
           message: "로그인 성공",
           sessionId: req.sessionID,
-          auth: { success: true, memberType }
+          auth: { success: true, memberType },
         });
       });
     });
   } catch (error) {
     console.error("[Firebase Auth] 오류:", error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       message: "서버 오류가 발생했습니다.",
-      error: error instanceof Error ? error.message : "알 수 없는 오류" 
+      error: error instanceof Error ? error.message : "알 수 없는 오류",
     });
   }
 });
