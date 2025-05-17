@@ -420,31 +420,72 @@ router.post("/firebase-login", async (req, res) => {
       }
 
       console.log("[Firebase Auth] 로그인 성공:", user.id);
-      console.log("[Firebase Auth] 세션 및 인증 상태:", {
-        isAuthenticated: req.isAuthenticated(),
-        sessionID: req.sessionID,
-        sessionCookie: req.session.cookie ? "설정됨" : "없음",
-        user: user.id
-      });
-
-      // 명시적 세션 쿠키 설정 (모바일 환경을 위한 강화)
-      const isProduction = process.env.NODE_ENV === 'production';
-      const isHttps = process.env.PROTOCOL === 'https' || isProduction;
-
-      // 세션 쿠키 명시적 설정
-      res.cookie('connect.sid', req.sessionID, {
-        httpOnly: true,
-        secure: isHttps,
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7일
-        sameSite: 'lax',
-        path: '/'
-      });
-
-      // 응답
-      return res.status(200).json({
-        user: sanitizeUser(user),
-        message: "Firebase 로그인 성공",
-        sessionId: req.sessionID // 디버깅 용도로 세션 ID 포함
+      
+      // 세션 쿠키 설정 최적화 - 모바일 환경에 맞게 조정
+      req.session.cookie.sameSite = 'lax';
+      req.session.cookie.path = '/';
+      req.session.cookie.httpOnly = true;
+      
+      // 세션 재생성 - 세션 고정 공격 방지 및 쿠키 새로 발급
+      const oldSessionID = req.sessionID;
+      req.session.regenerate(async (regenerateErr) => {
+        if (regenerateErr) {
+          console.error("[Firebase Auth] 세션 재생성 오류:", regenerateErr);
+          return res.status(500).json({ message: "세션 처리 중 오류가 발생했습니다." });
+        }
+        
+        // 새 세션에 사용자 정보 다시 설정
+        req.session.userId = user.id;
+        req.session.firebaseUid = user.firebaseUid;
+        req.session.userEmail = user.email;
+        
+        // 권한 정보 설정 (memberType 사용)
+        const memberType = user.memberType || 'general';
+        req.session.userRole = memberType;
+        req.session.isAdmin = memberType === 'admin' || memberType === 'superadmin';
+        req.session.isHospitalAdmin = memberType === 'hospital_admin';
+        
+        // passport 인증 정보 설정
+        req.session.passport = { user: user.id };
+        
+        // 세션 저장
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error("[Firebase Auth] 세션 저장 오류:", saveErr);
+            return res.status(500).json({ message: "세션 저장 중 오류가 발생했습니다." });
+          }
+          
+          console.log("[Firebase Auth] 세션 저장 성공! 이전/신규 세션 ID:", oldSessionID, "->", req.sessionID);
+          console.log("[Firebase Auth] 세션 및 인증 상태:", {
+            isAuthenticated: req.isAuthenticated?.() || false,
+            sessionID: req.sessionID,
+            sessionCookie: req.session.cookie ? "설정됨" : "없음",
+            passport: req.session.passport ? "설정됨" : "없음",
+            user: user.id
+          });
+          
+          // 명시적 세션 쿠키 설정 (모바일 환경을 위한 강화)
+          const isProduction = process.env.NODE_ENV === 'production';
+          const domain = req.get('host')?.split(':')[0] || undefined;
+          
+          // 쿠키 추가 설정
+          res.cookie('auth_status', 'logged_in', {
+            httpOnly: false, // 클라이언트에서 접근 가능
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7일
+            path: '/'
+          });
+          
+          // 응답
+          return res.status(200).json({
+            user: sanitizeUser(user),
+            message: "Firebase 로그인 성공",
+            sessionId: req.sessionID, // 디버깅 용도로 세션 ID 포함
+            auth: {
+              success: true,
+              memberType
+            }
+          });
+        });
       });
     });
   } catch (error) {
