@@ -51,8 +51,6 @@ import { z } from "zod";
 import { Edit, Plus, Trash2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
-// 마일스톤 카테고리는 API에서 가져옵니다
-
 // 마일스톤 유효성 검사 스키마
 const milestoneFormSchema = z.object({
   milestoneId: z.string().min(3, "ID는 최소 3자 이상이어야 합니다"),
@@ -481,8 +479,8 @@ export default function MilestoneManagement() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {MILESTONE_CATEGORIES.map(category => (
-                            <SelectItem key={category.id} value={category.id}>
+                          {categories.map((category: any) => (
+                            <SelectItem key={category.categoryId} value={category.categoryId}>
                               {category.name}
                             </SelectItem>
                           ))}
@@ -504,9 +502,6 @@ export default function MilestoneManagement() {
                       <FormControl>
                         <Input placeholder="🎯" {...field} />
                       </FormControl>
-                      <FormDescription>
-                        대표 이모지 (예: 👶, 🏥, 💪)
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -534,8 +529,9 @@ export default function MilestoneManagement() {
                   <FormItem>
                     <FormLabel>응원 메시지</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="이 마일스톤을 달성했을 때 보여줄 메시지"
+                      <Textarea 
+                        placeholder="이 마일스톤을 달성했을 때 보여줄 응원 메시지"
+                        className="min-h-[80px]" 
                         {...field} 
                       />
                     </FormControl>
@@ -550,10 +546,13 @@ export default function MilestoneManagement() {
                   name="order"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>정렬 순서</FormLabel>
+                      <FormLabel>표시 순서</FormLabel>
                       <FormControl>
                         <Input type="number" min={0} {...field} />
                       </FormControl>
+                      <FormDescription>
+                        낮은 순서가 먼저 표시됩니다
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -563,38 +562,26 @@ export default function MilestoneManagement() {
                   control={createForm.control}
                   name="isActive"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between space-x-3 space-y-0 rounded-md border p-4">
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>활성 상태</FormLabel>
-                        <FormDescription>
-                          이 마일스톤을 사용자에게 표시할지 여부
-                        </FormDescription>
-                      </div>
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 py-4">
                       <FormControl>
                         <Checkbox
                           checked={field.value}
                           onCheckedChange={field.onChange}
                         />
                       </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>활성화</FormLabel>
+                        <FormDescription>
+                          마일스톤 활성화 여부
+                        </FormDescription>
+                      </div>
                     </FormItem>
                   )}
                 />
               </div>
 
               <DialogFooter>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setIsCreateDialogOpen(false)}
-                >
-                  취소
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={createMilestoneMutation.isPending}
-                >
-                  {createMilestoneMutation.isPending ? "저장 중..." : "마일스톤 저장"}
-                </Button>
+                <Button type="submit" className="w-full">마일스톤 생성</Button>
               </DialogFooter>
             </form>
           </Form>
@@ -607,7 +594,7 @@ export default function MilestoneManagement() {
           <DialogHeader>
             <DialogTitle>마일스톤 수정</DialogTitle>
             <DialogDescription>
-              마일스톤 정보를 수정합니다.
+              선택한 마일스톤의 정보를 수정합니다.
             </DialogDescription>
           </DialogHeader>
 
@@ -624,7 +611,7 @@ export default function MilestoneManagement() {
                         <Input placeholder="milestone-id-format" {...field} disabled />
                       </FormControl>
                       <FormDescription>
-                        마일스톤 ID는 수정할 수 없습니다
+                        마일스톤 ID는 변경할 수 없습니다
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -709,8 +696,8 @@ export default function MilestoneManagement() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {MILESTONE_CATEGORIES.map(category => (
-                            <SelectItem key={category.id} value={category.id}>
+                          {categories.map((category: any) => (
+                            <SelectItem key={category.categoryId} value={category.categoryId}>
                               {category.name}
                             </SelectItem>
                           ))}
@@ -732,9 +719,6 @@ export default function MilestoneManagement() {
                       <FormControl>
                         <Input placeholder="🎯" {...field} />
                       </FormControl>
-                      <FormDescription>
-                        대표 이모지 (예: 👶, 🏥, 💪)
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -762,8 +746,9 @@ export default function MilestoneManagement() {
                   <FormItem>
                     <FormLabel>응원 메시지</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="이 마일스톤을 달성했을 때 보여줄 메시지"
+                      <Textarea 
+                        placeholder="이 마일스톤을 달성했을 때 보여줄 응원 메시지"
+                        className="min-h-[80px]" 
                         {...field} 
                       />
                     </FormControl>
@@ -778,10 +763,13 @@ export default function MilestoneManagement() {
                   name="order"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>정렬 순서</FormLabel>
+                      <FormLabel>표시 순서</FormLabel>
                       <FormControl>
                         <Input type="number" min={0} {...field} />
                       </FormControl>
+                      <FormDescription>
+                        낮은 순서가 먼저 표시됩니다
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -791,38 +779,26 @@ export default function MilestoneManagement() {
                   control={editForm.control}
                   name="isActive"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between space-x-3 space-y-0 rounded-md border p-4">
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>활성 상태</FormLabel>
-                        <FormDescription>
-                          이 마일스톤을 사용자에게 표시할지 여부
-                        </FormDescription>
-                      </div>
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 py-4">
                       <FormControl>
                         <Checkbox
                           checked={field.value}
                           onCheckedChange={field.onChange}
                         />
                       </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>활성화</FormLabel>
+                        <FormDescription>
+                          마일스톤 활성화 여부
+                        </FormDescription>
+                      </div>
                     </FormItem>
                   )}
                 />
               </div>
 
               <DialogFooter>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setIsEditDialogOpen(false)}
-                >
-                  취소
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={updateMilestoneMutation.isPending}
-                >
-                  {updateMilestoneMutation.isPending ? "저장 중..." : "변경사항 저장"}
-                </Button>
+                <Button type="submit" className="w-full">마일스톤 수정</Button>
               </DialogFooter>
             </form>
           </Form>
@@ -831,27 +807,14 @@ export default function MilestoneManagement() {
 
       {/* 마일스톤 삭제 확인 다이얼로그 */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>마일스톤 삭제</DialogTitle>
             <DialogDescription>
-              정말 이 마일스톤을 삭제하시겠습니까? 이 작업은 되돌릴 수 없으며, 사용자가 이미 달성한 마일스톤 데이터도 함께 삭제됩니다.
+              정말로 이 마일스톤을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
             </DialogDescription>
           </DialogHeader>
-          
-          {selectedMilestone && (
-            <div className="py-4">
-              <div className="flex items-center gap-3 py-2 px-4 bg-muted rounded-lg">
-                <span className="text-2xl">{selectedMilestone.badgeEmoji}</span>
-                <div>
-                  <p className="font-medium">{selectedMilestone.title}</p>
-                  <p className="text-xs text-muted-foreground">{selectedMilestone.milestoneId}</p>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:justify-center">
             <Button 
               type="button" 
               variant="outline" 
@@ -861,11 +824,11 @@ export default function MilestoneManagement() {
             </Button>
             <Button 
               type="button" 
-              variant="destructive"
-              disabled={deleteMilestoneMutation.isPending}
+              variant="destructive" 
               onClick={onDelete}
+              className="bg-red-500 hover:bg-red-600"
             >
-              {deleteMilestoneMutation.isPending ? "삭제 중..." : "마일스톤 삭제"}
+              삭제
             </Button>
           </DialogFooter>
         </DialogContent>
