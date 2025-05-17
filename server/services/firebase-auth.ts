@@ -92,6 +92,10 @@ export async function handleFirebaseAuth(firebaseUser: FirebaseUserData) {
   const needSignup = !user.phoneNumber || !user.dueDate;
   
   // 디버깅 정보 추가
+  const dueDateFormatted = user.dueDate && user.dueDate instanceof Date && !isNaN(user.dueDate.getTime())
+    ? user.dueDate.toISOString().split('T')[0] 
+    : '(없음)';
+
   console.log(`[Firebase Auth 처리 완료] 
   - 사용자 ID: ${user.id}
   - 이메일: ${user.email}
@@ -99,7 +103,7 @@ export async function handleFirebaseAuth(firebaseUser: FirebaseUserData) {
   - 회원 유형: ${user.memberType}
   - Firebase UID: ${user.firebaseUid}
   - 전화번호: ${user.phoneNumber || '(없음)'}
-  - 출산예정일: ${user.dueDate ? user.dueDate.toISOString().split('T')[0] : '(없음)'}
+  - 출산예정일: ${dueDateFormatted}
   - 추가 정보 입력 필요: ${needSignup ? '예' : '아니오'}`);
   
   // needSignup 속성 추가하여 반환
