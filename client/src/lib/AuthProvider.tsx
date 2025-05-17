@@ -105,6 +105,13 @@ export const ProtectedRoute: React.FC<{
   if (!user) {
     return <Redirect to="/auth" />;
   }
+  
+  // 로그인 되었지만 추가 정보 입력이 필요한 경우 프로필 작성 페이지로 리다이렉션
+  // 현재 페이지가 이미 프로필 작성 페이지가 아닌 경우에만 리다이렉션 수행
+  if (user.needSignup === true && window.location.pathname !== "/signup/complete-profile") {
+    console.log('[Auth] 추가 정보 입력 필요 감지 - 프로필 작성 페이지로 리다이렉션');
+    return <Redirect to="/signup/complete-profile" />;
+  }
 
   // 역할 확인이 필요한 경우
   if (allowedRoles && allowedRoles.length > 0) {

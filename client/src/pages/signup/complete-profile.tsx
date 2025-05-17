@@ -57,6 +57,15 @@ const CompleteProfilePage = () => {
   // 병원 목록 조회
   const { data: hospitals = [], isLoading: isLoadingHospitals } = useQuery({
     queryKey: ['/api/hospitals'],
+    queryFn: async () => {
+      const response = await fetch('/api/hospitals', {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('병원 목록을 가져오는데 실패했습니다');
+      }
+      return response.json();
+    }
   });
 
   // 폼 초기화

@@ -41,8 +41,11 @@ export async function handleFirebaseAuth(firebaseUser: FirebaseUserData) {
       firebaseUid: firebaseUser.uid,
       emailVerified: true, // Firebase 인증은 이메일이 이미 검증됨
       memberType: 'general', // 기본 회원 타입
-      // photoUrl 필드는 데이터베이스에 존재하지 않아 제거
-      // phoneNumber: firebaseUser.phoneNumber || null, // phone_number 필드도 데이터베이스에 존재하지 않음
+      // 병원 ID는 null로 설정 (사용자가 직접 선택하도록)
+      hospitalId: null,
+      // 전화번호와 출산예정일은 null로 설정 (사용자가 직접 입력하도록)
+      phoneNumber: null,
+      dueDate: null,
       lastLogin: new Date(),
       createdAt: new Date(),
       updatedAt: new Date()
