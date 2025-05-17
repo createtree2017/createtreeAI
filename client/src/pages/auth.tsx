@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,17 +7,89 @@ import LoginForm from "../components/forms/LoginForm";
 import RegisterForm from "../components/forms/RegisterForm";
 import { useAuthContext } from "@/lib/AuthProvider";
 import FloatingBabyItems from "@/components/FloatingBabyItems";
+import { getAuth, getRedirectResult } from "firebase/auth";
+import { Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const AuthPage = () => {
   const [location, setLocation] = useLocation();
-  const { user, isLoading } = useAuthContext();
+  const { user, isLoading, loginWithGoogle } = useAuthContext();
+  const [processingRedirect, setProcessingRedirect] = useState(false);
+  const { toast } = useToast();
 
-  // 이미 로그인된 상태 확인 (주석 처리하여 중복 리디렉션 방지)
-  // useEffect(() => {
-  //   if (user && !isLoading) {
-  //     setLocation("/");
-  //   }
-  // }, [user, isLoading, setLocation]);
+  // Firebase 리디렉션 결과 처리
+  useEffect(() => {
+    const processRedirectResult = async () => {
+      try {
+        setProcessingRedirect(true);
+        const auth = getAuth();
+        
+        console.log("[AuthPage] Firebase 리디렉션 결과 확인 중...");
+        const result = await getRedirectResult(auth);
+        
+        if (result && result.user) {
+          console.log("[AuthPage] 리디렉션 로그인 성공, 사용자 정보:", {
+            uid: result.user.uid.substring(0, 5) + "...",
+            email: result.user.email,
+            displayName: result.user.displayName
+          });
+          
+          // 리디렉션 로그인 성공 시 로그인 처리
+          toast({
+            title: "Google 로그인 성공",
+            description: "환영합니다! 로그인 정보를 처리 중입니다...",
+          });
+          
+          // 서버에 Firebase 사용자 정보 전송
+          const userData = {
+            uid: result.user.uid,
+            email: result.user.email || "",
+            displayName: result.user.displayName || ""
+          };
+          
+          const response = await fetch("/api/auth/firebase-login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user: userData }),
+            credentials: "include"
+          });
+          
+          if (!response.ok) {
+            throw new Error("서버 인증에 실패했습니다");
+          }
+          
+          // 로그인 성공 시 홈으로 리디렉션
+          setTimeout(() => {
+            setLocation("/");
+          }, 1000);
+        } else {
+          console.log("[AuthPage] 리디렉션 결과 없음");
+        }
+      } catch (error) {
+        console.error("[AuthPage] 리디렉션 결과 처리 중 오류:", error);
+        toast({
+          title: "로그인 처리 중 오류 발생",
+          description: error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다",
+          variant: "destructive"
+        });
+      } finally {
+        setProcessingRedirect(false);
+      }
+    };
+    
+    // 현재 URL에 auth 관련 파라미터가 있는지 확인
+    const hasAuthParams = window.location.href.includes("__/auth/handler");
+    if (hasAuthParams) {
+      processRedirectResult();
+    }
+  }, [setLocation, toast]);
+
+  // 이미 로그인된 상태 확인
+  useEffect(() => {
+    if (user && !isLoading && !processingRedirect) {
+      setLocation("/");
+    }
+  }, [user, isLoading, processingRedirect, setLocation]);
 
   if (isLoading) {
     return <div>로딩 중...</div>;
