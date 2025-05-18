@@ -61,7 +61,7 @@ interface MenuGroup {
 
 export default function Sidebar({ collapsed = false }) {
   const [location] = useLocation();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   
   // API 메뉴 데이터 가져오기
   const { data: apiMenu = [], isLoading } = useQuery({
@@ -316,27 +316,14 @@ export default function Sidebar({ collapsed = false }) {
         )}
         <button 
           onClick={() => {
-            // 단순화된 로그아웃 처리 - 직접 API 호출 (인증 정보 포함)
-            fetch("/api/auth/logout", {
-              method: "POST",
-              credentials: 'include' // 쿠키 전송을 위해 필수
-            }).then(() => {
-              // 로컬 스토리지 토큰 삭제
-              localStorage.removeItem("accessToken");
-              // 로그아웃 성공 알림
-              alert("로그아웃 되었습니다.");
-              // 홈페이지로 리디렉션
-              window.location.href = "/";
-            }).catch(err => {
-              console.error("로그아웃 실패:", err);
-              alert("로그아웃에 실패했습니다.");
-            });
+            // useAuth 훅의 logout 함수 사용
+            logout();
           }}
           className="text-neutral-400 hover:text-primary-lavender transition-colors flex items-center gap-2 cursor-pointer" 
           aria-label="로그아웃"
         >
           {!collapsed && <span className="text-sm">로그아웃</span>}
-          <LogIn size={collapsed ? 20 : 18} strokeWidth={1.5} />
+          <LogOut size={collapsed ? 20 : 18} strokeWidth={1.5} />
         </button>
       </div>
     </aside>
