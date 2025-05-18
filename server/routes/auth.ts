@@ -559,17 +559,36 @@ router.post("/firebase-login", async (req, res) => {
         .json({ message: "사용자 처리 중 오류가 발생했습니다." });
     }
 
+    // 추가 디버깅 로그
+    console.log(`[Firebase Auth] 사용자 조회/생성 완료:
+    - ID: ${user.id}
+    - 이메일: ${user.email}
+    - 이름: ${user.username || '없음'}
+    - Firebase UID: ${user.firebaseUid}
+    - 전화번호: ${user.phoneNumber || '없음'}
+    - 병원 ID: ${user.hospitalId || '없음'}
+    - 회원 유형: ${user.memberType || '일반'}`);
+
     // 로그인 처리 전 세션 준비
     const memberType = user.memberType || "general";
 
-    // Passport 로그인 처리 (req.login 사용)
-    req.login(user, (loginErr) => {
-      if (loginErr) {
-        console.error("[Firebase Auth] 로그인 오류:", loginErr);
+    // 세션 초기화 - 이전 세션 데이터 정리
+    req.session.regenerate(async (regErr) => {
+      if (regErr) {
+        console.error("[Firebase Auth] 세션 초기화 오류:", regErr);
         return res
           .status(500)
-          .json({ message: "로그인 처리 중 오류가 발생했습니다." });
+          .json({ message: "세션 초기화 중 오류가 발생했습니다." });
       }
+      
+      // 새로운 세션에서 Passport 로그인 처리
+      req.login(user, (loginErr) => {
+        if (loginErr) {
+          console.error("[Firebase Auth] 로그인 오류:", loginErr);
+          return res
+            .status(500)
+            .json({ message: "로그인 처리 중 오류가 발생했습니다." });
+        }
 
       // 세션 쿠키 설정 (모바일 최적화)
       req.session.cookie.sameSite = "lax";
