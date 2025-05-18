@@ -130,6 +130,20 @@ const RegisterForm: React.FC = () => {
         
         <FormField
           control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>이름</FormLabel>
+              <FormControl>
+                <Input placeholder="이름 입력" {...field} disabled={isRegisterLoading} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
           name="username"
           render={({ field }) => (
             <FormItem>
@@ -150,20 +164,6 @@ const RegisterForm: React.FC = () => {
               <FormLabel>전화번호*</FormLabel>
               <FormControl>
                 <Input placeholder="전화번호 입력" {...field} disabled={isRegisterLoading} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>이름</FormLabel>
-              <FormControl>
-                <Input placeholder="이름 입력" {...field} disabled={isRegisterLoading} />
               </FormControl>
               <FormMessage />
             </FormItem>
