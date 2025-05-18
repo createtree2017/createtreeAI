@@ -592,7 +592,8 @@ router.post("/firebase-login", async (req, res) => {
         memberType: memberType,
         phoneNumber: user.phoneNumber || null,
         hospitalId: user.hospitalId || null,
-        needSignup: !user.phoneNumber || !user.hospitalId
+        needSignup: !user.phoneNumber || !user.hospitalId,
+        needProfileComplete: !user.phoneNumber || !user.hospitalId || !user.dueDate
       };
 
       // 3. 개별 필드 저장 (추가 백업)
