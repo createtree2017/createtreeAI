@@ -47,6 +47,8 @@ const AuthHandlerPage = () => {
           }));
 
           console.log("[인증 처리] Firebase 로그인 성공, 서버 인증 시작...");
+          
+          // 1. 표준 세션 기반 인증 요청
           const response = await fetch("/api/auth/firebase-login", {
             method: "POST",
             headers: {
@@ -70,6 +72,34 @@ const AuthHandlerPage = () => {
           }
 
           const loginResponse = await response.json();
+          
+          // 2. 모바일 환경을 위한 JWT 토큰 추가 발급 (세션 백업)
+          console.log("[인증 처리] 모바일용 JWT 토큰 요청 시작...");
+          try {
+            const jwtResponse = await fetch("/api/jwt-auth/mobile-login", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                firebaseUid: userData.uid,
+                email: userData.email
+              })
+            });
+            
+            if (jwtResponse.ok) {
+              const jwtData = await jwtResponse.json();
+              // JWT 토큰 로컬 스토리지에 저장
+              localStorage.setItem('jwt_token', jwtData.token);
+              localStorage.setItem('jwt_user', JSON.stringify(jwtData.user));
+              console.log("[인증 처리] JWT 토큰 발급 성공 (모바일 백업용)");
+            } else {
+              console.warn("[인증 처리] JWT 토큰 발급 실패 (무시하고 계속 진행)");
+            }
+          } catch (jwtError) {
+            // JWT 토큰 발급 실패는 치명적 오류가 아님 - 로그만 남기고 계속 진행
+            console.warn("[인증 처리] JWT 토큰 발급 중 오류 (세션 인증으로 계속 진행):", jwtError);
+          }
           console.log("[Google 로그인] 서버 인증 성공:", loginResponse);
 
           await signOut(auth);

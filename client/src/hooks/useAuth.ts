@@ -54,7 +54,7 @@ export function useAuth() {
       try {
         console.log("[인증 API 호출] /api/auth/me 요청 시작");
         
-        // 세션 쿠키와 함께 요청
+        // 1. 먼저 세션 쿠키로 인증 시도
         const response = await fetch("/api/auth/me", {
           credentials: "include", // 쿠키 포함 (중요!)
         });
@@ -65,25 +65,64 @@ export function useAuth() {
           ))
         );
 
-        if (!response.ok) {
-          if (response.status === 401) {
-            console.log("[인증 API 응답] 로그인되지 않음 (401)");
-            return null; // 로그인 되지 않음
-          }
-          throw new Error("사용자 정보를 가져오는데 실패했습니다.");
+        // 세션 인증 성공 시
+        if (response.ok) {
+          const userData = await response.json();
+          console.log("[인증 API 성공] 세션 기반 사용자 정보:", userData);
+          return userData;
         }
-
-        const userData = await response.json();
-        // 디버깅을 위해 사용자 정보 로깅 (비밀번호는 제외)
-        const { password, ...userInfo } = userData;
-        console.log("[인증 API 성공] 사용자 정보:", userInfo);
-        return userData;
+        
+        // 2. 세션 인증 실패 시, JWT 토큰 인증 시도 (모바일 환경용 백업)
+        console.log("[인증 API 응답] 세션 인증 실패, JWT 토큰 인증 시도");
+        const jwtToken = localStorage.getItem('jwt_token');
+        
+        if (jwtToken) {
+          console.log("[인증 API] JWT 토큰 발견, 토큰 검증 시도");
+          try {
+            const jwtResponse = await fetch("/api/jwt-auth/verify-token", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({ token: jwtToken })
+            });
+            
+            if (jwtResponse.ok) {
+              const jwtData = await jwtResponse.json();
+              console.log("[인증 API] JWT 토큰 검증 성공:", jwtData);
+              
+              if (jwtData.success && jwtData.user) {
+                // JWT 토큰 인증 성공, 사용자 정보 반환
+                // 실제 사용자 객체 구조로 변환
+                const jwtUser = localStorage.getItem('jwt_user');
+                if (jwtUser) {
+                  console.log("[인증 API 성공] JWT 토큰 기반 인증 완료");
+                  return JSON.parse(jwtUser) as User;
+                }
+                return jwtData.user as User;
+              }
+            } else {
+              console.log("[인증 API] JWT 토큰 검증 실패, 토큰 제거");
+              localStorage.removeItem('jwt_token');
+              localStorage.removeItem('jwt_user');
+            }
+          } catch (jwtError) {
+            console.error("[인증 API] JWT 토큰 검증 오류:", jwtError);
+          }
+        }
+        
+        // 모든 인증 방법 실패
+        if (response.status === 401) {
+          console.log("[인증 API 응답] 모든 인증 방법 실패 (401)");
+          return null; // 로그인 되지 않음
+        }
+        throw new Error("사용자 정보를 가져오는데 실패했습니다.");
       } catch (error) {
         console.error("[인증 API 오류] 사용자 정보 조회 실패:", error);
         return null;
       }
     },
-    retry: false,
+    retry: false
   });
 
   // 로그인 기능 (세션 기반)
