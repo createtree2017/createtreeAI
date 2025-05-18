@@ -94,9 +94,9 @@ const RegisterForm: React.FC = () => {
           name="username"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>사용자명*</FormLabel>
+              <FormLabel>닉네임*</FormLabel>
               <FormControl>
-                <Input placeholder="사용자명 입력" {...field} disabled={isRegisterLoading} />
+                <Input placeholder="닉네임 입력" {...field} disabled={isRegisterLoading} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -127,7 +127,7 @@ const RegisterForm: React.FC = () => {
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>이메일</FormLabel>
+              <FormLabel>ID(이메일)</FormLabel>
               <FormControl>
                 <Input 
                   type="email" 
