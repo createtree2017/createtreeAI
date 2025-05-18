@@ -257,6 +257,26 @@ export default function Sidebar({ collapsed = false }) {
         </Link>
       </div>
 
+      {/* 로그아웃 버튼 (모바일에서 보이도록 상단으로 이동) */}
+      <div className={`mb-4 p-4 ${collapsed ? "flex justify-center" : "flex items-center justify-between"} border-b border-neutral-800`}>
+        {!collapsed && (
+          <div className="text-xs text-neutral-400 font-semibold">
+            계정 관리
+          </div>
+        )}
+        <button 
+          onClick={() => {
+            // useAuth 훅의 logout 함수 사용
+            logout();
+          }}
+          className="text-neutral-400 hover:text-primary-lavender transition-colors flex items-center gap-2 cursor-pointer" 
+          aria-label="로그아웃"
+        >
+          {!collapsed && <span className="text-sm">로그아웃</span>}
+          <LogOut size={collapsed ? 20 : 18} strokeWidth={1.5} />
+        </button>
+      </div>
+      
       {/* 메뉴 그룹 */}
       <div className="flex-1 flex flex-col gap-5">
         {allGroups.map((group) => (
@@ -305,26 +325,6 @@ export default function Sidebar({ collapsed = false }) {
             </div>
           </div>
         ))}
-      </div>
-      
-      {/* 상태 - 로그인/로그아웃 */}
-      <div className={`p-4 ${collapsed ? "flex justify-center" : "flex items-center justify-between"} border-t border-neutral-800`}>
-        {!collapsed && (
-          <div className="text-xs text-neutral-400">
-            상태
-          </div>
-        )}
-        <button 
-          onClick={() => {
-            // useAuth 훅의 logout 함수 사용
-            logout();
-          }}
-          className="text-neutral-400 hover:text-primary-lavender transition-colors flex items-center gap-2 cursor-pointer" 
-          aria-label="로그아웃"
-        >
-          {!collapsed && <span className="text-sm">로그아웃</span>}
-          <LogOut size={collapsed ? 20 : 18} strokeWidth={1.5} />
-        </button>
       </div>
     </aside>
   );
