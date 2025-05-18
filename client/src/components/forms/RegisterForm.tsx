@@ -111,20 +111,6 @@ const RegisterForm: React.FC = () => {
         
         <FormField
           control={form.control}
-          name="username"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>닉네임*</FormLabel>
-              <FormControl>
-                <Input placeholder="닉네임 입력" {...field} disabled={isRegisterLoading} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
           name="password"
           render={({ field }) => (
             <FormItem>
@@ -136,6 +122,20 @@ const RegisterForm: React.FC = () => {
                   {...field} 
                   disabled={isRegisterLoading}
                 />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="username"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>닉네임*</FormLabel>
+              <FormControl>
+                <Input placeholder="닉네임 입력" {...field} disabled={isRegisterLoading} />
               </FormControl>
               <FormMessage />
             </FormItem>
