@@ -173,19 +173,19 @@ const personaSchema = z.object({
   systemPrompt: z.string().min(1, "System prompt is required"),
   primaryColor: z.string().min(1, "Primary color is required"),
   secondaryColor: z.string().min(1, "Secondary color is required"),
-
+  
   // Additional fields (optional)
   personality: z.string().optional(),
   tone: z.string().optional(),
   usageContext: z.string().optional(),
   emotionalKeywords: z.array(z.string()).optional(),
   timeOfDay: z.enum(["morning", "afternoon", "evening", "night", "all"]).default("all"),
-
+  
   // Admin fields (optional with defaults)
   isActive: z.boolean().default(true),
   isFeatured: z.boolean().default(false),
   order: z.number().int().default(0),
-
+  
   // Categories
   categories: z.array(z.string()).optional(),
 });
@@ -262,7 +262,7 @@ import testOpenAIRouter from './routes/test-openai-route';
 export async function registerRoutes(app: Express): Promise<Server> {
   // 쿠키 파서 미들웨어 등록
   app.use(cookieParser());
-
+  
   // 세션 미들웨어 등록 (모바일 환경 대응 강화 - Replit 환경 최적화)
   app.use(session({
     secret: process.env.SESSION_SECRET || 'create-tree-mobile-session-secret',
@@ -276,35 +276,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       maxAge: 86400000          // 1일 (24시간)
     }
   }));
-
+  
   // Passport 초기화 및 미들웨어 등록
   const passport = initPassport();
   app.use(passport.initialize());
   app.use(passport.session());
-
+  
   // 인증 라우트 등록
   app.use("/api/auth", authRoutes);
-
+  
   // 플레이스홀더 이미지 라우트 등록
   app.use("/api/placeholder", placeholderRouter);
-
+  
   // 슈퍼관리자 라우트 등록
   app.use("/api/super", superAdminRoutes);
-
+  
   // 음악 관련 API 라우트 등록
   app.use("/api/music", musicRouter);
-
+  
   // OpenAI API 테스트 라우트 등록
   app.use("/api/test-openai", testOpenAIRouter);
-
+  
   // ACE-Step API 테스트 라우트 등록
   app.use("/api/test-ace-step", testAceStepRouter);
   console.log("ACE-Step 테스트 라우터가 등록되었습니다 (/api/test-ace-step/*)");
-
+  
   // Suno AI 자동화 라우트 등록
   registerSunoRoutes(app);
   console.log("Suno AI 자동화 라우터가 등록되었습니다 (/api/suno/*)");
-
+  
   // 통합 메뉴 API - 카테고리와 서비스 항목을 함께 제공
   app.get("/api/menu", async (req, res) => {
     try {
@@ -312,14 +312,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const categories = await db.select().from(serviceCategories)
         .where(eq(serviceCategories.isPublic, true))
         .orderBy(serviceCategories.order);
-
+      
       if (!categories || categories.length === 0) {
         return res.status(200).json([]);
       }
-
+      
       // 2. 메뉴 구조 생성
       const menu = [];
-
+      
       // 3. 각 카테고리별로 해당하는 서비스 항목 조회
       for (const category of categories) {
         // 해당 카테고리에 속한 활성화된 서비스 항목만 가져오기
@@ -334,7 +334,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             eq(serviceItems.isPublic, true)
           ))
           .orderBy(serviceItems.order);
-
+        
         // 항목이 있는 카테고리만 메뉴에 추가
         if (items && items.length > 0) {
           menu.push({
@@ -349,7 +349,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       }
-
+      
       console.log("메뉴 구조:", JSON.stringify(menu));
       return res.status(200).json(menu);
     } catch (error) {
@@ -368,10 +368,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: '병원 목록을 가져오는 중 오류가 발생했습니다.' });
     }
   });
-
+  
   // 개발 대화 기록을 관리하기 위한 인스턴스 생성
   const devHistoryManager = new DevHistoryManager();
-
+  
   // Serve uploaded files from the uploads directory
   app.use('/uploads', (req, res, next) => {
     // 정적 파일 제공 - 직접 파일 읽고 제공
@@ -384,7 +384,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
   });
-
+  
   // 임시 이미지 파일 제공 (별도 라우트로 처리)
   app.use('/uploads/temp', (req, res, next) => {
     // 임시 파일 제공
@@ -401,31 +401,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/embed.js', (req, res) => {
     res.sendFile(path.join(process.cwd(), 'client/public/embed.js'));
   });
-
+  
   // 개발 대화 내보내기 페이지 제공
   app.get('/dev-chat-export', (req, res) => {
     res.sendFile(path.join(process.cwd(), 'client/public/dev-chat-export.html'));
   });
-
+  
   // 개발 대화 히스토리 관리 페이지 제공
   app.get('/dev-history', (req, res) => {
     res.sendFile(path.join(process.cwd(), 'client/public/dev-history.html'));
   });
-
+  
   // API routes
 
   // Music endpoints
   app.post("/api/music/generate", async (req, res) => {
     try {
       const validatedData = musicGenerationSchema.parse(req.body);
-
+      
       // Generate music using AI service
       const musicData = await generateMusic(
         validatedData.babyName,
         validatedData.style,
         validatedData.duration
       );
-
+      
       // Save to database
       const savedMusic = await storage.saveMusicGeneration(
         validatedData.babyName,
@@ -433,7 +433,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         musicData.url,
         validatedData.duration
       );
-
+      
       return res.status(201).json(savedMusic);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -453,24 +453,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to fetch music list" });
     }
   });
-
+  
   // TopMediai AI Music Generation endpoint
   app.post("/api/generate-music", async (req, res) => {
     try {
       const validatedData = aiMusicGenerationSchema.parse(req.body);
-
+      
       console.log("Generating music with TopMediai AI:", validatedData);
-
+      
       // Generate music using TopMediai AI service
       const musicData = await generateAiMusic(
         validatedData.lyrics,
         validatedData.style,
         validatedData.duration
       );
-
+      
       // Optional: Save to database if needed
       // For now, we're just returning the direct result
-
+      
       return res.status(200).json({
         url: musicData.url,
         metadata: musicData.metadata,
@@ -487,7 +487,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
+  
   // Get available music styles endpoint
   app.get("/api/music-styles", async (req, res) => {
     try {
@@ -498,7 +498,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to fetch music styles" });
     }
   });
-
+  
   // Get available music durations endpoint
   app.get("/api/music-durations", async (req, res) => {
     try {
@@ -516,20 +516,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.file) {
         return res.status(400).json({ error: "No image file uploaded" });
       }
-
+      
       const { style, aspectRatio } = req.body;
       if (!style) {
         return res.status(400).json({ error: "No style selected" });
       }
-
+      
       // 기본값 1:1로 설정하고, 제공된 경우 해당 값 사용
       const selectedAspectRatio = aspectRatio || "1:1";
-
+      
       // Check if this is a specific variant request for A/B testing
       const variantId = req.body.variant;
       let promptTemplate = null;
       let categorySystemPrompt = null;  // 변수 미리 정의 (scope 문제 해결)
-
+      
       if (variantId) {
         // Get the active test for this concept/style
         const activeTest = await db.query.abTests.findFirst({
@@ -538,7 +538,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             eq(abTests.isActive, true)
           ),
         });
-
+        
         if (activeTest) {
           // Find the requested variant
           const variant = await db.query.abTestVariants.findFirst({
@@ -547,16 +547,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
               eq(abTestVariants.variantId, variantId)
             ),
           });
-
+          
           if (variant) {
             promptTemplate = variant.promptTemplate;
-
+            
             // 변형 테스트에도 시스템 프롬프트 지원 추가
             // 원본 컨셉의 systemPrompt 또는 카테고리 systemPrompt 가져오기
             const concept = await db.query.concepts.findFirst({
               where: eq(concepts.conceptId, style)
             });
-
+            
             if (concept) {
               if (concept.systemPrompt) {
                 categorySystemPrompt = concept.systemPrompt;
@@ -565,7 +565,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 const category = await db.query.conceptCategories.findFirst({
                   where: eq(conceptCategories.categoryId, concept.categoryId)
                 });
-
+                
                 if (category && category.systemPrompt) {
                   categorySystemPrompt = category.systemPrompt;
                   console.log(`A/B 테스트용 카테고리 '${category.name}'의 시스템 프롬프트 적용: ${categorySystemPrompt.substring(0, 50)}...`);
@@ -580,19 +580,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const concept = await db.query.concepts.findFirst({
           where: eq(concepts.conceptId, style)
         });
-
+        
         // 카테고리 정보와 시스템 프롬프트 가져오기 (이미지 분석 지침용)
         if (concept && concept.categoryId) {
           const category = await db.query.conceptCategories.findFirst({
             where: eq(conceptCategories.categoryId, concept.categoryId)
           });
-
+          
           if (category && category.systemPrompt) {
             categorySystemPrompt = category.systemPrompt;
             console.log(`카테고리 '${category.name}'의 시스템 프롬프트 적용: ${categorySystemPrompt.substring(0, 50)}...`);
           }
         }
-
+        
         if (concept) {
           // Use the prompt template from the concept
           promptTemplate = concept.promptTemplate;
@@ -603,7 +603,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
       }
-
+      
       // Process image using AI service (transforming to specified art style)
       const filePath = req.file.path;
       // Pass the variant's prompt template, category's system prompt, and aspect ratio
@@ -614,27 +614,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         categorySystemPrompt,
         selectedAspectRatio
       );
-
+      
       // Check if this is a request from admin panel or if it's a variant test
       // Admin 요청이거나 A/B 테스트 변형일 경우에만 데이터베이스에 저장
       const isAdmin = req.query.admin === 'true' || req.headers['x-admin-request'] === 'true';
       const isVariantTest = !!variantId;
-
+      
       let savedImage;
       let dbSavedImage;
-
+      
       try {
         // 현재 로그인한 사용자 정보 가져오기
         const user = req.user;
         const userId = user?.id;
         const username = user?.username;
-
+        
         // 요청 정보 자세히 로깅
         console.log(`[이미지 변환] 요청 시작 - 시간: ${new Date().toISOString()}`);
         console.log(`[이미지 변환] 파일: ${req.file.originalname}, 스타일: ${style}`);
         console.log(`[이미지 변환] 요청 헤더: admin=${req.query.admin}, x-admin-request=${req.headers['x-admin-request']}`);
         console.log(`[이미지 변환] 세션 존재 여부: ${!!req.session}`);
-
+        
         // 사용자 정보 로그 출력 (확장)
         if (userId && username) {
           console.log(`[이미지 변환] 로그인 사용자 ${username} (ID: ${userId})`);
@@ -643,10 +643,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // 로그인하지 않은 사용자의 경우 임시 정보 사용
           console.log('[이미지 변환] 익명 사용자용 기본 메타데이터를 사용합니다');
         }
-
+        
         // 모든 이미지 요청은 데이터베이스에 저장 (사용자 정보 포함)
         console.log(`[이미지 변환] 이미지 저장 시작: ${style} ${req.file.originalname}`);
-
+        
         dbSavedImage = await storage.saveImageTransformation(
           req.file.originalname,
           style,
@@ -656,9 +656,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           username || null,
           variantId // Store which variant was used, if any
         );
-
+        
         console.log(`[이미지 변환] 이미지 저장 성공: ID=${dbSavedImage.id}, 제목=${dbSavedImage.title}`);
-
+        
         if (isAdmin || isVariantTest) {
           // 관리자 패널이나 A/B 테스트 요청은 DB 이미지 직접 반환
           savedImage = dbSavedImage;
@@ -666,11 +666,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else {
           // 일반 사용자 요청인 경우 - 데이터베이스에 저장은 했지만 임시 객체로 응답
           console.log(`일반 사용자 이미지: DB에 저장됨 (ID: ${dbSavedImage.id}), 사용자에게는 임시 이미지로 제공`);
-
+          
           // 긴 base64 문자열을 로컬 파일로 저장 (세션에 저장하는 대신)
           const title = `${style.charAt(0).toUpperCase() + style.slice(1)} ${path.basename(req.file.originalname, path.extname(req.file.originalname))}`;
           const tempImageResult = await storage.saveTemporaryImage(transformedImageUrl, title);
-
+          
           // 임시 응답 객체 생성 (로컬 파일 경로를 사용)
           savedImage = {
             id: -1, // -1은 저장되지 않은 임시 ID
@@ -684,12 +684,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             dbImageId: dbSavedImage.id, // 실제 DB에 저장된 ID (필요시 사용)
             aspectRatio: selectedAspectRatio // 사용된 비율 정보 추가
           };
-
+          
           // 개선된 세션 처리: 세션에 임시 이미지 정보 저장 (다운로드 처리를 위해)
           try {
             if (req.session) {
               req.session.tempImage = savedImage;
-
+              
               // 세션 저장 명시적 호출
               req.session.save((err) => {
                 if (err) {
@@ -708,7 +708,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       } catch (error) {
         console.error("[이미지 변환] 이미지 저장 중 오류:", error);
-
+        
         // 오류 내용 상세히 로깅
         console.error("[이미지 변환] 오류 세부 정보:", {
           message: error.message || "알 수 없는 오류",
@@ -721,19 +721,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             user: req.user ? `${req.user.username} (ID: ${req.user.id})` : "로그인 없음"
           }
         });
-
+        
         try {
           // 원래 파일명에서 확장자를 제외한 이름 사용
           const nameWithoutExt = path.basename(req.file.originalname, path.extname(req.file.originalname));
-
+          
           // 이미지 저장에 실패하더라도 사용자에게 친숙한 제목 유지
           console.log("[이미지 변환] 오류 발생 시에도 친숙한 제목으로 응답 생성");
-
+          
           // 이미지 URL 변환 상태에 따라 다르게 처리
           const imgUrl = transformedImageUrl.includes("placehold.co") 
             ? transformedImageUrl  // 이미 에러 이미지인 경우 그대로 사용
             : `/api/placeholder?style=${encodeURIComponent(style)}&text=${encodeURIComponent("이미지 처리 중 문제가 발생했습니다")}`;
-
+          
           savedImage = {
             id: -1,
             title: `${style} ${nameWithoutExt}`, // "오류:" 접두사 제거
@@ -751,11 +751,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               errorMessage: error.message || "알 수 없는 오류"
             }
           };
-
+          
           console.log(`[이미지 변환] 오류 응답 객체 생성 완료: ${savedImage.title}`);
         } catch (formatError) {
           console.error("[이미지 변환] 오류 응답 생성 중 추가 오류:", formatError);
-
+          
           // 완전 실패 시 최소한의 정보만 포함한 기본 응답
           savedImage = {
             id: -1,
@@ -768,7 +768,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
         }
       }
-
+      
       return res.status(201).json(savedImage);
     } catch (error) {
       console.error("Error transforming image:", error);
@@ -783,24 +783,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
       res.setHeader('Surrogate-Control', 'no-store');
-
+      
       // 현재 로그인한 사용자 정보 확인
       const user = req.user;
       const userId = user?.id;
-
+      
       // 페이지네이션 처리를 위한 파라미터 추출
       const page = req.query.page ? parseInt(req.query.page as string) : 1;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
-
+      
       // 사용자 ID로 이미지 필터링 여부 설정
       const filterByUser = req.query.filterByUser === 'true';
-
+      
       if (user && filterByUser) {
         console.log(`[이미지 탭] 사용자 ${user.username}`);
       } else {
         console.log(`[이미지 탭] 사용자 필터링 없음 (전체 이미지 표시)`);
       }
-
+      
       // 데이터베이스 수준에서 페이지네이션 적용하여 데이터 가져오기
       // 로그인 상태이고 사용자 필터링이 활성화된 경우에만 사용자 정보로 필터링
       const result = await storage.getPaginatedImageList(
@@ -809,10 +809,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         (user && filterByUser) ? userId : null,
         (user && filterByUser) ? user.username : null
       );
-
+      
       // 전체 이미지 수 로그 출력
       console.log(`전체 이미지 ${result.pagination.total}개 로드됨`);
-
+      
       // 결과 반환
       return res.json(result);
     } catch (error) {
@@ -820,7 +820,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to fetch image list" });
     }
   });
-
+  
   // 최근 이미지만 가져오는 API (사용자 메모리 컬렉션용)
   app.get("/api/image/recent", async (req, res) => {
     try {
@@ -829,27 +829,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
       res.setHeader('Surrogate-Control', 'no-store');
-
+      
       // 현재 로그인한 사용자 정보 확인
       const user = req.user;
       const userId = user?.id;
-
+      
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
-
+      
       // 사용자 ID로 이미지 필터링 여부 설정
       const filterByUser = req.query.filterByUser !== 'false';
-
+      
       if (user && filterByUser) {
         console.log(`[최근 이미지 API] 사용자 ${user.username} (ID: ${userId})의 이미지만 필터링`);
       } else {
         console.log(`[최근 이미지 API] 사용자 필터링 없음 (전체 이미지 표시)`);
       }
-
+      
       // 여러 개의 이미지를 얻기 위해 제한을 높임
       const dbLimit = Math.max(30, limit * 3); // 최소 30개 또는 요청한 limit의 3배
-
+      
       console.log(`[최근 이미지 API] 데이터베이스에서 ${dbLimit}개의 이미지를 가져오는 중...`);
-
+      
       // 페이지네이션 적용하여 데이터베이스에서 최근 이미지 가져오기
       // 로그인 상태이고 사용자 필터링이 활성화된 경우에만 사용자 정보로 필터링
       const result = await storage.getPaginatedImageList(
@@ -858,10 +858,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         (user && filterByUser) ? userId : null,
         (user && filterByUser) ? user.username : null
       );
-
+      
       // 필터링 조건 완화: 최근 24시간 내의 이미지도 포함 (1시간→24시간)
       const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24시간 전 타임스탬프
-
+      
       const recentImages = result.images
         .filter(img => {
           // createdAt이 24시간 이내인 이미지 포함
@@ -869,25 +869,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return createTime > dayAgo;
         })
         .slice(0, limit); // 요청한 제한으로 결과 제한
-
+      
       // 결과 개수가 부족하면 시간 제한 없이 최근 이미지 포함
       if (recentImages.length < limit) {
         console.log(`[최근 이미지 API] 24시간 이내 이미지가 ${recentImages.length}개로 부족합니다. 시간 제한 없이 최근 이미지를 포함합니다.`);
-
+        
         // 이미 포함된 이미지 ID 집합
         const existingIds = new Set(recentImages.map(img => img.id));
-
+        
         // 시간 제한 없이 추가 이미지를 포함
         const additionalImages = result.images
           .filter(img => !existingIds.has(img.id)) // 중복 방지
           .slice(0, limit - recentImages.length); // 남은 제한까지만 추가
-
+        
         // 결합
         recentImages.push(...additionalImages);
       }
-
+      
       console.log(`[최근 이미지 API] 전체 ${result.images.length}개 중 ${recentImages.length}개 이미지 반환 (사용자: ${userId || 'None'})`);
-
+      
       // 디버깅: 각 이미지의 기본 정보를 로그로 출력
       recentImages.forEach((img, index) => {
         let metadataInfo = '없음';
@@ -899,10 +899,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             metadataInfo = `userId: ${metadata.userId || '없음'}, isShared: ${metadata.isShared || false}`;
           } catch (e) {}
         }
-
+        
         console.log(`[최근 이미지 ${index+1}/${recentImages.length}] ID: ${img.id}, 제목: ${img.title}, 생성일: ${new Date(img.createdAt).toISOString()}, 메타데이터: ${metadataInfo}`);
       });
-
+      
       return res.json(recentImages);
     } catch (error) {
       console.error("Error fetching recent images:", error);
@@ -915,20 +915,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = imageGenerationSchema.parse(req.body);
       const { style } = req.body; // 스타일 옵션 추가 (선택사항)
-
+      
       // OpenAI DALL-E 3를 사용하여 이미지 생성
       try {
         console.log("Generating image with OpenAI DALL-E 3");
         const { generateImage } = await import('./services/openai-dalle3');
-
+        
         // 스타일 정보가 있으면 프롬프트에 반영
         let enhancedPrompt = validatedData.prompt;
         if (style) {
           enhancedPrompt = `${validatedData.prompt} (in ${style} style)`;
         }
-
+        
         const imageUrl = await generateImage(enhancedPrompt);
-
+        
         return res.status(200).json({ 
           imageUrl,
           prompt: enhancedPrompt,
@@ -936,7 +936,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } catch (openaiError) {
         console.error("Error with DALL-E:", openaiError);
-
+        
         // DALL-E 실패 시 서비스 종료 메시지 반환
         console.log("DALL-E service unavailable");
         return res.status(503).json({ 
@@ -962,18 +962,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/chat/message", async (req, res) => {
     try {
       const validatedData = chatMessageSchema.parse(req.body);
-
+      
       // Check if this is an ephemeral request
       const isEphemeral = req.query.ephemeral === 'true';
-
+      
       let userMessage, assistantMessage;
-
+      
       // Generate AI response with persona's system prompt if provided
       const aiResponse = await generateChatResponse(
         validatedData.message,
         validatedData.personaSystemPrompt
       );
-
+      
       if (isEphemeral) {
         // For ephemeral messages, we don't save to database
         // Just create response objects with the content
@@ -983,7 +983,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           content: validatedData.message,
           createdAt: new Date().toISOString(),
         };
-
+        
         assistantMessage = {
           id: Date.now() + 1,
           role: "assistant",
@@ -993,11 +993,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         // Save user message
         userMessage = await storage.saveUserMessage(validatedData.message);
-
+        
         // Save AI response
         assistantMessage = await storage.saveAssistantMessage(aiResponse);
       }
-
+      
       return res.json({
         userMessage,
         assistantMessage,
@@ -1028,22 +1028,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: "로그인이 필요합니다." });
       }
-
+      
       // 필터링 옵션
       const filter = req.query.filter as string | undefined;
       const usernameFilter = req.query.username as string | undefined;
       let galleryItems = [];
-
+      
       // 현재 로그인한 사용자 정보 가져오기
       const userId = req.user?.id;
       const username = usernameFilter || req.user?.username;
-
+      
       // 로그에 사용자 정보 출력
       console.log(`이미지 항목 로딩 - 사용자: ${username}`);
-
+      
       // 일시적 해결책: 한글 인코딩 수정을 위한 유틸리티 함수 import
       const { decodeKoreanInObject, decodeKoreanText } = await import('./utils');
-
+      
       // 사용자 ID로 필터링 추가 (임시: 사용자 구분 기능이 완전히 구현될 때까지 간단한 솔루션)
       if (filter === "chat") {
         // 채팅 데이터 - 직접 쿼리로 조회
@@ -1056,7 +1056,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(savedChats)
         .orderBy(desc(savedChats.createdAt))
         .limit(5);
-
+        
         galleryItems = chatItems.map(chat => ({
           id: chat.id,
           title: decodeKoreanText(chat.title || '저장된 대화'),
@@ -1073,7 +1073,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // 실제 사용자 데이터가 있으면 아래 주석 해제
         // const userMusicItems = musicItems.filter(item => item.userId === userId);
         const userMusicItems = musicItems.slice(0, 5); // 임시: 최근 5개만 표시
-
+        
         // 한글 디코딩 적용
         galleryItems = userMusicItems.map(item => ({
           ...item,
@@ -1084,7 +1084,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           // 이미지 탭에서 사용자별 필터링 구현
           console.log(`[이미지 탭] 사용자 ${username || '없음'}`);
-
+          
           // 통합된 getPaginatedImageList 함수 사용
           const imageResult = await storage.getPaginatedImageList(
             1, // 첫 페이지
@@ -1092,16 +1092,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userId, // 사용자 ID
             username // 사용자 이름 (필터링용)
           );
-
+          
           // 결과 필터링 없이 바로 사용
           let filteredImages = imageResult.images;
-
+          
           console.log(`[갤러리 API] 이미지 탭: ${filteredImages.length}개 이미지 로드됨`);
-
+          
           // 이미지 복제 코드 제거 - 중복 방지
           // 결과가 적더라도 실제 이미지만 표시하도록 수정
           console.log("사용자의 실제 이미지만 표시합니다");
-
+          
           // 필터링된 이미지 변환
           galleryItems = filteredImages.map(item => ({
             id: item.id,
@@ -1112,7 +1112,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             createdAt: item.createdAt.toISOString(),
             isFavorite: false
           }));
-
+          
           console.log(`갤러리에 표시할 이미지 ${galleryItems.length}개 준비됨`);
         } catch (imageError) {
           console.error("이미지 데이터 조회 중 오류:", imageError);
@@ -1122,10 +1122,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // 즐겨찾기 필터링 (사용자별)
         const username = req.user?.username;
         console.log(`[즐겨찾기 필터] 사용자 ${username || '없음'} 필터링 적용`);
-
+        
         // 사용자 이름으로 필터링된 즐겨찾기 목록 가져오기
         const favoriteItems = await storage.getFavoriteItems(username);
-
+        
         // 한글 디코딩 적용
         galleryItems = favoriteItems.map(item => ({
           ...item,
@@ -1148,7 +1148,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             personaEmoji?: string;
           }> = [];
           const username = req.user?.username;
-
+          
           // 음악 항목 (공유 - 모든 사용자 음악)
           try {
             const musicItems = await db.select({
@@ -1161,7 +1161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .from(music)
             .orderBy(desc(music.createdAt))
             .limit(3);
-
+            
             const formattedMusicItems = musicItems.map(item => ({
               id: item.id,
               title: decodeKoreanInObject(item.title),
@@ -1171,16 +1171,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
               createdAt: item.createdAt.toISOString(),
               isFavorite: false
             }));
-
+            
             processedItems = [...processedItems, ...formattedMusicItems];
           } catch (musicError) {
             console.error("음악 조회 오류:", musicError);
           }
-
+          
           // 이미지 항목 (사용자별 이미지 표시)
           try {
             console.log(`이미지 항목 로딩 - 사용자 ID: ${userId || '없음'}, 이름: ${username || '없음'}`);
-
+            
             // 개선된 getPaginatedImageList 함수 사용 (메타데이터 기반 필터링)
             const result = await storage.getPaginatedImageList(
               1, // 첫 페이지
@@ -1188,12 +1188,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               userId, // 사용자 ID
               username // 사용자 이름
             );
-
+            
             // 필터링된 이미지 가져오기
             let filteredImages = result.images;
-
+            
             console.log(`갤러리 API: 이미지 조회 결과 - ${filteredImages.length}개 이미지`);
-
+            
             // 각 이미지의 기본 정보 로그
             filteredImages.slice(0, 3).forEach((img, i) => {
               let metadataInfo = "없음";
@@ -1207,10 +1207,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
               console.log(`갤러리 이미지 [${i+1}/3] ID: ${img.id}, 제목: ${img.title}, 메타데이터: ${metadataInfo}`);
             });
-
+            
             // 최대 10개 이미지로 제한
             filteredImages = filteredImages.slice(0, 10);
-
+            
             if (filteredImages.length > 0) {
               // 이미지를 갤러리 형식으로 변환
               const formattedImageItems = filteredImages.map(item => ({
@@ -1222,7 +1222,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 createdAt: item.createdAt.toISOString(),
                 isFavorite: false
               }));
-
+              
               processedItems = [...processedItems, ...formattedImageItems];
               console.log(`갤러리에 이미지 ${formattedImageItems.length}개 추가됨`);
             } else {
@@ -1231,7 +1231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } catch (imageError) {
             console.error("이미지 조회 오류:", imageError);
           }
-
+          
           // 채팅 항목 (공유 - 모든 사용자 채팅)
           try {
             // 직접 쿼리를 사용하여 savedChats에서 데이터 조회
@@ -1244,7 +1244,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .from(savedChats)
             .orderBy(desc(savedChats.createdAt))
             .limit(3);
-
+            
             const formattedChatItems = chatItems.map(chat => ({
               id: chat.id,
               title: decodeKoreanInObject(chat.title || '저장된 대화'),
@@ -1254,12 +1254,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               isFavorite: false,
               personaEmoji: chat.personaEmoji || '💬'
             }));
-
+            
             processedItems = [...processedItems, ...formattedChatItems];
           } catch (chatError) {
             console.error("채팅 조회 오류:", chatError);
           }
-
+          
           // 결과 정렬
           galleryItems = processedItems.sort((a, b) => {
             return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
@@ -1269,12 +1269,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           galleryItems = [];
         }
       }
-
+      
       // 빈 배열이면 빈 배열 반환 (에러 없음)
       if (!galleryItems || galleryItems.length === 0) {
         return res.json([]);
       }
-
+      
       return res.json(galleryItems);
     } catch (error) {
       console.error("Error fetching gallery items:", error);
@@ -1285,12 +1285,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/gallery/favorite", async (req, res) => {
     try {
       const validatedData = favoriteToggleSchema.parse(req.body);
-
+      
       const updated = await storage.toggleFavorite(
         validatedData.itemId,
         validatedData.type
       );
-
+      
       return res.json(updated);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -1307,25 +1307,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.header('Allow', 'GET, HEAD, OPTIONS');
     res.status(200).end();
   });
-
+  
   // HEAD 요청 처리 추가 (다운로드 검증용)
   app.head("/api/media/download/:type/:id", async (req, res) => {
     try {
       const { type, id } = req.params;
       const parsedId = parseInt(id);
-
+      
       if (type !== "music" && type !== "image") {
         return res.status(400).end();
       }
-
+      
       // 세션 이미지 확인 또는 DB 조회
       let url = '';
       let contentType = '';
-
+      
       if (type === "image" && parsedId === -1 && req.session && req.session.tempImage) {
         url = req.session.tempImage.transformedUrl;
         contentType = 'image/jpeg';
-
+        
         // 로컬 파일이 있으면 성공 응답
         if (req.session.tempImage.localFilePath && fs.existsSync(req.session.tempImage.localFilePath)) {
           res.setHeader('Content-Type', contentType);
@@ -1337,21 +1337,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!mediaItem) {
           return res.status(404).end();
         }
-
+        
         if (type === "music") {
           url = (mediaItem as typeof music.$inferSelect).url;
           contentType = 'audio/mpeg';
         } else {
           url = (mediaItem as typeof images.$inferSelect).transformedUrl;
           contentType = 'image/jpeg';
-
+          
           // 로컬 파일 확인
           const urlBasename = path.basename(url);
           const possibleLocalPaths = [
             path.join(process.cwd(), 'uploads', urlBasename),
             path.join(process.cwd(), 'uploads', 'temp', urlBasename)
           ];
-
+          
           for (const localPath of possibleLocalPaths) {
             if (fs.existsSync(localPath)) {
               res.setHeader('Content-Type', contentType);
@@ -1360,12 +1360,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
       }
-
+      
       // 로컬 파일이 없는 경우 원격 URL 확인
       if (!url.startsWith('http')) {
         url = `https://${url}`;
       }
-
+      
       try {
         const response = await fetch(url, {
           method: 'HEAD',
@@ -1374,14 +1374,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
           }
         });
-
+        
         if (!response.ok) {
           return res.status(502).json({ 
             error: "원격 서버에서 파일을 찾을 수 없습니다",
             url: url
           });
         }
-
+        
         // 성공 시 컨텐츠 타입 설정
         res.setHeader('Content-Type', response.headers.get('content-type') || contentType);
         return res.status(200).end();
@@ -1397,42 +1397,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).end();
     }
   });
-
+  
   // GET 요청 처리 (실제 다운로드)
   app.get("/api/media/download/:type/:id", async (req, res) => {
     try {
       const { type, id } = req.params;
       const parsedId = parseInt(id);
-
+      
       // CORS 헤더 추가
       res.header('Access-Control-Allow-Origin', '*');
       res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
       res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Origin, X-Requested-With');
-
+      
       if (type !== "music" && type !== "image") {
         return res.status(400).json({ error: "Invalid media type" });
       }
-
+      
       // 임시 이미지 처리 (-1 ID인 경우 임시 캐시에서 찾기)
       let url = '';
       let filename = '';
       let mediaItem;
-
+      
       // 세션에서 임시 이미지 확인 (ID가 -1인 경우)
       if (type === "image" && parsedId === -1 && req.session && req.session.tempImage) {
         console.log("임시 이미지 다운로드 요청 처리 중:", req.session.tempImage.title);
-
+        
         // 로컬 파일 경로가 있으면 직접 파일을 읽어서 반환
         if (req.session.tempImage.localFilePath) {
           try {
             console.log(`로컬 파일에서 읽기: ${req.session.tempImage.localFilePath}`);
             const imageBuffer = fs.readFileSync(req.session.tempImage.localFilePath);
             filename = `${req.session.tempImage.title || 'transformed_image'}.jpg`;
-
+            
             // 응답 헤더 설정
             res.setHeader('Content-Type', 'image/jpeg');
             res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
-
+            
             // 파일 데이터 전송
             return res.send(imageBuffer);
           } catch (fileError) {
@@ -1450,11 +1450,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // 정상적인 데이터베이스 조회
         try {
           mediaItem = await storage.getMediaItem(parsedId, type);
-
+          
           if (!mediaItem) {
             return res.status(404).json({ error: "Media not found" });
           }
-
+          
           if (type === "music") {
             const musicItem = mediaItem as typeof music.$inferSelect;
             url = musicItem.url;
@@ -1463,14 +1463,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const imageItem = mediaItem as typeof images.$inferSelect;
             url = imageItem.transformedUrl;
             filename = `${imageItem.title || 'transformed_image'}.jpg`;
-
+            
             // uploads 폴더 내에 이미지 파일이 존재하는지 확인
             const urlBasename = path.basename(imageItem.transformedUrl);
             const possibleLocalPaths = [
               path.join(process.cwd(), 'uploads', urlBasename),
               path.join(process.cwd(), 'uploads', 'temp', urlBasename)
             ];
-
+            
             for (const localPath of possibleLocalPaths) {
               if (fs.existsSync(localPath)) {
                 console.log(`로컬에서 이미지 파일 찾음: ${localPath}`);
@@ -1494,7 +1494,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(500).json({ error: "데이터베이스 조회 실패", message: dbError instanceof Error ? dbError.message : String(dbError) });
         }
       }
-
+      
       // 이미지 없이 바로 클라이언트에게 URL 반환하는 방식으로 변경
       if (url) {
         // URL이 로컬 파일 경로인 경우, 해당 파일 직접 전송
@@ -1517,12 +1517,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!url.startsWith('http')) {
           url = `https://${url}`;
         }
-
+        
         // URL이 placeholder인 경우 확인
         if (url.includes('placehold.co')) {
           return res.redirect(url);
         }
-
+        
         console.log(`클라이언트에게 URL 전달: ${url}`);
         return res.json({
           success: true,
@@ -1546,17 +1546,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("미디어 공유 요청 수신:", req.body);
       const validatedData = mediaShareSchema.parse(req.body);
-
+      
       // CORS 헤더 추가
       res.header('Access-Control-Allow-Origin', '*');
       res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
       res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Origin, X-Requested-With');
-
+      
       try {
         // 임시 이미지 처리 (ID가 -1인 경우)
         if (validatedData.type === 'image' && validatedData.id === -1 && req.session && req.session.tempImage) {
           console.log("임시 이미지 공유 시도:", req.session.tempImage.title);
-
+          
           // 임시 이미지의 URL 생성
           let shareUrl = '';
           if (req.session.tempImage.localFilePath) {
@@ -1565,26 +1565,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const relativePath = req.session.tempImage.localFilePath.replace(process.cwd(), '');
             shareUrl = `${baseUrl}${relativePath.replace(/\\/g, '/').replace('/uploads', '/uploads')}`;
             console.log("임시 이미지 공유 URL 생성:", shareUrl);
-
+            
             // URL이 올바른 형식인지 확인
             if (!shareUrl.includes('://')) {
               shareUrl = `${req.protocol}://${req.get('host')}${shareUrl.startsWith('/') ? '' : '/'}${shareUrl}`;
             }
-
+            
             return res.json({ 
               shareUrl,
               message: "임시 이미지 URL이 생성되었습니다. 이 URL을 통해 미디어를 공유할 수 있습니다."
             });
           }
         }
-
+        
         // 미디어 아이템 조회
         console.log(`미디어 조회 시도 - ID: ${validatedData.id}, 타입: ${validatedData.type}`);
         const mediaItem = await storage.getMediaItem(
           validatedData.id,
           validatedData.type
         );
-
+        
         if (!mediaItem) {
           console.error(`미디어 항목을 찾을 수 없음 - ID: ${validatedData.id}, 타입: ${validatedData.type}`);
           return res.status(404).json({ 
@@ -1592,15 +1592,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             message: "공유할 미디어 항목을 찾을 수 없습니다."
           });
         }
-
+        
         console.log("미디어 항목 찾음:", mediaItem);
-
+        
         // 미디어 타입에 따라 URL 직접 반환
         let shareUrl = '';
         if (validatedData.type === 'image') {
           const imageItem = mediaItem as typeof images.$inferSelect;
           shareUrl = imageItem.transformedUrl;
-
+          
           // URL이 로컬 파일 경로인 경우 웹 접근 가능한 URL로 변환
           if (!shareUrl.includes('://')) {
             const baseUrl = `${req.protocol}://${req.get('host')}`;
@@ -1609,14 +1609,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else if (validatedData.type === 'music') {
           const musicItem = mediaItem as typeof music.$inferSelect;
           shareUrl = musicItem.url;
-
+          
           // URL이 로컬 파일 경로인 경우 웹 접근 가능한 URL로 변환
           if (!shareUrl.includes('://')) {
             const baseUrl = `${req.protocol}://${req.get('host')}`;
             shareUrl = `${baseUrl}${shareUrl.startsWith('/') ? '' : '/'}${shareUrl}`;
           }
         }
-
+        
         // URL이 있는 경우 직접 반환
         if (shareUrl) {
           return res.json({ 
@@ -1624,13 +1624,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             message: "미디어 URL이 생성되었습니다. 이 URL을 통해 미디어를 공유할 수 있습니다." 
           });
         }
-
+        
         // 없는 경우에는 기존 로직 진행
         const shareLink = await storage.createShareLink(
           validatedData.id,
           validatedData.type
         );
-
+        
         return res.json({ shareUrl: shareLink });
       } catch (lookupError) {
         console.error("미디어 조회 실패:", lookupError);
@@ -1647,15 +1647,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to share media" });
     }
   });
-
+  
   // Saved chat endpoints
   app.post("/api/chat/save", async (req, res) => {
     try {
       const validatedData = saveChatSchema.parse(req.body);
-
+      
       // Save the chat to the database
       const savedChat = await storage.saveChat(validatedData);
-
+      
       return res.status(201).json(savedChat);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -1665,7 +1665,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to save chat" });
     }
   });
-
+  
   app.get("/api/chat/saved", async (req, res) => {
     try {
       const savedChats = await storage.getSavedChats();
@@ -1675,34 +1675,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to fetch saved chats" });
     }
   });
-
+  
   app.get("/api/chat/saved/:id", async (req, res) => {
     try {
       const chatId = parseInt(req.params.id);
       if (isNaN(chatId)) {
         return res.status(400).json({ error: "Invalid chat ID" });
       }
-
+      
       const savedChat = await storage.getSavedChat(chatId);
-
+      
       if (!savedChat) {
         return res.status(404).json({ error: "Saved chat not found" });
       }
-
+      
       return res.json(savedChat);
     } catch (error) {
       console.error("Error fetching saved chat:", error);
       return res.status(500).json({ error: "Failed to fetch saved chat" });
     }
   });
-
+  
   app.delete("/api/chat/saved/:id", async (req, res) => {
     try {
       const chatId = parseInt(req.params.id);
       if (isNaN(chatId)) {
         return res.status(400).json({ error: "Invalid chat ID" });
       }
-
+      
       const result = await storage.deleteSavedChat(chatId);
       return res.json(result);
     } catch (error) {
@@ -1710,21 +1710,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to delete saved chat" });
     }
   });
-
+  
   // Milestone and Pregnancy Profile endpoints
-
+  
   // Get or update the pregnancy profile
   app.get("/api/pregnancy-profile", authMiddleware, async (req, res) => {
     try {
       // 현재 로그인한 사용자 ID 사용
       const userId = req.user?.id;
-
+      
       if (!userId) {
         return res.status(401).json({ error: "인증이 필요합니다" });
       }
-
+      
       console.log("[프로필 조회] 사용자 ID:", userId);
-
+      
       const { getOrCreatePregnancyProfile } = await import("./services/milestones");
       const profile = await getOrCreatePregnancyProfile(userId);
       return res.json(profile || { error: "No profile found" });
@@ -1733,39 +1733,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to fetch pregnancy profile" });
     }
   });
-
+  
   app.post("/api/pregnancy-profile", authMiddleware, async (req, res) => {
     try {
       // 현재 로그인한 사용자 ID 사용
       const userId = req.user?.id;
-
+      
       if (!userId) {
         return res.status(401).json({ error: "인증이 필요합니다" });
       }
-
+      
       console.log("[프로필 저장] 사용자 ID:", userId);
-
+      
       const { updatePregnancyProfile } = await import("./services/milestones");
       const profileData = req.body;
-
+      
       // Ensure dueDate is a proper Date object if provided
       if (profileData.dueDate) {
         profileData.dueDate = new Date(profileData.dueDate);
       }
-
+      
       const profile = await updatePregnancyProfile(userId, profileData);
-
+      
       if (!profile) {
         return res.status(400).json({ error: "Failed to update profile - dueDate is required" });
       }
-
+      
       return res.json(profile);
     } catch (error) {
       console.error("Error updating pregnancy profile:", error);
       return res.status(500).json({ error: "Failed to update pregnancy profile" });
     }
   });
-
+  
   // Milestone endpoints
   app.get("/api/milestones", async (req, res) => {
     try {
@@ -1777,7 +1777,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to fetch milestones" });
     }
   });
-
+  
   // 모든 마일스톤 카테고리 조회
   app.get("/api/milestone-categories", async (req, res) => {
     try {
@@ -1792,18 +1792,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
+  
   app.get("/api/milestones/available", authMiddleware, async (req, res) => {
     try {
       // 현재 로그인한 사용자 ID 사용
       const userId = req.user?.id;
-
+      
       if (!userId) {
         return res.status(401).json({ error: "인증이 필요합니다" });
       }
-
+      
       console.log("[마일스톤 가능 목록] 사용자 ID:", userId);
-
+      
       const { getAvailableMilestones } = await import("./services/milestones");
       const milestones = await getAvailableMilestones(userId);
       return res.json(milestones);
@@ -1812,18 +1812,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to fetch available milestones" });
     }
   });
-
+  
   app.get("/api/milestones/completed", authMiddleware, async (req, res) => {
     try {
       // 현재 로그인한 사용자 ID 사용
       const userId = req.user?.id;
-
+      
       if (!userId) {
         return res.status(401).json({ error: "인증이 필요합니다" });
       }
-
+      
       console.log("[마일스톤 완료 목록] 사용자 ID:", userId);
-
+      
       const { getUserCompletedMilestones } = await import("./services/milestones");
       const milestones = await getUserCompletedMilestones(userId);
       return res.json(milestones);
@@ -1832,42 +1832,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to fetch completed milestones" });
     }
   });
-
+  
   app.post("/api/milestones/:milestoneId/complete", authMiddleware, async (req, res) => {
     try {
       // 현재 로그인한 사용자 ID 사용
       const userId = req.user?.id;
-
+      
       if (!userId) {
         return res.status(401).json({ error: "인증이 필요합니다" });
       }
-
+      
       const { milestoneId } = req.params;
       const { notes, photoUrl } = req.body;
-
+      
       console.log("[마일스톤 완료 처리] 사용자 ID:", userId, "마일스톤 ID:", milestoneId);
-
+      
       const { completeMilestone } = await import("./services/milestones");
       const result = await completeMilestone(userId, milestoneId, notes);
-
+      
       return res.json(result);
     } catch (error) {
       console.error("Error completing milestone:", error);
       return res.status(500).json({ error: "Failed to complete milestone" });
     }
   });
-
+  
   app.get("/api/milestones/stats", authMiddleware, async (req, res) => {
     try {
       // 현재 로그인한 사용자 ID 사용
       const userId = req.user?.id;
-
+      
       if (!userId) {
         return res.status(401).json({ error: "인증이 필요합니다" });
       }
-
+      
       console.log("[마일스톤 통계] 사용자 ID:", userId);
-
+      
       const { getUserAchievementStats } = await import("./services/milestones");
       const stats = await getUserAchievementStats(userId);
       return res.json(stats);
@@ -1879,7 +1879,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Admin-only persona management endpoints
   // Note: In a production app, these would need authentication/authorization
-
+  
   // Get all personas
   app.get("/api/admin/personas", async (req, res) => {
     try {
@@ -1892,41 +1892,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to fetch personas" });
     }
   });
-
+  
   // Get a specific persona
   app.get("/api/admin/personas/:id", async (req, res) => {
     try {
       const personaId = req.params.id;
-
+      
       const persona = await db.query.personas.findFirst({
         where: eq(personas.personaId, personaId)
       });
-
+      
       if (!persona) {
         return res.status(404).json({ error: "Persona not found" });
       }
-
+      
       return res.json(persona);
     } catch (error) {
       console.error("Error fetching persona:", error);
       return res.status(500).json({ error: "Failed to fetch persona" });
     }
   });
-
+  
   // Create a new persona
   app.post("/api/admin/personas", async (req, res) => {
     try {
       const validatedData = personaSchema.parse(req.body);
-
+      
       // Check if persona with this ID already exists
       const existingPersona = await db.query.personas.findFirst({
         where: eq(personas.personaId, validatedData.personaId)
       });
-
+      
       if (existingPersona) {
         return res.status(409).json({ error: "A persona with this ID already exists" });
       }
-
+      
       // Insert new persona
       const [newPersona] = await db.insert(personas).values({
         personaId: validatedData.personaId,
@@ -1949,7 +1949,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdAt: new Date(),
         updatedAt: new Date(),
       }).returning();
-
+      
       return res.status(201).json(newPersona);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -1959,22 +1959,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to create persona" });
     }
   });
-
+  
   // Update an existing persona
   app.put("/api/admin/personas/:id", async (req, res) => {
     try {
       const personaId = req.params.id;
       const validatedData = personaSchema.parse(req.body);
-
+      
       // Check if persona exists
       const existingPersona = await db.query.personas.findFirst({
         where: eq(personas.personaId, personaId)
       });
-
+      
       if (!existingPersona) {
         return res.status(404).json({ error: "Persona not found" });
       }
-
+      
       // Update persona
       const [updatedPersona] = await db.update(personas)
         .set({
@@ -1999,7 +1999,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(personas.personaId, personaId))
         .returning();
-
+      
       return res.json(updatedPersona);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -2009,41 +2009,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to update persona" });
     }
   });
-
+  
   // Delete a persona
   app.delete("/api/admin/personas/:id", async (req, res) => {
     try {
       const personaId = req.params.id;
-
+      
       // Check if persona exists
       const existingPersona = await db.query.personas.findFirst({
         where: eq(personas.personaId, personaId)
       });
-
+      
       if (!existingPersona) {
         return res.status(404).json({ error: "Persona not found" });
       }
-
+      
       // Delete persona
       await db.delete(personas).where(eq(personas.personaId, personaId));
-
+      
       return res.json({ success: true, message: "Persona deleted successfully" });
     } catch (error) {
       console.error("Error deleting persona:", error);
       return res.status(500).json({ error: "Failed to delete persona" });
     }
   });
-
+  
   // Batch import personas (admin-only)
   app.post("/api/admin/personas/batch", async (req, res) => {
     try {
       // Parse as array of persona objects
       const personaBatchSchema = z.array(personaSchema);
       const personaList = personaBatchSchema.parse(req.body);
-
+      
       const results = [];
       const actions = [];
-
+      
       // Process each persona in the batch
       for (const validatedData of personaList) {
         try {
@@ -2051,10 +2051,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const existingPersona = await db.query.personas.findFirst({
             where: eq(personas.personaId, validatedData.personaId)
           });
-
+          
           let result;
           let action;
-
+          
           if (existingPersona) {
             // Update existing persona
             const [updatedPersona] = await db.update(personas)
@@ -2079,7 +2079,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               })
               .where(eq(personas.personaId, validatedData.personaId))
               .returning();
-
+              
             result = updatedPersona;
             action = 'updated';
           } else {
@@ -2106,11 +2106,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               createdAt: new Date(),
               updatedAt: new Date(),
             }).returning();
-
+            
             result = newPersona;
             action = 'created';
           }
-
+          
           results.push(result);
           actions.push(action);
         } catch (error) {
@@ -2120,7 +2120,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           actions.push('failed');
         }
       }
-
+      
       return res.status(201).json({
         success: true,
         count: results.length,
@@ -2137,9 +2137,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to process personas in batch import" });
     }
   });
-
+  
   // Admin-only persona category management endpoints
-
+  
   // Get all categories
   app.get("/api/admin/categories", async (req, res) => {
     try {
@@ -2152,41 +2152,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to fetch categories" });
     }
   });
-
+  
   // Get a specific category
   app.get("/api/admin/categories/:id", async (req, res) => {
     try {
       const categoryId = req.params.id;
-
+      
       const category = await db.query.personaCategories.findFirst({
         where: eq(personaCategories.categoryId, categoryId)
       });
-
+      
       if (!category) {
         return res.status(404).json({ error: "Category not found" });
       }
-
+      
       return res.json(category);
     } catch (error) {
       console.error("Error fetching category:", error);
       return res.status(500).json({ error: "Failed to fetch category" });
     }
   });
-
+  
   // Create a new category
   app.post("/api/admin/categories", async (req, res) => {
     try {
       const validatedData = personaCategorySchema.parse(req.body);
-
+      
       // Check if category with this ID already exists
       const existingCategory = await db.query.personaCategories.findFirst({
         where: eq(personaCategories.categoryId, validatedData.categoryId)
       });
-
+      
       if (existingCategory) {
         return res.status(409).json({ error: "A category with this ID already exists" });
       }
-
+      
       // Insert new category
       const [newCategory] = await db.insert(personaCategories).values({
         categoryId: validatedData.categoryId,
@@ -2198,7 +2198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdAt: new Date(),
         updatedAt: new Date(),
       }).returning();
-
+      
       return res.status(201).json(newCategory);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -2208,22 +2208,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to create category" });
     }
   });
-
+  
   // Update an existing category
   app.put("/api/admin/categories/:id", async (req, res) => {
     try {
       const categoryId = req.params.id;
       const validatedData = personaCategorySchema.parse(req.body);
-
+      
       // Check if category exists
       const existingCategory = await db.query.personaCategories.findFirst({
         where: eq(personaCategories.categoryId, categoryId)
       });
-
+      
       if (!existingCategory) {
         return res.status(404).json({ error: "Category not found" });
       }
-
+      
       // Update category
       const [updatedCategory] = await db.update(personaCategories)
         .set({
@@ -2237,7 +2237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(personaCategories.categoryId, categoryId))
         .returning();
-
+      
       return res.json(updatedCategory);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -2247,45 +2247,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to update category" });
     }
   });
-
+  
   // Delete a category
   app.delete("/api/admin/categories/:id", async (req, res) => {
     try {
       const categoryId = req.params.id;
-
+      
       // Check if category exists
       const existingCategory = await db.query.personaCategories.findFirst({
         where: eq(personaCategories.categoryId, categoryId)
       });
-
+      
       if (!existingCategory) {
         return res.status(404).json({ error: "Category not found" });
       }
-
+      
       // Delete category
       await db.delete(personaCategories).where(eq(personaCategories.categoryId, categoryId));
-
+      
       return res.json({ success: true, message: "Category deleted successfully" });
     } catch (error) {
       console.error("Error deleting category:", error);
       return res.status(500).json({ error: "Failed to delete category" });
     }
   });
-
+  
   // API to increment usage count for a persona (for recommendation engine)
   app.post("/api/personas/:id/use", async (req, res) => {
     try {
       const personaId = req.params.id;
-
+      
       // Check if persona exists
       const existingPersona = await db.query.personas.findFirst({
         where: eq(personas.personaId, personaId)
       });
-
+      
       if (!existingPersona) {
         return res.status(404).json({ error: "Persona not found" });
       }
-
+      
       // Increment use count
       const [updatedPersona] = await db.update(personas)
         .set({
@@ -2294,14 +2294,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(personas.personaId, personaId))
         .returning();
-
+      
       return res.json({ success: true, useCount: updatedPersona.useCount });
     } catch (error) {
       console.error("Error incrementing persona use count:", error);
       return res.status(500).json({ error: "Failed to increment persona use count" });
     }
   });
-
+  
   // API to recommend personas based on various factors
   app.get("/api/personas/recommend", async (req, res) => {
     try {
@@ -2314,26 +2314,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
                           if (hour >= 17 && hour < 21) return "evening";
                           return "night";
                         })();
-
+      
       // Get emotion keywords from query if provided
       const emotions = req.query.emotions 
                       ? (req.query.emotions as string).split(',') 
                       : [];
-
+      
       // Get all active personas
       const allPersonas = await db.query.personas.findMany({
         where: eq(personas.isActive, true)
       });
-
+      
       // Score each persona based on recommendation factors
       const scoredPersonas = allPersonas.map(persona => {
         let score = 0;
-
+        
         // Factor 1: Time of day match
         if (persona.timeOfDay === timeOfDay || persona.timeOfDay === "all") {
           score += 10;
         }
-
+        
         // Factor 2: Emotional keyword match
         const personaEmotions = persona.emotionalKeywords as string[] || [];
         emotions.forEach(emotion => {
@@ -2341,21 +2341,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
             score += 5;
           }
         });
-
+        
         // Factor 3: Featured status
         if (persona.isFeatured) {
           score += 15;
         }
-
+        
         // Factor 4: Popularity (use count)
         score += Math.min(persona.useCount || 0, 50) / 5;
-
+        
         return { persona, score };
       });
-
+      
       // Sort by score (descending) and return top results
       scoredPersonas.sort((a, b) => b.score - a.score);
-
+      
       // Return top recommendations with scores
       return res.json({
         timeOfDay,
@@ -2376,7 +2376,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI Image Generation Concept Management
-
+  
   // Get all concept categories
   app.get("/api/admin/concept-categories", async (req, res) => {
     try {
@@ -2387,7 +2387,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to fetch concept categories" });
     }
   });
-
+  
   // Get all active concept categories (public endpoint)
   app.get("/api/concept-categories", async (req, res) => {
     try {
@@ -2400,41 +2400,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to fetch concept categories" });
     }
   });
-
+  
   // Get a specific concept category
   app.get("/api/admin/concept-categories/:id", async (req, res) => {
     try {
       const categoryId = req.params.id;
-
+      
       const category = await db.query.conceptCategories.findFirst({
         where: eq(conceptCategories.categoryId, categoryId)
       });
-
+      
       if (!category) {
         return res.status(404).json({ error: "Concept category not found" });
       }
-
+      
       return res.json(category);
     } catch (error) {
       console.error("Error fetching concept category:", error);
       return res.status(500).json({ error: "Failed to fetch concept category" });
     }
   });
-
+  
   // Create a new concept category
   app.post("/api/admin/concept-categories", async (req, res) => {
     try {
       const validatedData = conceptCategorySchema.parse(req.body);
-
+      
       // Check if category with this ID already exists
       const existingCategory = await db.query.conceptCategories.findFirst({
         where: eq(conceptCategories.categoryId, validatedData.categoryId)
       });
-
+      
       if (existingCategory) {
         return res.status(409).json({ error: "A concept category with this ID already exists" });
       }
-
+      
       // Insert new category
       const [newCategory] = await db.insert(conceptCategories).values({
         categoryId: validatedData.categoryId,
@@ -2445,7 +2445,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdAt: new Date(),
         updatedAt: new Date(),
       }).returning();
-
+      
       return res.status(201).json(newCategory);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -2455,22 +2455,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to create concept category" });
     }
   });
-
+  
   // Update a concept category
   app.put("/api/admin/concept-categories/:id", async (req, res) => {
     try {
       const categoryId = req.params.id;
       const validatedData = conceptCategorySchema.parse(req.body);
-
+      
       // Check if category exists
       const existingCategory = await db.query.conceptCategories.findFirst({
         where: eq(conceptCategories.categoryId, categoryId)
       });
-
+      
       if (!existingCategory) {
         return res.status(404).json({ error: "Concept category not found" });
       }
-
+      
       // Update category
       const [updatedCategory] = await db.update(conceptCategories)
         .set({
@@ -2483,7 +2483,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(conceptCategories.categoryId, categoryId))
         .returning();
-
+      
       return res.json(updatedCategory);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -2493,31 +2493,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to update concept category" });
     }
   });
-
+  
   // Delete a concept category
   app.delete("/api/admin/concept-categories/:id", async (req, res) => {
     try {
       const categoryId = req.params.id;
-
+      
       // Check if category exists
       const existingCategory = await db.query.conceptCategories.findFirst({
         where: eq(conceptCategories.categoryId, categoryId)
       });
-
+      
       if (!existingCategory) {
         return res.status(404).json({ error: "Concept category not found" });
       }
-
+      
       // Delete category
       await db.delete(conceptCategories).where(eq(conceptCategories.categoryId, categoryId));
-
+      
       return res.json({ success: true, message: "Concept category deleted successfully" });
     } catch (error) {
       console.error("Error deleting concept category:", error);
       return res.status(500).json({ error: "Failed to delete concept category" });
     }
   });
-
+  
   // Get all concepts
   app.get("/api/admin/concepts", async (req, res) => {
     try {
@@ -2528,7 +2528,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to fetch concepts" });
     }
   });
-
+  
   // Get all active concepts (public endpoint)
   app.get("/api/concepts", async (req, res) => {
     try {
@@ -2541,41 +2541,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to fetch concepts" });
     }
   });
-
+  
   // Get a specific concept
   app.get("/api/admin/concepts/:id", async (req, res) => {
     try {
       const conceptId = req.params.id;
-
+      
       const concept = await db.query.concepts.findFirst({
         where: eq(concepts.conceptId, conceptId)
       });
-
+      
       if (!concept) {
         return res.status(404).json({ error: "Concept not found" });
       }
-
+      
       return res.json(concept);
     } catch (error) {
       console.error("Error fetching concept:", error);
       return res.status(500).json({ error: "Failed to fetch concept" });
     }
   });
-
+  
   // Create a new concept
   app.post("/api/admin/concepts", async (req, res) => {
     try {
       const validatedData = conceptSchema.parse(req.body);
-
+      
       // Check if concept with this ID already exists
       const existingConcept = await db.query.concepts.findFirst({
         where: eq(concepts.conceptId, validatedData.conceptId)
       });
-
+      
       if (existingConcept) {
         return res.status(409).json({ error: "A concept with this ID already exists" });
       }
-
+      
       // Insert new concept
       const [newConcept] = await db.insert(concepts).values({
         conceptId: validatedData.conceptId,
@@ -2593,7 +2593,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdAt: new Date(),
         updatedAt: new Date(),
       }).returning();
-
+      
       return res.status(201).json(newConcept);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -2603,29 +2603,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to create concept" });
     }
   });
-
+  
   // Update a concept
   app.put("/api/admin/concepts/:id", async (req, res) => {
     try {
       const conceptId = req.params.id;
-
+      
       // 요청 데이터 로깅 (디버깅용)
       console.log("컨셉 업데이트 요청 데이터:", JSON.stringify(req.body, null, 2));
-
+      
       const validatedData = conceptSchema.parse(req.body);
-
+      
       // 유효성 검사 통과한 데이터 로깅 (디버깅용)
       console.log("검증된 컨셉 데이터:", JSON.stringify(validatedData, null, 2));
-
+      
       // Check if concept exists
       const existingConcept = await db.query.concepts.findFirst({
         where: eq(concepts.conceptId, conceptId)
       });
-
+      
       if (!existingConcept) {
         return res.status(404).json({ error: "Concept not found" });
       }
-
+      
       // Update concept
       const [updatedConcept] = await db.update(concepts)
         .set({
@@ -2645,7 +2645,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(concepts.conceptId, conceptId))
         .returning();
-
+      
       return res.json(updatedConcept);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -2655,24 +2655,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to update concept" });
     }
   });
-
+  
   // Delete a concept
   app.delete("/api/admin/concepts/:id", async (req, res) => {
     try {
       const conceptId = req.params.id;
-
+      
       // Check if concept exists
       const existingConcept = await db.query.concepts.findFirst({
         where: eq(concepts.conceptId, conceptId)
       });
-
+      
       if (!existingConcept) {
         return res.status(404).json({ error: "Concept not found" });
       }
-
+      
       // Delete concept
       await db.delete(concepts).where(eq(concepts.conceptId, conceptId));
-
+      
       return res.json({ success: true, message: "Concept deleted successfully" });
     } catch (error) {
       console.error("Error deleting concept:", error);
@@ -2681,20 +2681,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Internationalization (i18n) API endpoints
-
+  
   // Upload translations for a specific language
   app.post("/api/admin/translations/:lang", async (req, res) => {
     try {
       const lang = req.params.lang;
       const translations = req.body;
-
+      
       if (!translations || typeof translations !== 'object') {
         return res.status(400).json({ error: "Invalid translations format. Expected JSON object with key-value pairs." });
       }
-
+      
       // In a real implementation, we would store these in a database or file system
       // For now, we'll just return a success response
-
+      
       return res.json({ 
         success: true, 
         message: `Successfully uploaded translations for ${lang}`,
@@ -2705,7 +2705,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to upload translations" });
     }
   });
-
+  
   // Get available languages
   app.get("/api/languages", async (req, res) => {
     try {
@@ -2713,19 +2713,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // For now, we'll just return a predefined list
       return res.json([
         { code: "en", name: "English", isDefault: true },
-        { code: "ko", name: "한국어", isDefault: false }
+        { code: "ko", name: "Korean" }
       ]);
     } catch (error) {
       console.error("Error fetching languages:", error);
       return res.status(500).json({ error: "Failed to fetch languages" });
     }
   });
-
-  return httpServer;
-}
-
+  
   // 서비스 카테고리 API 엔드포인트
-
+  
   // --- public menu (카테고리 + 하위메뉴) --------------------------
   app.get("/api/menu", async (req, res) => {
     try {
@@ -2765,7 +2762,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return acc;
         }, {})
       );
-
+      
       console.log("메뉴 구조:", JSON.stringify(grouped));
       res.json(grouped);
     } catch (e) {
@@ -2787,9 +2784,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "서비스 카테고리를 가져오는 데 실패했습니다." });
     }
   });
-
+  
   // 서비스 카테고리 API 엔드포인트 (관리자용)
-
+  
   // 모든 서비스 카테고리 조회 (관리자용)
   app.get("/api/admin/service-categories", async (req, res) => {
     try {
@@ -2802,36 +2799,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "서비스 카테고리를 가져오는 데 실패했습니다." });
     }
   });
-
+  
   // 하위 서비스 항목 관리 API 엔드포인트 (관리자용)
   app.get("/api/admin/service-items", async (req, res) => {
     try {
       const { categoryId } = req.query;
-
+      
       // 카테고리 ID로 필터링 (옵션)
       if (categoryId && typeof categoryId === 'string') {
         // 카테고리 ID는 숫자로 직접 변환 시도
         const categoryIdNum = parseInt(categoryId);
-
+        
         if (isNaN(categoryIdNum)) {
           return res.status(400).json({ error: "카테고리 ID는 유효한 숫자여야 합니다." });
         }
-
+        
         // 카테고리 기본 키로 카테고리 조회
         const category = await db.query.serviceCategories.findFirst({
           where: eq(serviceCategories.id, categoryIdNum)
         });
-
+        
         if (!category) {
           return res.status(404).json({ error: "해당 카테고리를 찾을 수 없습니다." });
         }
-
+        
         // 카테고리에 속한 서비스 항목 조회
         const items = await db.query.serviceItems.findMany({
           where: eq(serviceItems.categoryId, category.id),
           orderBy: [asc(serviceItems.order), asc(serviceItems.id)]
         });
-
+        
         return res.json(items);
       } else {
         // 모든 서비스 항목 조회 (카테고리 정보 포함)
@@ -2841,7 +2838,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             category: true
           }
         });
-
+        
         return res.json(items);
       }
     } catch (error) {
@@ -2849,81 +2846,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "서비스 항목을 가져오는 데 실패했습니다." });
     }
   });
-
+  
   // 새 서비스 항목 생성
   app.post("/api/admin/service-items", async (req, res) => {
     try {
       const itemData = insertServiceItemSchema.parse(req.body);
-
+      
       // 중복 itemId 체크
       const existingItemId = await db.query.serviceItems.findFirst({
         where: eq(serviceItems.itemId, itemData.itemId)
       });
-
+      
       if (existingItemId) {
         return res.status(400).json({ error: "이미 사용 중인 서비스 항목 ID입니다." });
       }
-
+      
       // 카테고리 존재 여부 확인
       const category = await db.query.serviceCategories.findFirst({
         where: eq(serviceCategories.id, itemData.categoryId)
       });
-
+      
       if (!category) {
         return res.status(404).json({ error: "카테고리를 찾을 수 없습니다." });
       }
-
+      
       // 새 서비스 항목 저장
       const [newItem] = await db
         .insert(serviceItems)
         .values(itemData)
         .returning();
-
+      
       return res.status(201).json(newItem);
     } catch (error) {
       console.error("Error creating service item:", error);
       return res.status(500).json({ error: "서비스 항목을 생성하는 데 실패했습니다." });
     }
   });
-
+  
   // 서비스 항목 수정
   app.patch("/api/admin/service-items/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-
+      
       // 기존 항목 존재 여부 확인
       const existingItem = await db.query.serviceItems.findFirst({
         where: eq(serviceItems.id, id)
       });
-
+      
       if (!existingItem) {
         return res.status(404).json({ error: "서비스 항목을 찾을 수 없습니다." });
       }
-
+      
       const itemData = insertServiceItemSchema.partial().parse(req.body);
-
+      
       // itemId 수정 시 중복 체크
       if (itemData.itemId && itemData.itemId !== existingItem.itemId) {
         const existingItemId = await db.query.serviceItems.findFirst({
           where: eq(serviceItems.itemId, itemData.itemId)
         });
-
+        
         if (existingItemId) {
           return res.status(400).json({ error: "이미 사용 중인 서비스 항목 ID입니다." });
         }
       }
-
+      
       // 카테고리 변경 시 카테고리 존재 여부 확인
       if (itemData.categoryId) {
         const category = await db.query.serviceCategories.findFirst({
           where: eq(serviceCategories.id, itemData.categoryId)
         });
-
+        
         if (!category) {
           return res.status(404).json({ error: "카테고리를 찾을 수 없습니다." });
         }
       }
-
+      
       // 항목 업데이트
       const [updatedItem] = await db
         .update(serviceItems)
@@ -2933,54 +2930,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(serviceItems.id, id))
         .returning();
-
+      
       return res.json(updatedItem);
     } catch (error) {
       console.error("Error updating service item:", error);
       return res.status(500).json({ error: "서비스 항목을 수정하는 데 실패했습니다." });
     }
   });
-
+  
   // 서비스 항목 삭제
   app.delete("/api/admin/service-items/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-
+      
       // 기존 항목 존재 여부 확인
       const existingItem = await db.query.serviceItems.findFirst({
         where: eq(serviceItems.id, id)
       });
-
+      
       if (!existingItem) {
         return res.status(404).json({ error: "서비스 항목을 찾을 수 없습니다." });
       }
-
+      
       // 항목 삭제
       await db
         .delete(serviceItems)
         .where(eq(serviceItems.id, id));
-
+      
       return res.status(204).end();
     } catch (error) {
       console.error("Error deleting service item:", error);
       return res.status(500).json({ error: "서비스 항목을 삭제하는 데 실패했습니다." });
     }
   });
-
+  
   // 새 서비스 카테고리 생성
   app.post("/api/admin/service-categories", async (req, res) => {
     try {
       const categoryData = insertServiceCategorySchema.parse(req.body);
-
+      
       // 이미 존재하는 카테고리 ID인지 확인
       const existingCategory = await db.query.serviceCategories.findFirst({
         where: eq(serviceCategories.categoryId, categoryData.categoryId)
       });
-
+      
       if (existingCategory) {
         return res.status(400).json({ error: "이미 존재하는 카테고리 ID입니다." });
       }
-
+      
       const newCategory = await db.insert(serviceCategories)
         .values({
           ...categoryData,
@@ -2988,7 +2985,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           updatedAt: new Date()
         })
         .returning();
-
+        
       return res.status(201).json(newCategory[0]);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -2998,7 +2995,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "서비스 카테고리 생성에 실패했습니다." });
     }
   });
-
+  
   // 서비스 카테고리 업데이트
   app.patch("/api/admin/service-categories/:id", async (req, res) => {
     try {
@@ -3006,9 +3003,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ error: "잘못된 카테고리 ID입니다." });
       }
-
+      
       const categoryData = insertServiceCategorySchema.partial().parse(req.body);
-
+      
       // 카테고리 ID를 변경하려는 경우, 중복 확인
       if (categoryData.categoryId) {
         const existingWithSameId = await db.query.serviceCategories.findFirst({
@@ -3017,12 +3014,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             sql`${serviceCategories.id} != ${id}`
           )
         });
-
+        
         if (existingWithSameId) {
           return res.status(400).json({ error: "이미 존재하는 카테고리 ID입니다." });
         }
       }
-
+      
       const updatedCategory = await db.update(serviceCategories)
         .set({
           ...categoryData,
@@ -3030,11 +3027,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(serviceCategories.id, id))
         .returning();
-
+        
       if (updatedCategory.length === 0) {
         return res.status(404).json({ error: "카테고리를 찾을 수 없습니다." });
       }
-
+      
       return res.json(updatedCategory[0]);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -3044,7 +3041,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "서비스 카테고리 업데이트에 실패했습니다." });
     }
   });
-
+  
   // 서비스 카테고리 삭제
   app.delete("/api/admin/service-categories/:id", async (req, res) => {
     try {
@@ -3052,15 +3049,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ error: "잘못된 카테고리 ID입니다." });
       }
-
+      
       const result = await db.delete(serviceCategories)
         .where(eq(serviceCategories.id, id))
         .returning({ id: serviceCategories.id });
-
+        
       if (result.length === 0) {
         return res.status(404).json({ error: "카테고리를 찾을 수 없습니다." });
       }
-
+      
       return res.json({ message: "카테고리가 성공적으로 삭제되었습니다." });
     } catch (error) {
       console.error("Error deleting service category:", error);
@@ -3074,10 +3071,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
       }
-
+      
       // Generate a public URL for the uploaded file
       const fileUrl = `/uploads/${req.file.filename}`;
-
+      
       return res.json({
         success: true,
         url: fileUrl,
@@ -3088,17 +3085,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to upload thumbnail" });
     }
   });
-
+  
   // Reference image upload endpoint for PhotoMaker
   app.post("/api/admin/upload/reference", upload.single("reference"), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
       }
-
+      
       // Generate a public URL for the uploaded file
       const fileUrl = `/uploads/${req.file.filename}`;
-
+      
       return res.json({
         success: true,
         url: fileUrl,
@@ -3109,7 +3106,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to upload reference image" });
     }
   });
-
+  
   // A/B Testing routes
   // Get all A/B tests
   app.get("/api/admin/abtests", async (req, res) => {
@@ -3117,31 +3114,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allTests = await db.query.abTests.findMany({
         orderBy: [asc(abTests.name)],
       });
-
+      
       return res.json(allTests);
     } catch (error) {
       console.error("Error fetching A/B tests:", error);
       return res.status(500).json({ error: "Failed to fetch A/B tests" });
     }
   });
-
+  
   // Get a single A/B test with its variants
   app.get("/api/admin/abtests/:id", async (req, res) => {
     try {
       const testId = req.params.id;
-
+      
       const test = await db.query.abTests.findFirst({
         where: eq(abTests.testId, testId),
       });
-
+      
       if (!test) {
         return res.status(404).json({ error: "A/B test not found" });
       }
-
+      
       const variants = await db.query.abTestVariants.findMany({
         where: eq(abTestVariants.testId, testId),
       });
-
+      
       return res.json({
         ...test,
         variants
@@ -3151,7 +3148,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to fetch A/B test" });
     }
   });
-
+  
   // Create an A/B test
   app.post("/api/admin/abtests", async (req, res) => {
     try {
@@ -3168,18 +3165,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           variables: z.array(z.any()).optional(),
         })).min(2, "At least two variants are required")
       });
-
+      
       const validatedData = abTestSchema.parse(req.body);
-
+      
       // Check if concept exists
       const concept = await db.query.concepts.findFirst({
         where: eq(concepts.conceptId, validatedData.conceptId)
       });
-
+      
       if (!concept) {
         return res.status(404).json({ error: "Concept not found" });
       }
-
+      
       // Create test
       const [newTest] = await db.insert(abTests).values({
         testId: validatedData.testId,
@@ -3189,7 +3186,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isActive: validatedData.isActive,
         startDate: new Date(),
       }).returning();
-
+      
       // Create variants
       const variants = await Promise.all(
         validatedData.variants.map(async (variant) => {
@@ -3200,11 +3197,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             promptTemplate: variant.promptTemplate,
             variables: variant.variables || [],
           }).returning();
-
+          
           return newVariant;
         })
       );
-
+      
       return res.status(201).json({
         ...newTest,
         variants
@@ -3217,12 +3214,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to create A/B test" });
     }
   });
-
+  
   // Get active A/B test for a specific concept/style
   app.get("/api/abtests/active/:conceptId", async (req, res) => {
     try {
       const { conceptId } = req.params;
-
+      
       const activeTest = await db.query.abTests.findFirst({
         where: and(
           eq(abTests.conceptId, conceptId),
@@ -3232,18 +3229,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           variants: true
         }
       });
-
+      
       if (!activeTest) {
         return res.status(404).json({ error: "No active A/B test found for this concept" });
       }
-
+      
       return res.json(activeTest);
     } catch (error) {
       console.error("Error fetching active A/B test:", error);
       return res.status(500).json({ error: "Failed to fetch active A/B test" });
     }
   });
-
+  
   // Record A/B test result
   app.post("/api/abtests/result", async (req, res) => {
     try {
@@ -3253,9 +3250,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: z.number().int().optional(),
         context: z.record(z.any()).optional(),
       });
-
+      
       const validatedData = resultSchema.parse(req.body);
-
+      
       // Record the result
       const [result] = await db.insert(abTestResults).values({
         testId: validatedData.testId,
@@ -3263,7 +3260,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: validatedData.userId || null,
         context: validatedData.context || {},
       }).returning();
-
+      
       return res.status(201).json(result);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -3273,12 +3270,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to record A/B test result" });
     }
   });
-
+  
   // Get active A/B test for a concept
   app.get("/api/concepts/:conceptId/abtest", async (req, res) => {
     try {
       const conceptId = req.params.conceptId;
-
+      
       // Find active A/B test for the concept
       const activeTest = await db.query.abTests.findFirst({
         where: and(
@@ -3286,16 +3283,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           eq(abTests.isActive, true)
         ),
       });
-
+      
       if (!activeTest) {
         return res.status(404).json({ error: "No active A/B test found for this concept" });
       }
-
+      
       // Get variants for the test
       const variants = await db.query.abTestVariants.findMany({
         where: eq(abTestVariants.testId, activeTest.testId),
       });
-
+      
       return res.json({
         ...activeTest,
         variants
@@ -3310,11 +3307,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/export/chat/html", async (req, res) => {
     try {
       const htmlContent = await exportChatHistoryAsHtml();
-
+      
       // Set headers for file download
       res.setHeader('Content-Type', 'text/html');
       res.setHeader('Content-Disposition', 'attachment; filename="chat_history.html"');
-
+      
       return res.send(htmlContent);
     } catch (error) {
       console.error("Error exporting chat history as HTML:", error);
@@ -3326,27 +3323,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/export/chat/text", async (req, res) => {
     try {
       const textContent = await exportChatHistoryAsText();
-
+      
       // Set headers for file download
       res.setHeader('Content-Type', 'text/plain');
       res.setHeader('Content-Disposition', 'attachment; filename="chat_history.txt"');
-
+      
       return res.send(textContent);
     } catch (error) {
       console.error("Error exporting chat history as text:", error);
       return res.status(500).json({ error: "Failed to export chat history" });
     }
   });
-
+  
   // 개발 대화 기록 내보내기 - HTML 형식
   app.get("/api/export/dev-chat/html", async (req, res) => {
     try {
       const htmlContent = await exportDevChatAsHtml();
-
+      
       // Set headers for file download
       res.setHeader('Content-Type', 'text/html');
       res.setHeader('Content-Disposition', 'attachment; filename="dev_chat_history.html"');
-
+      
       return res.send(htmlContent);
     } catch (error) {
       console.error("Error exporting development chat history as HTML:", error);
@@ -3358,20 +3355,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/export/dev-chat/text", async (req, res) => {
     try {
       const textContent = await exportDevChatAsText();
-
+      
       // Set headers for file download
       res.setHeader('Content-Type', 'text/plain');
       res.setHeader('Content-Disposition', 'attachment; filename="dev_chat_history.txt"');
-
+      
       return res.send(textContent);
     } catch (error) {
       console.error("Error exporting development chat history as text:", error);
       return res.status(500).json({ error: "Failed to export development chat history" });
     }
   });
-
+  
   // ===== 개발자 대화 히스토리 관리 API =====
-
+  
   // 날짜 목록 가져오기
   app.get("/api/dev-history/dates", (req, res) => {
     try {
@@ -3383,14 +3380,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to get history dates" });
     }
   });
-
+  
   // 특정 날짜의 대화 히스토리 가져오기
   app.get("/api/dev-history/:date", (req, res) => {
     try {
       const { date } = req.params;
       const historyManager = new DevHistoryManager();
       const htmlContent = historyManager.getHistoryByDate(date);
-
+      
       // HTML 형식으로 반환
       res.setHeader('Content-Type', 'text/html');
       return res.send(htmlContent);
@@ -3399,32 +3396,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to get history for this date" });
     }
   });
-
+  
   // 특정 날짜의 대화 히스토리 다운로드
   app.get("/api/dev-history/:date/download", (req, res) => {
     try {
       const { date } = req.params;
       const historyManager = new DevHistoryManager();
       const htmlContent = historyManager.getHistoryByDate(date);
-
+      
       // 파일 다운로드용 헤더 설정
       res.setHeader('Content-Type', 'text/html');
       res.setHeader('Content-Disposition', `attachment; filename="dev_chat_${date}.html"`);
-
+      
       return res.send(htmlContent);
     } catch (error) {
       console.error(`Error downloading dev history for date ${req.params.date}:`, error);
       return res.status(500).json({ error: "Failed to download history for this date" });
     }
   });
-
+  
   // 현재 대화를 특정 날짜로 저장
   app.post("/api/dev-history/save/:date", (req, res) => {
     try {
       const { date } = req.params;
       const historyManager = new DevHistoryManager();
       const success = historyManager.saveCurrentHistoryByDate(date);
-
+      
       if (success) {
         return res.json({ success: true, message: `개발 대화가 ${date} 날짜로 저장되었습니다.` });
       } else {
@@ -3435,13 +3432,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to save history for this date" });
     }
   });
-
+  
   // "채팅저장" 명령어 처리 엔드포인트 - 현재 날짜로 자동 저장
   app.post("/api/dev-history/save-by-command", (req, res) => {
     try {
       const autoChatSaver = AutoChatSaver.getInstance();
       const success = autoChatSaver.saveByCommand();
-
+      
       if (success) {
         const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD 형식
         return res.json({ 
@@ -3462,7 +3459,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
+  
   // 배너 관리 API
   app.get("/api/banners", async (req, res) => {
     try {
@@ -3483,7 +3480,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { 
         createMilestone 
       } = await import("./services/milestones");
-
+      
       const milestone = await createMilestone(req.body);
       return res.status(201).json(milestone);
     } catch (error) {
@@ -3502,13 +3499,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updateMilestone,
         getMilestoneById 
       } = await import("./services/milestones");
-
+      
       // 마일스톤이 존재하는지 확인
       const existingMilestone = await getMilestoneById(milestoneId);
       if (!existingMilestone) {
         return res.status(404).json({ error: "Milestone not found" });
       }
-
+      
       const updatedMilestone = await updateMilestone(milestoneId, req.body);
       return res.json(updatedMilestone);
     } catch (error) {
@@ -3527,13 +3524,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         deleteMilestone,
         getMilestoneById 
       } = await import("./services/milestones");
-
+      
       // 마일스톤이 존재하는지 확인
       const existingMilestone = await getMilestoneById(milestoneId);
       if (!existingMilestone) {
         return res.status(404).json({ error: "Milestone not found" });
       }
-
+      
       const deletedMilestone = await deleteMilestone(milestoneId);
       return res.json(deletedMilestone);
     } catch (error) {
@@ -3544,7 +3541,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
+  
   // 마일스톤 카테고리 관리 API 엔드포인트
   app.get("/api/milestone-categories", async (req, res) => {
     try {
@@ -3559,17 +3556,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
+  
   app.get("/api/milestone-categories/:categoryId", async (req, res) => {
     try {
       const { categoryId } = req.params;
       const { getMilestoneCategoryById } = await import("./services/milestones");
-
+      
       const category = await getMilestoneCategoryById(categoryId);
       if (!category) {
         return res.status(404).json({ error: "카테고리를 찾을 수 없습니다" });
       }
-
+      
       return res.json(category);
     } catch (error) {
       console.error("Error fetching milestone category:", error);
@@ -3579,11 +3576,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
+  
   app.post("/api/admin/milestone-categories", async (req, res) => {
     try {
       const { createMilestoneCategory } = await import("./services/milestones");
-
+      
       const newCategory = await createMilestoneCategory(req.body);
       return res.status(201).json(newCategory);
     } catch (error) {
@@ -3594,7 +3591,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
+  
   app.put("/api/admin/milestone-categories/:categoryId", async (req, res) => {
     try {
       const { categoryId } = req.params;
@@ -3602,13 +3599,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updateMilestoneCategory,
         getMilestoneCategoryById 
       } = await import("./services/milestones");
-
+      
       // 카테고리가 존재하는지 확인
       const existingCategory = await getMilestoneCategoryById(categoryId);
       if (!existingCategory) {
         return res.status(404).json({ error: "카테고리를 찾을 수 없습니다" });
       }
-
+      
       const updatedCategory = await updateMilestoneCategory(categoryId, req.body);
       return res.json(updatedCategory);
     } catch (error) {
@@ -3619,7 +3616,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
+  
   app.delete("/api/admin/milestone-categories/:categoryId", async (req, res) => {
     try {
       const { categoryId } = req.params;
@@ -3627,13 +3624,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         deleteMilestoneCategory,
         getMilestoneCategoryById 
       } = await import("./services/milestones");
-
+      
       // 카테고리가 존재하는지 확인
       const existingCategory = await getMilestoneCategoryById(categoryId);
       if (!existingCategory) {
         return res.status(404).json({ error: "카테고리를 찾을 수 없습니다" });
       }
-
+      
       const deletedCategory = await deleteMilestoneCategory(categoryId);
       return res.json(deletedCategory);
     } catch (error) {
@@ -3644,7 +3641,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
+  
   app.post("/api/admin/banners", async (req, res) => {
     try {
       const bannerData = insertBannerSchema.parse(req.body);
@@ -3655,14 +3652,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to create banner" });
     }
   });
-
+  
   app.put("/api/admin/banners/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid banner ID" });
       }
-
+      
       const bannerData = insertBannerSchema.partial().parse(req.body);
       const updatedBanner = await db
         .update(banners)
@@ -3672,41 +3669,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(banners.id, id))
         .returning();
-
+        
       if (updatedBanner.length === 0) {
         return res.status(404).json({ error: "Banner not found" });
       }
-
+      
       res.json(updatedBanner[0]);
     } catch (error) {
       console.error("Error updating banner:", error);
       res.status(500).json({ error: "Failed to update banner" });
     }
   });
-
+  
   app.delete("/api/admin/banners/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid banner ID" });
       }
-
+      
       const result = await db
         .delete(banners)
         .where(eq(banners.id, id))
         .returning({ id: banners.id });
-
+        
       if (result.length === 0) {
         return res.status(404).json({ error: "Banner not found" });
       }
-
+      
       res.json({ message: "Banner deleted successfully" });
     } catch (error) {
       console.error("Error deleting banner:", error);
       res.status(500).json({ error: "Failed to delete banner" });
     }
   });
-
+  
   // 스타일 카드 API
   app.get("/api/style-cards", async (req, res) => {
     try {
@@ -3720,7 +3717,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to get style cards" });
     }
   });
-
+  
   app.post("/api/admin/style-cards", async (req, res) => {
     try {
       const styleCardData = insertStyleCardSchema.parse(req.body);
@@ -3731,14 +3728,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to create style card" });
     }
   });
-
+  
   app.put("/api/admin/style-cards/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid style card ID" });
       }
-
+      
       const styleCardData = insertStyleCardSchema.partial().parse(req.body);
       const updatedStyleCard = await db
         .update(styleCards)
@@ -3748,34 +3745,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(styleCards.id, id))
         .returning();
-
+        
       if (updatedStyleCard.length === 0) {
         return res.status(404).json({ error: "Style card not found" });
       }
-
+      
       res.json(updatedStyleCard[0]);
     } catch (error) {
       console.error("Error updating style card:", error);
       res.status(500).json({ error: "Failed to update style card" });
     }
   });
-
+  
   app.delete("/api/admin/style-cards/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid style card ID" });
       }
-
+      
       const result = await db
         .delete(styleCards)
         .where(eq(styleCards.id, id))
         .returning({ id: styleCards.id });
-
+        
       if (result.length === 0) {
         return res.status(404).json({ error: "Style card not found" });
       }
-
+      
       res.json({ message: "Style card deleted successfully" });
     } catch (error) {
       console.error("Error deleting style card:", error);
@@ -3825,9 +3822,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else if (user.memberType !== 'superadmin') {
         return res.status(403).json({ error: "관리자 권한이 필요합니다." });
       }
-
+      
       const campaignsList = await query.orderBy(asc(campaigns.displayOrder), asc(campaigns.title));
-
+      
       console.log("Fetched campaigns:", campaignsList);
       res.json(campaignsList);
     } catch (error) {
@@ -3835,7 +3832,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch campaigns" });
     }
   });
-
+  
   // 병원 관리자 전용 캠페인 API
   // 병원 정보 조회 API
   app.get("/api/hospitals/:id", async (req, res) => {
@@ -3846,29 +3843,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const user = req.user;
       const hospitalId = parseInt(req.params.id, 10);
-
+      
       // 권한 체크: 해당 병원 관리자 또는 슈퍼 관리자만 접근 가능
       if (user.memberType !== 'superadmin' && (user.memberType !== 'hospital_admin' || user.hospitalId !== hospitalId)) {
         return res.status(403).json({ error: "접근 권한이 없습니다." });
       }
-
+      
       console.log(`병원 정보 조회 - 병원 ID: ${hospitalId}`);
-
+      
       const hospital = await db.query.hospitals.findFirst({
         where: eq(hospitals.id, hospitalId)
       });
-
+      
       if (!hospital) {
         return res.status(404).json({ error: "병원을 찾을 수 없습니다." });
       }
-
+      
       res.json(hospital);
     } catch (error) {
       console.error("병원 정보 조회 오류:", error);
       res.status(500).json({ error: "병원 정보를 가져오는데 실패했습니다." });
     }
   });
-
+  
   // 병원 관리자용 캠페인 상세 조회 API
   app.get("/api/hospital/campaigns/:id", async (req, res) => {
     try {
@@ -3876,59 +3873,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: "로그인이 필요합니다." });
       }
-
+      
       const user = req.user;
       if (!user) {
         return res.status(401).json({ error: "사용자 정보를 찾을 수 없습니다." });
       }
-
+      
       // 병원 관리자와 슈퍼관리자만 접근 가능
       if (user.memberType !== "hospital_admin" && user.memberType !== "superadmin") {
         return res.status(403).json({ error: "접근 권한이 없습니다." });
       }
-
+      
       const campaignId = parseInt(req.params.id);
-
+      
       if (isNaN(campaignId)) {
         return res.status(400).json({ error: "유효하지 않은 캠페인 ID입니다." });
       }
-
+      
       // 캠페인 정보 조회
       const campaign = await db.query.campaigns.findFirst({
         where: eq(campaigns.id, campaignId)
       });
-
+      
       if (!campaign) {
         return res.status(404).json({ error: "캠페인을 찾을 수 없습니다." });
       }
-
+      
       // 병원 관리자의 경우, 본인 병원의 캠페인만 조회 가능
       if (user.memberType === "hospital_admin" && user.hospitalId !== campaign.hospitalId) {
         return res.status(403).json({ error: "접근 권한이 없습니다. 해당 병원의 캠페인이 아닙니다." });
       }
-
+      
       // 병원 정보 추가
       let hospitalName = null;
-
+      
       if (campaign.hospitalId) {
         const hospital = await db.query.hospitals.findFirst({
           where: eq(hospitals.id, campaign.hospitalId)
         });
-
+        
         hospitalName = hospital?.name || null;
       }
-
+      
       res.json({
         ...campaign,
         hospitalName
       });
-
+      
     } catch (error) {
       console.error("병원 캠페인 상세 조회 오류:", error);
       res.status(500).json({ error: "캠페인 정보를 불러오는데 실패했습니다." });
     }
   });
-
+  
   // 병원 관리자용 캠페인 수정 API
   app.patch("/api/hospital/campaigns/:id", async (req, res) => {
     try {
@@ -3936,37 +3933,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: "로그인이 필요합니다." });
       }
-
+      
       const user = req.user;
       if (!user) {
         return res.status(401).json({ error: "사용자 정보를 찾을 수 없습니다." });
       }
-
+      
       // 병원 관리자와 슈퍼관리자만 접근 가능
       if (user.memberType !== "hospital_admin" && user.memberType !== "superadmin") {
         return res.status(403).json({ error: "접근 권한이 없습니다." });
       }
-
+      
       const campaignId = parseInt(req.params.id);
-
+      
       if (isNaN(campaignId)) {
         return res.status(400).json({ error: "유효하지 않은 캠페인 ID입니다." });
       }
-
+      
       // 기존 캠페인 정보 조회
       const existingCampaign = await db.query.campaigns.findFirst({
         where: eq(campaigns.id, campaignId)
       });
-
+      
       if (!existingCampaign) {
         return res.status(404).json({ error: "캠페인을 찾을 수 없습니다." });
       }
-
+      
       // 병원 관리자의 경우, 본인 병원의 캠페인만 수정 가능
       if (user.memberType === "hospital_admin" && user.hospitalId !== existingCampaign.hospitalId) {
         return res.status(403).json({ error: "접근 권한이 없습니다. 해당 병원의 캠페인이 아닙니다." });
       }
-
+      
       // 수정할 데이터 (병원 ID는 변경 불가능)
       const updateData = {
         ...req.body,
@@ -3975,36 +3972,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // 업데이트 시간 현재로 설정
         updatedAt: new Date()
       };
-
+      
       // 캠페인 업데이트
       const updatedCampaign = await db
         .update(campaigns)
         .set(updateData)
         .where(eq(campaigns.id, campaignId))
         .returning();
-
+      
       // 병원 정보 추가
       let hospitalName = null;
-
+      
       if (existingCampaign.hospitalId) {
         const hospital = await db.query.hospitals.findFirst({
           where: eq(hospitals.id, existingCampaign.hospitalId)
         });
-
+        
         hospitalName = hospital?.name || null;
       }
-
+      
       res.json({
         ...updatedCampaign[0],
         hospitalName
       });
-
+      
     } catch (error) {
       console.error("병원 캠페인 수정 오류:", error);
       res.status(500).json({ error: "캠페인 정보를 수정하는데 실패했습니다." });
     }
   });
-
+  
   // 병원 관리자용 캠페인 목록 API
   app.get("/api/hospital/campaigns", async (req, res) => {
     try {
@@ -4014,21 +4011,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const user = req.user;
-
+      
       // 병원 관리자 또는 슈퍼 관리자만 접근 가능
       if (user.memberType !== 'hospital_admin' && user.memberType !== 'superadmin') {
         return res.status(403).json({ error: "병원 관리자 권한이 필요합니다." });
       }
-
+      
       // 병원 관리자는 자신의 병원 ID가 있어야 함
       if (user.memberType === 'hospital_admin' && !user.hospitalId) {
         return res.status(403).json({ error: "병원 정보가 없습니다." });
       }
-
+      
       // 상태 필터링 (선택 사항)
       const status = req.query.status as string | undefined;
       console.log(`병원 캠페인 API 요청 - 사용자: ${user.username}, 병원ID: ${user.hospitalId}, 상태 필터: ${status || '전체'}`);
-
+      
       // 기본 쿼리 설정
       let query = db.select({
         id: campaigns.id,
@@ -4057,31 +4054,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       })
       .from(campaigns)
       .leftJoin(hospitals, eq(campaigns.hospitalId, hospitals.id));
-
+      
       // 조건 설정을 위한 배열
       const conditions = [];
-
+      
       // 병원 ID로 필터링 (병원 관리자인 경우)
       if (user.memberType === 'hospital_admin' && user.hospitalId) {
         conditions.push(eq(campaigns.hospitalId, user.hospitalId));
       }
-
+      
       // 상태로 필터링 (옵션) - all이 아닌 경우에만 적용
       if (status && status !== 'all') {
         conditions.push(eq(campaigns.status, status));
       }
-
+      
       // 모든 조건을 적용
       if (conditions.length > 0) {
         query = query.where(and(...conditions));
       }
-
+      
       // 정렬: 표시 순서 오름차순, 생성일 내림차순
       const campaignsList = await query.orderBy(
         asc(campaigns.displayOrder),
         desc(campaigns.createdAt)
       );
-
+      
       console.log(`병원 캠페인 API 응답 - 캠페인 수: ${campaignsList.length}`);
       res.json(campaignsList);
     } catch (error) {
@@ -4094,7 +4091,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // 병원 ID 파라미터 (선택 사항)
       const hospitalSlug = req.query.hospitalSlug as string | undefined;
-
+      
       // 쿼리 빌더
       let query = db.select({
         id: campaigns.id,
@@ -4124,17 +4121,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       .from(campaigns)
       .leftJoin(hospitals, eq(campaigns.hospitalId, hospitals.id))
       .where(eq(campaigns.isPublic, true));
-
+      
       // 특정 병원의 캠페인만 필터링 (선택 사항)
       if (hospitalSlug) {
         query = query.where(eq(hospitals.slug, hospitalSlug));
       }
-
+      
       const campaignsList = await query.orderBy(
         asc(campaigns.displayOrder), 
         desc(campaigns.createdAt)
       );
-
+      
       console.log("Fetched public campaigns:", campaignsList);
       res.json(campaignsList);
     } catch (error) {
@@ -4146,7 +4143,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/campaigns/:slug", async (req, res) => {
     try {
       const { slug } = req.params;
-
+      
       const campaignResults = await db.select({
         id: campaigns.id,
         slug: campaigns.slug,
@@ -4178,11 +4175,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         eq(campaigns.slug, slug),
         eq(campaigns.isPublic, true)
       ));
-
+      
       if (campaignResults.length === 0) {
         return res.status(404).json({ error: "Campaign not found" });
       }
-
+      
       res.json(campaignResults[0]);
     } catch (error) {
       console.error("Error fetching campaign:", error);
@@ -4199,7 +4196,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const campaignId = req.query.campaignId ? Number(req.query.campaignId) : undefined;
-
+      
       // 캠페인별 신청자 목록 조회 (JOIN으로 캠페인 정보도 가져오기)
       const applications = await db
         .select({
@@ -4216,14 +4213,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .leftJoin(campaigns, eq(campaignApplications.campaignId, campaigns.id))
         .where(campaignId ? eq(campaignApplications.campaignId, campaignId) : undefined)
         .orderBy(desc(campaignApplications.createdAt));
-
+      
       return res.json(applications);
     } catch (error) {
       console.error("Error fetching campaign applications:", error);
       return res.status(500).json({ error: "신청자 목록을 가져오는 중 오류가 발생했습니다." });
     }
   });
-
+  
   // 이전 중복 캠페인 신청 상태 업데이트 API 제거됨
   // 최신 병원 스코프 지원 코드는 아래쪽에 있습니다.
 
@@ -4231,7 +4228,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/campaign-applications", async (req, res) => {
     try {
       const applicationData = req.body;
-
+      
       // Zod를 사용한 입력 데이터 검증
       try {
         insertCampaignApplicationSchema.parse(applicationData);
@@ -4243,12 +4240,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       }
-
+      
       // 현재 로그인한 사용자 ID가 있으면 추가
       if (req.isAuthenticated()) {
         applicationData.userId = req.user.id;
       }
-
+      
       // 중복 신청 체크 (동일한 contact + campaignId 조합이 이미 존재하는지)
       const existingApplication = await db.query.campaignApplications.findFirst({
         where: and(
@@ -4256,21 +4253,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           eq(campaignApplications.campaignId, applicationData.campaignId)
         )
       });
-
+      
       if (existingApplication) {
         return res.status(409).json({ 
           error: "이미 신청한 캠페인입니다.",
           applicationId: existingApplication.id
         });
       }
-
+      
       // 신청 정보 저장
       const [newApplication] = await db.insert(campaignApplications)
         .values(applicationData)
         .returning();
-
+      
       // TODO: 이메일 알림 발송 (향후 구현)
-
+      
       return res.status(201).json({
         message: "캠페인 신청이 완료되었습니다.",
         application: newApplication
@@ -4280,28 +4277,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "캠페인 신청 처리 중 오류가 발생했습니다." });
     }
   });
-
+  
   // 관리자용 캠페인 신청 목록 조회
   app.get("/api/admin/campaign-applications", async (req, res) => {
     try {
       console.log("캠페인 신청 목록 조회 요청:", req.query);
-
+      
       // 인증 체크
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: "로그인이 필요합니다." });
       }
-
+      
       const user = req.user;
-
+      
       // 권한에 따라 접근 제어
       if (user.memberType !== 'superadmin' && user.memberType !== 'hospital_admin') {
         console.log("관리자 권한 체크 실패:", user.memberType);
         return res.status(403).json({ error: "관리자 권한이 필요합니다." });
       }
-
+      
       const { campaignId, hospitalId, hospitalSlug } = req.query;
       console.log("필터링 - campaignId:", campaignId, "hospitalId:", hospitalId, "hospitalSlug:", hospitalSlug);
-
+      
       // 기본 쿼리 구성
       let baseQuery = db.select({
         id: campaignApplications.id,
@@ -4320,7 +4317,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       .leftJoin(campaigns, eq(campaignApplications.campaignId, campaigns.id))
       .leftJoin(hospitals, eq(campaigns.hospitalId, hospitals.id))
       .orderBy(desc(campaignApplications.createdAt));
-
+      
       // 권한에 따른 필터링
       if (user.memberType === 'hospital_admin') {
         if (!user.hospitalId) {
@@ -4335,25 +4332,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // 슈퍼어드민이 슬러그로 특정 병원의 캠페인 신청을 필터링
         baseQuery = baseQuery.where(eq(hospitals.slug, hospitalSlug as string));
       }
-
+      
       let applications;
-
+      
       // 특정 캠페인으로 필터링 (추가 옵션)
       if (campaignId && !isNaN(Number(campaignId))) {
         applications = await baseQuery.where(eq(campaignApplications.campaignId, Number(campaignId)));
       } else {
         applications = await baseQuery;
       }
-
+      
       console.log("조회된 신청자 수:", applications.length);
-
+      
       return res.json(applications);
     } catch (error) {
       console.error("Error fetching campaign applications:", error);
       return res.status(500).json({ error: "캠페인 신청 목록을 불러오는데 실패했습니다." });
     }
   });
-
+  
   // 관리자용 캠페인 신청 상태 업데이트
   app.patch("/api/admin/campaign-applications/:id", async (req, res) => {
     try {
@@ -4361,21 +4358,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: "로그인이 필요합니다." });
       }
-
+      
       const user = req.user;
-
+      
       // 권한에 따라 접근 제어
       if (user.memberType !== 'superadmin' && user.memberType !== 'hospital_admin') {
         return res.status(403).json({ error: "관리자 권한이 필요합니다." });
       }
-
+      
       const { id } = req.params;
       const { status } = req.body;
-
+      
       if (!status || !['new', 'processing', 'completed'].includes(status)) {
         return res.status(400).json({ error: "유효하지 않은 상태값입니다." });
       }
-
+      
       // 신청서 정보 조회
       const application = await db.query.campaignApplications.findFirst({
         where: eq(campaignApplications.id, Number(id)),
@@ -4388,18 +4385,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
       });
-
+      
       if (!application) {
         return res.status(404).json({ error: "해당 신청서를 찾을 수 없습니다." });
       }
-
+      
       // 병원 관리자는 자신의 병원 캠페인 신청만 수정 가능
       if (user.memberType === 'hospital_admin' && application?.campaign) {
         if (user.hospitalId !== application.campaign.hospitalId) {
           return res.status(403).json({ error: "다른 병원의 캠페인 신청은 수정할 수 없습니다." });
         }
       }
-
+      
       const [updatedApplication] = await db.update(campaignApplications)
         .set({ 
           status,
@@ -4407,11 +4404,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(campaignApplications.id, Number(id)))
         .returning();
-
+      
       if (!updatedApplication) {
         return res.status(404).json({ error: "신청 정보를 찾을 수 없습니다." });
       }
-
+      
       return res.json({
         message: "신청 상태가 업데이트되었습니다.",
         application: updatedApplication
@@ -4421,7 +4418,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "신청 상태 업데이트 중 오류가 발생했습니다." });
     }
   });
-
+  
   app.post("/api/admin/campaigns", async (req, res) => {
     try {
       // 관리자 권한 확인 (이미 authMiddleware에서 로그인 체크는 완료됨)
@@ -4429,35 +4426,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (userData.memberType !== 'superadmin' && userData.memberType !== 'admin') {
         return res.status(403).json({ error: "Permission denied" });
       }
-
+      
       // 요청 데이터 유효성 검사 및 자동 변환(문자열 날짜 → Date 객체)
       const campaignData = insertCampaignSchema.parse(req.body);
-
+      
       console.log("서버 파싱 후 데이터:", {
         startDate: campaignData.startDate,
         endDate: campaignData.endDate,
         type: campaignData.startDate ? typeof campaignData.startDate : null
       });
-
+      
       // 슬러그 중복 확인
       const existingCampaign = await db.query.campaigns.findFirst({
         where: eq(campaigns.slug, campaignData.slug)
       });
-
+      
       if (existingCampaign) {
         return res.status(400).json({ error: "Slug already exists" });
       }
-
+      
       const newCampaign = await db.insert(campaigns).values(campaignData).returning();
-
+      
       res.status(201).json(newCampaign[0]);
     } catch (error) {
       console.error("Error creating campaign:", error);
-
+      
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: error.errors });
       }
-
+      
       res.status(500).json({ error: "Failed to create campaign" });
     }
   });
@@ -4468,23 +4465,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: "로그인이 필요합니다." });
       }
-
+      
       const userData = req.user as any;
       const id = parseInt(req.params.id);
-
+      
       if (isNaN(id)) {
         return res.status(400).json({ error: "유효하지 않은 캠페인 ID입니다." });
       }
-
+      
       // 캠페인 존재 확인
       const existingCampaign = await db.query.campaigns.findFirst({
         where: eq(campaigns.id, id)
       });
-
+      
       if (!existingCampaign) {
         return res.status(404).json({ error: "캠페인을 찾을 수 없습니다." });
       }
-
+      
       // 권한 체크
       // 1. 슈퍼관리자나 일반 관리자는 모든 캠페인 수정 가능
       if (userData.memberType === 'superadmin' || userData.memberType === 'admin') {
@@ -4495,7 +4492,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!userData.hospitalId) {
           return res.status(403).json({ error: "병원 정보가 없습니다." });
         }
-
+        
         if (existingCampaign.hospitalId !== userData.hospitalId) {
           return res.status(403).json({ 
             error: "접근 권한이 없습니다. 본인이 소속된 병원의 캠페인만 수정할 수 있습니다."
@@ -4506,27 +4503,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       else {
         return res.status(403).json({ error: "접근 권한이 없습니다." });
       }
-
+      
       // 요청 데이터 유효성 검사 및 자동 변환(문자열 날짜 → Date 객체)
       const campaignData = insertCampaignSchema.partial().parse(req.body);
-
+      
       console.log("캠페인 업데이트 데이터:", {
         startDate: campaignData.startDate,
         endDate: campaignData.endDate,
         type: campaignData.startDate ? typeof campaignData.startDate : null
       });
-
+      
       // 슬러그를 변경하는 경우 중복 확인
       if (campaignData.slug && campaignData.slug !== existingCampaign.slug) {
         const slugExists = await db.query.campaigns.findFirst({
           where: eq(campaigns.slug, campaignData.slug)
         });
-
+        
         if (slugExists) {
           return res.status(400).json({ error: "Slug already exists" });
         }
       }
-
+      
       const updatedCampaign = await db
         .update(campaigns)
         .set({
@@ -4535,15 +4532,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(campaigns.id, id))
         .returning();
-
+        
       res.json(updatedCampaign[0]);
     } catch (error) {
       console.error("Error updating campaign:", error);
-
+      
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: error.errors });
       }
-
+      
       res.status(500).json({ error: "Failed to update campaign" });
     }
   });
@@ -4554,23 +4551,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: "로그인이 필요합니다." });
       }
-
+      
       const userData = req.user as any;
       const id = parseInt(req.params.id);
-
+      
       if (isNaN(id)) {
         return res.status(400).json({ error: "유효하지 않은 캠페인 ID입니다." });
       }
-
+      
       // 캠페인 존재 확인
       const existingCampaign = await db.query.campaigns.findFirst({
         where: eq(campaigns.id, id)
       });
-
+      
       if (!existingCampaign) {
         return res.status(404).json({ error: "캠페인을 찾을 수 없습니다." });
       }
-
+      
       // 권한 체크
       // 1. 슈퍼관리자나 일반 관리자는 모든 캠페인 수정 가능
       if (userData.memberType === 'superadmin' || userData.memberType === 'admin') {
@@ -4581,7 +4578,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!userData.hospitalId) {
           return res.status(403).json({ error: "병원 정보가 없습니다." });
         }
-
+        
         if (existingCampaign.hospitalId !== userData.hospitalId) {
           return res.status(403).json({ 
             error: "접근 권한이 없습니다. 본인이 소속된 병원의 캠페인만 삭제할 수 있습니다."
@@ -4592,33 +4589,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       else {
         return res.status(403).json({ error: "접근 권한이 없습니다." });
       }
-
+      
       const result = await db
         .delete(campaigns)
         .where(eq(campaigns.id, id))
         .returning({ id: campaigns.id });
-
+        
       if (result.length === 0) {
         return res.status(404).json({ error: "Campaign not found" });
       }
-
+      
       res.json({ message: "Campaign deleted successfully" });
     } catch (error) {
       console.error("Error deleting campaign:", error);
       res.status(500).json({ error: "Failed to delete campaign" });
     }
   });
-
+  
   // 썸네일 이미지 업로드 API
   app.post("/api/admin/upload-thumbnail", upload.single("file"), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
       }
-
+      
       // 파일 경로에서 URL 생성 (상대 경로)
       const fileUrl = `/uploads/${req.file.filename}`;
-
+      
       res.status(201).json({
         url: fileUrl,
         originalName: req.file.originalname,
@@ -4630,30 +4627,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to upload thumbnail" });
     }
   });
-
+  
   // Service Categories 관련 API 엔드포인트
   app.get("/api/service-categories", async (req, res) => {
     try {
       const categories = await db.query.serviceCategories.findMany({
         orderBy: asc(serviceCategories.order)
       });
-
+      
       res.json(categories);
     } catch (error) {
       console.error("Error fetching service categories:", error);
       res.status(500).json({ error: "Failed to fetch service categories" });
     }
   });
-
+  
   app.post("/api/admin/service-categories", async (req, res) => {
     try {
       const validatedData = insertServiceCategorySchema.parse(req.body);
-
+      
       const [newCategory] = await db
         .insert(serviceCategories)
         .values(validatedData)
         .returning();
-
+        
       res.status(201).json(newCategory);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -4663,26 +4660,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to create service category" });
     }
   });
-
+  
   app.put("/api/admin/service-categories/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid service category ID" });
       }
-
+      
       const validatedData = insertServiceCategorySchema.parse(req.body);
-
+      
       const [updatedCategory] = await db
         .update(serviceCategories)
         .set(validatedData)
         .where(eq(serviceCategories.id, id))
         .returning();
-
+        
       if (!updatedCategory) {
         return res.status(404).json({ error: "Service category not found" });
       }
-
+      
       res.json(updatedCategory);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -4692,23 +4689,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to update service category" });
     }
   });
-
+  
   app.delete("/api/admin/service-categories/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid service category ID" });
       }
-
+      
       const result = await db
         .delete(serviceCategories)
         .where(eq(serviceCategories.id, id))
         .returning({ id: serviceCategories.id });
-
+        
       if (result.length === 0) {
         return res.status(404).json({ error: "Service category not found" });
       }
-
+      
       res.json({ message: "Service category deleted successfully" });
     } catch (error) {
       console.error("Error deleting service category:", error);
@@ -4732,14 +4729,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Gemini API 테스트 라우터 등록
   app.use("/api/test-gemini", geminiTestRoutes);
   console.log("Gemini API 테스트 라우터가 등록되었습니다 (/api/test-gemini/*)");
-
+  
   // 병원 목록 조회 API 
   app.get("/api/hospitals", async (req, res) => {
     try {
       // 임포트 추가
       const { hospitals } = await import("@shared/schema");
       const { eq, asc } = await import("drizzle-orm");
-
+      
       const hospitalsList = await db.query.hospitals.findMany({
         where: eq(hospitals.isActive, true),
         orderBy: asc(hospitals.name),
@@ -4751,7 +4748,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           logoUrl: true
         }
       });
-
+      
       return res.json(hospitalsList);
     } catch (error) {
       console.error("병원 목록 조회 오류:", error);
@@ -4762,7 +4759,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 세션 체크 라우터 등록 (모바일 로그인 문제 해결용)
   app.use("/api/session-check", sessionCheckRoutes);
   console.log("세션 체크 라우터가 등록되었습니다 (/api/session-check)");
-
+  
   // JWT 토큰 인증 라우터 등록 (모바일 전용)
   app.use("/api/jwt-auth", jwtAuthRoutes);
   console.log("JWT 토큰 인증 라우터가 등록되었습니다 (/api/jwt-auth/*)");
