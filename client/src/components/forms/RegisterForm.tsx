@@ -91,6 +91,26 @@ const RegisterForm: React.FC = () => {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>ID(이메일)</FormLabel>
+              <FormControl>
+                <Input 
+                  type="email" 
+                  placeholder="이메일 입력" 
+                  {...field} 
+                  disabled={isRegisterLoading}
+                />
+              </FormControl>
+              <FormDescription>알림 및 계정 복구에 사용됩니다</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
           name="username"
           render={({ field }) => (
             <FormItem>
@@ -117,26 +137,6 @@ const RegisterForm: React.FC = () => {
                   disabled={isRegisterLoading}
                 />
               </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>ID(이메일)</FormLabel>
-              <FormControl>
-                <Input 
-                  type="email" 
-                  placeholder="이메일 입력" 
-                  {...field} 
-                  disabled={isRegisterLoading}
-                />
-              </FormControl>
-              <FormDescription>알림 및 계정 복구에 사용됩니다</FormDescription>
               <FormMessage />
             </FormItem>
           )}
