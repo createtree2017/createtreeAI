@@ -133,7 +133,7 @@ const RegisterForm: React.FC = () => {
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>이름</FormLabel>
+              <FormLabel>이름*</FormLabel>
               <FormControl>
                 <Input placeholder="이름 입력" {...field} disabled={isRegisterLoading} />
               </FormControl>
@@ -175,7 +175,7 @@ const RegisterForm: React.FC = () => {
           name="birthdate"
           render={({ field }) => (
             <FormItem className="flex flex-col">
-              <FormLabel>생년월일</FormLabel>
+              <FormLabel>생년월일*</FormLabel>
               <DatePicker 
                 date={field.value} 
                 setDate={field.onChange}
