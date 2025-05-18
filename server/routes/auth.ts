@@ -518,7 +518,7 @@ router.get("/admin-check", (req, res) => {
   return res.json({ isAdmin: true });
 });
 
-// Firebase 로그인 API - ID 토큰 지원 추가
+// Firebase 로그인 API - 모바일 및 웹 OAuth 지원
 router.post("/firebase-login", async (req, res) => {
   try {
     // 요청에서 사용자 정보와 ID 토큰 추출
@@ -543,7 +543,7 @@ router.post("/firebase-login", async (req, res) => {
       displayName: firebaseUser.displayName || "이름 없음",
     });
 
-    // Firebase 인증 처리
+    // 사용자 데이터 준비
     const userData: FirebaseUserData = {
       uid: firebaseUser.uid,
       email: firebaseUser.email || "",
@@ -576,6 +576,7 @@ router.post("/firebase-login", async (req, res) => {
       req.session.cookie.secure = false;
       req.session.cookie.path = "/";
       req.session.cookie.httpOnly = true;
+      req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30일 (더 길게 설정)
 
       // ===== 세션에 인증 정보 저장 =====
       // 1. Passport 표준 방식
@@ -589,7 +590,9 @@ router.post("/firebase-login", async (req, res) => {
         email: user.email || "",
         displayName: user.fullName || user.username || "사용자",
         memberType: memberType,
-        needSignup: user.needSignup || false  // 추가 정보 입력 필요 여부
+        phoneNumber: user.phoneNumber || null,
+        hospitalId: user.hospitalId || null,
+        needSignup: !user.phoneNumber || !user.hospitalId
       };
 
       // 3. 개별 필드 저장 (추가 백업)
@@ -599,23 +602,6 @@ router.post("/firebase-login", async (req, res) => {
       req.session.userRole = memberType;
       req.session.isAdmin =
         memberType === "admin" || memberType === "superadmin";
-
-      // [핵심 수정] - Firebase 로그인 시 세션 저장 후 응답 반환
-      // req.session.user 명시적 저장 - 이 부분이 매우 중요
-      
-      // 회원 정보 부족 여부 확인 (hospitalId나 phoneNumber가 없으면 추가 정보 입력 필요)
-      const needSignup = !user.hospitalId || !user.phoneNumber;
-      console.log("[Firebase Auth] 추가 정보 입력 필요:", needSignup, { 
-        hospitalId: user.hospitalId, 
-        phoneNumber: user.phoneNumber 
-      });
-      
-      req.session.user = {
-        uid: firebaseUser.uid,
-        email: user.email || "",
-        role: memberType,
-        needSignup: needSignup // 추가 정보 입력 필요 여부 플래그 추가
-      };
 
       // 세션 저장 완료 후 응답 반환 - 비동기 완료 보장
       req.session.save((saveErr) => {
@@ -636,8 +622,9 @@ router.post("/firebase-login", async (req, res) => {
         // 클라이언트에서 접근 가능한 상태 표시 쿠키 (인증 용도 아님)
         res.cookie("auth_status", "logged_in", {
           httpOnly: false,
-          maxAge: 7 * 24 * 60 * 60 * 1000, // 7일
+          maxAge: 30 * 24 * 60 * 60 * 1000, // 30일 (세션과 동일)
           path: "/",
+          sameSite: "lax"
         });
 
         // 세션 저장 완료 후 응답 전송
@@ -646,15 +633,18 @@ router.post("/firebase-login", async (req, res) => {
           message: "로그인 성공",
           sessionId: req.sessionID,
           auth: { success: true, memberType },
+          needProfileComplete: !user.phoneNumber || !user.hospitalId
         });
       });
     });
   } catch (error) {
     console.error("[Firebase Auth] 오류:", error);
-    return res.status(500).json({
-      message: "서버 오류가 발생했습니다.",
-      error: error instanceof Error ? error.message : "알 수 없는 오류",
+    return res.status(500).json({ 
+      message: "인증 처리 중 오류가 발생했습니다.", 
+      error: error instanceof Error ? error.message : "알 수 없는 오류" 
     });
+  }
+});
   }
 });
 
