@@ -356,10 +356,24 @@ router.post("/complete-profile", async (req, res) => {
     }
     
     // 요청 데이터 검증
-    const { hospitalId, phoneNumber, dueDate } = req.body;
+    const { 
+      displayName,
+      nickname,
+      memberType, 
+      hospitalId, 
+      phoneNumber, 
+      birthdate,
+      dueDate 
+    } = req.body;
     
-    if (!hospitalId || !phoneNumber) {
+    // 필수 정보 확인
+    if (!phoneNumber || !displayName || !nickname || !birthdate || !memberType) {
       return res.status(400).json({ message: "필수 정보가 누락되었습니다." });
+    }
+    
+    // 멤버십 회원인 경우 병원 ID 필수
+    if (memberType === "membership" && !hospitalId) {
+      return res.status(400).json({ message: "멤버십 회원은 병원 선택이 필수입니다." });
     }
     
     // 사용자 ID 확인 (여러 소스에서 확인)
@@ -391,10 +405,15 @@ router.post("/complete-profile", async (req, res) => {
     // 사용자 정보 업데이트
     await db.update(users)
       .set({
-        hospitalId: parseInt(hospitalId),
+        fullName: displayName,
+        username: nickname,
+        memberType: memberType,
+        hospitalId: memberType === "membership" ? parseInt(hospitalId) : null,
         phoneNumber: phoneNumber,
+        birthdate: new Date(birthdate),
         dueDate: dueDate ? new Date(dueDate) : null,
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        needProfileComplete: false
       })
       .where(eq(users.id, userId));
     
@@ -412,10 +431,15 @@ router.post("/complete-profile", async (req, res) => {
     // 세션 상태 갱신
     if (req.session.user) {
       req.session.user.needSignup = false;
+      req.session.user.needProfileComplete = false;
       
       if (typeof req.session.user === 'object') {
+        req.session.user.displayName = displayName;
+        req.session.user.nickname = nickname;
+        req.session.user.memberType = memberType;
         req.session.user.phoneNumber = phoneNumber;
-        req.session.user.hospitalId = parseInt(hospitalId);
+        req.session.user.hospitalId = memberType === "membership" ? parseInt(hospitalId) : null;
+        req.session.user.birthdate = birthdate;
       }
     }
     

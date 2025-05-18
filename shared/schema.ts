@@ -17,8 +17,12 @@ export const users = pgTable("users", {
   lastLogin: timestamp("last_login"),
   phoneNumber: varchar("phone_number", { length: 20 }),  // 전화번호 추가
   dueDate: timestamp("due_date"),  // 출산예정일 추가
+  // 생년월일 추가
+  birthdate: timestamp("birthdate"),
   // Firebase 연동 필드 추가
   firebaseUid: varchar("firebase_uid", { length: 128 }).unique(),  // Firebase 고유 ID이스에 이 컬럼이 없음)
+  // 프로필 완성 여부 필드 추가
+  needProfileComplete: boolean("need_profile_complete").default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
