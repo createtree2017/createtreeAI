@@ -4,236 +4,126 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { useJwtAuth } from "@/hooks/useJwtAuth";
 
-/**
- * Firebase 인증 리디렉션을 처리하는 전용 페이지
- * Google 로그인 리디렉션 후 이 페이지에서 인증 결과를 처리합니다.
- * 
- * 모바일에서 작동하도록 개선된 버전 (ID 토큰 사용)
- */
 const AuthHandlerPage = () => {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState<string>("");
-  const { mobileLogin } = useJwtAuth(); // JWT 토큰 기반 모바일 인증 훅
+  const { mobileLogin } = useJwtAuth();
 
   useEffect(() => {
     const handleAuth = async () => {
       try {
-        console.log("[AuthHandler] 인증 처리 시작...");
-        
-        // Firebase 모듈 동적 로드 (필요한 모든 기능 로드)
-        const { initializeApp, getApps, getApp } = await import('firebase/app');
-        const { getAuth, getRedirectResult, signOut } = await import('firebase/auth');
-        
-        // Firebase 설정 (인증 도메인을 고정)
+        const { initializeApp, getApps, getApp } = await import("firebase/app");
+        const { getAuth, getRedirectResult, signOut } = await import("firebase/auth");
+
         const firebaseConfig = {
           apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-          authDomain: "createtreeai.firebaseapp.com", // 고정 도메인 사용
+          authDomain: "createtreeai.firebaseapp.com",
           projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
           appId: import.meta.env.VITE_FIREBASE_APP_ID
         };
-        
-        // Firebase 앱 중복 초기화 방지 - 기존 앱이 있으면 재사용
-        console.log("[AuthHandler] 기존 Firebase 앱 수:", getApps().length);
+
         const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
         const auth = getAuth(app);
-        
-        console.log("[AuthHandler] Firebase 초기화 완료, 리디렉션 결과 확인");
-        
-        // 리디렉션 결과 확인
+
         const result = await getRedirectResult(auth);
-        
+
         if (result && result.user) {
-          console.log("[AuthHandler] 리디렉션 로그인 성공!");
-          
-          try {
-            // 중요: ID 토큰 가져오기 - 이것이 핵심
-            const idToken = await result.user.getIdToken();
-            console.log("[AuthHandler] ID 토큰 획득 성공 (토큰 길이:", idToken.length, ")");
-            
-            // 사용자 추가 정보 (UI 표시용)
-            const userData = {
-              name: result.user.displayName || "사용자",
-              email: result.user.email || "",
-              uid: result.user.uid
-            };
-            
-            console.log("[AuthHandler] 사용자 정보:", 
-              userData.name, 
-              userData.email ? `(${userData.email.substring(0, 3)}...)` : "", 
-              `(uid: ${userData.uid.substring(0, 5)}...)`
-            );
-            
-            // 모바일 환경에서는 JWT 토큰 기반 인증 사용 (세션 쿠키 문제 해결)
-            console.log("[AuthHandler] 모바일 환경에서 JWT 토큰 방식 적용");
-            
-            // Firebase UID로 JWT 토큰 요청 (토큰 기반 인증)
-            mobileLogin({
-              firebaseUid: userData.uid,
-              email: userData.email || ''
-            });
-            
-            // 로컬 스토리지에 인증 정보 백업 저장
-            localStorage.setItem('firebase_auth', JSON.stringify({
-              uid: userData.uid,
-              email: userData.email || '',
-              displayName: userData.name,
-              timestamp: Date.now()
-            }));
-            
-            console.log("[AuthHandler] JWT 토큰 인증 요청 후 로컬 스토리지 백업 완료");
-            
-            // 백업 방법: 서버 인증 API도 호출 (두 가지 방식 모두 시도)
-            console.log("[AuthHandler] 서버에 ID 토큰 전송 중...");
-            const response = await fetch("/api/auth/firebase-login", {
-              method: "POST",
-              headers: { 
-                "Content-Type": "application/json",
-                "Cache-Control": "no-cache, no-store"
-              },
-              body: JSON.stringify({ 
-                idToken,
-                user: {
-                  uid: userData.uid,
-                  email: userData.email,
-                  displayName: userData.name
-                }
-              }),
-              credentials: "include" // 세션 쿠키를 받기 위해 필수
-            });
-            
-            // 응답 확인
-            if (!response.ok) {
-              const errorText = await response.text();
-              console.error("[AuthHandler] 서버 인증 실패:", response.status, errorText);
-              throw new Error(`서버 인증 실패 (${response.status}): ${errorText || "알 수 없는 오류"}`);
-            }
-            
-            // 서버 응답 처리
-            const data = await response.json();
-            console.log("[AuthHandler] 서버 인증 성공:", data);
-            
-            // Firebase에서 로그아웃 (중요: 서버 세션은 유지하고 Firebase만 로그아웃)
-            // 이렇게 하면 다음 로그인 시 항상 새로운 인증 과정을 거치게 됨
-            console.log("[AuthHandler] Firebase 로그아웃 처리 중...");
-            await signOut(auth);
-            console.log("[AuthHandler] Firebase 로그아웃 완료");
-            
-            // 성공 상태로 변경
-            setStatus("success");
-            
-            // 토스트 메시지
-            toast({
-              title: "로그인 성공",
-              description: `${userData.name}님, 환영합니다!`
-            });
-            
-            // 세션 쿠키 확인 (디버깅용)
-            console.log("[AuthHandler] 현재 쿠키:", document.cookie);
-            
-            // 모바일 환경에서 더 안정적인 인증 처리를 위한 로직
-            // 1. 인증 상태 로컬 스토리지 저장 (백업용)
-            localStorage.setItem('auth_status', 'logged_in');
-            
-            // TypeScript 오류 수정 - userData 객체는 Firebase 사용자 데이터를 담고 있음
-            // userData는 { name, email, uid } 형태이므로 uid를 사용자 ID로 저장
-            localStorage.setItem('auth_user_id', userData.uid);
-            localStorage.setItem('auth_user_email', userData.email || '');
-            localStorage.setItem('auth_timestamp', Date.now().toString());
-            
-            // 2. 저장된 리디렉션 URL 확인
-            const savedRedirectUrl = localStorage.getItem('login_redirect_url');
-            console.log("[AuthHandler] 리디렉션 예정 URL:", savedRedirectUrl || "/");
-            
-            // 3. 리디렉션 전 API 요청 (세션 확인)
-            console.log("[AuthHandler] 세션 확인 중...");
-            try {
-              // 임시 AJAX 요청으로 세션이 제대로 설정되었는지 확인
-              const checkSessionResponse = await fetch('/api/auth/check-session', {
-                method: 'GET',
-                credentials: 'include',
-                headers: {
-                  'Cache-Control': 'no-cache, no-store'
-                }
-              });
-              
-              console.log("[AuthHandler] 세션 확인 응답:", 
-                checkSessionResponse.status, 
-                checkSessionResponse.ok ? '세션 정상' : '세션 오류'
-              );
-            } catch (err) {
-              console.error("[AuthHandler] 세션 확인 오류:", err);
-            }
-            
-            // 4. 세션 확인 - 추가 정보 필요 여부 확인
-            const checkSession = await fetch("/api/auth/me", { 
-              credentials: "include",
-              headers: { 'Cache-Control': 'no-cache, no-store' }
-            });
-            const sessionInfo = await checkSession.json();
-            console.log("[AuthHandler] 세션 확인 완료:", sessionInfo);
-            
-            // 5. 페이지 리디렉션 처리
-            setTimeout(() => {
-              // 리디렉션 URL 사용 후 삭제
-              localStorage.removeItem('login_redirect_url');
-              
-              // 추가 회원정보 입력이 필요한 경우 추가 정보 입력 페이지로 이동
-              if (sessionInfo?.needSignup === true) {
-                console.log("[AuthHandler] 추가 정보 입력 필요, 프로필 작성 페이지로 이동");
-                window.location.replace("/signup/complete-profile");
-              } else if (savedRedirectUrl) {
-                // 저장된 리디렉션 URL이 있는 경우
-                console.log("[AuthHandler] 저장된 리디렉션 URL로 이동:", savedRedirectUrl);
-                window.location.replace(savedRedirectUrl);
-              } else {
-                // 기본 홈페이지로 이동
-                console.log("[AuthHandler] 홈페이지로 이동");
-                window.location.replace("/");
+          const idToken = await result.user.getIdToken();
+          const userData = {
+            name: result.user.displayName || "사용자",
+            email: result.user.email || "",
+            uid: result.user.uid
+          };
+
+          mobileLogin({ firebaseUid: userData.uid, email: userData.email });
+
+          localStorage.setItem("firebase_auth", JSON.stringify({
+            uid: userData.uid,
+            email: userData.email,
+            displayName: userData.name,
+            timestamp: Date.now()
+          }));
+
+          const response = await fetch("/api/auth/firebase-login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Cache-Control": "no-cache, no-store"
+            },
+            body: JSON.stringify({
+              idToken,
+              user: {
+                uid: userData.uid,
+                email: userData.email,
+                displayName: userData.name
               }
-            }, 2000);
-          } catch (err) {
-            console.error("[AuthHandler] 토큰 처리 중 오류:", err);
-            setStatus("error");
-            setErrorMessage(err instanceof Error ? err.message : "인증 처리 중 오류가 발생했습니다");
-            
-            // 에러 발생 시 Firebase 로그아웃
-            try {
-              await signOut(auth);
-              console.log("[AuthHandler] 오류 후 Firebase 로그아웃 완료");
-            } catch (logoutErr) {
-              console.error("[AuthHandler] 로그아웃 오류:", logoutErr);
-            }
-            
-            // 로그인 페이지로 리디렉션
-            setTimeout(() => {
-              window.location.href = "/auth";
-            }, 2000);
+            }),
+            credentials: "include"
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`서버 인증 실패 (${response.status}): ${errorText || "알 수 없는 오류"}`);
           }
+
+          await signOut(auth);
+
+          setStatus("success");
+          toast({
+            title: "로그인 성공",
+            description: `${userData.name}님, 환영합니다!`
+          });
+
+          localStorage.setItem("auth_status", "logged_in");
+          localStorage.setItem("auth_user_id", userData.uid);
+          localStorage.setItem("auth_user_email", userData.email);
+          localStorage.setItem("auth_timestamp", Date.now().toString());
+
+          const savedRedirectUrl = localStorage.getItem("login_redirect_url");
+
+          const checkSession = await fetch("/api/auth/me", {
+            method: "GET",
+            credentials: "include",
+            headers: {
+              "Cache-Control": "no-cache, no-store"
+            }
+          });
+          const sessionInfo = await checkSession.json();
+
+          setTimeout(() => {
+            localStorage.removeItem("login_redirect_url");
+
+            if (
+              sessionInfo?.needSignup === true ||
+              sessionInfo?.needProfileComplete === true ||
+              !sessionInfo?.phoneNumber ||
+              !sessionInfo?.hospitalId
+            ) {
+              window.location.replace("/signup/complete-profile");
+            } else if (savedRedirectUrl) {
+              window.location.replace(savedRedirectUrl);
+            } else {
+              window.location.replace("/");
+            }
+          }, 2000);
         } else {
-          console.log("[AuthHandler] 리디렉션 결과 없음 (로그인하지 않음)");
           setStatus("error");
           setErrorMessage("로그인 정보를 찾을 수 없습니다. 다시 로그인해 주세요.");
-          
-          // 로그인 페이지로 리디렉션
           setTimeout(() => {
             window.location.href = "/auth";
           }, 2000);
         }
       } catch (error) {
-        console.error("[AuthHandler] 인증 처리 중 오류 발생:", error);
         setStatus("error");
         setErrorMessage(error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다");
-        
-        // 로그인 페이지로 리디렉션
         setTimeout(() => {
           window.location.href = "/auth";
         }, 2000);
       }
     };
-    
-    // 인증 처리 시작
+
     handleAuth();
   }, [toast]);
 
@@ -247,7 +137,7 @@ const AuthHandlerPage = () => {
             <p className="text-gray-500">Google 로그인 정보를 확인하고 있습니다...</p>
           </>
         )}
-        
+
         {status === "success" && (
           <>
             <div className="h-12 w-12 bg-green-100 text-green-800 rounded-full flex items-center justify-center mx-auto">
@@ -260,7 +150,7 @@ const AuthHandlerPage = () => {
             <p className="text-gray-400 text-sm">잠시 후 홈페이지로 이동합니다...</p>
           </>
         )}
-        
+
         {status === "error" && (
           <>
             <div className="h-12 w-12 bg-red-100 text-red-800 rounded-full flex items-center justify-center mx-auto">
