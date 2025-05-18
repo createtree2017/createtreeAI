@@ -181,7 +181,7 @@ function Layout({ children }: { children: React.ReactNode }) {
             {/* 로고 */}
             <div className="flex items-center">
               <h1 className="text-lg font-semibold tracking-tight font-heading">
-                <span className="text-foreground">맘스</span> <span className="text-primary">서비스</span>
+                <span className="text-foreground">우리병원</span><span className="text-primary">문화센터</span>
               </h1>
             </div>
             
