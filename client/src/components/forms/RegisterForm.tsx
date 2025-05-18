@@ -94,7 +94,7 @@ const RegisterForm: React.FC = () => {
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>ID(이메일)</FormLabel>
+              <FormLabel>ID(이메일)*</FormLabel>
               <FormControl>
                 <Input 
                   type="email" 
