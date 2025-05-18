@@ -12,7 +12,7 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
-import { Loader2, Calendar, Phone, Hospital } from "lucide-react";
+import { Loader2, Calendar, Phone, Hospital, User, Users, UserCircle } from "lucide-react";
 import { 
   Select,
   SelectContent,
@@ -38,8 +38,14 @@ import { useQuery } from "@tanstack/react-query";
 
 // 프로필 완성 스키마
 const completeProfileSchema = z.object({
-  hospitalId: z.string().min(1, "병원을 선택해주세요"),
+  displayName: z.string().min(2, "이름을 입력해주세요"),
+  nickname: z.string().min(2, "닉네임을 입력해주세요"),
+  memberType: z.enum(["general", "membership"], {
+    required_error: "회원 유형을 선택해주세요",
+  }),
+  hospitalId: z.string().optional(),
   phoneNumber: z.string().min(10, "올바른 전화번호를 입력해주세요"),
+  birthdate: z.string().min(1, "생년월일을 입력해주세요"),
   dueDate: z.string().optional(),
 });
 
@@ -72,8 +78,12 @@ const CompleteProfilePage = () => {
   const form = useForm<CompleteProfileFormData>({
     resolver: zodResolver(completeProfileSchema),
     defaultValues: {
+      displayName: "",
+      nickname: "",
+      memberType: "general",
       hospitalId: "",
       phoneNumber: "",
+      birthdate: "",
       dueDate: "",
     },
   });
@@ -177,14 +187,14 @@ const CompleteProfilePage = () => {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* 병원 선택 필드 */}
+              {/* 회원 유형 선택 필드 */}
               <FormField
                 control={form.control}
-                name="hospitalId"
+                name="memberType"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-2">
-                      <Hospital className="h-4 w-4" /> 병원 선택
+                      <Users className="h-4 w-4" /> 회원 유형*
                     </FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
@@ -192,38 +202,120 @@ const CompleteProfilePage = () => {
                     >
                       <FormControl>
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="소속 병원을 선택해주세요" />
+                          <SelectValue placeholder="회원 유형을 선택해주세요" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         <SelectGroup>
-                          <SelectLabel>병원 목록</SelectLabel>
-                          {isLoadingHospitals ? (
-                            <SelectItem value="loading" disabled>
-                              로딩중...
-                            </SelectItem>
-                          ) : hospitals.length === 0 ? (
-                            <SelectItem value="none" disabled>
-                              등록된 병원이 없습니다
-                            </SelectItem>
-                          ) : (
-                            hospitals.map((hospital: any) => (
-                              <SelectItem key={hospital.id} value={hospital.id.toString()}>
-                                {hospital.name}
-                              </SelectItem>
-                            ))
-                          )}
+                          <SelectLabel>회원 유형</SelectLabel>
+                          <SelectItem value="general">일반회원</SelectItem>
+                          <SelectItem value="membership">멤버십회원</SelectItem>
                         </SelectGroup>
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      소속된 병원을 선택해주세요
+                      멤버십회원은 병원 서비스 이용 고객입니다
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
+              {/* 병원 선택 필드 (회원 유형이 멤버십일 때만 표시) */}
+              {form.watch("memberType") === "membership" && (
+                <FormField
+                  control={form.control}
+                  name="hospitalId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <Hospital className="h-4 w-4" /> 병원 선택*
+                      </FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="소속 병원을 선택해주세요" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectGroup>
+                            <SelectLabel>병원 목록</SelectLabel>
+                            {isLoadingHospitals ? (
+                              <SelectItem value="loading" disabled>
+                                로딩중...
+                              </SelectItem>
+                            ) : hospitals.length === 0 ? (
+                              <SelectItem value="none" disabled>
+                                등록된 병원이 없습니다
+                              </SelectItem>
+                            ) : (
+                              hospitals.map((hospital: any) => (
+                                <SelectItem key={hospital.id} value={hospital.id.toString()}>
+                                  {hospital.name}
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        소속된 병원을 선택해주세요
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {/* 이름 입력 필드 */}
+              <FormField
+                control={form.control}
+                name="displayName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2">
+                      <User className="h-4 w-4" /> 이름*
+                    </FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="이름을 입력해주세요" 
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      실명을 입력해주세요
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* 닉네임 입력 필드 */}
+              <FormField
+                control={form.control}
+                name="nickname"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2">
+                      <UserCircle className="h-4 w-4" /> 닉네임*
+                    </FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="닉네임을 입력해주세요" 
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      서비스에서 사용할 닉네임을 입력해주세요
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
               {/* 전화번호 입력 필드 */}
               <FormField
                 control={form.control}
@@ -231,7 +323,7 @@ const CompleteProfilePage = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-2">
-                      <Phone className="h-4 w-4" /> 전화번호
+                      <Phone className="h-4 w-4" /> 전화번호*
                     </FormLabel>
                     <FormControl>
                       <Input 
@@ -243,6 +335,30 @@ const CompleteProfilePage = () => {
                     </FormControl>
                     <FormDescription>
                       하이픈(-) 없이 입력해주세요
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* 생년월일 입력 필드 */}
+              <FormField
+                control={form.control}
+                name="birthdate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" /> 생년월일*
+                    </FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="date" 
+                        placeholder="생년월일을 선택해주세요"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      생년월일을 선택해주세요
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
