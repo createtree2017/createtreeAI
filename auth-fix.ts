@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import passport from "passport";
-import { db } from "../../db";
+import { db } from "../db";
 import {
   users,
   roles,
@@ -8,7 +8,7 @@ import {
   insertUserSchema,
   insertRoleSchema,
   insertUserRoleSchema,
-} from "../../shared/schema";
+} from "@shared/schema";
 import { eq } from "drizzle-orm";
 import {
   hashPassword,
@@ -19,11 +19,11 @@ import {
   invalidateRefreshToken,
   authenticateJWT,
   checkRole,
-} from "../../server/services/auth";
+} from "../services/auth";
 import {
   FirebaseUserData,
   handleFirebaseAuth,
-} from "../../server/services/firebase-auth";
+} from "../services/firebase-auth";
 
 const router = Router();
 
