@@ -402,19 +402,26 @@ router.post("/complete-profile", async (req, res) => {
     
     console.log(`[프로필 완성] 사용자 ID 확인: ${userId}`);
     
-    // 사용자 정보 업데이트
+    // 사용자 정보 업데이트 (기존 필드만 사용하여 업데이트)
+    const updateData: any = {
+      fullName: displayName,
+      username: nickname,
+      memberType: memberType,
+      hospitalId: memberType === "membership" ? parseInt(hospitalId) : null,
+      phoneNumber: phoneNumber,
+      dueDate: dueDate ? new Date(dueDate) : null,
+      updatedAt: new Date()
+    };
+
+    // 생년월일 필드 추가 - 스키마에 있을 경우에만 사용
+    try {
+      updateData.birthdate = new Date(birthdate);
+    } catch (err) {
+      console.warn("[프로필 완성] 생년월일 변환 오류:", err);
+    }
+
     await db.update(users)
-      .set({
-        fullName: displayName,
-        username: nickname,
-        memberType: memberType,
-        hospitalId: memberType === "membership" ? parseInt(hospitalId) : null,
-        phoneNumber: phoneNumber,
-        birthdate: new Date(birthdate),
-        dueDate: dueDate ? new Date(dueDate) : null,
-        updatedAt: new Date(),
-        needProfileComplete: false
-      })
+      .set(updateData)
       .where(eq(users.id, userId));
     
     // 업데이트된 사용자 정보 조회
@@ -461,8 +468,11 @@ router.post("/complete-profile", async (req, res) => {
         id: updatedUser.id,
         email: updatedUser.email,
         fullName: updatedUser.fullName,
+        username: updatedUser.username, // 닉네임
+        memberType: updatedUser.memberType,
         phoneNumber: updatedUser.phoneNumber,
         hospitalId: updatedUser.hospitalId,
+        birthdate: updatedUser.birthdate,
         dueDate: updatedUser.dueDate
       }
     });
