@@ -46,6 +46,7 @@ const AuthHandlerPage = () => {
             timestamp: Date.now()
           }));
 
+          console.log("[인증 처리] Firebase 로그인 성공, 서버 인증 시작...");
           const response = await fetch("/api/auth/firebase-login", {
             method: "POST",
             headers: {
@@ -68,6 +69,9 @@ const AuthHandlerPage = () => {
             throw new Error(`서버 인증 실패 (${response.status}): ${errorText || "알 수 없는 오류"}`);
           }
 
+          const loginResponse = await response.json();
+          console.log("[Google 로그인] 서버 인증 성공:", loginResponse);
+
           await signOut(auth);
 
           setStatus("success");
@@ -80,9 +84,14 @@ const AuthHandlerPage = () => {
           localStorage.setItem("auth_user_id", userData.uid);
           localStorage.setItem("auth_user_email", userData.email);
           localStorage.setItem("auth_timestamp", Date.now().toString());
+          
+          // 세션 쿠키가 제대로 설정될 수 있도록 더 오래 대기 
+          // 모바일 환경에서는 세션 설정에 더 많은 시간이 필요할 수 있음
+          await new Promise(resolve => setTimeout(resolve, 1500));
 
           const savedRedirectUrl = localStorage.getItem("login_redirect_url");
 
+          console.log("[인증 API 호출] /api/auth/me 요청 시작 (세션 확인)");
           const checkSession = await fetch("/api/auth/me", {
             method: "GET",
             credentials: "include",
@@ -90,7 +99,9 @@ const AuthHandlerPage = () => {
               "Cache-Control": "no-cache, no-store"
             }
           });
+          console.log("[인증 API 응답] 상태 코드:", checkSession.status);
           const sessionInfo = await checkSession.json();
+          console.log("[인증 API 응답] 세션 정보:", sessionInfo);
 
           setTimeout(() => {
             localStorage.removeItem("login_redirect_url");
