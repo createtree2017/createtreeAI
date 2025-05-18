@@ -46,7 +46,6 @@ const completeProfileSchema = z.object({
   hospitalId: z.string().optional(),
   phoneNumber: z.string().min(10, "올바른 전화번호를 입력해주세요"),
   birthdate: z.string().min(1, "생년월일을 입력해주세요"),
-  dueDate: z.string().optional(),
 });
 
 type CompleteProfileFormData = z.infer<typeof completeProfileSchema>;
@@ -84,7 +83,6 @@ const CompleteProfilePage = () => {
       hospitalId: "",
       phoneNumber: "",
       birthdate: "",
-      dueDate: "",
     },
   });
 
@@ -365,29 +363,7 @@ const CompleteProfilePage = () => {
                 )}
               />
 
-              {/* 출산예정일 입력 */}
-              <FormField
-                control={form.control}
-                name="dueDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4" /> 출산예정일
-                    </FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="date" 
-                        placeholder="출산예정일을 선택해주세요"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      출산예정일을 선택해주세요 (선택사항)
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+
 
               {/* 제출 버튼 */}
               <Button 
