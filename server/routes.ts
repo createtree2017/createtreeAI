@@ -5,7 +5,6 @@ import { z } from "zod";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import 'express-session';
 import { authMiddleware } from "./common/middleware/auth";
 import { DevHistoryManager } from "./services/dev-history-manager";
 import testAceStepRouter from "./routes/test-ace-step-routes";
