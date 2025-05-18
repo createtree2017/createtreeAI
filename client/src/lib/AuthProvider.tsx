@@ -34,7 +34,13 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // 컴포넌트 마운트시 세션 쿠키 확인
   React.useEffect(() => {
-    console.log("[AuthProvider] 현재 쿠키:", document.cookie);
+    // 현재 쿠키 및 로컬 스토리지 상태 로깅
+  console.log("[AuthProvider] 현재 쿠키:", document.cookie);
+  console.log("[AuthProvider] 현재 로컬 스토리지:", {
+    auth_status: localStorage.getItem("auth_status"),
+    auth_user_id: localStorage.getItem("auth_user_id"),
+    auth_timestamp: localStorage.getItem("auth_timestamp")
+  });
   }, []);
   
   const {

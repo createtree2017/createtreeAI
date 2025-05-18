@@ -265,15 +265,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 세션 미들웨어 등록 (모바일 환경 대응 강화 - Replit 환경 최적화)
   app.use(session({
     secret: process.env.SESSION_SECRET || 'create-tree-mobile-session-secret',
-    resave: false,
-    saveUninitialized: true, // 세션을 항상 저장
+    resave: true,              // 세션 변경사항이 없어도 항상 저장
+    saveUninitialized: true,   // 세션을 항상 저장
     cookie: {
       httpOnly: true,
-      secure: false,            // Replit은 HTTP로 동작할 수 있음
-      sameSite: 'lax',          // 크로스 사이트 리퀘스트 허용
+      secure: false,          // Replit은 HTTP로 동작할 수 있음
+      sameSite: 'lax',        // 크로스 사이트 리퀘스트 허용
       path: '/',
-      maxAge: 86400000          // 1일 (24시간)
-    }
+      maxAge: 30 * 24 * 60 * 60 * 1000  // 30일 (더 길게 설정)
+    },
+    // 디버깅 세션 설정 - 세션 작동 확인용
+    name: 'createtree.sid'    // 세션 쿠키 이름 명시적 지정
   }));
   
   // Passport 초기화 및 미들웨어 등록

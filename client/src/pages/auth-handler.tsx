@@ -103,22 +103,30 @@ const AuthHandlerPage = () => {
           const sessionInfo = await checkSession.json();
           console.log("[인증 API 응답] 세션 정보:", sessionInfo);
 
+          // 세션 설정 캡처 강화를 위한 리다이렉션 지연 (모바일에서 중요)
           setTimeout(() => {
             localStorage.removeItem("login_redirect_url");
+            
+            // 세션 유지를 위한 인증 상태 쿠키 추가 설정
+            document.cookie = "auth_status=logged_in; path=/; max-age=2592000"; // 30일
 
+            // 리다이렉션 결정
             if (
               sessionInfo?.needSignup === true ||
               sessionInfo?.needProfileComplete === true ||
               !sessionInfo?.phoneNumber ||
               !sessionInfo?.hospitalId
             ) {
+              console.log("[인증 처리] 프로필 완성 필요, 프로필 페이지로 이동");
               window.location.replace("/signup/complete-profile");
             } else if (savedRedirectUrl) {
+              console.log("[인증 처리] 저장된 리다이렉션 URL로 이동:", savedRedirectUrl);
               window.location.replace(savedRedirectUrl);
             } else {
+              console.log("[인증 처리] 홈페이지로 이동");
               window.location.replace("/");
             }
-          }, 2000);
+          }, 3000); // 더 오래 기다려서 세션이 확실히 저장되도록 함
         } else {
           setStatus("error");
           setErrorMessage("로그인 정보를 찾을 수 없습니다. 다시 로그인해 주세요.");
