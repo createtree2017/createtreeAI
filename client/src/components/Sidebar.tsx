@@ -276,6 +276,10 @@ export default function Sidebar({ collapsed = false }) {
                   </>
                 ) : user?.memberType === 'pro' ? (
                   <span className="bg-amber-600/20 text-amber-400 px-1.5 py-0.5 rounded-sm">PRO 회원</span>
+                ) : user?.memberType === 'superadmin' ? (
+                  <span className="bg-rose-600/20 text-rose-400 px-1.5 py-0.5 rounded-sm">슈퍼관리자</span>
+                ) : user?.memberType === 'hospital_admin' ? (
+                  <span className="bg-emerald-600/20 text-emerald-400 px-1.5 py-0.5 rounded-sm">병원관리자</span>
                 ) : (
                   <span className="bg-neutral-700/50 text-neutral-400 px-1.5 py-0.5 rounded-sm">일반 회원</span>
                 )}
