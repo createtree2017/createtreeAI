@@ -478,6 +478,35 @@ router.post("/complete-profile", async (req, res) => {
       req.session.passport = { user: userId };
     }
     
+    // 세션 사용자 정보 명시적 갱신
+    if (req.session.user) {
+      req.session.user = {
+        ...(req.session.user || {}),
+        phoneNumber,
+        hospitalId: memberType === "membership" ? parseInt(hospitalId) : null,
+        dueDate,
+        needProfileComplete: false
+      };
+    }
+
+    // Passport 사용자도 다시 로그인 시켜 세션에 재등록
+    req.login(updatedUser, (loginErr) => {
+      if (loginErr) {
+        console.error("재로그인 실패:", loginErr);
+      } else {
+        console.log("[프로필 완성] 재로그인 성공:", updatedUser.id);
+      }
+    });
+
+    // 쿠키 명시적으로 설정 (모바일 호환성)
+    res.cookie("connect.sid", req.sessionID, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: "lax",
+      path: "/",
+      maxAge: 30 * 24 * 60 * 60 * 1000
+    });
+    
     // 세션 저장 (비동기)
     req.session.save((saveErr) => {
       if (saveErr) {
@@ -501,7 +530,8 @@ router.post("/complete-profile", async (req, res) => {
         phoneNumber: updatedUser.phoneNumber,
         hospitalId: updatedUser.hospitalId,
         birthdate: updatedUser.birthdate,
-        dueDate: updatedUser.dueDate
+        dueDate: updatedUser.dueDate,
+        needProfileComplete: false
       }
     });
   } catch (error) {
@@ -541,26 +571,40 @@ router.get("/me", async (req, res) => {
       `인증된 사용자 정보: ID=${req.user.id}, 이름=${req.user.username || req.user.email || "알 수 없음"}`,
     );
     
-    // 추가 정보 입력 필요 여부 확인
-    const user = req.user as any;
+    // 사용자 ID 확인
+    const userId = req.user?.id || req.session?.user?.id;
     
-    // 항상 최신 사용자 정보 DB에서 직접 확인 (세션 정보가 오래된 경우 방지)
+    // 항상 DB에서 최신 사용자 정보 확인
     const freshUserData = await db.query.users.findFirst({
-      where: eq(users.id, user.id)
+      where: eq(users.id, userId)
     });
     
-    // DB에서 조회한 최신 needProfileComplete 값 사용
-    const needProfileComplete = freshUserData ? freshUserData.needProfileComplete : user.needProfileComplete;
+    if (!freshUserData) {
+      return res.status(404).json({ message: "사용자 정보를 찾을 수 없습니다." });
+    }
     
-    // needProfileComplete 필드가 명시적으로 false인 경우 추가 정보 입력이 필요하지 않음
-    const needSignup = needProfileComplete === false ? false : (!user.hospitalId || !user.phoneNumber);
+    // 프로필 완성 여부 판단 (DB 기반)
+    // 1. needProfileComplete가 명시적으로 false면 완성됨
+    // 2. 아니면 전화번호와 병원ID(멤버십인 경우) 존재 여부로 판단
+    const needProfileComplete = 
+      freshUserData.needProfileComplete === false ? false : 
+      !freshUserData.phoneNumber || 
+      (freshUserData.memberType === "membership" && !freshUserData.hospitalId);
     
-    console.log(`추가 정보 입력 필요 여부: ${needSignup}, 병원ID: ${user.hospitalId}, 전화번호: ${user.phoneNumber}, DB needProfileComplete: ${needProfileComplete}, 세션 needProfileComplete: ${user.needProfileComplete}`);
+    console.log(`[/me API] 최신 프로필 완성 상태:
+    - DB needProfileComplete: ${freshUserData.needProfileComplete}
+    - 전화번호: ${freshUserData.phoneNumber || '(없음)'}
+    - 병원ID: ${freshUserData.hospitalId || '(없음)'}
+    - 최종 판단: ${needProfileComplete ? '프로필 입력 필요' : '프로필 완성됨'}`);
     
-    // 사용자 정보에 추가 정보 입력 필요 여부 표시 (DB 값으로 덮어씀)
+    // 세션 정보도 갱신
+    if (req.session.user) {
+      req.session.user.needProfileComplete = needProfileComplete;
+    }
+    
+    // 필요한 정보만 담아서 응답
     return res.json({
-      ...req.user,
-      needSignup,
+      ...freshUserData,
       needProfileComplete
     });
   } catch (error) {
