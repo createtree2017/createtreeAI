@@ -46,6 +46,7 @@ export async function handleFirebaseAuth(firebaseUser: FirebaseUserData) {
       // 전화번호와 출산예정일은 null로 설정 (사용자가 직접 입력하도록)
       phoneNumber: null,
       dueDate: null,
+      needProfileComplete: true, // 프로필 완성이 필요함을 명시
       lastLogin: new Date(),
       createdAt: new Date(),
       updatedAt: new Date()
@@ -88,8 +89,9 @@ export async function handleFirebaseAuth(firebaseUser: FirebaseUserData) {
   }
   
   // 5. 추가 정보 입력 필요 여부 확인
-  // 전화번호 또는 출산예정일이 없는 경우 추가 정보 입력이 필요함
-  const needSignup = !user.phoneNumber || !user.dueDate;
+  // needProfileComplete 필드가 명시적으로 false면 추가 정보 입력이 필요 없음
+  // 아닌 경우 기본 조건인 전화번호 존재 여부로 판단
+  const needSignup = user.needProfileComplete === false ? false : !user.phoneNumber;
   
   // 디버깅 정보 추가
   const dueDateFormatted = user.dueDate && user.dueDate instanceof Date && !isNaN(user.dueDate.getTime())
@@ -104,11 +106,13 @@ export async function handleFirebaseAuth(firebaseUser: FirebaseUserData) {
   - Firebase UID: ${user.firebaseUid}
   - 전화번호: ${user.phoneNumber || '(없음)'}
   - 출산예정일: ${dueDateFormatted}
+  - needProfileComplete: ${user.needProfileComplete !== undefined ? (user.needProfileComplete ? '예' : '아니오') : '미설정'}
   - 추가 정보 입력 필요: ${needSignup ? '예' : '아니오'}`);
   
-  // needSignup 속성 추가하여 반환
+  // needSignup과 needProfileComplete 속성 추가하여 반환
   return {
     ...user,
-    needSignup
+    needSignup,
+    needProfileComplete: user.needProfileComplete === false ? false : true // 명시적 false가 아니면 true로 설정
   };
 }
