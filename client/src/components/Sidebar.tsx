@@ -260,21 +260,21 @@ export default function Sidebar({ collapsed = false }) {
       {/* 사용자 정보 및 로그아웃 버튼 */}
       <div className="mb-4 border-b border-neutral-800">
         {/* 사용자 프로필 정보 표시 */}
-        {!collapsed && session && (
+        {!collapsed && user && (
           <div className="px-4 py-3">
             <div className="flex flex-col">
               <span className="font-semibold text-primary-lavender text-sm">
-                {session.username || session.email}
+                {user.username || user.email}
               </span>
               <div className="text-xs text-neutral-300 mt-1 flex items-center gap-1">
-                {session.memberType === 'membership' ? (
+                {user.memberType === 'membership' ? (
                   <>
                     <span className="bg-blue-600/20 text-blue-400 px-1.5 py-0.5 rounded-sm">멤버십</span>
-                    {session.hospitalName && (
-                      <span className="truncate max-w-[120px]">{session.hospitalName}</span>
+                    {user.hospitalName && (
+                      <span className="truncate max-w-[120px]">{user.hospitalName}</span>
                     )}
                   </>
-                ) : session.memberType === 'pro' ? (
+                ) : user.memberType === 'pro' ? (
                   <span className="bg-amber-600/20 text-amber-400 px-1.5 py-0.5 rounded-sm">PRO 회원</span>
                 ) : (
                   <span className="bg-neutral-700/50 text-neutral-400 px-1.5 py-0.5 rounded-sm">일반 회원</span>

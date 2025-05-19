@@ -590,22 +590,41 @@ router.get("/me", async (req, res) => {
       freshUserData.needProfileComplete === false ? false : 
       !freshUserData.phoneNumber || 
       (freshUserData.memberType === "membership" && !freshUserData.hospitalId);
+      
+    // 멤버십 사용자인 경우 병원 정보 조회
+    let hospitalName = null;
+    if (freshUserData.hospitalId) {
+      try {
+        // hospitals 테이블 임포트 확인
+        const { hospitals } = await import("../../shared/schema");
+        
+        const hospital = await db.query.hospitals.findFirst({
+          where: eq(hospitals.id, freshUserData.hospitalId)
+        });
+        hospitalName = hospital?.name || null;
+      } catch (err) {
+        console.error("병원 정보 조회 실패:", err);
+      }
+    }
     
     console.log(`[/me API] 최신 프로필 완성 상태:
     - DB needProfileComplete: ${freshUserData.needProfileComplete}
     - 전화번호: ${freshUserData.phoneNumber || '(없음)'}
     - 병원ID: ${freshUserData.hospitalId || '(없음)'}
+    - 병원명: ${hospitalName || '(없음)'}
     - 최종 판단: ${needProfileComplete ? '프로필 입력 필요' : '프로필 완성됨'}`);
     
     // 세션 정보도 갱신
     if (req.session.user) {
       req.session.user.needProfileComplete = needProfileComplete;
+      req.session.user.hospitalName = hospitalName;
     }
     
     // 필요한 정보만 담아서 응답
     return res.json({
       ...freshUserData,
-      needProfileComplete
+      needProfileComplete,
+      hospitalName
     });
   } catch (error) {
     console.error("사용자 정보 조회 오류:", error);
