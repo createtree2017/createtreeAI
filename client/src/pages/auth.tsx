@@ -106,7 +106,7 @@ const AuthPage = () => {
       <div className="w-full md:w-1/2 p-4 md:p-10 flex flex-col justify-center">
         <div className="max-w-md mx-auto w-full">
           <div className="mb-8 text-center">
-            <h1 className="text-3xl font-bold text-primary">CreateTree 문화센터</h1>
+            <h1 className="text-3xl font-bold text-primary">우리병원 문화센터</h1>
             <p className="text-muted-foreground mt-2">
               임산부와 영유아 엄마들을 위한 AI 서비스
             </p>
@@ -116,7 +116,7 @@ const AuthPage = () => {
             <CardHeader>
               <CardTitle>계정 관리</CardTitle>
               <CardDescription>
-                CreateTree 문화센터의 AI 서비스를 이용하려면 로그인이 필요합니다.
+                우리병원 문화센터의 AI 서비스를 이용하려면 로그인이 필요합니다.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -167,7 +167,7 @@ const AuthPage = () => {
             AI 기반 맞춤형 서비스
           </h2>
           <p className="text-lg mb-8 text-gray-700">
-            CreateTree 문화센터는 임산부와 영유아 엄마들을 위한 AI 기반 맞춤형 서비스를 제공합니다. 
+            우리병원 문화센터는 임산부와 영유아 엄마들을 위한 AI 기반 맞춤형 서비스를 제공합니다. 
             사진 변환, 태교 음악 생성, AI 대화 기능을 통해 특별한 경험을 선사합니다.
           </p>
 

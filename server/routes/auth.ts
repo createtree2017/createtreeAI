@@ -410,6 +410,7 @@ router.post("/complete-profile", async (req, res) => {
       hospitalId: memberType === "membership" ? parseInt(hospitalId) : null,
       phoneNumber: phoneNumber,
       dueDate: dueDate ? new Date(dueDate) : null,
+      needProfileComplete: false, // 프로필 완성 플래그 업데이트
       updatedAt: new Date()
     };
 
@@ -448,6 +449,18 @@ router.post("/complete-profile", async (req, res) => {
         req.session.user.hospitalId = memberType === "membership" ? parseInt(hospitalId) : null;
         req.session.user.birthdate = birthdate;
       }
+    }
+    
+    // req.user 객체도 업데이트 (Passport 사용자 객체)
+    if (req.user && typeof req.user === 'object') {
+      (req.user as any).needProfileComplete = false;
+      (req.user as any).needSignup = false;
+      (req.user as any).fullName = displayName;
+      (req.user as any).username = nickname;
+      (req.user as any).memberType = memberType;
+      (req.user as any).phoneNumber = phoneNumber;
+      (req.user as any).hospitalId = memberType === "membership" ? parseInt(hospitalId) : null;
+      (req.user as any).birthdate = birthdate;
     }
     
     // 세션 저장 (비동기)
@@ -515,13 +528,18 @@ router.get("/me", (req, res) => {
     
     // 추가 정보 입력 필요 여부 확인
     const user = req.user as any;
-    const needSignup = !user.hospitalId || !user.phoneNumber;
-    console.log(`추가 정보 입력 필요 여부: ${needSignup}, 병원ID: ${user.hospitalId}, 전화번호: ${user.phoneNumber}`);
+    
+    // needProfileComplete 필드가 명시적으로 false인 경우 추가 정보 입력이 필요하지 않음
+    // (needProfileComplete가 false로 설정된 경우는 이미 프로필을 완성한 경우)
+    const needSignup = user.needProfileComplete === false ? false : (!user.hospitalId || !user.phoneNumber);
+    
+    console.log(`추가 정보 입력 필요 여부: ${needSignup}, 병원ID: ${user.hospitalId}, 전화번호: ${user.phoneNumber}, needProfileComplete: ${user.needProfileComplete}`);
     
     // 사용자 정보에 추가 정보 입력 필요 여부 표시
     return res.json({
       ...req.user,
-      needSignup
+      needSignup,
+      needProfileComplete: user.needProfileComplete
     });
   } catch (error) {
     console.error("사용자 정보 조회 오류:", error);
