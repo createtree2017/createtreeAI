@@ -425,7 +425,17 @@ router.post("/complete-profile", async (req, res) => {
       .set(updateData)
       .where(eq(users.id, userId));
     
-    // 업데이트된 사용자 정보 조회
+    // 즉시 DB에 needProfileComplete: false로 업데이트
+    const updateResult = await db.update(users)
+      .set({
+        needProfileComplete: false
+      })
+      .where(eq(users.id, userId))
+      .returning();
+      
+    console.log("[프로필 완성] needProfileComplete 필드 명시적 업데이트:", updateResult.length > 0);
+      
+    // 업데이트된 사용자 정보 조회 (최신 상태 확인)
     const updatedUser = await db.query.users.findFirst({
       where: eq(users.id, userId)
     });
@@ -434,33 +444,38 @@ router.post("/complete-profile", async (req, res) => {
       return res.status(500).json({ message: "사용자 정보 업데이트 후 조회 실패" });
     }
     
-    console.log(`[프로필 완성] 사용자 정보 업데이트 성공: ID=${userId}, 전화번호=${phoneNumber}, 병원=${hospitalId}`);
+    console.log(`[프로필 완성] 사용자 정보 업데이트 성공: ID=${userId}, 전화번호=${phoneNumber}, 병원=${hospitalId}, needProfileComplete=${updatedUser.needProfileComplete}`);
     
-    // 세션 상태 갱신
+    // 세션 상태 강제 갱신 (직접 할당)
     if (req.session.user) {
-      req.session.user.needSignup = false;
-      req.session.user.needProfileComplete = false;
-      
-      if (typeof req.session.user === 'object') {
-        req.session.user.displayName = displayName;
-        req.session.user.nickname = nickname;
-        req.session.user.memberType = memberType;
-        req.session.user.phoneNumber = phoneNumber;
-        req.session.user.hospitalId = memberType === "membership" ? parseInt(hospitalId) : null;
-        req.session.user.birthdate = birthdate;
-      }
+      // 세션에 명시적으로 설정
+      req.session.user = {
+        ...req.session.user,
+        displayName,
+        nickname,
+        memberType,
+        phoneNumber,
+        hospitalId: memberType === "membership" ? parseInt(hospitalId) : null,
+        birthdate,
+        needProfileComplete: false
+      };
     }
     
     // req.user 객체도 업데이트 (Passport 사용자 객체)
     if (req.user && typeof req.user === 'object') {
+      // 대체하지 말고 속성만 업데이트
       (req.user as any).needProfileComplete = false;
-      (req.user as any).needSignup = false;
       (req.user as any).fullName = displayName;
       (req.user as any).username = nickname;
       (req.user as any).memberType = memberType;
       (req.user as any).phoneNumber = phoneNumber;
       (req.user as any).hospitalId = memberType === "membership" ? parseInt(hospitalId) : null;
       (req.user as any).birthdate = birthdate;
+    }
+    
+    // Passport 세션 객체 강제 갱신
+    if (req.session.passport) {
+      req.session.passport = { user: userId };
     }
     
     // 세션 저장 (비동기)
@@ -499,7 +514,7 @@ router.post("/complete-profile", async (req, res) => {
 });
 
 // 현재 로그인한 사용자 정보 조회 API
-router.get("/me", (req, res) => {
+router.get("/me", async (req, res) => {
   try {
     // 인증 상태 디버깅
     console.log(`
@@ -529,17 +544,24 @@ router.get("/me", (req, res) => {
     // 추가 정보 입력 필요 여부 확인
     const user = req.user as any;
     
+    // 항상 최신 사용자 정보 DB에서 직접 확인 (세션 정보가 오래된 경우 방지)
+    const freshUserData = await db.query.users.findFirst({
+      where: eq(users.id, user.id)
+    });
+    
+    // DB에서 조회한 최신 needProfileComplete 값 사용
+    const needProfileComplete = freshUserData ? freshUserData.needProfileComplete : user.needProfileComplete;
+    
     // needProfileComplete 필드가 명시적으로 false인 경우 추가 정보 입력이 필요하지 않음
-    // (needProfileComplete가 false로 설정된 경우는 이미 프로필을 완성한 경우)
-    const needSignup = user.needProfileComplete === false ? false : (!user.hospitalId || !user.phoneNumber);
+    const needSignup = needProfileComplete === false ? false : (!user.hospitalId || !user.phoneNumber);
     
-    console.log(`추가 정보 입력 필요 여부: ${needSignup}, 병원ID: ${user.hospitalId}, 전화번호: ${user.phoneNumber}, needProfileComplete: ${user.needProfileComplete}`);
+    console.log(`추가 정보 입력 필요 여부: ${needSignup}, 병원ID: ${user.hospitalId}, 전화번호: ${user.phoneNumber}, DB needProfileComplete: ${needProfileComplete}, 세션 needProfileComplete: ${user.needProfileComplete}`);
     
-    // 사용자 정보에 추가 정보 입력 필요 여부 표시
+    // 사용자 정보에 추가 정보 입력 필요 여부 표시 (DB 값으로 덮어씀)
     return res.json({
       ...req.user,
       needSignup,
-      needProfileComplete: user.needProfileComplete
+      needProfileComplete
     });
   } catch (error) {
     console.error("사용자 정보 조회 오류:", error);
