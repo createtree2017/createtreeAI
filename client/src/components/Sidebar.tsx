@@ -257,24 +257,52 @@ export default function Sidebar({ collapsed = false }) {
         </Link>
       </div>
 
-      {/* 로그아웃 버튼 (모바일에서 보이도록 상단으로 이동) */}
-      <div className={`mb-4 p-4 ${collapsed ? "flex justify-center" : "flex items-center justify-between"} border-b border-neutral-800`}>
-        {!collapsed && (
-          <div className="text-xs text-neutral-400 font-semibold">
-            계정 관리
+      {/* 사용자 정보 및 로그아웃 버튼 */}
+      <div className="mb-4 border-b border-neutral-800">
+        {/* 사용자 프로필 정보 표시 */}
+        {!collapsed && session && (
+          <div className="px-4 py-3">
+            <div className="flex flex-col">
+              <span className="font-semibold text-primary-lavender text-sm">
+                {session.username || session.email}
+              </span>
+              <div className="text-xs text-neutral-300 mt-1 flex items-center gap-1">
+                {session.memberType === 'membership' ? (
+                  <>
+                    <span className="bg-blue-600/20 text-blue-400 px-1.5 py-0.5 rounded-sm">멤버십</span>
+                    {session.hospitalName && (
+                      <span className="truncate max-w-[120px]">{session.hospitalName}</span>
+                    )}
+                  </>
+                ) : session.memberType === 'pro' ? (
+                  <span className="bg-amber-600/20 text-amber-400 px-1.5 py-0.5 rounded-sm">PRO 회원</span>
+                ) : (
+                  <span className="bg-neutral-700/50 text-neutral-400 px-1.5 py-0.5 rounded-sm">일반 회원</span>
+                )}
+              </div>
+            </div>
           </div>
         )}
-        <button 
-          onClick={() => {
-            // useAuth 훅의 logout 함수 사용
-            logout();
-          }}
-          className="text-neutral-400 hover:text-primary-lavender transition-colors flex items-center gap-2 cursor-pointer" 
-          aria-label="로그아웃"
-        >
-          {!collapsed && <span className="text-sm">로그아웃</span>}
-          <LogOut size={collapsed ? 20 : 18} strokeWidth={1.5} />
-        </button>
+        
+        {/* 로그아웃 버튼 */}
+        <div className={`p-4 ${collapsed ? "flex justify-center" : "flex items-center justify-between"}`}>
+          {!collapsed && (
+            <div className="text-xs text-neutral-400 font-semibold">
+              계정 관리
+            </div>
+          )}
+          <button 
+            onClick={() => {
+              // useAuth 훅의 logout 함수 사용
+              logout();
+            }}
+            className="text-neutral-400 hover:text-primary-lavender transition-colors flex items-center gap-2 cursor-pointer" 
+            aria-label="로그아웃"
+          >
+            {!collapsed && <span className="text-sm">로그아웃</span>}
+            <LogOut size={collapsed ? 20 : 18} strokeWidth={1.5} />
+          </button>
+        </div>
       </div>
       
       {/* 메뉴 그룹 */}
