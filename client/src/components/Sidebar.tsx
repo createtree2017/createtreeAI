@@ -267,14 +267,14 @@ export default function Sidebar({ collapsed = false }) {
                 {user.username || user.email}
               </span>
               <div className="text-xs text-neutral-300 mt-1 flex items-center gap-1">
-                {user.memberType === 'membership' ? (
+                {user?.memberType === 'membership' ? (
                   <>
                     <span className="bg-blue-600/20 text-blue-400 px-1.5 py-0.5 rounded-sm">멤버십</span>
-                    {user.hospitalName && (
-                      <span className="truncate max-w-[120px]">{user.hospitalName}</span>
+                    {(user as any).hospitalName && (
+                      <span className="truncate max-w-[120px]">{(user as any).hospitalName}</span>
                     )}
                   </>
-                ) : user.memberType === 'pro' ? (
+                ) : user?.memberType === 'pro' ? (
                   <span className="bg-amber-600/20 text-amber-400 px-1.5 py-0.5 rounded-sm">PRO 회원</span>
                 ) : (
                   <span className="bg-neutral-700/50 text-neutral-400 px-1.5 py-0.5 rounded-sm">일반 회원</span>
