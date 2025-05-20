@@ -52,16 +52,20 @@ export default function DreamBookDetailPage() {
     return dreamerMap[dreamerId] || dreamerId;
   };
 
-  // 스타일 이름 가져오기
-  const getStyleName = (styleId: string) => {
-    const styleMap: Record<string, string> = {
-      'ghibli': '지브리풍',
-      'disney': '디즈니풍',
-      'watercolor': '수채화풍',
-      'realistic': '사실적',
-      'korean': '전통 한국화',
+  // 스타일 ID를 스타일 이름으로 변환
+  const getStyleName = (styleId: string | number) => {
+    // 데이터베이스 스타일 ID를 실제 스타일 이름으로 매핑
+    const styleIdMap: Record<string, string> = {
+      '1': '지브리풍',
+      '2': '디즈니풍',
+      '3': '수채화풍',
+      '4': '사실적',
+      '5': '전통 한국화',
+      '6': '동화책 일러스트',
     };
-    return styleMap[styleId] || styleId;
+    
+    const styleId_str = String(styleId);
+    return styleIdMap[styleId_str] || `스타일 ${styleId_str}`;
   };
 
   const sortedImages = dreamBook?.images
