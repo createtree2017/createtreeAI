@@ -313,8 +313,13 @@ export default function Gallery() {
                         loading="lazy"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
-                          target.src = "/placeholder-dreambook.png";
-                          console.error("태몽동화 이미지 로드 실패:", item.id);
+                          
+                          // 무한 재시도 루프 방지: data-error 속성 확인
+                          if (!target.hasAttribute('data-error')) {
+                            target.setAttribute('data-error', 'true');
+                            target.src = "/placeholder-dreambook.png";
+                            console.error("태몽동화 이미지 로드 실패:", item.id);
+                          }
                         }}
                       />
                     </div>
