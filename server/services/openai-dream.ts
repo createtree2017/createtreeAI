@@ -467,26 +467,45 @@ export async function generateDreamImage(prompt: string): Promise<string> {
       logInfo('프롬프트 길이 제한', { original: prompt.length, truncated: processedPrompt.length });
     }
     
-    // 개선된 스타일 지시 로직
-    // 중복 지시 방지를 위해 프롬프트를 분석
-    const styleEmphasis = "IMPORTANT STYLE INSTRUCTION - Follow this style exactly: ";
+    // 개선된 스타일 지시 로직 - 태몽동화에서 전달된 스타일 지시를 우선 적용
     
-    // 이미 스타일 지시가 있는지 확인 (더 다양한 패턴 검사)
-    if (processedPrompt.includes("IMPORTANT STYLE INSTRUCTION") || 
-        processedPrompt.includes("style:") || 
-        processedPrompt.includes("Style:") || 
-        processedPrompt.includes("follow this style")) {
+    // 이미 스타일 지시가 있는지 확인
+    if (processedPrompt.includes("IMPORTANT STYLE INSTRUCTION")) {
       // 이미 스타일 지시가 포함되어 있으므로 그대로 사용
-      logInfo('스타일 지시가 이미 포함되어 있음', { 
+      logInfo('스타일 지시가 포함된 프롬프트', { 
         promptStart: processedPrompt.substring(0, 100),
-        hasStyleInstruction: processedPrompt.includes("IMPORTANT STYLE INSTRUCTION"),
-        hasStyleColon: processedPrompt.includes("style:") || processedPrompt.includes("Style:"),
-        hasFollowStyle: processedPrompt.includes("follow this style")
+        promptEnd: processedPrompt.length > 100 ? '...' + processedPrompt.substring(processedPrompt.length - 20) : '',
       });
+      
+      // 중복 스타일 지시가 있는 경우, 첫 번째 지시만 유지 (중복 제거)
+      const firstInstructionIndex = processedPrompt.indexOf("IMPORTANT STYLE INSTRUCTION");
+      const secondInstructionIndex = processedPrompt.indexOf("IMPORTANT STYLE INSTRUCTION", firstInstructionIndex + 10);
+      
+      if (secondInstructionIndex > 0) {
+        // 중복 지시 발견, 첫 번째 지시만 유지
+        logInfo('중복 스타일 지시 감지, 정리', { 
+          firstIndex: firstInstructionIndex,
+          secondIndex: secondInstructionIndex
+        });
+        
+        // 첫 번째 지시까지의 부분 + 두 번째 지시 이후의 부분
+        const beforeSecond = processedPrompt.substring(0, secondInstructionIndex);
+        const afterSecond = processedPrompt.substring(secondInstructionIndex);
+        const afterStyleKeyword = afterSecond.indexOf(':', 20) + 1;
+        
+        // 두 번째 지시를 건너뛰고 그 이후의 내용만 사용
+        if (afterStyleKeyword > 0) {
+          processedPrompt = beforeSecond + afterSecond.substring(afterStyleKeyword);
+          logInfo('중복 지시 제거됨', { 
+            newPromptStart: processedPrompt.substring(0, 100) + '...' 
+          });
+        }
+      }
     } else {
-      // 스타일 지시가 없으면 프롬프트 맨 앞에 추가
+      // 스타일 지시가 없는 경우, DALL-E가 이해할 수 있는 기본 형식으로 추가
+      const styleEmphasis = "IMPORTANT STYLE INSTRUCTION - Follow this style exactly: ";
       processedPrompt = `${styleEmphasis}${processedPrompt}`;
-      logInfo('스타일 강조 추가됨', { newPromptStart: processedPrompt.substring(0, 120) });
+      logInfo('기본 스타일 형식 추가됨', { newPromptStart: processedPrompt.substring(0, 120) });
     }
     
     // 안전한 이미지 생성 요청 구성

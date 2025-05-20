@@ -196,10 +196,11 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
           sendStatus(`${sequence}/${filteredPrompts.length} 이미지를 생성하는 중...`, 20 + (i * 70 / filteredPrompts.length));
           
           // 스타일과 시스템 프롬프트 결합 (강조 문구 추가)
-          // 스타일 강조 문구는 서비스 쪽에서 한 번만 추가하도록 여기서는 적용하지 않음
+          // 스타일 이름을 명시적으로 전달하고 시스템 프롬프트를 우선 적용
+          const styleEmphasis = `IMPORTANT STYLE INSTRUCTION - Follow the "${styleName}" style exactly:`;
           const finalPrompt = systemPrompt && systemPrompt.trim().length > 0 
-            ? `${systemPrompt}\n\n${userPrompt}`
-            : userPrompt;
+            ? `${styleEmphasis}\n${systemPrompt}\n\n${userPrompt}`
+            : `${styleEmphasis}\n\n${userPrompt}`;
           
           // 프롬프트 정보 로깅
           logInfo(`이미지 ${sequence} 생성 프롬프트`, {
