@@ -477,6 +477,13 @@ export async function generateDreamImage(prompt: string): Promise<string> {
       style: "vivid" // "natural"로 변경하면 더 사실적인 스타일
     };
     
+    // 디버깅을 위해 프롬프트 출력 (로그 축소를 위해 앞부분만)
+    logInfo('🧠 이미지 생성 프롬프트 미리보기', { 
+      promptStart: processedPrompt.substring(0, 100) + '...',
+      promptEnd: '...' + processedPrompt.substring(processedPrompt.length - 100),
+      totalLength: processedPrompt.length
+    });
+    
     logInfo('DALL-E API 호출 준비됨', {
       model: 'dall-e-3',
       promptLength: prompt.length
