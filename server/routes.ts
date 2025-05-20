@@ -4839,14 +4839,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 태몽동화 썸네일 이미지 프록시 직접 등록 (이슈 발생으로 인해 직접 등록)
   app.get("/api/dream-books/:id/thumbnail", async (req, res) => {
     try {
-      // 인증 검사 간소화 (갤러리 보기 용도)
+      // 인증 검사 제거 (공개 갤러리 접근용)
       const dreamBookId = parseInt(req.params.id);
       
       console.log(`[태몽동화 이미지 프록시] ID: ${dreamBookId} 요청됨`);
       
       // 태몽동화 정보 가져오기
       const { dreamBooks, dreamBookImages } = await import('@shared/dream-book');
-      const { eq, asc } = await import('drizzle-orm');
+      const { eq, asc, and } = await import('drizzle-orm');
       
       // 해당 태몽동화의 첫 번째 이미지(썸네일) 조회
       const dreamBookImage = await db.query.dreamBookImages.findFirst({
@@ -4862,25 +4862,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const imageUrl = dreamBookImage.imageUrl;
       console.log(`[태몽동화 이미지 프록시] 이미지 URL: ${imageUrl.substring(0, 30)}...`);
       
+      // OpenAI URL 인증 헤더 추가
+      const headers = new Headers();
+      if (imageUrl.includes('api.openai.com')) {
+        // OpenAI API 키 포함
+        headers.append('Authorization', `Bearer ${process.env.OPENAI_API_KEY}`);
+      }
+      
       // 외부 이미지를 프록시
-      const response = await fetch(imageUrl);
+      const response = await fetch(imageUrl, { headers });
       
       if (!response.ok) {
         console.error(`[태몽동화 이미지 프록시] 원본 이미지 가져오기 실패: ${response.status}`);
-        return res.status(response.status).json({ error: '이미지를 가져오는 중 오류가 발생했습니다.' });
+        console.error(`[태몽동화 이미지 프록시] 응답 헤더:`, Object.fromEntries(response.headers.entries()));
+        return res.status(response.status).json({ 
+          error: '이미지를 가져오는 중 오류가 발생했습니다.',
+          status: response.status,
+          url: imageUrl.substring(0, 30) + '...'
+        });
       }
       
       // 이미지 데이터와 헤더 그대로 전달
       const contentType = response.headers.get('content-type');
       res.setHeader('Content-Type', contentType || 'image/jpeg');
       
+      // 캐싱 헤더 추가
+      res.setHeader('Cache-Control', 'public, max-age=86400'); // 24시간 캐싱
+      
       // 이미지 데이터를 스트림으로 전달
       const imageData = await response.arrayBuffer();
+      
+      // 디버그: 이미지 크기 출력
+      const imageSizeKB = Math.round(imageData.byteLength / 1024);
+      console.log(`[태몽동화 이미지 프록시] 이미지 크기: ${imageSizeKB}KB`);
+      
       res.end(Buffer.from(imageData));
       
     } catch (error) {
       console.error("[태몽동화 이미지 프록시] 오류:", error);
-      return res.status(500).json({ error: '이미지를 가져오는 중 오류가 발생했습니다.' });
+      return res.status(500).json({ 
+        error: '이미지를 가져오는 중 오류가 발생했습니다.',
+        message: error.message || '알 수 없는 오류'
+      });
     }
   });
   
