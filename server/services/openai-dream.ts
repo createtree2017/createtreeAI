@@ -25,6 +25,43 @@ function isValidApiKey(apiKey: string | undefined): boolean {
 const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 const OPENAI_IMAGE_CREATION_URL = "https://api.openai.com/v1/images/generations";
 
+// 스타일 이름을 표준화된 키워드로 변환하는 함수
+async function getStyleKeyword(style: string): Promise<string> {
+  const styleLower = style.toLowerCase().trim();
+  
+  // 스타일 매핑 테이블
+  const styleMap: {[key: string]: string} = {
+    'ghibli': 'Studio Ghibli style',
+    '지브리풍': 'Studio Ghibli style',
+    '지브리': 'Studio Ghibli style',
+    
+    'disney': 'Disney animation style',
+    '디즈니풍': 'Disney animation style',
+    '디즈니': 'Disney animation style',
+    
+    'watercolor': 'Watercolor painting style',
+    '수채화풍': 'Watercolor painting style',
+    '수채화': 'Watercolor painting style',
+    
+    'realistic': 'Realistic detailed style',
+    '사실적': 'Realistic detailed style',
+    
+    'korean': 'Traditional Korean painting style',
+    '전통 한국화': 'Traditional Korean painting style',
+    '한국화': 'Traditional Korean painting style'
+  };
+  
+  // 스타일 매핑 테이블에 있는 경우
+  for (const [key, value] of Object.entries(styleMap)) {
+    if (styleLower.includes(key)) {
+      return value;
+    }
+  }
+  
+  // 찾지 못한 경우 원래 스타일 이름 그대로 반환
+  return style;
+}
+
 // API 응답 타입 정의
 interface OpenAIChatResponse {
   id?: string;
@@ -218,12 +255,15 @@ export async function generateDreamScenes(
       'Authorization': `Bearer ${API_KEY}`
     };
     
+    // 스타일 이름에서 대소문자와 끝의 "풍" 처리
+    const styleKeyword = await getStyleKeyword(style);
+    
     const systemContent = `당신은 태몽을 기반으로 DALL-E로 생성할 4개의 이미지 프롬프트를 작성하는 전문가입니다.
     태몽은 한국 문화에서 임신 중에 꾸는 특별한 꿈으로, 아기의 미래나 특성을 예견한다고 믿어집니다.
     아래 내용을 바탕으로 동화책의 각 장면에 해당하는 4개의 이미지 프롬프트를 작성해주세요.
     각 프롬프트는 DALL-E가 시각적으로 아름답고 디테일한 이미지를 생성할 수 있도록 충분히 상세해야 합니다.
     
-    프롬프트 앞에는 반드시 스타일 설명을 포함해야 합니다: "${style}, high quality, detailed, soft lighting"
+    프롬프트 앞에는 반드시 스타일 설명을 포함해야 합니다: "${styleKeyword}, high quality, detailed, soft lighting"
     
     각 장면은 스토리의 논리적 흐름을 따라야 합니다:
     장면 1: 이야기의 시작과 주인공 소개
