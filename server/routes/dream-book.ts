@@ -2,7 +2,7 @@ import express from 'express';
 import { db } from "@db";
 import { dreamBooks, dreamBookImages } from '@shared/dream-book';
 import { createDreamBookSchema } from '@shared/dream-book';
-import { generateDreamStorySummary, generateDreamScenes, generateDreamImage } from '../services/openai-dream';
+import { generateDreamImage } from '../services/openai-dream';
 import { authMiddleware } from '../common/middleware/auth';
 import { ZodError } from 'zod';
 import { eq, and, asc, desc } from 'drizzle-orm';
@@ -117,7 +117,7 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
     logInfo('태몽동화 생성 스타일 정보', { styleId, styleName: style, systemPrompt: imageStyle.systemPrompt });
 
     // 상태 객체로 진행 상황 추적
-    const status = { message: '태몽동화 생성을 시작합니다.', progress: 0 };
+    const status = { message: '태몽동화 생성을 시작합니다.', progress: 0, type: 'info' };
     // SSE 응답 헤더 설정
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
@@ -126,9 +126,10 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
     });
 
     // 진행 상황 전송 함수
-    const sendStatus = (message: string, progress: number) => {
+    const sendStatus = (message: string, progress: number, type = 'info') => {
       status.message = message;
       status.progress = progress;
+      status.type = type;
       res.write(`data: ${JSON.stringify(status)}\n\n`);
     };
 
@@ -153,43 +154,48 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
 
       const dreamBookId = newDreamBook.id;
 
-      // 4. 각 장면에 대한 이미지 생성
-      // 스타일 시스템 프롬프트가 일관되게 적용되도록 수정
+      // 4. 사용자가 직접 입력한 프롬프트로 이미지 생성
+      // 스타일 시스템 프롬프트가 일관되게 적용되도록 설정
       const systemPrompt = imageStyle.systemPrompt || '';
       const styleName = imageStyle.name || ''; // 스타일 이름 추가
       logInfo('이미지 생성에 사용할 스타일 정보', { 
         styleName,
-        systemPromptLength: systemPrompt.length
+        systemPromptLength: systemPrompt.length,
+        promptCount: filteredPrompts.length
       });
       
-      // 사용자가 직접 입력한 프롬프트로 이미지 생성
+      // 이미지 처리 결과 저장 배열
       const imageResults = [];
+      
+      // 각 프롬프트별로 순차적으로 이미지 생성
       for (let i = 0; i < filteredPrompts.length; i++) {
         const userPrompt = filteredPrompts[i];
         const sequence = i + 1;
         
         try {
+          // 진행 상황 업데이트
           sendStatus(`${sequence}/${filteredPrompts.length} 이미지를 생성하는 중...`, 20 + (i * 70 / filteredPrompts.length));
           
           // 스타일 강조 문구 추가
           const styleEmphasis = `IMPORTANT STYLE INSTRUCTION - Follow the "${styleName}" style exactly:`;
           const finalPrompt = `${styleEmphasis}\n${systemPrompt}\n\n${userPrompt}`;
           
+          // 프롬프트 정보 로깅
           logInfo(`이미지 ${sequence} 생성 프롬프트`, {
             userPromptLength: userPrompt.length,
             systemPromptLength: systemPrompt.length,
             finalPromptLength: finalPrompt.length
           });
           
-          // 이미지 생성
           try {
+            // OpenAI API로 이미지 생성
             const imageUrl = await generateDreamImage(finalPrompt);
             
-            // 이미지 정보 DB 저장
+            // 생성된 이미지 정보 DB 저장
             const [savedImage] = await db.insert(dreamBookImages).values({
               dreamBookId,
               sequence,
-              prompt: userPrompt, // 사용자 입력 프롬프트 저장
+              prompt: userPrompt, // 사용자 입력 프롬프트만 저장
               imageUrl
             }).returning();
             
@@ -204,7 +210,7 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
             sendStatus(`이미지 ${sequence} 생성 중 오류가 발생했습니다. 내용이 부적절하거나 서버 문제일 수 있습니다.`, 
               20 + (i * 70 / filteredPrompts.length), 'error');
             
-            // 기본 에러 이미지로 대체
+            // 에러용 기본 이미지
             const errorImageUrl = 'https://placehold.co/600x400/e74c3c/ffffff?text=이미지+생성+실패';
             
             // 실패한 이미지 정보도 DB에 저장
@@ -218,9 +224,10 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
             imageResults.push(errorImage);
           }
         } catch (seqError) {
+          // 시퀀스 처리 중 오류 발생
           logError(`이미지 시퀀스 ${sequence} 처리 중 오류:`, seqError);
           
-          // 이 장면은 건너뛰지만 전체 프로세스는 계속 진행
+          // 경고만 표시하고 다음 이미지 계속 진행
           sendStatus(`장면 ${sequence}에서 오류가 발생했지만 계속 진행합니다.`, 
             20 + (i * 70 / filteredPrompts.length), 'warning');
         }
