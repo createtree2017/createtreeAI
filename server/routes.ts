@@ -10,6 +10,7 @@ import { DevHistoryManager } from "./services/dev-history-manager";
 import testAceStepRouter from "./routes/test-ace-step-routes";
 import { registerSunoRoutes } from "./routes/suno-routes";
 import dreamBookRouter from "./routes/dream-book";
+import imageStyleRouter from "./routes/image-style";
 
 // Express session 타입 확장
 declare module 'express-session' {
@@ -4769,6 +4770,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 태몽동화 라우터 등록
   app.use("/api/dream-books", dreamBookRouter);
   console.log("태몽동화 라우터가 등록되었습니다 (/api/dream-books)");
+  
+  // 이미지 스타일 관리 라우터 등록
+  app.use("/api/image-styles", imageStyleRouter);
+  console.log("이미지 스타일 관리 라우터가 등록되었습니다 (/api/image-styles)");
 
   const httpServer = createServer(app);
   return httpServer;
