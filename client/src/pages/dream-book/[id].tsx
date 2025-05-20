@@ -14,13 +14,13 @@ import {
 } from '@/components/ui/carousel';
 import { Loader2, Home, Share } from 'lucide-react';
 import { toast, useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/lib/AuthProvider';
+import { useAuthContext } from '@/lib/AuthProvider';
 
 export default function DreamBookDetail() {
   const params = useParams<{ id: string }>();
   const { id } = params;
   const [, navigate] = useLocation();
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   
   const { data: dreamBook, isLoading, error } = useQuery({
     queryKey: [`/api/dream-books/${id}`],

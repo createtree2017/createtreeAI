@@ -46,7 +46,7 @@ import { Loader2, AlertCircle } from 'lucide-react';
 // 유틸리티
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { AuthProvider, useAuth } from '@/lib/AuthProvider';
+import { useAuthContext } from '@/lib/AuthProvider';
 
 // 스키마 정의
 const dreamBookSchema = z.object({
@@ -71,7 +71,7 @@ export default function CreateDreamBook() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { toast } = useToast();
   const [, navigate] = useLocation();
-  const { user } = useAuth();
+  const { user } = useAuthContext();
 
   // 이미지 스타일 목록 가져오기
   const { data: styles, isLoading: isLoadingStyles } = useQuery({

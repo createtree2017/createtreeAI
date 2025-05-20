@@ -8,11 +8,11 @@ import { ko } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { PlusCircle, Book, Loader2, AlertCircle } from 'lucide-react';
-import { useAuth } from '@/lib/AuthProvider';
+import { useAuthContext } from '@/lib/AuthProvider';
 
 export default function DreamBookList() {
   const [, navigate] = useLocation();
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   
   // 태몽동화 목록 조회
   const { 
