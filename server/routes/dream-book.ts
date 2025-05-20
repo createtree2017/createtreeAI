@@ -2,7 +2,7 @@ import express from 'express';
 import { db } from "@db";
 import { dreamBooks, dreamBookImages, DREAM_BOOK_STYLES } from '@shared/dream-book';
 import { createDreamBookSchema } from '@shared/dream-book';
-import { generateDreamImage, getStyleKeyword } from '../services/openai-dream';
+import { generateDreamImage, getStylePrompt } from '../services/dream-service';
 import { authMiddleware } from '../common/middleware/auth';
 import { ZodError } from 'zod';
 import { eq, and, asc, desc } from 'drizzle-orm';
