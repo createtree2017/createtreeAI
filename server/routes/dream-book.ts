@@ -161,15 +161,22 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
       // 4. 각 장면에 대한 이미지 생성
       // 스타일 시스템 프롬프트가 일관되게 적용되도록 수정
       const systemPrompt = imageStyle.systemPrompt || '';
-      logInfo('이미지 생성에 사용할 시스템 프롬프트', { systemPrompt });
+      const styleName = imageStyle.name || ''; // 스타일 이름 추가
+      logInfo('이미지 생성에 사용할 스타일 정보', { 
+        styleName,
+        systemPromptLength: systemPrompt.length
+      });
       
       const imagePromises = scenePrompts.map(async (scenePrompt, index) => {
         try {
           sendStatus(`${index + 1}/4 이미지를 생성하는 중...`, 50 + (index * 10));
           
-          // 시스템 프롬프트와 장면 프롬프트를 결합
+          // 스타일 강조 문구 추가 - DALL-E3가 스타일을 명확히 인식하도록 함
+          const styleEmphasis = `IMPORTANT STYLE INSTRUCTION - Follow the "${styleName}" style exactly: `;
+          
+          // 시스템 프롬프트와 장면 프롬프트를 결합하고 스타일 강조
           const fullPrompt = systemPrompt 
-            ? `${systemPrompt}\n\n${scenePrompt}` 
+            ? `${styleEmphasis}${systemPrompt}\n\n${scenePrompt}` 
             : scenePrompt;
           
           // 프롬프트 디버깅
