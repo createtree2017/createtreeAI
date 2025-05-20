@@ -103,20 +103,7 @@ interface OpenAIChatResponse {
   };
 }
 
-interface OpenAIImageGenerationResponse {
-  created?: number;
-  data?: Array<{
-    url?: string;
-    revised_prompt?: string;
-  }>;
-  error?: {
-    message: string;
-    type: string;
-    code?: string;
-  };
-}
-
-// 중복 함수 제거
+// 태몽 동화 관련 기능
 
 /**
  * 태몽 내용을 바탕으로 동화 줄거리 생성
