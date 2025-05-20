@@ -151,16 +151,33 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
       const dreamBookId = newDreamBook.id;
 
       // 4. 각 장면에 대한 이미지 생성
-      const imagePromises = scenePrompts.map(async (prompt, index) => {
+      // 스타일 시스템 프롬프트가 일관되게 적용되도록 수정
+      const systemPrompt = imageStyle.systemPrompt || '';
+      logInfo('이미지 생성에 사용할 시스템 프롬프트', { systemPrompt });
+      
+      const imagePromises = scenePrompts.map(async (scenePrompt, index) => {
         try {
           sendStatus(`${index + 1}/4 이미지를 생성하는 중...`, 50 + (index * 10));
-          const imageUrl = await generateDreamImage(prompt);
+          
+          // 시스템 프롬프트와 장면 프롬프트를 결합
+          const fullPrompt = systemPrompt 
+            ? `${systemPrompt}\n\n${scenePrompt}` 
+            : scenePrompt;
+          
+          // 프롬프트 디버깅
+          logInfo(`이미지 ${index + 1} 생성 프롬프트`, { 
+            scenePromptLength: scenePrompt.length,
+            systemPromptLength: systemPrompt.length,
+            fullPromptLength: fullPrompt.length 
+          });
+          
+          const imageUrl = await generateDreamImage(fullPrompt);
           
           // 각 이미지를 DB에 저장
           const [newImage] = await db.insert(dreamBookImages).values({
             dreamBookId,
             sequence: index + 1,
-            prompt,
+            prompt: fullPrompt, // 전체 프롬프트 저장
             imageUrl,
           }).returning();
           
