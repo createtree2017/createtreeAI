@@ -1,4 +1,6 @@
 import fetch from 'node-fetch';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // 로깅 유틸리티 함수 직접 구현
 function logDebug(message: string, ...args: any[]): void {
@@ -614,10 +616,6 @@ export async function generateDreamImage(prompt: string): Promise<string> {
       // base64 데이터가 있고 URL이 없는 경우 처리 - 이미지 파일로 저장
       if (!imageUrl && base64Data) {
         logInfo('base64 데이터 활용 - 이미지 파일로 저장', { hasBase64: true, urlAvailable: false });
-        
-        // fs와 path 모듈 가져오기 (CommonJS 방식)
-        const fs = require('fs');
-        const path = require('path');
         
         try {
           // 이미지 파일 고유 이름 생성 (더 명확한 파일명 패턴)
