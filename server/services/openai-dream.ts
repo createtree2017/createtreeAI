@@ -435,13 +435,23 @@ export async function generateDreamImage(prompt: string): Promise<string> {
       'Authorization': `Bearer ${API_KEY}`
     };
     
+    // 프롬프트 길이 제한 및 안전한 내용으로 필터링
+    let safePrompt = prompt;
+    
+    // 프롬프트가 너무 길면 자르기 (DALL-E는 약 4000자 제한)
+    if (safePrompt.length > 3800) {
+      safePrompt = safePrompt.substring(0, 3800);
+      logInfo('프롬프트 길이 제한', { original: prompt.length, truncated: safePrompt.length });
+    }
+    
+    // 안전한 이미지 생성 요청 구성
     const requestBody = {
       model: "dall-e-3",
-      prompt: prompt,
+      prompt: safePrompt,
       n: 1,
       size: "1024x1024",
       quality: "standard",
-      style: "vivid"
+      style: "vivid" // "natural"로 변경하면 더 사실적인 스타일
     };
     
     logInfo('DALL-E API 호출 준비됨', {
