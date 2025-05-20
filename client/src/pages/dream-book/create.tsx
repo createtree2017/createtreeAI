@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { createDreamBookSchema, DREAM_BOOK_DREAMERS, CreateDreamBookRequest } from '@shared/dream-book';
+import { createDreamBookSchema, DREAM_BOOK_DREAMERS, DREAM_BOOK_STYLES, CreateDreamBookRequest } from '@shared/dream-book';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -35,12 +35,12 @@ export default function CreateDreamBook() {
     }
   });
 
-  // 타입 정의를 추가하여 TS 오류 해결
+  // 타입 정의를 추가하여 TS 오류 해결 - 스타일 ID를 문자열로 수정
   type FormValues = {
     babyName: string;
     dreamer: string;
     prompts: string[];
-    style: number;
+    style: string; // 문자열 ID로 변경 ('ghibli', 'disney' 등)
   };
 
   const form = useForm<FormValues>({
@@ -49,7 +49,7 @@ export default function CreateDreamBook() {
       babyName: '',
       dreamer: 'mother',
       prompts: [''], // 초기에는 1개의 빈 프롬프트 입력란
-      style: 2, // 기본값 (스타일 ID) - 숫자 타입으로 전달
+      style: 'ghibli', // 기본값으로 '지브리풍' 스타일 선택 (문자열 ID)
     },
   });
 
@@ -316,8 +316,8 @@ export default function CreateDreamBook() {
                   <FormItem>
                     <FormLabel>동화 스타일</FormLabel>
                     <Select
-                      onValueChange={(val) => field.onChange(Number(val))}
-                      defaultValue={String(field.value)}
+                      onValueChange={(val) => field.onChange(val)}
+                      defaultValue={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -327,14 +327,13 @@ export default function CreateDreamBook() {
                       <SelectContent>
                         {isLoadingStyles ? (
                           <SelectItem value="loading">불러오는 중...</SelectItem>
-                        ) : imageStyles && imageStyles.length > 0 ? (
-                          imageStyles.map((style: {id: number, name: string, description: string}) => (
-                            <SelectItem key={style.id} value={String(style.id)}>
+                        ) : (
+                          // DREAM_BOOK_STYLES에서 직접 가져온 스타일 ID 사용 (데이터베이스 ID 대신)
+                          DREAM_BOOK_STYLES.map((style) => (
+                            <SelectItem key={style.id} value={style.id}>
                               {style.name} - {style.description}
                             </SelectItem>
                           ))
-                        ) : (
-                          <SelectItem value="none">스타일 없음</SelectItem>
                         )}
                       </SelectContent>
                     </Select>
