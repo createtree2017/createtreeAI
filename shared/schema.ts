@@ -2,6 +2,8 @@ import { pgTable, text, serial, integer, boolean, timestamp, jsonb, varchar } fr
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
+// 태몽동화 모듈 추가
+import { dreamBooks, dreamBookImages, dreamBooksRelations, dreamBookImagesRelations } from './dream-book';
 
 // User table - 확장된 사용자 테이블
 export const users = pgTable("users", {
