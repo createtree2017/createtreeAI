@@ -614,38 +614,49 @@ export async function generateDreamImage(prompt: string): Promise<string> {
       if (!imageUrl && base64Data) {
         logInfo('base64 데이터 활용 - 이미지 파일로 저장', { hasBase64: true, urlAvailable: false });
         
-        // 이미지를 저장할 경로 설정
+        // fs와 path 모듈 가져오기 (CommonJS 방식)
         const fs = require('fs');
         const path = require('path');
         
         try {
-          // 고유한 파일명 생성
+          // 이미지 파일 고유 이름 생성 (더 명확한 파일명 패턴)
           const timestamp = Date.now();
           const randomId = Math.floor(Math.random() * 10000);
-          const filename = `dream-image-${timestamp}-${randomId}.png`;
+          const filename = `dreambook-${timestamp}-${randomId}.png`;
           
-          // 저장 경로 설정
-          const uploadDir = '/uploads/dream-books';
-          const imagePath = `/static${uploadDir}/${filename}`;
-          const fullPath = path.join(process.cwd(), 'static', uploadDir, filename);
+          // 이미지 저장 경로 설정
+          const uploadDir = 'uploads/dream-books';
+          const staticPath = path.join(process.cwd(), 'static');
+          const fullUploadDir = path.join(staticPath, uploadDir);
+          const fullPath = path.join(fullUploadDir, filename);
           
-          // 디렉토리가 없으면 생성
-          fs.mkdirSync(path.dirname(fullPath), { recursive: true });
+          // 디렉토리가 존재하는지 확인하고 없으면 생성
+          if (!fs.existsSync(fullUploadDir)) {
+            fs.mkdirSync(fullUploadDir, { recursive: true });
+            logInfo('업로드 디렉토리 생성됨', { path: fullUploadDir });
+          }
           
-          // base64 데이터를 버퍼로 변환하여 파일로 저장
+          // base64 데이터를 버퍼로 변환
           const imageBuffer = Buffer.from(base64Data, 'base64');
+          
+          // 파일로 저장
           fs.writeFileSync(fullPath, imageBuffer);
+          
+          // 웹에서 접근 가능한 URL 경로 생성
+          const publicUrl = `/static/${uploadDir}/${filename}`;
           
           logInfo('이미지 파일 저장 완료', { 
             path: fullPath,
             size: imageBuffer.length,
-            publicUrl: imagePath
+            publicUrl: publicUrl
           });
           
-          // 접근 가능한 URL로 설정
-          imageUrl = imagePath;
+          // 이 URL을 반환
+          imageUrl = publicUrl;
         } catch (saveError) {
           logError('이미지 파일 저장 실패', saveError);
+          console.error('저장 실패 상세:', saveError);
+          
           // 저장 실패시 대체 이미지 URL 설정
           imageUrl = '/static/images/error/error.svg';
         }
