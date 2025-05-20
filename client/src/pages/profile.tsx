@@ -90,7 +90,7 @@ export default function Profile() {
                     <Building2 className="w-4 h-4 text-purple-600" />
                     <span className="text-sm font-medium text-purple-700">소속 병원:</span>
                     <span className="text-sm text-purple-800">
-                      {isLoadingHospital ? "로딩 중..." : (hospital?.name || `병원 ID ${user.hospitalId}`)}
+                      {isLoadingHospital ? "로딩 중..." : (user?.hospitalName || hospital?.name || "병원 정보 없음")}
                     </span>
                   </div>
                   
