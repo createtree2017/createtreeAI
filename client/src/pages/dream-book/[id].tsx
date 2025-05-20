@@ -56,12 +56,12 @@ export default function DreamBookDetailPage() {
   const getStyleName = (styleId: string | number) => {
     // 데이터베이스 스타일 ID를 실제 스타일 이름으로 매핑
     const styleIdMap: Record<string, string> = {
-      '1': '지브리풍',
-      '2': '디즈니풍',
-      '3': '수채화풍',
-      '4': '사실적',
-      '5': '전통 한국화',
-      '6': '동화책 일러스트',
+      '1': '테스트',
+      '2': '지브리풍',
+      '3': '디즈니풍',
+      '4': '수채화풍',
+      '5': '사실적',
+      '6': '전통 한국화',
     };
     
     const styleId_str = String(styleId);
