@@ -33,6 +33,7 @@ interface ApiMenuItem {
   title: string;
   path: string;
   iconName: string;  // 아이콘 이름 필드 추가
+  externalUrl?: string; // 외부 링크 URL (선택사항)
 }
 
 // API에서 반환되는 메뉴 카테고리 타입
@@ -50,6 +51,7 @@ interface MenuItem {
   label: string;
   ariaLabel: string;
   new?: boolean; // optional new flag
+  externalUrl?: string; // 외부 링크 URL (선택사항)
 }
 
 // 메뉴 그룹 타입 정의
