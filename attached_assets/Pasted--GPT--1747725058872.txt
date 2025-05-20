@@ -1,0 +1,103 @@
+
+────────────────────────────────────
+🧩 목적
+- 기존 GPT 자동 분할 방식 폐기
+- 고객이 직접 컷별 프롬프트를 작성 → 입력된 컷 수만큼 이미지 생성
+- 이미지와 텍스트의 의미 일치 + 스타일 일관성 확보
+
+────────────────────────────────────
+✅ 프론트엔드 작업
+
+🖼️ 페이지: `/dream-book/create`
+
+1. UI 변경
+- 기존 1개의 ‘꿈 내용’ 입력창 제거
+- 아래와 같이 프롬프트 입력창 4개 제공:
+
+```
+[장면 1 프롬프트 입력]
+<textarea name="scene1" />
+
+[장면 2 프롬프트 입력]
+<textarea name="scene2" />
+
+[장면 3 프롬프트 입력]
+<textarea name="scene3" />
+
+[장면 4 프롬프트 입력]
+<textarea name="scene4" />
+```
+
+- 각 입력란은 비워도 무방 (선택적 입력)
+
+2. 제출 시 데이터 구조
+
+```ts
+{
+  babyName: string;
+  dreamer: string;
+  styleId: number;
+  prompts: string[]; // 작성된 순서대로 최대 4개
+}
+```
+
+- 비어있는 입력은 제외하고 전달 (`.filter(Boolean)`)
+
+────────────────────────────────────
+✅ 백엔드 작업
+
+📁 `routes/dream-book.ts` 또는 `services/openai-dream.ts`
+
+1. 입력 처리
+- 클라이언트로부터 `req.body.prompts` 배열 수신 (1~4개)
+
+2. 스타일 프롬프트 적용
+- DB에서 해당 styleId로 style.systemPrompt 조회
+- 각 userPrompt와 아래처럼 결합:
+
+```ts
+const finalPrompt = `${style.systemPrompt}\n\n${userPrompt}`.trim();
+```
+
+3. 이미지 생성 반복
+```ts
+for (const prompt of prompts) {
+   const image = await openai.images.generate({
+     model: "dall-e-3",
+     prompt: prompt, // 위에서 병합된 finalPrompt
+     size: "1024x1024"
+   });
+}
+```
+
+4. DB 저장
+- 각 장면은 index 기준으로 저장 (`sceneIndex`: 1,2,3,4)
+- 생성된 컷 수만큼만 저장
+
+5. 생성 중간 에러 발생 시
+- 해당 컷만 제외, 나머지는 정상 저장
+- 오류 발생 시 전체 실패가 아닌 부분 성공 허용
+
+────────────────────────────────────
+✅ 테스트 체크리스트
+
+- [ ] 장면 2개만 입력해도 2장만 생성되는가?
+- [ ] 각 프롬프트가 스타일 프롬프트와 정확히 병합되는가?
+- [ ] 컷별 스타일 일관성이 유지되는가?
+- [ ] GPT 자동 분할 구조가 완전히 제거되었는가?
+
+────────────────────────────────────
+
+🟢 참고 예시 (프롬프트 입력 시)
+
+scenePrompts = [
+  "하늘을 나는 흰 토끼가 분홍 구름 사이를 헤엄치는 장면",
+  "엄마가 감탄하며 토끼를 바라보는 장면, 토끼가 반짝이는 당근을 건넴"
+]
+style.systemPrompt = `
+Create a soft, whimsical children's storybook illustration.  
+Use pastel colors, gentle lighting, and smooth shapes.  
+Characters should appear friendly and cute, with a warm and magical atmosphere.
+`
+
+→ 최종 프롬프트 = systemPrompt + userPrompt 병합

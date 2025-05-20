@@ -39,7 +39,7 @@ export default function CreateDreamBook() {
     defaultValues: {
       babyName: '',
       dreamer: 'mother',
-      dreamContent: '',
+      prompts: ['', '', '', ''],  // 4개의 빈 프롬프트 입력란
       style: 'watercolor', // 기본값 (API로부터 스타일 목록이 로드된 후 첫 번째 스타일로 업데이트됩니다)
     },
   });
