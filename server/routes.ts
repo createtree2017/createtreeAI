@@ -1109,24 +1109,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`[태몽동화 탭] 사용자 ${username || '없음'}`);
           
           // 태몽동화 목록 조회 (dreamBooks 테이블에서)
-          const dreamBooks = await db.query.dreamBooks.findMany({
+          // 먼저 테이블 참조를 가져온 후 쿼리 실행
+          const { dreamBooks, dreamBookImages } = db.query;
+          const dreamBooksResult = await db.query.dreamBooks.findMany({
             where: eq(dreamBooks.userId, userId || 0),
             orderBy: [desc(dreamBooks.createdAt)],
             with: {
-              images: {
-                where: eq(dreamBookImages.sequence, 1), // 첫 번째 이미지만 가져옴 (썸네일용)
-                limit: 1
-              }
+              scenes: true  // 모든 장면 가져오기
             }
           });
           
-          console.log(`[갤러리 API] 태몽동화 탭: ${dreamBooks.length}개 태몽동화 로드됨`);
+          console.log(`[갤러리 API] 태몽동화 탭: ${dreamBooksResult.length}개 태몽동화 로드됨`);
           
           // 태몽동화 아이템을 갤러리 아이템으로 변환
-          galleryItems = dreamBooks.map(book => {
-            // 썸네일 이미지 URL (첫 번째 이미지)
-            const thumbnailUrl = book.images && book.images.length > 0 
-              ? book.images[0].imageUrl 
+          galleryItems = dreamBooksResult.map(book => {
+            // 썸네일 이미지 URL (첫 번째 장면 이미지)
+            const thumbnailUrl = book.scenes && book.scenes.length > 0 
+              ? book.scenes[0].imageUrl 
               : '/placeholder-dreambook.png';
               
             return {
