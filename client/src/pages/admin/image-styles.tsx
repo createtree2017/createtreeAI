@@ -38,7 +38,7 @@ import {
 } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
 import { Plus, Pencil, Trash, Copy, Star, View } from 'lucide-react';
-import Layout from '@/components/Layout';
+// Layout 컴포넌트를 App.tsx에서 가져오지 않고 직접 사용
 import { Badge } from '@/components/ui/badge';
 import {
   AlertDialog,
@@ -324,7 +324,7 @@ export default function ImageStylesPage() {
   };
 
   return (
-    <Layout>
+    <div>
       <div className="container py-6">
         <div className="flex justify-between items-center mb-6">
           <div>
@@ -757,6 +757,6 @@ export default function ImageStylesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Layout>
+    </div>
   );
 }

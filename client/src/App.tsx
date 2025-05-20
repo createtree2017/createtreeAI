@@ -468,6 +468,15 @@ function Router() {
       </Route>
       
       {/* 슈퍼관리자 기타 경로 */}
+      
+      {/* 이미지 스타일 관리 */}
+      <Route path="/admin/image-styles">
+        <ProtectedRoute allowedRoles={["admin", "superadmin"]}>
+          <Layout>
+            <ImageStylesPage />
+          </Layout>
+        </ProtectedRoute>
+      </Route>
       <Route path="/super/:path*">
         <ProtectedRoute allowedRoles={["superadmin"]}>
           <SuperAdminLayout>
