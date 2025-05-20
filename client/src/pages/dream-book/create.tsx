@@ -35,13 +35,13 @@ export default function CreateDreamBook() {
     }
   });
 
-  const form = useForm<CreateDreamBookRequest>({
+  const form = useForm({
     resolver: zodResolver(createDreamBookSchema),
     defaultValues: {
       babyName: '',
       dreamer: 'mother',
       prompts: [''], // 초기에는 1개의 빈 프롬프트 입력란
-      style: '2', // 기본값 (스타일 ID)
+      style: 2, // 기본값 (스타일 ID) - 숫자 타입으로 전달
     },
   });
 

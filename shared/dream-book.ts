@@ -80,7 +80,7 @@ export interface CreateDreamBookRequest {
   babyName: string;
   dreamer: string;
   prompts: string[]; // 사용자가 직접 입력한 장면 프롬프트(최대 4개)
-  style: string;
+  style: number | string; // number 또는 string 형태로 수신될 수 있음
 }
 
 // 스타일 선택 옵션

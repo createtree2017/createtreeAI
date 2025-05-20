@@ -99,8 +99,27 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
     }
 
     // 스타일 ID로 이미지 스타일 정보 조회
+    logInfo('태몽동화 생성 스타일 ID', { styleId, type: typeof styleId });
+    
+    let styleIdNumber: number;
+    try {
+      styleIdNumber = Number(styleId);
+      if (isNaN(styleIdNumber)) {
+        return res.status(400).json({ 
+          error: '입력 데이터가 올바르지 않습니다.', 
+          details: [{ path: 'style', message: '스타일 ID는 숫자여야 합니다.' }] 
+        });
+      }
+    } catch (error) {
+      logError('스타일 ID 변환 오류', error);
+      return res.status(400).json({ 
+        error: '입력 데이터가 올바르지 않습니다.', 
+        details: [{ path: 'style', message: '스타일 ID는 숫자여야 합니다.' }] 
+      });
+    }
+    
     const imageStyle = await db.query.imageStyles.findFirst({
-      where: eq(imageStyles.id, Number(styleId))
+      where: eq(imageStyles.id, styleIdNumber)
     });
 
     if (!imageStyle) {
