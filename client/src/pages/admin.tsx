@@ -28,6 +28,8 @@ import CampaignApplicationManagement from "@/components/admin/CampaignApplicatio
 import MilestoneManagement from "@/components/admin/MilestoneManagement";
 import MilestoneCategoryManagement from "@/components/admin/MilestoneCategoryManagement";
 import { getQueryFn } from '@/lib/queryClient';
+import { ImageStyleManagement } from '@/components/admin/ImageStyleManagement';
+import { DreamBookList } from '@/components/admin/DreamBookList';
 import { 
   getLanguages, 
   uploadTranslations,
