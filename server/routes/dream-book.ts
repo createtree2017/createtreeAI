@@ -3,10 +3,18 @@ import { db } from "@db";
 import { dreamBooks, dreamBookImages } from '@shared/dream-book';
 import { createDreamBookSchema } from '@shared/dream-book';
 import { generateDreamStorySummary, generateDreamScenes, generateDreamImage } from '../services/openai-dream';
-import { logInfo, logError } from '../utils/logger';
 import { authMiddleware } from '../common/middleware/auth';
 import { ZodError } from 'zod';
 import { eq, and, asc, desc } from 'drizzle-orm';
+
+// 로깅 유틸리티가 없는 경우를 대비한 간단한 로거
+const logInfo = (message: string, data?: any) => {
+  console.log(`[INFO] ${message}`, data ? JSON.stringify(data) : '');
+};
+
+const logError = (message: string, error?: any) => {
+  console.error(`[ERROR] ${message}`, error);
+};
 
 const router = express.Router();
 
@@ -17,14 +25,18 @@ router.get('/', authMiddleware, async (req: express.Request, res: express.Respon
     if (!userId) {
       return res.status(401).json({ error: '인증이 필요합니다.' });
     }
-
-    const userDreamBooks = await db.query.dreamBooks.findMany({
-      where: eq(dreamBooks.userId, userId.toString()),
-      with: {
-        images: true,
-      },
-      orderBy: [desc(dreamBooks.createdAt)],
-    });
+    
+    // 조회 시 로그 추가
+    logInfo('태몽동화 목록 조회 시작', { userId });
+    
+    try {
+      const userDreamBooks = await db.query.dreamBooks.findMany({
+        where: eq(dreamBooks.userId, userId),
+        with: {
+          images: true,
+        },
+        orderBy: [desc(dreamBooks.createdAt)],
+      });
 
     return res.status(200).json(userDreamBooks);
   } catch (error) {
