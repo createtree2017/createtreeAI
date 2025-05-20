@@ -539,6 +539,7 @@ export default function ImageStylesPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-12 text-center">순서</TableHead>
+                      <TableHead>스타일 ID</TableHead>
                       <TableHead>스타일 이름</TableHead>
                       <TableHead className="hidden md:table-cell w-1/4">설명</TableHead>
                       <TableHead className="hidden sm:table-cell">상태</TableHead>
@@ -550,6 +551,9 @@ export default function ImageStylesPage() {
                     {styles.map((style) => (
                       <TableRow key={style.id}>
                         <TableCell className="text-center font-medium">{style.order}</TableCell>
+                        <TableCell>
+                          <code className="px-1 py-0.5 bg-muted rounded text-sm">{style.styleId || '-'}</code>
+                        </TableCell>
                         <TableCell>{style.name}</TableCell>
                         <TableCell className="hidden md:table-cell">{style.description}</TableCell>
                         <TableCell className="hidden sm:table-cell">
@@ -669,6 +673,20 @@ export default function ImageStylesPage() {
           <form onSubmit={handleEditSubmit}>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-styleId" className="text-right">
+                  스타일 ID *
+                </Label>
+                <Input
+                  id="edit-styleId"
+                  name="styleId"
+                  value={formData.styleId}
+                  onChange={handleInputChange}
+                  className="col-span-3"
+                  placeholder="ghibli, disney 등 영문 소문자로 입력"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="edit-name" className="text-right">
                   스타일 이름 *
                 </Label>
@@ -775,6 +793,10 @@ export default function ImageStylesPage() {
                   <Badge variant={selectedStyle.isActive ? "default" : "secondary"}>
                     {selectedStyle.isActive ? '활성화' : '비활성화'}
                   </Badge>
+                </div>
+                <div className="mt-1 mb-2">
+                  <span className="text-sm text-muted-foreground mr-2">스타일 ID:</span>
+                  <code className="px-2 py-1 bg-muted rounded text-sm">{selectedStyle.styleId || '-'}</code>
                 </div>
                 <p className="text-muted-foreground">{selectedStyle.description}</p>
               </div>
