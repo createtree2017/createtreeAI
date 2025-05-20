@@ -20,7 +20,6 @@ export default function CreateDreamBook() {
   const [progress, setProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState('');
   const [promptsCount, setPromptsCount] = useState(1); // 처음에는 1개 프롬프트만 표시
-  const [customDreamerMode, setCustomDreamerMode] = useState(false); // 꿈꾼 사람 직접 입력 모드
   const { user } = useAuth();
   const isAuthenticated = !!user;
   const [, navigate] = useLocation();
@@ -243,45 +242,23 @@ export default function CreateDreamBook() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>꿈을 꾼 사람</FormLabel>
-                    <div className="space-y-2">
-                      <Select
-                        onValueChange={(value) => {
-                          if (value === "직접입력") {
-                            // 직접 입력 모드
-                            setCustomDreamerMode(true);
-                            field.onChange(""); // 값을 초기화
-                          } else {
-                            setCustomDreamerMode(false);
-                            field.onChange(value);
-                          }
-                        }}
-                        defaultValue={customDreamerMode ? "직접입력" : field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="꿈을 꾼 사람을 선택해주세요" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {DREAM_BOOK_DREAMERS.map((dreamer) => (
-                            <SelectItem key={dreamer.id} value={dreamer.id}>
-                              {dreamer.name}
-                            </SelectItem>
-                          ))}
-                          <SelectItem value="직접입력">직접 입력하기</SelectItem>
-                        </SelectContent>
-                      </Select>
-
-                      {customDreamerMode && (
-                        <FormControl>
-                          <Input
-                            placeholder="꿈을 꾼 사람을 직접 입력해주세요"
-                            value={field.value}
-                            onChange={(e) => field.onChange(e.target.value)}
-                          />
-                        </FormControl>
-                      )}
-                    </div>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="꿈을 꾼 사람을 선택해주세요" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {DREAM_BOOK_DREAMERS.map((dreamer) => (
+                          <SelectItem key={dreamer.id} value={dreamer.id}>
+                            {dreamer.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

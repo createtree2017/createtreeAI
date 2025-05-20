@@ -33,7 +33,6 @@ interface ApiMenuItem {
   title: string;
   path: string;
   iconName: string;  // 아이콘 이름 필드 추가
-  externalUrl?: string; // 외부 링크 URL (선택사항)
 }
 
 // API에서 반환되는 메뉴 카테고리 타입
@@ -51,7 +50,6 @@ interface MenuItem {
   label: string;
   ariaLabel: string;
   new?: boolean; // optional new flag
-  externalUrl?: string; // 외부 링크 URL (선택사항)
 }
 
 // 메뉴 그룹 타입 정의
@@ -189,7 +187,6 @@ export default function Sidebar({ collapsed = false }) {
           icon: item.iconName ? getIconComponent(item.iconName) : getIconByPath(item.path),  // 아이콘 이름이 있으면 사용, 아니면 경로로 추정
           label: item.title,
           ariaLabel: `${item.title} 페이지`,
-          externalUrl: item.externalUrl // 외부 링크 추가
         };
       });
       
@@ -317,52 +314,19 @@ export default function Sidebar({ collapsed = false }) {
             <div className="space-y-1">
               {group.items.map((item: MenuItem) => {
                 const isActive = location === item.path;
-                const linkClassName = `
-                  flex items-center ${collapsed ? "justify-center" : "justify-between"} 
-                  ${collapsed ? "px-2" : "px-3"} py-2.5 rounded-md transition-colors
-                  ${isActive 
-                    ? 'bg-primary-lavender/20 text-primary-lavender' 
-                    : 'text-neutral-300 hover:bg-white/10 hover:text-white'}
-                  relative
-                `;
-                
-                // 외부 링크 여부 확인
-                if (item.externalUrl) {
-                  return (
-                    <a
-                      key={item.path}
-                      href={item.externalUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={item.ariaLabel}
-                      className={linkClassName}
-                    >
-                      <div className="flex items-center gap-3">
-                        <item.icon size={20} strokeWidth={1.5} />
-                        {!collapsed && (
-                          <span className="text-sm font-medium">{item.label}</span>
-                        )}
-                      </div>
-                      
-                      {!collapsed && item.new && (
-                        <div className="flex-shrink-0 px-1.5 py-0.5 text-[10px] rounded bg-primary-lavender/20 text-primary-lavender font-semibold">
-                          신규
-                        </div>
-                      )}
-                      
-                      {collapsed && item.new && (
-                        <div className="absolute top-0 right-0 w-2 h-2 rounded-full bg-primary-lavender"></div>
-                      )}
-                    </a>
-                  );
-                }
-                
                 return (
                   <Link
                     key={item.path}
                     href={item.path}
                     aria-label={item.ariaLabel}
-                    className={linkClassName}
+                    className={`
+                      flex items-center ${collapsed ? "justify-center" : "justify-between"} 
+                      ${collapsed ? "px-2" : "px-3"} py-2.5 rounded-md transition-colors
+                      ${isActive 
+                        ? 'bg-primary-lavender/20 text-primary-lavender' 
+                        : 'text-neutral-300 hover:bg-white/10 hover:text-white'}
+                      relative
+                    `}
                   >
                     <div className="flex items-center gap-3">
                       <item.icon size={20} strokeWidth={1.5} />

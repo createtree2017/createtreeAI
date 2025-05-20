@@ -48,10 +48,6 @@ const serviceItemFormSchema = z.object({
   icon: z.string()
     .min(1, "아이콘 이름은 필수입니다.")
     .max(50, "아이콘 이름은 50자 이내로 입력해주세요."),
-  externalUrl: z.string()
-    .max(500, "외부 링크는 500자 이내로 입력해주세요.")
-    .optional()
-    .or(z.literal("")),
   isPublic: z.boolean().default(true),
   order: z.number().int().default(0),
 });
@@ -203,7 +199,6 @@ export default function ServiceItemManagement() {
         <TableCell>{item.title}</TableCell>
         <TableCell>{item.description || "-"}</TableCell>
         <TableCell>{item.icon}</TableCell>
-        <TableCell>{item.externalUrl || "-"}</TableCell>
         <TableCell>{item.isPublic ? "공개" : "비공개"}</TableCell>
         <TableCell>{item.order}</TableCell>
         <TableCell>
@@ -274,7 +269,6 @@ export default function ServiceItemManagement() {
               <TableHead>이름</TableHead>
               <TableHead>설명</TableHead>
               <TableHead>아이콘</TableHead>
-              <TableHead>외부 링크</TableHead>
               <TableHead>공개 상태</TableHead>
               <TableHead>순서</TableHead>
               <TableHead>카테고리</TableHead>
@@ -332,7 +326,6 @@ function ServiceItemForm({ initialData, categories, onSubmit, onCancel }: Servic
       title: initialData.title,
       description: initialData.description || "",
       icon: initialData.icon,
-      externalUrl: initialData.externalUrl || "",
       isPublic: initialData.isPublic,
       order: initialData.order,
     } : {
@@ -341,7 +334,6 @@ function ServiceItemForm({ initialData, categories, onSubmit, onCancel }: Servic
       title: "",
       description: "",
       icon: "layout",
-      externalUrl: "",
       isPublic: true,
       order: 0,
     },
@@ -362,12 +354,12 @@ function ServiceItemForm({ initialData, categories, onSubmit, onCancel }: Servic
           name="itemId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>서비스 항목 ID (이동 링크)</FormLabel>
+              <FormLabel>서비스 항목 ID</FormLabel>
               <FormControl>
                 <Input placeholder="maternity-photo" {...field} disabled={!!initialData} />
               </FormControl>
               <FormDescription>
-                고유한 서비스 항목 식별자이자 이동 경로입니다 (예: 'dream-book' → '/dream-book' 페이지로 이동)
+                고유한 서비스 항목 식별자입니다 (예: 'maternity-photo', 'family-photo')
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -450,23 +442,6 @@ function ServiceItemForm({ initialData, categories, onSubmit, onCancel }: Servic
               </FormControl>
               <FormDescription>
                 lucide-react 아이콘 이름을 입력하세요 (image, camera, family 등)
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="externalUrl"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>외부 링크 URL (선택사항)</FormLabel>
-              <FormControl>
-                <Input placeholder="https://example.com/page" {...field} />
-              </FormControl>
-              <FormDescription>
-                외부 페이지로 직접 연결할 URL입니다. 입력하면 내부 페이지 대신 이 URL로 이동합니다.
               </FormDescription>
               <FormMessage />
             </FormItem>

@@ -2738,7 +2738,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           itemTitle: serviceItems.title,
           path: serviceItems.path,
           iconName: serviceItems.iconName,
-          externalUrl: serviceItems.externalUrl,
           order: serviceItems.order,
         })
         .from(serviceItems)
@@ -2762,7 +2761,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             title: r.itemTitle,
             path: r.path,
             iconName: r.iconName || 'layers', // 기본값 설정
-            externalUrl: r.externalUrl, // 외부 링크 필드 추가
           });
           return acc;
         }, {})
