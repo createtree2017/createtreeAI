@@ -56,6 +56,7 @@ import { Switch } from '@/components/ui/switch';
 // 이미지 스타일 타입 정의
 interface ImageStyle {
   id: number;
+  styleId: string; // 스타일 ID 추가 (예: 'ghibli', 'disney' 등)
   name: string;
   description: string;
   systemPrompt: string;
@@ -69,6 +70,7 @@ interface ImageStyle {
 // 새 스타일 생성 또는 수정을 위한 폼 인터페이스
 interface StyleFormData {
   id?: number;
+  styleId: string; // 스타일 ID 추가 (예: 'ghibli', 'disney' 등)
   name: string;
   description: string;
   systemPrompt: string;
@@ -78,6 +80,7 @@ interface StyleFormData {
 
 // 초기 폼 데이터
 const initialFormData: StyleFormData = {
+  styleId: '', // 스타일 ID 초기값
   name: '',
   description: '',
   systemPrompt: '',
@@ -320,6 +323,7 @@ export default function ImageStylesPage() {
     setSelectedStyle(style);
     setFormData({
       id: style.id,
+      styleId: style.styleId || '', // 스타일 ID 추가
       name: style.name,
       description: style.description,
       systemPrompt: style.systemPrompt,
@@ -383,6 +387,20 @@ export default function ImageStylesPage() {
               </DialogHeader>
               <form onSubmit={handleCreateSubmit}>
                 <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="styleId" className="text-right">
+                      스타일 ID *
+                    </Label>
+                    <Input
+                      id="styleId"
+                      name="styleId"
+                      value={formData.styleId}
+                      onChange={handleInputChange}
+                      className="col-span-3"
+                      placeholder="ghibli, disney 등 영문 소문자로 입력"
+                      required
+                    />
+                  </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="name" className="text-right">
                       스타일 이름 *
