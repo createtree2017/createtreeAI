@@ -691,6 +691,7 @@ export default function AdminPage() {
         <TabsList className="flex flex-wrap mb-8">
           <TabsTrigger value="chat-menu">채팅 메뉴</TabsTrigger>
           <TabsTrigger value="image-menu">이미지 생성</TabsTrigger>
+          <TabsTrigger value="dream-book">태몽동화</TabsTrigger>
           <TabsTrigger value="campaigns">캠페인</TabsTrigger>
           <TabsTrigger value="milestones">마일스톤</TabsTrigger>
           <TabsTrigger value="ui-content">UI 컨텐츠 관리</TabsTrigger>
@@ -851,6 +852,31 @@ export default function AdminPage() {
         
         <TabsContent value="languages">
           <LanguageSettings />
+        </TabsContent>
+        
+        <TabsContent value="dream-book">
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">태몽동화 관리</h2>
+            
+            <Tabs defaultValue="image-styles">
+              <TabsList>
+                <TabsTrigger value="image-styles">이미지 스타일</TabsTrigger>
+                <TabsTrigger value="dream-books">태몽동화 목록</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="image-styles">
+                <div className="mt-6">
+                  <ImageStyleManagement />
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="dream-books">
+                <div className="mt-6">
+                  <DreamBookList />
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
         </TabsContent>
         
         <TabsContent value="campaigns">
