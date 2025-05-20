@@ -29,14 +29,13 @@ router.get('/', authMiddleware, async (req: express.Request, res: express.Respon
     // 조회 시 로그 추가
     logInfo('태몽동화 목록 조회 시작', { userId });
     
-    try {
-      const userDreamBooks = await db.query.dreamBooks.findMany({
-        where: eq(dreamBooks.userId, userId),
-        with: {
-          images: true,
-        },
-        orderBy: [desc(dreamBooks.createdAt)],
-      });
+    const userDreamBooks = await db.query.dreamBooks.findMany({
+      where: eq(dreamBooks.userId, userId),
+      with: {
+        images: true,
+      },
+      orderBy: [desc(dreamBooks.createdAt)],
+    });
 
     return res.status(200).json(userDreamBooks);
   } catch (error) {
