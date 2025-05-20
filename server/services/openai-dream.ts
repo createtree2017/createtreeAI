@@ -522,6 +522,18 @@ export async function generateDreamImage(prompt: string): Promise<string> {
       });
     }
     
+    // 프롬프트 클린업 - 중복 줄바꿈 제거 및 전체 로깅
+    processedPrompt = processedPrompt.replace(/\n{3,}/g, '\n\n').trim();
+    
+    // 이미지 생성 전 최종 프롬프트 로깅
+    logInfo('🧠 이미지 생성 최종 프롬프트', { 
+      promptStart: processedPrompt.substring(0, 100) + (processedPrompt.length > 100 ? '...' : ''),
+      promptEnd: processedPrompt.length > 200 ? '...' + processedPrompt.substring(processedPrompt.length - 100) : '',
+      totalLength: processedPrompt.length,
+      hasStyleInstruction: processedPrompt.includes("IMPORTANT STYLE INSTRUCTION"),
+      styleNameIncluded: processedPrompt.includes("Follow the")
+    });
+    
     // 안전한 이미지 생성 요청 구성
     const requestBody = {
       model: "dall-e-3",

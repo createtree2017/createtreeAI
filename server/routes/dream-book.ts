@@ -195,12 +195,31 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
           // 진행 상황 업데이트
           sendStatus(`${sequence}/${filteredPrompts.length} 이미지를 생성하는 중...`, 20 + (i * 70 / filteredPrompts.length));
           
-          // 스타일과 시스템 프롬프트 결합 (강조 문구 추가)
-          // 스타일 이름을 명시적으로 전달하고 시스템 프롬프트를 우선 적용
-          const styleEmphasis = `IMPORTANT STYLE INSTRUCTION - Follow the "${styleName}" style exactly:`;
-          const finalPrompt = systemPrompt && systemPrompt.trim().length > 0 
-            ? `${styleEmphasis}\n${systemPrompt}\n\n${userPrompt}`
-            : `${styleEmphasis}\n\n${userPrompt}`;
+          // 스타일과 시스템 프롬프트 결합
+          // 작업지시서에 따라 DALL-E가 잘 인식할 수 있는 형식으로 정리
+          const styleEmphasis = `IMPORTANT STYLE INSTRUCTION - Follow this style exactly: ${styleName}, high quality, detailed, soft lighting`;
+          
+          // 사용자 프롬프트와 시스템 프롬프트 결합 (중복 제거)
+          let finalPrompt = '';
+          
+          if (systemPrompt && systemPrompt.trim().length > 0) {
+            // 시스템 프롬프트가 있는 경우 (스타일 이름 중복 포함 가능성 체크)
+            if (systemPrompt.includes(styleName)) {
+              // 스타일 이름이 이미 포함되어 있으면 간소화
+              finalPrompt = `${styleEmphasis}\n${systemPrompt}\n\n${userPrompt}`;
+            } else {
+              // 스타일 이름을 명시적으로 포함
+              finalPrompt = `${styleEmphasis}\n${systemPrompt}\n\n${userPrompt}`;
+            }
+          } else {
+            // 시스템 프롬프트가 없는 경우
+            finalPrompt = `${styleEmphasis}\n\n${userPrompt}`;
+          }
+          
+          // 최종 프롬프트가 너무 짧은 경우 보완
+          if (finalPrompt.length < 30) {
+            finalPrompt = `${styleEmphasis}\n\nCreate a detailed illustration with the following description: ${userPrompt}`;
+          }
           
           // 프롬프트 정보 로깅
           logInfo(`이미지 ${sequence} 생성 프롬프트`, {
