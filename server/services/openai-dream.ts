@@ -151,9 +151,9 @@ export async function generateDreamStorySummary(
     '옛날 옛적에'로 시작하는 전통적인 동화 형식을 사용하세요.
     꿈 내용에 부정적인 요소가 있더라도 이를 긍정적으로 재해석하여 아름다운 이야기로 만들어주세요.`;
     
-    const userPrompt = `꿈을 꾼 사람: ${dreamer}
-    아기 이름: ${babyName}
-    꿈 내용: ${dreamContent}`;
+    const userPrompt = `꿈을 꾼 사람: ${safeDreamer}
+    아기 이름: ${safeBabyName}
+    꿈 내용: ${safeDreamContent}`;
 
     // API 요청 준비
     const headers = {
@@ -261,6 +261,10 @@ export async function generateDreamScenes(
   style: string,
   customSystemPrompt?: string
 ): Promise<string[]> {
+  // 입력 문자열 안전하게 처리
+  const safeDreamContent = safeStringForJSON(dreamContent);
+  const safeStyle = safeStringForJSON(style);
+  const safeCustomSystemPrompt = customSystemPrompt ? safeStringForJSON(customSystemPrompt) : '';
   try {
     // API 키 유효성 검증
     if (!isValidApiKey(API_KEY)) {
@@ -318,7 +322,7 @@ export async function generateDreamScenes(
     if (customSystemPrompt) {
       // 데이터베이스에서 가져온 시스템 프롬프트 사용
       logInfo('커스텀 시스템 프롬프트 사용', { length: customSystemPrompt.length });
-      systemContent = customSystemPrompt;
+      systemContent = safeCustomSystemPrompt;
     } else {
       // 기본 프롬프트 생성
       systemContent = "당신은 태몽을 기반으로 DALL-E로 생성할 4개의 이미지 프롬프트를 작성하는 전문가입니다. "
@@ -336,8 +340,8 @@ export async function generateDreamScenes(
         + "\n각 프롬프트는 최대 400자를 넘지 않도록 해주세요.";
     }
 
-    const userContent = `태몽 내용: ${dreamContent}
-    원하는 스타일: ${style}`;
+    const userContent = `태몽 내용: ${safeDreamContent}
+    원하는 스타일: ${safeStyle}`;
 
     const requestBody = {
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
