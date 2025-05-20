@@ -647,7 +647,7 @@ export async function generateDreamImage(prompt: string): Promise<string> {
         } catch (saveError) {
           logError('이미지 파일 저장 실패', saveError);
           // 저장 실패시 대체 이미지 URL 설정
-          imageUrl = '/static/images/error/image-save-error.png';
+          imageUrl = '/static/images/error/image-save-error.svg';
         }
       }
       

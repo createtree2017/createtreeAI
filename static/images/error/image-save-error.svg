@@ -1,0 +1,5 @@
+<svg width="600" height="400" xmlns="http://www.w3.org/2000/svg">
+  <rect width="600" height="400" fill="#e74c3c"/>
+  <text x="300" y="180" font-family="Arial" font-size="30" text-anchor="middle" fill="white">이미지 로딩 실패</text>
+  <text x="300" y="220" font-family="Arial" font-size="20" text-anchor="middle" fill="white">Image Loading Failed</text>
+</svg>
