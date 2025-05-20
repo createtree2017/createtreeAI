@@ -221,44 +221,47 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
             systemPromptSnippet: systemPrompt ? systemPrompt.substring(0, 50) + '...' : '없음'
           });
           
-          // 작업지시서에 따라 DALL-E가 잘 인식할 수 있는 형식으로 정리
-          // 스타일 키워드를 추출하는 함수로 스타일 키 변환 (예: "ghibli" -> "Studio Ghibli style")
-          const styleKeyword = await getStyleKeyword(styleKey);
-          logInfo(`스타일 키워드 변환 결과`, { 
-            originalStyleId: styleId, 
-            styleKey: styleKey,
-            styleName: styleName,
-            convertedStyleKeyword: styleKeyword 
-          });
+          // 작업지시서에 따라 프롬프트 우선순위 구조 완전 변경
+          // 1. System: 시스템 프롬프트(스타일)가 항상 최우선
+          // 2. User: 사용자 프롬프트(장면 설명)는 보조 정보로만 활용
           
-          // 스타일 지시가 중복되지 않도록 신중하게 구성
-          const styleEmphasis = `IMPORTANT STYLE INSTRUCTION - Follow this style exactly: ${styleKeyword}, high quality, detailed, soft lighting`;
-          
-          // 시스템 프롬프트 (스타일별 세부 지시사항)와 사용자 프롬프트 결합
-          let finalPrompt = `${styleEmphasis}\n`;
-          
-          // 시스템 프롬프트 추가 (있는 경우)
-          if (systemPrompt && systemPrompt.trim().length > 0) {
-            // 중복 방지: 시스템 프롬프트에 스타일 지시가 이미 포함되어 있는지 확인
-            const hasStyleInstruction = systemPrompt.includes("IMPORTANT STYLE INSTRUCTION");
+          // 사용자 프롬프트에서 스타일 지시어 필터링 함수
+          const sanitizePrompt = (rawPrompt: string): string => {
+            // 스타일 지시어 패턴 (예: '지브리풍으로', '디즈니 스타일로', '파스텔톤으로' 등)
+            const stylePatterns = [
+              /지브리\s*풍/g, /디즈니\s*풍/g, /애니\s*풍/g, /사실적/g, /한국화/g, /수묵화/g,
+              /스튜디오\s*지브리/g, /지브리\s*스타일/g, /디즈니\s*스타일/g,
+              /파스텔\s*톤/g, /수채화\s*스타일/g, /애니메이션\s*스타일/g,
+              /스타일로/g, /풍으로/g, /느낌으로/g, /분위기로/g
+            ];
             
-            if (hasStyleInstruction) {
-              // 이미 스타일 지시가 포함된 경우 시스템 프롬프트만 사용
-              finalPrompt = `${systemPrompt}\n\n`;
-              logInfo('시스템 프롬프트에 스타일 지시가 이미 포함됨', { useSystemPromptOnly: true });
-            } else {
-              // 시스템 프롬프트에 스타일 지시가 없는 경우 둘 다 추가
-              finalPrompt += `${systemPrompt}\n\n`;
-            }
-          }
+            let cleanedPrompt = rawPrompt;
+            
+            // 모든 스타일 지시어 패턴 제거
+            stylePatterns.forEach(pattern => {
+              cleanedPrompt = cleanedPrompt.replace(pattern, '');
+            });
+            
+            // 중복 공백 제거
+            cleanedPrompt = cleanedPrompt.replace(/\s+/g, ' ').trim();
+            
+            return cleanedPrompt;
+          };
           
-          // 사용자 프롬프트 추가
-          finalPrompt += userPrompt;
+          // 사용자 프롬프트 정제 (스타일 지시어 제거)
+          const sanitizedUserPrompt = sanitizePrompt(userPrompt);
           
-          // 프롬프트가 너무 짧은 경우 보완
-          if (finalPrompt.length < 30) {
-            finalPrompt = `${styleEmphasis}\n\nCreate a detailed illustration in ${styleKeyword} style with the following description: ${userPrompt}`;
-          }
+          // 시스템 프롬프트와 사용자 프롬프트를 명확히 구분된 형식으로 구성
+          let finalPrompt = `System: ${systemPrompt}\nUser: ${sanitizedUserPrompt}`;
+          
+          // 로깅 - 최종 프롬프트 구조 확인
+          logInfo(`프롬프트 구조 재구성 완료`, {
+            systemPromptLength: systemPrompt.length,
+            originalUserPromptLength: userPrompt.length,
+            sanitizedUserPromptLength: sanitizedUserPrompt.length,
+            finalPromptLength: finalPrompt.length,
+            containsSystemUserFormat: finalPrompt.includes("System:") && finalPrompt.includes("User:")
+          });
           
           // 최종 프롬프트 내용 검증 (디버깅)
           logInfo(`최종 프롬프트 내용 검증`, {
