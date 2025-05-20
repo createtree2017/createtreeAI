@@ -27,7 +27,14 @@ const OPENAI_IMAGE_CREATION_URL = "https://api.openai.com/v1/images/generations"
 
 // 스타일 이름을 표준화된 키워드로 변환하는 함수
 async function getStyleKeyword(style: string): Promise<string> {
+  // 입력값 유효성 확인
+  if (!style || style.trim().length === 0) {
+    logError('getStyleKeyword: 스타일 이름이 비어있습니다');
+    return 'high quality, detailed style'; // 기본 스타일
+  }
+  
   const styleLower = style.toLowerCase().trim();
+  logInfo('스타일 키워드 변환', { originalStyle: style, styleLower });
   
   // 스타일 매핑 테이블
   const styleMap: {[key: string]: string} = {
@@ -54,12 +61,14 @@ async function getStyleKeyword(style: string): Promise<string> {
   // 스타일 매핑 테이블에 있는 경우
   for (const [key, value] of Object.entries(styleMap)) {
     if (styleLower.includes(key)) {
+      logInfo('스타일 매핑 완료', { key, matchedStyle: value });
       return value;
     }
   }
   
-  // 찾지 못한 경우 원래 스타일 이름 그대로 반환
-  return style;
+  // 매핑 테이블에 없는 경우, 원본 스타일 이름 사용
+  logInfo('매핑되지 않은 스타일, 원본 사용', { originalStyle: style });
+  return `${style} style`; // style 단어 추가하여 반환
 }
 
 // API 응답 타입 정의
