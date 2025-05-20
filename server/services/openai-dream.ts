@@ -26,7 +26,7 @@ const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 const OPENAI_IMAGE_CREATION_URL = "https://api.openai.com/v1/images/generations";
 
 // 스타일 이름을 표준화된 키워드로 변환하는 함수
-async function getStyleKeyword(style: string): Promise<string> {
+export async function getStyleKeyword(style: string): Promise<string> {
   // 입력값 유효성 확인
   if (!style || style.trim().length === 0) {
     logError('getStyleKeyword: 스타일 이름이 비어있습니다');

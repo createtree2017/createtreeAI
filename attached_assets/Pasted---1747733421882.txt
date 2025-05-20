@@ -1,0 +1,73 @@
+✅ 라플이용 작업지시서: 태몽동화 스타일 반영 오류 수정
+🛠 작업 목적
+태몽동화 이미지 생성 시, 사용자가 선택한 스타일(예: 지브리풍, 디즈니풍 등)이 실제 이미지 프롬프트에 반영되지 않고, 하드코딩된 "사실적" 스타일로만 생성되는 오류를 해결한다.
+
+📌 주요 이슈 요약
+프론트엔드에서 선택된 styleId가 서버로 정상 전송되고 있음
+
+서버에서는 이 ID를 바탕으로 DB에서 스타일 이름을 조회하지만, 프롬프트 구성 시 하드코딩된 “사실적” 스타일이 계속 들어감
+
+getStyleKeyword() 함수가 styleName을 정확히 처리하지 않거나 fallback 값으로 "realistic photograph"를 반환함
+
+✅ 수정 작업 상세
+1. 서버 함수 getStyleKeyword(styleName) 수정
+ts
+복사
+편집
+// server/services/openai-dream.ts 등지에서 호출됨
+function getStyleKeyword(styleName: string): string {
+  const styleMap = {
+    "지브리풍": "Studio Ghibli-inspired dreamy landscape, cinematic lighting, soft brush strokes",
+    "디즈니풍": "Disney style character design, vibrant colors, magical fantasy setting",
+    "수묵화": "traditional Korean ink wash painting, monochrome, minimalist brush lines",
+    "픽사풍": "Pixar style 3D animation, expressive characters, warm lighting",
+    "수채화": "soft watercolor painting, delicate brush texture, light pastel tones"
+  };
+  console.log("🎨 선택된 스타일 이름:", styleName);
+  console.log("🎨 최종 변환 키워드:", styleMap[styleName] ?? styleName);
+  return styleMap[styleName] ?? styleName; // fallback 제거하지 말고 원래 이름 사용
+}
+2. 이미지 생성 프롬프트 구성 방식 수정
+generateDreamImage() 또는 createImageFromPrompt() 함수에서 다음 구조로 프롬프트 구성:
+
+ts
+복사
+편집
+const styleKeyword = getStyleKeyword(styleNameFromDB);
+const systemPrompt = `당신은 최고의 동화 일러스트 작가입니다. "${styleKeyword}" 스타일로 동화 삽화를 그려주세요.`;
+const finalPrompt = `${userPrompt}`; // 장면 설명 또는 자동 생성된 텍스트
+
+const fullPrompt = `System: ${systemPrompt}\nUser: ${finalPrompt}`;
+
+const response = await openai.createImage({
+  model: "gpt-image-1",
+  prompt: fullPrompt,
+  response_format: "b64_json",
+  size: "1024x1024"
+});
+3. 전체 로깅 코드 삽입 (디버깅용)
+ts
+복사
+편집
+console.log("🧠 전달된 styleId:", styleId);
+console.log("🧠 DB 조회된 스타일 이름:", styleNameFromDB);
+console.log("🧠 프롬프트에 들어갈 스타일 키워드:", styleKeyword);
+console.log("🧠 최종 fullPrompt:", fullPrompt);
+4. 예외처리 및 기본값 동작 검증
+styleId 또는 styleName이 null인 경우 → "기본 스타일"이라는 키워드로 처리하지 말고, 명확한 에러 로그 출력
+
+fallback 값을 "realistic photograph"로 강제 적용하지 말고, 원본 이름 그대로 사용
+
+🔒 필수 보안 및 역할 조건 (라플 필수지침 포함)
+이 작업은 병원관리자 또는 일반 사용자용 기능이므로 /campaigns/* 또는 /dream-book/* 경로에서 처리
+
+병원관리자 권한 경로(/hospital/*) 또는 /admin/*에서 이 기능에 접근해서는 안 됨
+
+현재 로그인 유저가 본인 소속의 스타일만 사용할 수 있도록 제한되어야 함 (예: 병원 전용 스타일이 추가되는 경우를 대비)
+
+📁 작업 대상 파일 목록 (예상)
+파일 경로	역할
+server/services/openai-dream.ts	프롬프트 생성, 스타일 키워드 처리
+server/routes/dream-book.ts	생성 요청 라우팅
+shared/schema.ts	스타일 ID → 이름 매핑 구조
+client/src/pages/dream-book/create.tsx	프론트엔드 스타일 ID 전송 로직

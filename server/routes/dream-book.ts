@@ -2,7 +2,7 @@ import express from 'express';
 import { db } from "@db";
 import { dreamBooks, dreamBookImages } from '@shared/dream-book';
 import { createDreamBookSchema } from '@shared/dream-book';
-import { generateDreamImage } from '../services/openai-dream';
+import { generateDreamImage, getStyleKeyword } from '../services/openai-dream';
 import { authMiddleware } from '../common/middleware/auth';
 import { ZodError } from 'zod';
 import { eq, and, asc, desc } from 'drizzle-orm';
@@ -205,16 +205,32 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
           });
           
           // 작업지시서에 따라 DALL-E가 잘 인식할 수 있는 형식으로 정리
-          // 1. 스타일 이름을 명확하게 지정
-          // styleName은 DB에서 가져온 실제 스타일 이름 (예: "지브리풍", "디즈니풍" 등)
-          const styleEmphasis = `IMPORTANT STYLE INSTRUCTION - Follow this style exactly: ${styleName}, high quality, detailed, soft lighting`;
+          // 스타일 키워드를 추출하는 함수로 스타일 이름 변환 (예: "지브리풍" -> "Studio Ghibli style")
+          const styleKeyword = await getStyleKeyword(styleName);
+          logInfo(`스타일 키워드 변환 결과`, { 
+            originalStyle: styleName, 
+            convertedStyleKeyword: styleKeyword 
+          });
           
-          // 2. 시스템 프롬프트 (스타일별 세부 지시사항)와 사용자 프롬프트 결합
+          // 스타일 지시가 중복되지 않도록 신중하게 구성
+          const styleEmphasis = `IMPORTANT STYLE INSTRUCTION - Follow this style exactly: ${styleKeyword}, high quality, detailed, soft lighting`;
+          
+          // 시스템 프롬프트 (스타일별 세부 지시사항)와 사용자 프롬프트 결합
           let finalPrompt = `${styleEmphasis}\n`;
           
           // 시스템 프롬프트 추가 (있는 경우)
           if (systemPrompt && systemPrompt.trim().length > 0) {
-            finalPrompt += `${systemPrompt}\n\n`;
+            // 중복 방지: 시스템 프롬프트에 스타일 지시가 이미 포함되어 있는지 확인
+            const hasStyleInstruction = systemPrompt.includes("IMPORTANT STYLE INSTRUCTION");
+            
+            if (hasStyleInstruction) {
+              // 이미 스타일 지시가 포함된 경우 시스템 프롬프트만 사용
+              finalPrompt = `${systemPrompt}\n\n`;
+              logInfo('시스템 프롬프트에 스타일 지시가 이미 포함됨', { useSystemPromptOnly: true });
+            } else {
+              // 시스템 프롬프트에 스타일 지시가 없는 경우 둘 다 추가
+              finalPrompt += `${systemPrompt}\n\n`;
+            }
           }
           
           // 사용자 프롬프트 추가
