@@ -4836,10 +4836,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/dream-books", dreamBookRouter);
   console.log("태몽동화 라우터가 등록되었습니다 (/api/dream-books)");
   
-  // 태몽동화 썸네일 이미지 프록시 직접 등록 (Azure Blob Storage 인증 해결)
+  // 태몽동화 이미지 관련 모든 프록시 API - 직접 이미지 URL 리턴
+  app.get("/api/dream-books/:id/thumbnail", (req, res) => {
+    const dreamBookId = parseInt(req.params.id);
+    const imagePath = `/static/placeholder-dreambook.png`;
+    
+    console.log(`[태몽동화 썸네일 요청] ID: ${dreamBookId}, 플레이스홀더 이미지 제공`);
+    return res.sendFile(path.join(process.cwd(), 'static', 'placeholder-dreambook.png'));
+  });
   
-  // 태몽동화 개별 이미지 프록시 API 등록
-  app.get("/api/dream-books/:id/images/:sequence", async (req, res) => {
+  // 태몽동화 개별 이미지 프록시 API
+  app.get("/api/dream-books/:id/images/:sequence", (req, res) => {
     try {
       const dreamBookId = parseInt(req.params.id);
       const sequence = parseInt(req.params.sequence);
