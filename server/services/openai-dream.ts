@@ -255,8 +255,41 @@ export async function generateDreamScenes(
       'Authorization': `Bearer ${API_KEY}`
     };
     
-    // 스타일 이름에서 대소문자와 끝의 "풍" 처리
-    const styleKeyword = await getStyleKeyword(style);
+    // 데이터베이스에서 가져온 스타일 이름에서 적절한 키워드 추출
+    const styleLower = style.toLowerCase().trim();
+    let styleKeyword = style;
+    
+    // 스타일 매핑 테이블
+    const styleMap: {[key: string]: string} = {
+      'ghibli': 'Studio Ghibli style',
+      '지브리풍': 'Studio Ghibli style',
+      '지브리': 'Studio Ghibli style',
+      
+      'disney': 'Disney animation style',
+      '디즈니풍': 'Disney animation style',
+      '디즈니': 'Disney animation style',
+      
+      'watercolor': 'Watercolor painting style',
+      '수채화풍': 'Watercolor painting style',
+      '수채화': 'Watercolor painting style',
+      
+      'realistic': 'Realistic detailed style',
+      '사실적': 'Realistic detailed style',
+      
+      'korean': 'Traditional Korean painting style',
+      '전통 한국화': 'Traditional Korean painting style',
+      '한국화': 'Traditional Korean painting style'
+    };
+    
+    // 스타일 매핑 테이블에서 키워드 찾기
+    for (const [key, value] of Object.entries(styleMap)) {
+      if (styleLower.includes(key)) {
+        styleKeyword = value;
+        break;
+      }
+    }
+    
+    logInfo('스타일 변환', { 원래스타일: style, 변환스타일: styleKeyword });
     
     const systemContent = `당신은 태몽을 기반으로 DALL-E로 생성할 4개의 이미지 프롬프트를 작성하는 전문가입니다.
     태몽은 한국 문화에서 임신 중에 꾸는 특별한 꿈으로, 아기의 미래나 특성을 예견한다고 믿어집니다.
