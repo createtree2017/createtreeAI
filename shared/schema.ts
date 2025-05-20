@@ -625,6 +625,7 @@ export const serviceItems = pgTable("service_items", {
   categoryId: integer("category_id").notNull().references(() => serviceCategories.id, { onDelete: "cascade" }), // 부모 카테고리 ID
   isPublic: boolean("is_public").notNull().default(true), // 공개 여부
   order: integer("order").default(0), // 표시 순서
+  externalUrl: text("external_url"), // 외부 링크 URL
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
