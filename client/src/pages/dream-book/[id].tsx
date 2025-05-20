@@ -179,11 +179,15 @@ export default function DreamBookDetailPage() {
                     onClick={() => {
                       const prev = activeSlide - 1 < 0 ? sortedImages.length - 1 : activeSlide - 1;
                       setActiveSlide(prev);
-                      document.querySelectorAll('.carousel-item')[prev].scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'nearest',
-                        inline: 'center'
-                      });
+                      // DOM 요소가 준비되었는지 확인 후 스크롤
+                      const carouselItems = document.querySelectorAll('.carousel-item');
+                      if (carouselItems && carouselItems.length > prev && carouselItems[prev]) {
+                        carouselItems[prev].scrollIntoView({
+                          behavior: 'smooth',
+                          block: 'nearest',
+                          inline: 'center'
+                        });
+                      }
                     }}
                   >
                     <ChevronLeft className="h-4 w-4" />
@@ -197,11 +201,15 @@ export default function DreamBookDetailPage() {
                     onClick={() => {
                       const next = (activeSlide + 1) % sortedImages.length;
                       setActiveSlide(next);
-                      document.querySelectorAll('.carousel-item')[next].scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'nearest',
-                        inline: 'center'
-                      });
+                      // DOM 요소가 준비되었는지 확인 후 스크롤
+                      const carouselItems = document.querySelectorAll('.carousel-item');
+                      if (carouselItems && carouselItems.length > next && carouselItems[next]) {
+                        carouselItems[next].scrollIntoView({
+                          behavior: 'smooth',
+                          block: 'nearest',
+                          inline: 'center'
+                        });
+                      }
                     }}
                   >
                     <ChevronRight className="h-4 w-4" />
