@@ -106,7 +106,7 @@ export default function DreamBookListPage() {
                   <CardContent>
                     <p className="text-sm text-muted-foreground">{getDreamerName(dreamBook.dreamer)}의 꿈</p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      작성일: {format(new Date(dreamBook.createdAt), 'yyyy년 MM월 dd일', { locale: ko })}
+                      작성일: {dreamBook.createdAt ? format(new Date(dreamBook.createdAt), 'yyyy년 MM월 dd일', { locale: ko }) : ''}
                     </p>
                   </CardContent>
                   <CardFooter>
