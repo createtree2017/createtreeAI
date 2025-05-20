@@ -1,0 +1,181 @@
+import express from 'express';
+import { db } from '@/db';
+import { dreamBooks, dreamBookImages } from '@shared/dream-book';
+import { createDreamBookSchema } from '@shared/dream-book';
+import { generateDreamStorySummary, generateDreamScenes, generateDreamImage } from '../services/openai-dream';
+import { logInfo, logError } from '../utils/logger';
+import { isAuthenticated } from '../middleware/auth';
+import { ZodError } from 'zod';
+import { eq } from 'drizzle-orm';
+
+const router = express.Router();
+
+// 모든 태몽동화 목록 조회 (사용자별)
+router.get('/', isAuthenticated, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: '인증이 필요합니다.' });
+    }
+
+    const userDreamBooks = await db.query.dreamBooks.findMany({
+      where: eq(dreamBooks.userId, userId.toString()),
+      with: {
+        images: true,
+      },
+      orderBy: (dreamBooks, { desc }) => [desc(dreamBooks.createdAt)],
+    });
+
+    return res.status(200).json(userDreamBooks);
+  } catch (error) {
+    logError('태몽동화 목록 조회 중 오류 발생:', error);
+    return res.status(500).json({ error: '태몽동화 목록을 가져오는 중 오류가 발생했습니다.' });
+  }
+});
+
+// 특정 태몽동화 조회
+router.get('/:id', isAuthenticated, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: '인증이 필요합니다.' });
+    }
+
+    const dreamBook = await db.query.dreamBooks.findFirst({
+      where: (dreamBooks, { and, eq }) => 
+        and(
+          eq(dreamBooks.id, parseInt(id)), 
+          eq(dreamBooks.userId, userId.toString())
+        ),
+      with: {
+        images: {
+          orderBy: (images, { asc }) => [asc(images.sequence)]
+        },
+      },
+    });
+
+    if (!dreamBook) {
+      return res.status(404).json({ error: '태몽동화를 찾을 수 없습니다.' });
+    }
+
+    return res.status(200).json(dreamBook);
+  } catch (error) {
+    logError('태몽동화 조회 중 오류 발생:', error);
+    return res.status(500).json({ error: '태몽동화를 가져오는 중 오류가 발생했습니다.' });
+  }
+});
+
+// 태몽동화 생성
+router.post('/', isAuthenticated, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: '인증이 필요합니다.' });
+    }
+
+    const hospitalId = req.user?.hospitalId;
+
+    // 입력 데이터 검증
+    const validatedData = createDreamBookSchema.parse(req.body);
+    const { babyName, dreamer, dreamContent, style } = validatedData;
+
+    // 상태 객체로 진행 상황 추적
+    const status = { message: '태몽동화 생성을 시작합니다.', progress: 0 };
+    // SSE 응답 헤더 설정
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    });
+
+    // 진행 상황 전송 함수
+    const sendStatus = (message: string, progress: number) => {
+      status.message = message;
+      status.progress = progress;
+      res.write(\`data: \${JSON.stringify(status)}\n\n\`);
+    };
+
+    try {
+      // 1. 태몽 내용을 바탕으로 동화 줄거리 생성
+      sendStatus('태몽 내용을 바탕으로 동화 줄거리를 생성하는 중...', 10);
+      const summaryText = await generateDreamStorySummary(dreamer, babyName, dreamContent);
+
+      // 2. 줄거리를 바탕으로 4개의 장면 생성
+      sendStatus('동화 장면 프롬프트를 생성하는 중...', 30);
+      const scenePrompts = await generateDreamScenes(dreamContent, style);
+
+      // 3. 태몽동화 DB 레코드 생성
+      sendStatus('태몽동화 정보를 저장하는 중...', 40);
+      const [newDreamBook] = await db.insert(dreamBooks).values({
+        userId: userId.toString(),
+        babyName,
+        dreamer,
+        dreamContent,
+        summaryText,
+        style,
+        hospitalId: hospitalId?.toString(),
+        isPublic: false,
+        updatedAt: new Date(),
+      }).returning();
+
+      const dreamBookId = newDreamBook.id;
+
+      // 4. 각 장면에 대한 이미지 생성
+      const imagePromises = scenePrompts.map(async (prompt, index) => {
+        try {
+          sendStatus(\`\${index + 1}/4 이미지를 생성하는 중...\`, 50 + (index * 10));
+          const imageUrl = await generateDreamImage(prompt);
+          
+          // 각 이미지를 DB에 저장
+          const [newImage] = await db.insert(dreamBookImages).values({
+            dreamBookId,
+            sequence: index + 1,
+            prompt,
+            imageUrl,
+          }).returning();
+          
+          return newImage;
+        } catch (imgError) {
+          logError(\`이미지 \${index + 1} 생성 중 오류:\`, imgError);
+          throw imgError;
+        }
+      });
+
+      // 모든 이미지 생성 완료 대기
+      const images = await Promise.all(imagePromises);
+
+      // 5. 최종 결과 반환
+      sendStatus('태몽동화 생성이 완료되었습니다!', 100);
+      const finalResult = {
+        id: dreamBookId,
+        ...newDreamBook,
+        images,
+      };
+      
+      res.write(\`data: \${JSON.stringify({ ...status, completed: true, result: finalResult })}\n\n\`);
+      res.end();
+    } catch (processError) {
+      logError('태몽동화 생성 처리 중 오류:', processError);
+      res.write(\`data: \${JSON.stringify({ 
+        message: '태몽동화 생성 중 오류가 발생했습니다.', 
+        error: processError.message, 
+        completed: true, 
+        success: false 
+      })}\n\n\`);
+      res.end();
+    }
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return res.status(400).json({ 
+        error: '입력 데이터가 올바르지 않습니다.', 
+        details: error.errors 
+      });
+    }
+    
+    logError('태몽동화 생성 중 오류 발생:', error);
+    return res.status(500).json({ error: '태몽동화를 생성하는 중 오류가 발생했습니다.' });
+  }
+});
+
+export default router;
