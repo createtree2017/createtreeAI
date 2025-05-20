@@ -536,18 +536,19 @@ export async function generateDreamImage(prompt: string): Promise<string> {
       hasSystemUserFormat: hasSystemPrefix && hasUserPrefix
     });
     
-    // 작업지시서 요구사항에 따라 GPT-Image-1 모델 사용
+    // DALL-E 3 모델 사용 (GPT-Image-1은 b64_json을 지원하지 않음)
     const requestBody = {
-      model: "gpt-image-1", // 작업지시서 요구사항: GPT-Image-1 사용
+      model: "dall-e-3", // GPT-Image-1에서 DALL-E 3로 변경
       prompt: processedPrompt,
       n: 1,
       size: "1024x1024",
-      response_format: "b64_json" // base64 형식으로 응답 받아 직접 저장 (URL 접근 문제 해결)
+      quality: "standard",
+      response_format: "b64_json" // DALL-E 3는 b64_json 지원
     };
     
     // 디버깅을 위한 로깅
     logInfo('🧠 이미지 생성 API 호출 준비됨', { 
-      model: 'gpt-image-1', // 작업지시서 요구사항: GPT-Image-1 사용
+      model: 'dall-e-3', // DALL-E 3 모델로 변경
       promptLength: processedPrompt.length,
       hasSystemUserFormat: hasSystemPrefix && hasUserPrefix
     });
