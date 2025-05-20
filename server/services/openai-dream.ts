@@ -610,10 +610,45 @@ export async function generateDreamImage(prompt: string): Promise<string> {
       let imageUrl = imageData.url;
       const base64Data = imageData.b64_json;
       
-      // base64 데이터가 있고 URL이 없는 경우 처리
+      // base64 데이터가 있고 URL이 없는 경우 처리 - 이미지 파일로 저장
       if (!imageUrl && base64Data) {
-        logInfo('base64 데이터 활용', { hasBase64: true, urlAvailable: false });
-        imageUrl = `data:image/png;base64,${base64Data}`;
+        logInfo('base64 데이터 활용 - 이미지 파일로 저장', { hasBase64: true, urlAvailable: false });
+        
+        // 이미지를 저장할 경로 설정
+        const fs = require('fs');
+        const path = require('path');
+        
+        try {
+          // 고유한 파일명 생성
+          const timestamp = Date.now();
+          const randomId = Math.floor(Math.random() * 10000);
+          const filename = `dream-image-${timestamp}-${randomId}.png`;
+          
+          // 저장 경로 설정
+          const uploadDir = '/static/uploads/dream-books';
+          const imagePath = `${uploadDir}/${filename}`;
+          const fullPath = path.join(process.cwd(), 'static', 'uploads', 'dream-books', filename);
+          
+          // 디렉토리가 없으면 생성
+          fs.mkdirSync(path.dirname(fullPath), { recursive: true });
+          
+          // base64 데이터를 버퍼로 변환하여 파일로 저장
+          const imageBuffer = Buffer.from(base64Data, 'base64');
+          fs.writeFileSync(fullPath, imageBuffer);
+          
+          logInfo('이미지 파일 저장 완료', { 
+            path: fullPath,
+            size: imageBuffer.length,
+            publicUrl: imagePath
+          });
+          
+          // 접근 가능한 URL로 설정
+          imageUrl = imagePath;
+        } catch (saveError) {
+          logError('이미지 파일 저장 실패', saveError);
+          // 저장 실패시 대체 이미지 URL 설정
+          imageUrl = '/static/images/error/image-save-error.png';
+        }
       }
       
       if (!imageUrl) {
