@@ -1127,9 +1127,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // 태몽동화 아이템을 갤러리 아이템으로 변환
           galleryItems = dreamBooksResult.map(book => {
             // 썸네일 이미지 URL (첫 번째 이미지)
-            const thumbnailUrl = book.images && book.images.length > 0 
-              ? book.images[0].imageUrl 
-              : '/placeholder-dreambook.png';
+            // 직접 외부 URL을 사용하는 대신 프록시 API 사용
+            const thumbnailUrl = `/api/dream-books/${book.id}/thumbnail`;
               
             return {
               id: book.id,
