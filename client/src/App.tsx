@@ -50,6 +50,7 @@ import SharedMusic from "@/pages/shared-music";
 import DreamBookList from "@/pages/dream-book";
 import DreamBookDetail from "@/pages/dream-book/[id]";
 import CreateDreamBook from "@/pages/dream-book/create";
+import ImageStylesPage from "@/pages/admin/image-styles";
 
 // Main layout component
 function Layout({ children }: { children: React.ReactNode }) {
