@@ -467,6 +467,17 @@ export async function generateDreamImage(prompt: string): Promise<string> {
       logInfo('프롬프트 길이 제한', { original: prompt.length, truncated: processedPrompt.length });
     }
     
+    // 이 부분 추가: 스타일이 일관되도록 각 이미지 생성 시 최우선 순위로 표시
+    const styleEmphasis = "IMPORTANT STYLE INSTRUCTION - Follow this style exactly for the image: ";
+    if (processedPrompt.includes("style:") || processedPrompt.includes("Style:")) {
+      // 이미 스타일 지시가 포함되어 있으므로 그대로 사용
+      logInfo('스타일 지시가 이미 포함됨', { promptStart: processedPrompt.substring(0, 100) });
+    } else {
+      // 스타일 지시가 없으면 프롬프트 맨 앞에 추가
+      processedPrompt = `${styleEmphasis}${processedPrompt}`;
+      logInfo('스타일 강조 추가됨', { newPromptStart: processedPrompt.substring(0, 120) });
+    }
+    
     // 안전한 이미지 생성 요청 구성
     const requestBody = {
       model: "dall-e-3",
