@@ -295,6 +295,38 @@ export default function Gallery() {
                       <MessageCircle className="h-5 w-5" />
                     </div>
                   </div>
+                ) : item.type === "dreambook" ? (
+                  <div 
+                    className="relative cursor-pointer"
+                    onClick={() => {
+                      console.log("태몽동화 클릭:", item);
+                      setLocation(`/dream-book/${item.id}`);
+                    }}
+                  >
+                    <div className="aspect-square w-full overflow-hidden">
+                      <img
+                        src={item.thumbnailUrl || item.url || "https://placehold.co/400x400/e2e8f0/1e293b?text=태몽동화+준비중"}
+                        alt={item.title}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = "https://placehold.co/400x400/e2e8f0/1e293b?text=태몽동화+준비중";
+                          console.error("이미지 로드 실패:", item.url);
+                        }}
+                      />
+                    </div>
+                    
+                    {/* 태몽동화 아이콘 */}
+                    <div className="absolute top-2 left-2 bg-black bg-opacity-50 rounded-md p-1 z-10">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                        <rect width="7" height="7" x="3" y="3" rx="1" />
+                        <rect width="7" height="7" x="14" y="3" rx="1" />
+                        <rect width="7" height="7" x="14" y="14" rx="1" />
+                        <rect width="7" height="7" x="3" y="14" rx="1" />
+                      </svg>
+                    </div>
+                  </div>
                 ) : (
                   <div 
                     className="relative cursor-pointer"
