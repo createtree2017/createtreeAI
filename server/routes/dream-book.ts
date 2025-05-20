@@ -171,12 +171,20 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
         try {
           sendStatus(`${index + 1}/4 이미지를 생성하는 중...`, 50 + (index * 10));
           
-          // 스타일 강조 문구 추가 - DALL-E3가 스타일을 명확히 인식하도록 함
-          const styleEmphasis = `IMPORTANT STYLE INSTRUCTION - Follow the "${styleName}" style exactly: `;
+          // 시스템 프롬프트와 장면 프롬프트를 결합
+          // 시스템 프롬프트가 이미 "IMPORTANT STYLE INSTRUCTION"을 포함하는지 확인
+          const hasStyleEmphasis = systemPrompt.includes("IMPORTANT STYLE INSTRUCTION");
           
-          // 시스템 프롬프트와 장면 프롬프트를 결합하고 스타일 강조
-          const fullPrompt = systemPrompt 
-            ? `${styleEmphasis}${systemPrompt}\n\n${scenePrompt}` 
+          // 스타일 강조 문구는 시스템 프롬프트에 없을 경우에만 추가
+          let styledSystemPrompt = systemPrompt;
+          if (!hasStyleEmphasis && systemPrompt) {
+            const styleEmphasis = `IMPORTANT STYLE INSTRUCTION - Follow the "${styleName}" style exactly:\n`;
+            styledSystemPrompt = `${styleEmphasis}${systemPrompt}`;
+          }
+          
+          // 최종 프롬프트 생성
+          const fullPrompt = styledSystemPrompt 
+            ? `${styledSystemPrompt}\n\n${scenePrompt}` 
             : scenePrompt;
           
           // 프롬프트 디버깅
@@ -186,15 +194,39 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
             fullPromptLength: fullPrompt.length 
           });
           
-          const imageUrl = await generateDreamImage(fullPrompt);
-          
-          // 각 이미지를 DB에 저장
-          const [newImage] = await db.insert(dreamBookImages).values({
-            dreamBookId,
-            sequence: index + 1,
-            prompt: fullPrompt, // 전체 프롬프트 저장
-            imageUrl,
-          }).returning();
+          let imageUrl;
+          try {
+            imageUrl = await generateDreamImage(fullPrompt);
+            
+            // 각 이미지를 DB에 저장
+            const [newImage] = await db.insert(dreamBookImages).values({
+              dreamBookId,
+              sequence: index + 1,
+              prompt: fullPrompt, // 전체 프롬프트 저장
+              imageUrl,
+            }).returning();
+          } catch (error) {
+            // 이미지 생성 실패 로그 추가
+            logError(`이미지 ${index + 1} 생성 실패`, { 
+              error: error instanceof Error ? error.message : String(error),
+              promptLength: fullPrompt.length
+            });
+            
+            // 사용자에게 오류 알림
+            sendStatus(`이미지 ${index + 1} 생성 중 오류가 발생했습니다. 내용이 부적절하거나 서버 문제일 수 있습니다.`, 50 + (index * 10), 'error');
+            
+            // 기본 에러 이미지 URL 설정 (실제 프로젝트에 에러 이미지 추가 필요)
+            imageUrl = 'https://placehold.co/600x400/e74c3c/ffffff?text=이미지+생성+실패';
+            
+            // 실패한 이미지 정보 DB에 저장 (오류 추적용)
+            const [errorImage] = await db.insert(dreamBookImages).values({
+              dreamBookId,
+              sequence: index + 1,
+              prompt: fullPrompt.substring(0, 500) + '... (잘림)', // 프롬프트가 너무 길 수 있으므로 잘라서 저장
+              imageUrl,
+              error: error instanceof Error ? error.message : String(error)
+            }).returning();
+          }
           
           return newImage;
         } catch (imgError) {
