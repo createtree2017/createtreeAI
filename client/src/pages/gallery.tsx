@@ -226,14 +226,16 @@ export default function Gallery() {
     }
   };
   
+  // 사용자에게 표시될 필터 (태몽동화 탭 추가)
   const filters: { type: FilterType; label: string }[] = [
     { type: "all", label: "전체 컨텐츠" },
     { type: "image", label: "이미지" },
     { type: "music", label: "노래" },
     { type: "chat", label: "채팅" },
     { type: "dreambook", label: "태몽동화" },
-    { type: "favorite", label: "즐겨찾기" },
-    { type: "shared", label: "공유된 이미지" },
+    // 아직 준비 안 된 기능은 임시로 제외
+    // { type: "favorite", label: "즐겨찾기" },
+    // { type: "shared", label: "공유된 이미지" },
   ];
   
   return (
