@@ -625,9 +625,9 @@ export async function generateDreamImage(prompt: string): Promise<string> {
           const filename = `dream-image-${timestamp}-${randomId}.png`;
           
           // 저장 경로 설정
-          const uploadDir = '/static/uploads/dream-books';
-          const imagePath = `${uploadDir}/${filename}`;
-          const fullPath = path.join(process.cwd(), 'static', 'uploads', 'dream-books', filename);
+          const uploadDir = '/uploads/dream-books';
+          const imagePath = `/static${uploadDir}/${filename}`;
+          const fullPath = path.join(process.cwd(), 'static', uploadDir, filename);
           
           // 디렉토리가 없으면 생성
           fs.mkdirSync(path.dirname(fullPath), { recursive: true });
@@ -647,7 +647,7 @@ export async function generateDreamImage(prompt: string): Promise<string> {
         } catch (saveError) {
           logError('이미지 파일 저장 실패', saveError);
           // 저장 실패시 대체 이미지 URL 설정
-          imageUrl = '/static/images/error/image-save-error.svg';
+          imageUrl = '/static/images/error/error.svg';
         }
       }
       
