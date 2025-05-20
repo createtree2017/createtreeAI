@@ -117,23 +117,35 @@ export default function ImageStylesPage() {
   // 이미지 스타일 생성 mutation
   const createStyleMutation = useMutation({
     mutationFn: async (newStyle: StyleFormData) => {
-      const response = await fetch('/api/image-styles', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(newStyle),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || '이미지 스타일을 생성하는데 실패했습니다');
+      console.log('🚀 API 요청 시작:', newStyle);
+      try {
+        const response = await fetch('/api/image-styles', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify(newStyle),
+        });
+        
+        console.log('🔄 API 응답 상태:', response.status);
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('❌ API 오류 응답:', errorData);
+          throw new Error(errorData.error || '이미지 스타일을 생성하는데 실패했습니다');
+        }
+        
+        const data = await response.json();
+        console.log('✅ API 성공 응답:', data);
+        return data;
+      } catch (err) {
+        console.error('❌ API 예외 발생:', err);
+        throw err;
       }
-      
-      return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('✅ Mutation 성공 콜백:', data);
       queryClient.invalidateQueries({ queryKey: ['/api/image-styles'] });
       setIsCreateDialogOpen(false);
       resetForm();
@@ -143,6 +155,7 @@ export default function ImageStylesPage() {
       });
     },
     onError: (error) => {
+      console.error('❌ Mutation 오류 콜백:', error);
       toast({
         title: '스타일 생성 실패',
         description: `${error.message}`,
@@ -270,7 +283,28 @@ export default function ImageStylesPage() {
   // 스타일 생성 폼 제출
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createStyleMutation.mutate(formData);
+    console.log('스타일 생성 폼 제출 시도:', formData);
+    
+    // 필수 필드 확인
+    if (!formData.name || !formData.description || !formData.systemPrompt) {
+      toast({
+        title: '입력 오류',
+        description: '모든 필수 항목을 입력해주세요.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    try {
+      createStyleMutation.mutate(formData);
+    } catch (error) {
+      console.error('스타일 생성 오류:', error);
+      toast({
+        title: '스타일 생성 실패',
+        description: '오류가 발생했습니다. 다시 시도해주세요.',
+        variant: 'destructive',
+      });
+    }
   };
 
   // 스타일 수정 폼 제출
@@ -431,7 +465,22 @@ export default function ImageStylesPage() {
                   >
                     취소
                   </Button>
-                  <Button type="submit" disabled={createStyleMutation.isPending}>
+                  <Button 
+                    type="submit" 
+                    disabled={createStyleMutation.isPending}
+                    onClick={(e) => {
+                      console.log('스타일 생성 버튼 클릭됨');
+                      if (!formData.name || !formData.description || !formData.systemPrompt) {
+                        e.preventDefault();
+                        toast({
+                          title: '입력 오류',
+                          description: '모든 필수 항목을 입력해주세요.',
+                          variant: 'destructive',
+                        });
+                        return;
+                      }
+                    }}
+                  >
                     {createStyleMutation.isPending ? '생성 중...' : '스타일 생성'}
                   </Button>
                 </DialogFooter>
