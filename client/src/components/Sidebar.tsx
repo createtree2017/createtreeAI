@@ -100,13 +100,6 @@ export default function Sidebar({ collapsed = false }) {
           ariaLabel: '갤러리 페이지',
         },
         {
-          path: '/suno-music',
-          icon: Music,
-          label: 'Suno AI 음악',
-          ariaLabel: 'Suno AI 음악 생성 페이지',
-          new: true,
-        },
-        {
           path: '/profile',
           icon: User,
           label: '마이페이지',
