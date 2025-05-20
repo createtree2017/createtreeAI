@@ -164,13 +164,20 @@ export default function Image() {
     });
   }, [concepts, conceptsLoading, conceptsError]);
   
-  // Set default category if none selected
+  // Set default category on first load only
   useEffect(() => {
-    if (Array.isArray(categories) && categories.length > 0 && !selectedCategory) {
-      setSelectedCategory(categories[0].categoryId);
-    } else if (!selectedCategory) {
-      // 기본값으로 "만삭사진" 카테고리 선택
-      setSelectedCategory("mansak_img");
+    // 페이지 첫 로드시에만 기본 카테고리 설정 (이미 선택된 카테고리가 없을 때만)
+    const hasInitialCategory = sessionStorage.getItem('has-set-initial-category');
+    
+    if (!hasInitialCategory && !selectedCategory) {
+      if (Array.isArray(categories) && categories.length > 0) {
+        setSelectedCategory(categories[0].categoryId);
+      } else {
+        // 기본값으로 "만삭사진" 카테고리 선택
+        setSelectedCategory("mansak_img");
+      }
+      // 초기 설정 완료 표시
+      sessionStorage.setItem('has-set-initial-category', 'true');
     }
   }, [categories, selectedCategory]);
   
