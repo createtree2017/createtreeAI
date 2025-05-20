@@ -1,4 +1,4 @@
-import OpenAI from "openai";
+import fetch from 'node-fetch';
 
 // 로깅 유틸리티 함수 직접 구현
 function logDebug(message: string, ...args: any[]): void {
@@ -13,34 +13,49 @@ function logInfo(message: string, ...args: any[]): void {
   console.info(`[INFO] ${message}`, ...args);
 }
 
-// OpenAI 인스턴스 생성 (API 키 및 구성 로깅)
-function createOpenAIClient() {
-  const apiKey = process.env.OPENAI_API_KEY;
-  // API 키 유효성 기본 검사
-  if (!apiKey || !apiKey.startsWith('sk-')) {
-    logError('OpenAI API 키가 유효하지 않습니다', { keyExists: !!apiKey, keyLength: apiKey?.length });
-    throw new Error('유효한 OpenAI API 키가 필요합니다.');
-  }
+// OpenAI API 키 설정
+const API_KEY = process.env.OPENAI_API_KEY;
 
-  // 키 정보 로깅 (키 자체는 로깅하지 않고 일부만 마스킹)
-  const maskedKey = apiKey ? `${apiKey.substring(0, 5)}...${apiKey.substring(apiKey.length - 4)}` : 'undefined';
-  logInfo('OpenAI 클라이언트 생성', {
-    apiKeyLength: apiKey?.length,
-    apiKeyPrefix: maskedKey,
-    hasMask: apiKey?.includes('****'),
-  });
-
-  return new OpenAI({ apiKey });
+// API 키 유효성 검증 - 프로젝트 API 키 지원 추가 (sk-proj- 시작)
+function isValidApiKey(apiKey: string | undefined): boolean {
+  return !!apiKey && (apiKey.startsWith('sk-') || apiKey.startsWith('sk-proj-'));
 }
 
-const openai = createOpenAIClient();
+// OpenAI API 엔드포인트
+const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
+const OPENAI_IMAGE_CREATION_URL = "https://api.openai.com/v1/images/generations";
 
-/**
- * OpenAI API 키가 유효한지 확인
- */
-function isValidApiKey(apiKey?: string): boolean {
-  return !!apiKey && apiKey.startsWith('sk-') && apiKey.length > 20;
+// API 응답 타입 정의
+interface OpenAIChatResponse {
+  id?: string;
+  choices?: Array<{
+    message: {
+      role: string;
+      content: string;
+    };
+    index?: number;
+  }>;
+  error?: {
+    message: string;
+    type: string;
+    code?: string;
+  };
 }
+
+interface OpenAIImageGenerationResponse {
+  created?: number;
+  data?: Array<{
+    url?: string;
+    revised_prompt?: string;
+  }>;
+  error?: {
+    message: string;
+    type: string;
+    code?: string;
+  };
+}
+
+// 중복 함수 제거
 
 /**
  * 태몽 내용을 바탕으로 동화 줄거리 생성
@@ -62,6 +77,12 @@ export async function generateDreamStorySummary(
       throw new Error('모든 입력값(꿈꾼이, 아기 이름, 태몽 내용)이 필요합니다.');
     }
 
+    // API 키 유효성 검증
+    if (!isValidApiKey(API_KEY)) {
+      logError('유효한 API 키가 없습니다');
+      throw new Error('유효한 OpenAI API 키가 필요합니다.');
+    }
+
     logDebug('태몽 줄거리 생성 시작', { 
       dreamer, 
       babyName, 
@@ -80,71 +101,98 @@ export async function generateDreamStorySummary(
     아기 이름: ${babyName}
     꿈 내용: ${dreamContent}`;
 
+    // API 요청 준비
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${API_KEY}`
+    };
+    
+    const requestBody = {
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      max_tokens: 1000,
+      temperature: 0.7,
+    };
+
     logInfo('OpenAI 호출 준비됨', { 
       modelUsed: 'gpt-4o',
-      promptLength: systemPrompt.length + userPrompt.length
+      promptLength: systemPrompt.length + userPrompt.length,
+      apiKeyPrefix: API_KEY ? API_KEY.substring(0, 10) + '...' : 'undefined'
     });
 
-    // API 호출
+    // API 직접 호출 (fetch 사용)
+    const response = await fetch(OPENAI_CHAT_URL, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(requestBody)
+    });
+    
+    // 응답 텍스트로 가져오기
+    const responseText = await response.text();
+    
+    // JSON 파싱 시도
+    let openaiResponse: OpenAIChatResponse;
     try {
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
-        ],
-        max_tokens: 1000,
-        temperature: 0.7,
-      });
-
+      openaiResponse = JSON.parse(responseText);
+      
+      // 오류 응답 확인
+      if (openaiResponse.error) {
+        logError('OpenAI API 오류 응답', {
+          message: openaiResponse.error.message,
+          type: openaiResponse.error.type,
+          code: openaiResponse.error.code
+        });
+        throw new Error(`OpenAI API 오류: ${openaiResponse.error.message}`);
+      }
+      
       // 응답 구조 로깅 (민감 정보 제외)
       logInfo('OpenAI 응답 수신됨', {
-        status: 'success',
-        hasChoices: !!response.choices?.length,
-        choicesCount: response.choices?.length || 0,
-        modelUsed: response.model,
-        firstTokens: response.choices?.[0]?.message?.content?.substring(0, 30) + '...' || '(내용 없음)'
+        status: response.status,
+        hasChoices: !!openaiResponse.choices?.length,
+        choicesCount: openaiResponse.choices?.length || 0
       });
-
-      const summary = response.choices[0]?.message?.content?.trim() || '태몽 내용을 바탕으로 한 아름다운 이야기';
+      
+      // 응답 내용 추출
+      if (!openaiResponse.choices || openaiResponse.choices.length === 0) {
+        throw new Error('OpenAI 응답에 유효한 내용이 없습니다.');
+      }
+      
+      const summary = openaiResponse.choices[0]?.message?.content?.trim() || '태몽 내용을 바탕으로 한 아름다운 이야기';
       
       logDebug('태몽 줄거리 생성 완료', { length: summary.length });
       return summary;
-    } catch (error: any) {
-      // OpenAI API 호출 오류 상세 로깅
-      logError('OpenAI API 호출 실패', {
-        errorMessage: error.message,
-        errorType: error.type,
-        errorCode: error.code,
-        statusCode: error.status,
-        requestId: error.request_id,
-        errorDetail: error.error
+      
+    } catch (parseError) {
+      logError('OpenAI 응답 파싱 오류', { 
+        error: parseError, 
+        responseStatus: response.status,
+        responseText: responseText.substring(0, 200) + '...' // 응답 일부만 로깅
       });
-      
-      // 오류 유형에 따른 메시지 생성
-      let errorMessage = '태몽 줄거리를 생성하는 중 오류가 발생했습니다.';
-      
-      // 구체적인 오류 메시지 추가
-      if (error.code === 'invalid_api_key') {
-        errorMessage = 'OpenAI API 키가 유효하지 않습니다.';
-      } else if (error.code === 'invalid_project') {
-        errorMessage = 'OpenAI 프로젝트 설정이 잘못되었습니다. 조직 ID를 확인해주세요.';
-      } else if (error.code === 'rate_limit_exceeded') {
-        errorMessage = 'OpenAI API 호출 한도를 초과했습니다. 잠시 후 다시 시도해주세요.';
-      } else if (error.status === 401) {
-        errorMessage = 'OpenAI API 인증에 실패했습니다. API 키를 확인해주세요.';
-      }
-      
-      throw new Error(`${errorMessage} (${error.message})`);
+      throw new Error('OpenAI 응답을 파싱할 수 없습니다.');
     }
+    
   } catch (error: any) {
     // 최상위 오류 캐치
     logError('태몽 줄거리 생성 처리 중 오류:', error);
-    if (error.message) {
-      throw error; // 이미 형식화된 오류 메시지
-    } else {
-      throw new Error('태몽 줄거리 생성 중 알 수 없는 오류가 발생했습니다.');
+    
+    // 구체적인 오류 메시지 생성
+    let errorMessage = '태몽 줄거리를 생성하는 중 오류가 발생했습니다.';
+    
+    // 오류 타입에 따른 메시지
+    if (error.message?.includes('invalid_api_key')) {
+      errorMessage = 'OpenAI API 키가 유효하지 않습니다.';
+    } else if (error.message?.includes('invalid_project')) {
+      errorMessage = 'OpenAI 프로젝트 설정이 잘못되었습니다. 조직 ID를 확인해주세요.';
+    } else if (error.message?.includes('rate_limit_exceeded')) {
+      errorMessage = 'OpenAI API 호출 한도를 초과했습니다. 잠시 후 다시 시도해주세요.';
+    } else if (error.message?.includes('401')) {
+      errorMessage = 'OpenAI API 인증에 실패했습니다. API 키를 확인해주세요.';
     }
+    
+    throw new Error(`${errorMessage} (${error.message || '알 수 없는 오류'})`);
   }
 }
 
@@ -156,62 +204,119 @@ export async function generateDreamScenes(
   style: string
 ): Promise<string[]> {
   try {
-    // API 키 확인
-    if (!isValidApiKey(process.env.OPENAI_API_KEY)) {
+    // API 키 유효성 검증
+    if (!isValidApiKey(API_KEY)) {
+      logError('유효한 API 키가 없습니다');
       throw new Error('유효한 OpenAI API 키가 필요합니다.');
     }
 
     logDebug('태몽 장면 생성 시작', { style });
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+    // API 요청 준비
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${API_KEY}`
+    };
+    
+    const systemContent = `당신은 태몽을 기반으로 DALL-E로 생성할 4개의 이미지 프롬프트를 작성하는 전문가입니다.
+    태몽은 한국 문화에서 임신 중에 꾸는 특별한 꿈으로, 아기의 미래나 특성을 예견한다고 믿어집니다.
+    아래 내용을 바탕으로 동화책의 각 장면에 해당하는 4개의 이미지 프롬프트를 작성해주세요.
+    각 프롬프트는 DALL-E가 시각적으로 아름답고 디테일한 이미지를 생성할 수 있도록 충분히 상세해야 합니다.
+    
+    프롬프트 앞에는 반드시 스타일 설명을 포함해야 합니다: "${style}, high quality, detailed, soft lighting"
+    
+    각 장면은 스토리의 논리적 흐름을 따라야 합니다:
+    장면 1: 이야기의 시작과 주인공 소개
+    장면 2: 이야기의 전개와 도전/어려움의 등장
+    장면 3: 문제 해결을 위한 노력이나 결정적 순간
+    장면 4: 행복한 결말
+    
+    결과는 JSON 형식이 아닌 각 프롬프트를 별도 줄에 작성해 주세요.
+    각 프롬프트는 한국어와 영어를 혼합하여 작성하되, 영어 비중을 더 높게 해주세요.
+    각 프롬프트는 최대 400자를 넘지 않도록 해주세요.`;
+
+    const userContent = `태몽 내용: ${dreamContent}
+    원하는 스타일: ${style}`;
+
+    const requestBody = {
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
       messages: [
-        {
-          role: "system",
-          content: `당신은 태몽을 기반으로 DALL-E로 생성할 4개의 이미지 프롬프트를 작성하는 전문가입니다.
-          태몽은 한국 문화에서 임신 중에 꾸는 특별한 꿈으로, 아기의 미래나 특성을 예견한다고 믿어집니다.
-          아래 내용을 바탕으로 동화책의 각 장면에 해당하는 4개의 이미지 프롬프트를 작성해주세요.
-          각 프롬프트는 DALL-E가 시각적으로 아름답고 디테일한 이미지를 생성할 수 있도록 충분히 상세해야 합니다.
-          
-          프롬프트 앞에는 반드시 스타일 설명을 포함해야 합니다: "${style}, high quality, detailed, soft lighting"
-          
-          각 장면은 스토리의 논리적 흐름을 따라야 합니다:
-          장면 1: 이야기의 시작과 주인공 소개
-          장면 2: 이야기의 전개와 도전/어려움의 등장
-          장면 3: 문제 해결을 위한 노력이나 결정적 순간
-          장면 4: 행복한 결말
-          
-          결과는 JSON 형식이 아닌 각 프롬프트를 별도 줄에 작성해 주세요.
-          각 프롬프트는 한국어와 영어를 혼합하여 작성하되, 영어 비중을 더 높게 해주세요.
-          각 프롬프트는 최대 400자를 넘지 않도록 해주세요.`
-        },
-        {
-          role: "user",
-          content: `태몽 내용: ${dreamContent}
-          원하는 스타일: ${style}`
-        }
+        { role: "system", content: systemContent },
+        { role: "user", content: userContent }
       ],
       max_tokens: 1500,
       temperature: 0.7,
+    };
+
+    logInfo('OpenAI 장면 생성 호출 준비됨', { 
+      modelUsed: 'gpt-4o',
+      promptLength: systemContent.length + userContent.length
     });
 
-    const content = response.choices[0].message.content?.trim() || '';
-    const prompts = content
-      .split('\n')
-      .filter(line => line.trim().length > 0)
-      .slice(0, 4);
+    // API 직접 호출 (fetch 사용)
+    const response = await fetch(OPENAI_CHAT_URL, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(requestBody)
+    });
+    
+    // 응답 텍스트로 가져오기
+    const responseText = await response.text();
+    
+    // JSON 파싱 시도
+    let openaiResponse: OpenAIChatResponse;
+    try {
+      openaiResponse = JSON.parse(responseText);
       
-    // 프롬프트가 4개 미만인 경우 기본 프롬프트로 채우기
-    while (prompts.length < 4) {
-      prompts.push(`${style}, fairy tale scene, dreamy atmosphere, soft colors, high quality, detailed, soft lighting`);
+      // 오류 응답 확인
+      if (openaiResponse.error) {
+        logError('OpenAI API 오류 응답', {
+          message: openaiResponse.error.message,
+          type: openaiResponse.error.type,
+          code: openaiResponse.error.code
+        });
+        throw new Error(`OpenAI API 오류: ${openaiResponse.error.message}`);
+      }
+      
+      // 응답 구조 로깅 (민감 정보 제외)
+      logInfo('OpenAI 장면 응답 수신됨', {
+        status: response.status,
+        hasChoices: !!openaiResponse.choices?.length,
+        choicesCount: openaiResponse.choices?.length || 0
+      });
+      
+      // 응답 내용 추출
+      if (!openaiResponse.choices || openaiResponse.choices.length === 0) {
+        throw new Error('OpenAI 응답에 유효한 내용이 없습니다.');
+      }
+      
+      const content = openaiResponse.choices[0]?.message?.content?.trim() || '';
+      const prompts = content
+        .split('\n')
+        .filter(line => line.trim().length > 0)
+        .slice(0, 4);
+        
+      // 프롬프트가 4개 미만인 경우 기본 프롬프트로 채우기
+      while (prompts.length < 4) {
+        prompts.push(`${style}, fairy tale scene, dreamy atmosphere, soft colors, high quality, detailed, soft lighting`);
+      }
+      
+      logDebug('태몽 장면 생성 완료', { count: prompts.length });
+      return prompts;
+      
+    } catch (parseError) {
+      logError('OpenAI 응답 파싱 오류', { 
+        error: parseError, 
+        responseStatus: response.status,
+        responseText: responseText.substring(0, 200) + '...' // 응답 일부만 로깅
+      });
+      throw new Error('OpenAI 응답을 파싱할 수 없습니다.');
     }
     
-    logDebug('태몽 장면 생성 완료', { count: prompts.length });
-    return prompts;
-
-  } catch (error) {
+  } catch (error: any) {
+    // 최상위 오류 캐치
     logError('태몽 장면 생성 오류:', error);
-    throw new Error('태몽 장면을 생성하는 중 오류가 발생했습니다.');
+    throw new Error(`태몽 장면을 생성하는 중 오류가 발생했습니다. (${error.message || '알 수 없는 오류'})`);
   }
 }
 
@@ -229,42 +334,90 @@ export async function generateDreamImage(prompt: string): Promise<string> {
       throw new Error('유효한 이미지 생성 프롬프트가 필요합니다.');
     }
 
+    // API 키 유효성 검증
+    if (!isValidApiKey(API_KEY)) {
+      logError('유효한 API 키가 없습니다');
+      throw new Error('유효한 OpenAI API 키가 필요합니다.');
+    }
+
     logDebug('태몽 이미지 생성 시작', { 
       promptLength: prompt.length,
       promptFirstChars: prompt.substring(0, 30) + '...',
     });
 
-    try {
-      // DALL-E API 호출
-      const response = await openai.images.generate({
-        model: "dall-e-3",
-        prompt: prompt,
-        n: 1,
-        size: "1024x1024",
-        quality: "standard",
-        style: "vivid",
-      });
+    // API 요청 준비
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${API_KEY}`
+    };
+    
+    const requestBody = {
+      model: "dall-e-3",
+      prompt: prompt,
+      n: 1,
+      size: "1024x1024",
+      quality: "standard",
+      style: "vivid"
+    };
+    
+    logInfo('DALL-E API 호출 준비됨', {
+      model: 'dall-e-3',
+      promptLength: prompt.length
+    });
 
-      // 응답 구조를 안전하게 로깅 (민감 정보 제외)
-      try {
-        const safeResponseInfo = {
-          hasResponse: !!response,
-          hasData: !!response?.data,
-          dataLength: response?.data?.length || 0,
-          created: response?.created ? new Date(response.created * 1000).toISOString() : null,
-          hasUrl: !!response?.data?.[0]?.url
-        };
-        logInfo('DALL-E 응답 성공', safeResponseInfo);
-      } catch (err) {
-        logError('응답 로깅 처리 오류', err);
+    // API 직접 호출 (fetch 사용)
+    const response = await fetch(OPENAI_IMAGE_CREATION_URL, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(requestBody)
+    });
+    
+    // 응답 텍스트로 가져오기
+    const responseText = await response.text();
+    
+    // JSON 파싱 시도
+    let openaiResponse: OpenAIImageGenerationResponse;
+    try {
+      openaiResponse = JSON.parse(responseText);
+      
+      // 오류 응답 확인
+      if (openaiResponse.error) {
+        logError('DALL-E API 오류 응답', {
+          message: openaiResponse.error.message,
+          type: openaiResponse.error.type,
+          code: openaiResponse.error.code
+        });
+        
+        // 오류 유형별 적절한 메시지 생성
+        let errorMessage = '이미지 생성 중 오류가 발생했습니다.';
+        
+        if (openaiResponse.error.code === 'content_policy_violation') {
+          errorMessage = '프롬프트가 OpenAI 콘텐츠 정책을 위반합니다. 다른 내용으로 시도해주세요.';
+        } else if (openaiResponse.error.code === 'rate_limit_exceeded') {
+          errorMessage = 'DALL-E API 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요.';
+        } else if (response.status === 401) {
+          errorMessage = 'DALL-E API 인증에 실패했습니다. API 키를 확인해주세요.';
+        } else if (response.status === 429) {
+          errorMessage = 'DALL-E API 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.';
+        }
+        
+        throw new Error(`${errorMessage} (${openaiResponse.error.message})`);
       }
       
+      // 응답 구조 로깅 (민감 정보 제외)
+      logInfo('DALL-E 응답 성공', {
+        status: response.status,
+        hasData: !!openaiResponse.data,
+        dataLength: openaiResponse.data?.length || 0,
+        created: openaiResponse.created
+      });
+      
       // 응답에서 이미지 URL 안전하게 추출
-      if (!response || !response.data || !Array.isArray(response.data) || response.data.length === 0) {
+      if (!openaiResponse.data || !Array.isArray(openaiResponse.data) || openaiResponse.data.length === 0) {
         throw new Error('DALL-E 응답에 유효한 데이터가 없습니다.');
       }
       
-      const imageData = response.data[0];
+      const imageData = openaiResponse.data[0];
       if (!imageData || !imageData.url) {
         throw new Error('DALL-E 응답에 이미지 URL이 없습니다.');
       }
@@ -273,31 +426,14 @@ export async function generateDreamImage(prompt: string): Promise<string> {
       logInfo('이미지 URL 추출 성공', { urlLength: imageUrl.length });
       
       return imageUrl;
-    } catch (error: any) {
-      // DALL-E API 오류 처리 및 구체적 로깅
-      logError('DALL-E API 호출 실패', {
-        errorMessage: error.message,
-        errorType: error.type,
-        errorCode: error.code,
-        statusCode: error.status,
-        errorDetail: error.error
+      
+    } catch (parseError: any) {
+      logError('DALL-E 응답 파싱 오류', { 
+        error: parseError, 
+        responseStatus: response.status,
+        responseText: responseText.substring(0, 200) + '...' // 응답 일부만 로깅
       });
-      
-      // 오류 유형별 적절한 메시지 생성
-      let errorMessage = '이미지 생성 중 오류가 발생했습니다.';
-      
-      if (error.code === 'content_policy_violation') {
-        errorMessage = '프롬프트가 OpenAI 콘텐츠 정책을 위반합니다. 다른 내용으로 시도해주세요.';
-      } else if (error.code === 'rate_limit_exceeded') {
-        errorMessage = 'DALL-E API 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요.';
-      } else if (error.status === 401) {
-        errorMessage = 'DALL-E API 인증에 실패했습니다. API 키를 확인해주세요.';
-      } else if (error.status === 429) {
-        errorMessage = 'DALL-E API 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.';
-      }
-      
-      // 더 상세한 정보를 위해 원본 오류 메시지 추가
-      throw new Error(`${errorMessage} (${error.message || '알 수 없는 오류'})`);
+      throw new Error(`DALL-E 응답을 파싱할 수 없습니다. (${parseError.message || '알 수 없는 오류'})`);
     }
   } catch (error: any) {
     // 최상위 오류 처리
