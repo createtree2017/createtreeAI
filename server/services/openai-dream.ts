@@ -1,5 +1,17 @@
 import OpenAI from "openai";
-import { logDebug, logError } from '../utils/logger';
+
+// 로깅 유틸리티 함수 직접 구현
+function logDebug(message: string, ...args: any[]): void {
+  console.debug(`[DEBUG] ${message}`, ...args);
+}
+
+function logError(message: string, ...args: any[]): void {
+  console.error(`[ERROR] ${message}`, ...args);
+}
+
+function logInfo(message: string, ...args: any[]): void {
+  console.info(`[INFO] ${message}`, ...args);
+}
 
 // OpenAI 인스턴스 생성
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -149,9 +161,30 @@ export async function generateDreamImage(prompt: string): Promise<string> {
       style: "vivid",
     });
 
-    const imageUrl = response.data[0]?.url;
-    if (!imageUrl) {
-      throw new Error('이미지 URL을 받지 못했습니다.');
+    // response 객체의 구조를 로깅 (민감한 정보는 제외)
+    try {
+      const safeResponse = {
+        created: response.created,
+        model: response.model,
+        hasData: !!response.data,
+        dataLength: response.data ? response.data.length : 0
+      };
+      logDebug('DALL-E 응답 구조:', safeResponse);
+    } catch (err) {
+      logError('응답 로깅 오류', err);
+    }
+    
+    // 응답 구조에 맞게 URL 추출
+    let imageUrl = '';
+    try {
+      if (response && Array.isArray(response.data) && response.data.length > 0 && response.data[0].url) {
+        imageUrl = response.data[0].url;
+      } else {
+        throw new Error('응답 구조가 예상과 다릅니다');
+      }
+    } catch (err) {
+      logError('이미지 URL 추출 오류', err);
+      throw new Error('이미지 URL을 받지 못했습니다: ' + err.message);
     }
     
     logDebug('태몽 이미지 생성 완료', { imageUrl });
