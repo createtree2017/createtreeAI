@@ -257,12 +257,13 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
           
           // 프롬프트가 너무 짧은 경우 보완
           if (finalPrompt.length < 30) {
-            finalPrompt = `${styleEmphasis}\n\nCreate a detailed illustration in ${styleName} style with the following description: ${userPrompt}`;
+            finalPrompt = `${styleEmphasis}\n\nCreate a detailed illustration in ${styleKeyword} style with the following description: ${userPrompt}`;
           }
           
           // 최종 프롬프트 내용 검증 (디버깅)
           logInfo(`최종 프롬프트 내용 검증`, {
-            containsStyleName: finalPrompt.includes(styleName),
+            styleKeyUsed: styleKey,
+            styleKeywordUsed: styleKeyword,
             containsSystemPrompt: systemPrompt ? finalPrompt.includes(systemPrompt.substring(0, 20)) : false,
             containsUserPrompt: finalPrompt.includes(userPrompt.substring(0, Math.min(10, userPrompt.length)))
           });
