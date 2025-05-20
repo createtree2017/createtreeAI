@@ -155,9 +155,13 @@ export default function DreamBookDetailPage() {
                         <div className="flex flex-col items-center p-1">
                           <div className="overflow-hidden rounded-lg w-full h-[50vh] flex items-center justify-center bg-black">
                             <img
-                              src={image.imageUrl}
+                              src={image.imageUrl || '/placeholder-dreambook.png'}
                               alt={`장면 ${index + 1}`}
                               className="object-contain w-full h-full"
+                              onError={(e) => {
+                                console.error(`이미지 로드 실패: ${image.imageUrl}`);
+                                (e.target as HTMLImageElement).src = '/placeholder-dreambook.png';
+                              }}
                             />
                           </div>
                           <div className="mt-4 text-center">
