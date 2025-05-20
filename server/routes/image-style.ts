@@ -60,7 +60,10 @@ router.post('/', isAdmin, async (req: Request, res: Response) => {
     
     const styleData = validationResult.data;
     
-    // 현재 사용자 ID를 creator_id로 설정
+    // 현재 사용자 ID를 creator_id로 설정 (타입 안전성 확보)
+    if (!req.user) {
+      return res.status(401).json({ error: '사용자 정보를 찾을 수 없습니다.' });
+    }
     styleData.creatorId = req.user.id;
     
     // 생성 시각과 갱신 시각 설정
@@ -168,6 +171,11 @@ router.post('/:id/clone', isAdmin, async (req: Request, res: Response) => {
     
     if (!sourceStyle) {
       return res.status(404).json({ error: '복제할 이미지 스타일을 찾을 수 없습니다.' });
+    }
+    
+    // 사용자 정보 확인
+    if (!req.user) {
+      return res.status(401).json({ error: '사용자 정보를 찾을 수 없습니다.' });
     }
     
     // 복제 데이터 준비
