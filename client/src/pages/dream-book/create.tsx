@@ -110,6 +110,21 @@ export default function CreateDreamBook() {
               setProgress(data.progress);
               setStatusMessage(data.message);
               
+              // 타입별 토스트 메시지 표시 (warning, error 등)
+              if (data.type === 'error') {
+                toast({
+                  title: "알림",
+                  description: data.message,
+                  variant: "destructive",
+                });
+              } else if (data.type === 'warning') {
+                toast({
+                  title: "주의",
+                  description: data.message,
+                  variant: "default",
+                });
+              }
+              
               if (data.completed) {
                 if (data.success === false) {
                   throw new Error(data.error || '태몽동화 생성 중 오류가 발생했습니다.');
@@ -150,7 +165,7 @@ export default function CreateDreamBook() {
             <CardTitle>태몽동화란?</CardTitle>
             <CardDescription>
               임신 중 꾸었던 태몽을 아름다운 동화로 재구성해 드립니다. 
-              아기의 이름, 꿈을 꾼 사람, 꿈의 내용을 입력하면 AI가 5장면의 동화를 만들어 드립니다.
+              아기의 이름, 꿈을 꾼 사람, 각 장면의 내용을 직접 입력하면 AI가 최대 4개의 장면으로 이루어진 동화를 만들어 드립니다.
             </CardDescription>
           </CardHeader>
         </Card>

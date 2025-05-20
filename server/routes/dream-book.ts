@@ -244,13 +244,22 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
         images,
       };
       
-      res.write(`data: ${JSON.stringify({ ...status, completed: true, result: finalResult })}\n\n`);
+      res.write(`data: ${JSON.stringify({ 
+        message: '태몽동화 생성이 완료되었습니다!', 
+        progress: 100, 
+        type: 'info',
+        completed: true, 
+        success: true,
+        result: finalResult 
+      })}\n\n`);
       res.end();
     } catch (processError) {
       logError('태몽동화 생성 처리 중 오류:', processError);
       res.write(`data: ${JSON.stringify({ 
         message: '태몽동화 생성 중 오류가 발생했습니다.', 
-        error: processError.message, 
+        progress: 0,
+        type: 'error',
+        error: processError instanceof Error ? processError.message : String(processError),
         completed: true, 
         success: false 
       })}\n\n`);
