@@ -195,31 +195,42 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
           // 진행 상황 업데이트
           sendStatus(`${sequence}/${filteredPrompts.length} 이미지를 생성하는 중...`, 20 + (i * 70 / filteredPrompts.length));
           
-          // 스타일과 시스템 프롬프트 결합
+          // 이미지 생성에 사용할 스타일 정보 로깅 (디버깅용)
+          logInfo(`이미지 생성 스타일 세부 정보`, {
+            styleId: styleIdNumber,
+            styleName,
+            styleNameType: typeof styleName,
+            styleNameLength: styleName.length,
+            systemPromptSnippet: systemPrompt ? systemPrompt.substring(0, 50) + '...' : '없음'
+          });
+          
           // 작업지시서에 따라 DALL-E가 잘 인식할 수 있는 형식으로 정리
+          // 1. 스타일 이름을 명확하게 지정
+          // styleName은 DB에서 가져온 실제 스타일 이름 (예: "지브리풍", "디즈니풍" 등)
           const styleEmphasis = `IMPORTANT STYLE INSTRUCTION - Follow this style exactly: ${styleName}, high quality, detailed, soft lighting`;
           
-          // 사용자 프롬프트와 시스템 프롬프트 결합 (중복 제거)
-          let finalPrompt = '';
+          // 2. 시스템 프롬프트 (스타일별 세부 지시사항)와 사용자 프롬프트 결합
+          let finalPrompt = `${styleEmphasis}\n`;
           
+          // 시스템 프롬프트 추가 (있는 경우)
           if (systemPrompt && systemPrompt.trim().length > 0) {
-            // 시스템 프롬프트가 있는 경우 (스타일 이름 중복 포함 가능성 체크)
-            if (systemPrompt.includes(styleName)) {
-              // 스타일 이름이 이미 포함되어 있으면 간소화
-              finalPrompt = `${styleEmphasis}\n${systemPrompt}\n\n${userPrompt}`;
-            } else {
-              // 스타일 이름을 명시적으로 포함
-              finalPrompt = `${styleEmphasis}\n${systemPrompt}\n\n${userPrompt}`;
-            }
-          } else {
-            // 시스템 프롬프트가 없는 경우
-            finalPrompt = `${styleEmphasis}\n\n${userPrompt}`;
+            finalPrompt += `${systemPrompt}\n\n`;
           }
           
-          // 최종 프롬프트가 너무 짧은 경우 보완
+          // 사용자 프롬프트 추가
+          finalPrompt += userPrompt;
+          
+          // 프롬프트가 너무 짧은 경우 보완
           if (finalPrompt.length < 30) {
-            finalPrompt = `${styleEmphasis}\n\nCreate a detailed illustration with the following description: ${userPrompt}`;
+            finalPrompt = `${styleEmphasis}\n\nCreate a detailed illustration in ${styleName} style with the following description: ${userPrompt}`;
           }
+          
+          // 최종 프롬프트 내용 검증 (디버깅)
+          logInfo(`최종 프롬프트 내용 검증`, {
+            containsStyleName: finalPrompt.includes(styleName),
+            containsSystemPrompt: systemPrompt ? finalPrompt.includes(systemPrompt.substring(0, 20)) : false,
+            containsUserPrompt: finalPrompt.includes(userPrompt.substring(0, Math.min(10, userPrompt.length)))
+          });
           
           // 프롬프트 정보 로깅
           logInfo(`이미지 ${sequence} 생성 프롬프트`, {
