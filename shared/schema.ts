@@ -524,7 +524,6 @@ export type RefreshToken = typeof refreshTokens.$inferSelect;
 
 // Milestone types
 export type InsertMilestone = z.infer<typeof insertMilestoneSchema>;
-export type Milestone = typeof milestones.$inferSelect;
 
 export type InsertUserMilestone = z.infer<typeof insertUserMilestoneSchema>;
 export type UserMilestone = typeof userMilestones.$inferSelect;

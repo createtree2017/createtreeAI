@@ -16,6 +16,21 @@ function logInfo(message: string, ...args: any[]): void {
 // OpenAI API 키 설정
 const API_KEY = process.env.OPENAI_API_KEY;
 
+// OpenAI API 응답 타입 정의
+interface OpenAIImageGenerationResponse {
+  created?: number;
+  data?: Array<{
+    url?: string;
+    revised_prompt?: string;
+    b64_json?: string;  // GPT-Image-1 모델 응답에서 base64 이미지 데이터
+  }>;
+  error?: {
+    message: string;
+    type: string;
+    code?: string;
+  };
+}
+
 // API 키 유효성 검증 - 프로젝트 API 키 지원 추가 (sk-proj- 시작)
 function isValidApiKey(apiKey: string | undefined): boolean {
   return !!apiKey && (apiKey.startsWith('sk-') || apiKey.startsWith('sk-proj-'));

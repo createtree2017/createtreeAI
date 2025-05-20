@@ -330,9 +330,11 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
 
       // 5. 최종 결과 반환
       sendStatus('태몽동화 생성이 완료되었습니다!', 100);
+      // dreamBookId와 newDreamBook.id가 중복되는 문제 해결 (LSP 오류 수정)
+      const { id, ...restDreamBook } = newDreamBook;
       const finalResult = {
         id: dreamBookId,
-        ...newDreamBook,
+        ...restDreamBook,
         images,
       };
       
