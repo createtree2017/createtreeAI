@@ -29,6 +29,20 @@ export default function DreamBookListPage() {
 
   const { data: dreamBooks, isLoading, error } = useQuery<DreamBookWithImages[]>({
     queryKey: ['/api/dream-books'],
+    queryFn: async () => {
+      const response = await fetch('/api/dream-books', {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('태몽동화 목록을 불러오는 중 오류가 발생했습니다.');
+      }
+      
+      return await response.json();
+    },
     enabled: isAuthenticated,
   });
 

@@ -17,6 +17,24 @@ export default function DreamBookDetailPage() {
 
   const { data: dreamBook, isLoading, error } = useQuery<DreamBookWithImages>({
     queryKey: ['/api/dream-books', params?.id],
+    queryFn: async () => {
+      if (!params?.id) {
+        throw new Error('태몽동화 ID가 없습니다.');
+      }
+      
+      const response = await fetch(`/api/dream-books/${params.id}`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('태몽동화를 불러오는 중 오류가 발생했습니다.');
+      }
+      
+      return await response.json();
+    },
     enabled: !!params?.id,
   });
 
