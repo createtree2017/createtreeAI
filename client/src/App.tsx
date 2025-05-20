@@ -47,6 +47,9 @@ import CampaignDetailPage from "@/pages/campaign-detail";
 import HospitalCampaignsPage from "@/pages/hospital-campaigns";
 import HospitalCampaignEditPage from "@/pages/hospital/campaign-edit";
 import SharedMusic from "@/pages/shared-music";
+import DreamBookList from "@/pages/dream-book";
+import DreamBookDetail from "@/pages/dream-book/[id]";
+import CreateDreamBook from "@/pages/dream-book/create";
 
 // Main layout component
 function Layout({ children }: { children: React.ReactNode }) {
@@ -361,6 +364,31 @@ function Router() {
         <ProtectedRoute>
           <Layout>
             <SunoMusicPage />
+          </Layout>
+        </ProtectedRoute>
+      </Route>
+
+      {/* 태몽동화 경로 */}
+      <Route path="/dream-book">
+        <ProtectedRoute>
+          <Layout>
+            <DreamBookList />
+          </Layout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/dream-book/create">
+        <ProtectedRoute>
+          <Layout>
+            <CreateDreamBook />
+          </Layout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/dream-book/:id">
+        <ProtectedRoute>
+          <Layout>
+            <DreamBookDetail />
           </Layout>
         </ProtectedRoute>
       </Route>

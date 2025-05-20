@@ -11,7 +11,8 @@ import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
 export default function DreamBookListPage() {
-  const { isAuthenticated } = useAuth();
+  const { user } = useAuth();
+  const isAuthenticated = !!user;
   const [, navigate] = useLocation();
   const { toast } = useToast();
 

@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from 'wouter';
+import { useLocation } from 'wouter';
 import { Loader2 } from "lucide-react";
 import { useAuth } from '@/hooks/useAuth';
 
@@ -18,8 +18,9 @@ export default function CreateDreamBook() {
   const [creating, setCreating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState('');
-  const { user, isAuthenticated } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAuthenticated = !!user;
+  const [, navigate] = useLocation();
   const { toast } = useToast();
 
   const form = useForm<CreateDreamBookRequest>({
