@@ -19,6 +19,7 @@ export default function CreateDreamBook() {
   const [creating, setCreating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState('');
+  const [promptsCount, setPromptsCount] = useState(1); // 처음에는 1개 프롬프트만 표시
   const { user } = useAuth();
   const isAuthenticated = !!user;
   const [, navigate] = useLocation();
@@ -39,8 +40,8 @@ export default function CreateDreamBook() {
     defaultValues: {
       babyName: '',
       dreamer: 'mother',
-      prompts: ['', '', '', ''],  // 4개의 빈 프롬프트 입력란
-      style: 'watercolor', // 기본값 (API로부터 스타일 목록이 로드된 후 첫 번째 스타일로 업데이트됩니다)
+      prompts: [''], // 초기에는 1개의 빈 프롬프트 입력란
+      style: '2', // 기본값 (스타일 ID)
     },
   });
 
@@ -56,6 +57,21 @@ export default function CreateDreamBook() {
   }, [isAuthenticated, navigate, toast]);
   
   // 스타일 목록이 로드되면 기본값 설정
+  // 프롬프트 추가 함수
+  const addPrompt = () => {
+    if (promptsCount < 4) {
+      const currentPrompts = form.getValues().prompts;
+      form.setValue('prompts', [...currentPrompts, '']);
+      setPromptsCount(promptsCount + 1);
+    } else {
+      toast({
+        title: "최대 컷 수 제한",
+        description: "최대 4개의 장면까지만 추가할 수 있습니다.",
+        variant: "default",
+      });
+    }
+  };
+  
   React.useEffect(() => {
     if (imageStyles && imageStyles.length > 0) {
       // 기본 스타일 찾기 (수채화풍 또는 첫 번째 스타일)
@@ -63,15 +79,35 @@ export default function CreateDreamBook() {
         style.name === '수채화풍' || style.name.includes('수채화')
       ) || imageStyles[0];
       
-      form.setValue('style', defaultStyle.name.toLowerCase());
+      form.setValue('style', String(defaultStyle.id));
     }
   }, [imageStyles, form]);
 
   const onSubmit = async (data: CreateDreamBookRequest) => {
     try {
+      // 빈 프롬프트 확인
+      const nonEmptyPrompts = data.prompts.filter(p => p.trim() !== '');
+      if (nonEmptyPrompts.length === 0) {
+        toast({
+          title: "입력 오류",
+          description: "최소 한 개 이상의 장면 프롬프트를 입력해주세요.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       setCreating(true);
       setProgress(0);
       setStatusMessage('태몽동화 생성을 시작합니다...');
+
+      // 실제 제출할 데이터 준비 (빈 프롬프트 제거)
+      const submitData = {
+        ...data,
+        prompts: nonEmptyPrompts,
+        style: String(data.style)
+      };
+
+      console.log('제출 데이터:', submitData);
 
       // POST 요청 보내기
       const response = await fetch('/api/dream-books', {
@@ -79,7 +115,7 @@ export default function CreateDreamBook() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(submitData),
       });
 
       if (!response.ok) {
@@ -228,81 +264,42 @@ export default function CreateDreamBook() {
                 )}
               />
 
-              {/* 장면 1 프롬프트 입력 */}
-              <FormField
-                control={form.control}
-                name="prompts.0"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>장면 1 프롬프트 입력</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="첫 번째 장면 프롬프트를 입력해주세요 (예: 하늘을 나는 흰 토끼가 분홍 구름 사이를 헤엄치는 장면)"
-                        className="min-h-[100px]"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* 장면 2 프롬프트 입력 */}
-              <FormField
-                control={form.control}
-                name="prompts.1"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>장면 2 프롬프트 입력</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="두 번째 장면 프롬프트를 입력해주세요 (선택사항)"
-                        className="min-h-[100px]"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* 장면 3 프롬프트 입력 */}
-              <FormField
-                control={form.control}
-                name="prompts.2"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>장면 3 프롬프트 입력</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="세 번째 장면 프롬프트를 입력해주세요 (선택사항)"
-                        className="min-h-[100px]"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* 장면 4 프롬프트 입력 */}
-              <FormField
-                control={form.control}
-                name="prompts.3"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>장면 4 프롬프트 입력</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="네 번째 장면 프롬프트를 입력해주세요 (선택사항)"
-                        className="min-h-[100px]"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* 장면 프롬프트 입력 - 동적으로 표시 */}
+              {Array.from({ length: promptsCount }).map((_, index) => (
+                <FormField
+                  key={`prompt-${index}`}
+                  control={form.control}
+                  name={`prompts.${index}`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>장면 {index + 1} 프롬프트 입력</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder={index === 0 
+                            ? "첫 번째 장면 프롬프트를 입력해주세요 (예: 하늘을 나는 흰 토끼가 분홍 구름 사이를 헤엄치는 장면)" 
+                            : `${index + 1}번째 장면 프롬프트를 입력해주세요 (선택사항)`}
+                          className="min-h-[100px]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ))}
+              
+              {/* 컷 추가 버튼 */}
+              <div className="flex justify-center">
+                <Button 
+                  type="button"
+                  variant="outline"
+                  className="mt-2"
+                  onClick={addPrompt}
+                  disabled={promptsCount >= 4}
+                >
+                  + 컷 추가 (현재 {promptsCount}/4)
+                </Button>
+              </div>
 
               <FormField
                 control={form.control}

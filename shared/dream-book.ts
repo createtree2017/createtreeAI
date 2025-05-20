@@ -53,8 +53,11 @@ export const dreamBookImagesInsertSchema = createInsertSchema(dreamBookImages);
 export const createDreamBookSchema = z.object({
   babyName: z.string().min(1, "아기 이름은 필수입니다"),
   dreamer: z.string().min(1, "꿈을 꾼 사람은 필수입니다"),
-  prompts: z.array(z.string()).min(1, "최소 1개 이상의 장면 프롬프트를 입력해주세요"),
-  style: z.string().min(1, "스타일은 필수입니다"),
+  prompts: z.array(z.string()).min(1, "최소 1개 이상의 장면 프롬프트를 입력해주세요").refine(
+    (prompts) => prompts.filter(p => p.trim() !== '').length > 0,
+    { message: "최소 1개 이상의 장면 프롬프트를 입력해주세요" }
+  ),
+  style: z.union([z.string(), z.number(), z.coerce.number()]).transform(val => String(val)),
 });
 
 // 타입 정의
