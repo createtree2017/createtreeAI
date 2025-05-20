@@ -235,10 +235,14 @@ export async function generateDreamStorySummary(
 
 /**
  * 태몽 내용을 바탕으로 4개의 장면 생성
+ * @param dreamContent 태몽 내용
+ * @param style 스타일 이름
+ * @param customSystemPrompt 스타일 별 커스텀 시스템 프롬프트 (DB에서 가져온 값)
  */
 export async function generateDreamScenes(
   dreamContent: string,
-  style: string
+  style: string,
+  customSystemPrompt?: string
 ): Promise<string[]> {
   try {
     // API 키 유효성 검증
@@ -291,22 +295,32 @@ export async function generateDreamScenes(
     
     logInfo('스타일 변환', { 원래스타일: style, 변환스타일: styleKeyword });
     
-    const systemContent = `당신은 태몽을 기반으로 DALL-E로 생성할 4개의 이미지 프롬프트를 작성하는 전문가입니다.
-    태몽은 한국 문화에서 임신 중에 꾸는 특별한 꿈으로, 아기의 미래나 특성을 예견한다고 믿어집니다.
-    아래 내용을 바탕으로 동화책의 각 장면에 해당하는 4개의 이미지 프롬프트를 작성해주세요.
-    각 프롬프트는 DALL-E가 시각적으로 아름답고 디테일한 이미지를 생성할 수 있도록 충분히 상세해야 합니다.
+    // 커스텀 프롬프트 사용 또는 기본 프롬프트 생성
+    let systemContent = '';
     
-    프롬프트 앞에는 반드시 스타일 설명을 포함해야 합니다: "${styleKeyword}, high quality, detailed, soft lighting"
-    
-    각 장면은 스토리의 논리적 흐름을 따라야 합니다:
-    장면 1: 이야기의 시작과 주인공 소개
-    장면 2: 이야기의 전개와 도전/어려움의 등장
-    장면 3: 문제 해결을 위한 노력이나 결정적 순간
-    장면 4: 행복한 결말
-    
-    결과는 JSON 형식이 아닌 각 프롬프트를 별도 줄에 작성해 주세요.
-    각 프롬프트는 한국어와 영어를 혼합하여 작성하되, 영어 비중을 더 높게 해주세요.
-    각 프롬프트는 최대 400자를 넘지 않도록 해주세요.`;
+    if (customSystemPrompt) {
+      // 데이터베이스에서 가져온 시스템 프롬프트 사용
+      logInfo('커스텀 시스템 프롬프트 사용', { length: customSystemPrompt.length });
+      systemContent = customSystemPrompt;
+    } else {
+      // 기존 기본 프롬프트 사용
+      systemContent = `당신은 태몽을 기반으로 DALL-E로 생성할 4개의 이미지 프롬프트를 작성하는 전문가입니다.
+태몽은 한국 문화에서 임신 중에 꾸는 특별한 꿈으로, 아기의 미래나 특성을 예견한다고 믿어집니다.
+아래 내용을 바탕으로 동화책의 각 장면에 해당하는 4개의 이미지 프롬프트를 작성해주세요.
+각 프롬프트는 DALL-E가 시각적으로 아름답고 디테일한 이미지를 생성할 수 있도록 충분히 상세해야 합니다.
+
+프롬프트 앞에는 반드시 스타일 설명을 포함해야 합니다: "${styleKeyword}, high quality, detailed, soft lighting"
+
+각 장면은 스토리의 논리적 흐름을 따라야 합니다:
+장면 1: 이야기의 시작과 주인공 소개
+장면 2: 이야기의 전개와 도전/어려움의 등장
+장면 3: 문제 해결을 위한 노력이나 결정적 순간
+장면 4: 행복한 결말
+
+결과는 JSON 형식이 아닌 각 프롬프트를 별도 줄에 작성해 주세요.
+각 프롬프트는 한국어와 영어를 혼합하여 작성하되, 영어 비중을 더 높게 해주세요.
+각 프롬프트는 최대 400자를 넘지 않도록 해주세요.`;
+    }
 
     const userContent = `태몽 내용: ${dreamContent}
     원하는 스타일: ${style}`;

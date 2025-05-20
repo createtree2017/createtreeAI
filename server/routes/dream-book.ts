@@ -132,18 +132,18 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
 
       // 2. 줄거리를 바탕으로 4개의 장면 생성
       sendStatus('동화 장면 프롬프트를 생성하는 중...', 30);
-      const scenePrompts = await generateDreamScenes(dreamContent, style);
+      const scenePrompts = await generateDreamScenes(dreamContent, style, imageStyle.systemPrompt);
 
       // 3. 태몽동화 DB 레코드 생성
       sendStatus('태몽동화 정보를 저장하는 중...', 40);
       const [newDreamBook] = await db.insert(dreamBooks).values({
-        userId: userId.toString(),
+        userId: Number(userId),
         babyName,
         dreamer,
         dreamContent,
         summaryText,
-        style,
-        hospitalId: hospitalId?.toString(),
+        style: styleId, // 스타일 ID 저장
+        hospitalId: hospitalId ? Number(hospitalId) : null,
         isPublic: false,
         updatedAt: new Date(),
       }).returning();
