@@ -542,7 +542,7 @@ export async function generateDreamImage(prompt: string): Promise<string> {
       prompt: processedPrompt,
       n: 1,
       size: "1024x1024",
-      response_format: "url" // URL 형식으로 응답 받음 (b64_json도 가능)
+      response_format: "b64_json" // base64 형식으로 응답 받아 직접 저장 (URL 접근 문제 해결)
     };
     
     // 디버깅을 위한 로깅
