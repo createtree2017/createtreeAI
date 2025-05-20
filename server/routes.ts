@@ -1108,14 +1108,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // 태몽동화 탭에서 사용자별 필터링 구현
           console.log(`[태몽동화 탭] 사용자 ${username || '없음'}`);
           
-          // 태몽동화 목록 조회 (dreamBooks 테이블에서)
-          // 먼저 테이블 참조를 가져온 후 쿼리 실행
-          const { dreamBooks, dreamBookImages } = db.query;
+          // 태몽동화 목록 조회
+          // 먼저 스키마에서 테이블 참조 가져오기
+          const { dreamBooks, dreamBookImages } = await import('@shared/dream-book');
+          const { eq, desc } = await import('drizzle-orm');
+          
+          // 태몽동화 목록 조회 (dreamBookImages와 연결)
           const dreamBooksResult = await db.query.dreamBooks.findMany({
-            where: eq(dreamBooks.userId, userId || 0),
+            where: userId ? eq(dreamBooks.userId, userId) : undefined,
             orderBy: [desc(dreamBooks.createdAt)],
             with: {
-              scenes: true  // 모든 장면 가져오기
+              images: true // 모든 이미지 가져오기
             }
           });
           
@@ -1123,9 +1126,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // 태몽동화 아이템을 갤러리 아이템으로 변환
           galleryItems = dreamBooksResult.map(book => {
-            // 썸네일 이미지 URL (첫 번째 장면 이미지)
-            const thumbnailUrl = book.scenes && book.scenes.length > 0 
-              ? book.scenes[0].imageUrl 
+            // 썸네일 이미지 URL (첫 번째 이미지)
+            const thumbnailUrl = book.images && book.images.length > 0 
+              ? book.images[0].imageUrl 
               : '/placeholder-dreambook.png';
               
             return {
