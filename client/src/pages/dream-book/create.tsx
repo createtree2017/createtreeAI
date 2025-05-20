@@ -213,16 +213,74 @@ export default function CreateDreamBook() {
                 )}
               />
 
+              {/* 장면 1 프롬프트 입력 */}
               <FormField
                 control={form.control}
-                name="dreamContent"
+                name="prompts.0"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>꿈 내용</FormLabel>
+                    <FormLabel>장면 1 프롬프트 입력</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="태몽 내용을 자세히 적어주세요 (최소 10자 이상)"
-                        className="min-h-[120px]"
+                        placeholder="첫 번째 장면 프롬프트를 입력해주세요 (예: 하늘을 나는 흰 토끼가 분홍 구름 사이를 헤엄치는 장면)"
+                        className="min-h-[100px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* 장면 2 프롬프트 입력 */}
+              <FormField
+                control={form.control}
+                name="prompts.1"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>장면 2 프롬프트 입력</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="두 번째 장면 프롬프트를 입력해주세요 (선택사항)"
+                        className="min-h-[100px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* 장면 3 프롬프트 입력 */}
+              <FormField
+                control={form.control}
+                name="prompts.2"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>장면 3 프롬프트 입력</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="세 번째 장면 프롬프트를 입력해주세요 (선택사항)"
+                        className="min-h-[100px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* 장면 4 프롬프트 입력 */}
+              <FormField
+                control={form.control}
+                name="prompts.3"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>장면 4 프롬프트 입력</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="네 번째 장면 프롬프트를 입력해주세요 (선택사항)"
+                        className="min-h-[100px]"
                         {...field}
                       />
                     </FormControl>

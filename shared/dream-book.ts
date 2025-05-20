@@ -53,7 +53,7 @@ export const dreamBookImagesInsertSchema = createInsertSchema(dreamBookImages);
 export const createDreamBookSchema = z.object({
   babyName: z.string().min(1, "아기 이름은 필수입니다"),
   dreamer: z.string().min(1, "꿈을 꾼 사람은 필수입니다"),
-  dreamContent: z.string().min(10, "꿈 내용은 최소 10자 이상 입력해주세요"),
+  prompts: z.array(z.string()).min(1, "최소 1개 이상의 장면 프롬프트를 입력해주세요"),
   style: z.string().min(1, "스타일은 필수입니다"),
 });
 
@@ -76,7 +76,7 @@ export interface DreamBookWithImages extends Omit<DreamBook, 'id'> {
 export interface CreateDreamBookRequest {
   babyName: string;
   dreamer: string;
-  dreamContent: string;
+  prompts: string[]; // 사용자가 직접 입력한 장면 프롬프트(최대 4개)
   style: string;
 }
 

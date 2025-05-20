@@ -89,7 +89,14 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
 
     // 입력 데이터 검증
     const validatedData = createDreamBookSchema.parse(req.body);
-    const { babyName, dreamer, dreamContent, style: styleId } = validatedData;
+    const { babyName, dreamer, prompts, style: styleId } = validatedData;
+    
+    // 빈 프롬프트 제거하고 입력된 것만 필터링
+    const filteredPrompts = prompts.filter(prompt => prompt.trim().length > 0);
+    
+    if (filteredPrompts.length === 0) {
+      return res.status(400).json({ error: '최소 1개 이상의 장면 프롬프트를 입력해주세요.' });
+    }
 
     // 스타일 ID로 이미지 스타일 정보 조회
     const imageStyle = await db.query.imageStyles.findFirst({
@@ -126,29 +133,17 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
     };
 
     try {
-      // 1. 태몽 내용을 바탕으로 동화 줄거리 생성
-      sendStatus('태몽 내용을 바탕으로 동화 줄거리를 생성하는 중...', 10);
-      const summaryText = await generateDreamStorySummary(dreamer, babyName, dreamContent);
-
-      // 2. 줄거리를 바탕으로 4개의 장면 생성
-      sendStatus('동화 장면 프롬프트를 생성하는 중...', 30);
+      // 1. 태몽동화 DB 레코드 생성 - 사용자가 직접 입력한 프롬프트 방식
+      sendStatus('태몽동화 정보를 저장하는 중...', 10);
       
-      // 스타일 이름과 시스템 프롬프트를 함께 전달하여 일관된 스타일 적용
-      logInfo('장면 생성에 사용할 스타일 정보', { 
-        styleId: styleId,
-        styleName: style, 
-        systemPromptLength: imageStyle.systemPrompt?.length || 0 
-      });
+      // dreamContent 필드에는 첫 번째 프롬프트를 저장하고, summaryText에는 간단한 설명을 저장
+      const summaryText = `사용자가 직접 입력한 ${filteredPrompts.length}개의 장면 프롬프트`;
       
-      const scenePrompts = await generateDreamScenes(dreamContent, style, imageStyle.systemPrompt);
-
-      // 3. 태몽동화 DB 레코드 생성
-      sendStatus('태몽동화 정보를 저장하는 중...', 40);
       const [newDreamBook] = await db.insert(dreamBooks).values({
         userId: Number(userId),
         babyName,
         dreamer,
-        dreamContent,
+        dreamContent: filteredPrompts[0], // 첫 번째 프롬프트를 대표 내용으로 저장
         summaryText,
         style: styleId, // 스타일 ID 저장
         hospitalId: hospitalId ? Number(hospitalId) : null,
@@ -167,76 +162,72 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
         systemPromptLength: systemPrompt.length
       });
       
-      const imagePromises = scenePrompts.map(async (scenePrompt, index) => {
+      // 사용자가 직접 입력한 프롬프트로 이미지 생성
+      const imageResults = [];
+      for (let i = 0; i < filteredPrompts.length; i++) {
+        const userPrompt = filteredPrompts[i];
+        const sequence = i + 1;
+        
         try {
-          sendStatus(`${index + 1}/4 이미지를 생성하는 중...`, 50 + (index * 10));
+          sendStatus(`${sequence}/${filteredPrompts.length} 이미지를 생성하는 중...`, 20 + (i * 70 / filteredPrompts.length));
           
-          // 시스템 프롬프트와 장면 프롬프트를 결합
-          // 시스템 프롬프트가 이미 "IMPORTANT STYLE INSTRUCTION"을 포함하는지 확인
-          const hasStyleEmphasis = systemPrompt.includes("IMPORTANT STYLE INSTRUCTION");
+          // 스타일 강조 문구 추가
+          const styleEmphasis = `IMPORTANT STYLE INSTRUCTION - Follow the "${styleName}" style exactly:`;
+          const finalPrompt = `${styleEmphasis}\n${systemPrompt}\n\n${userPrompt}`;
           
-          // 스타일 강조 문구는 시스템 프롬프트에 없을 경우에만 추가
-          let styledSystemPrompt = systemPrompt;
-          if (!hasStyleEmphasis && systemPrompt) {
-            const styleEmphasis = `IMPORTANT STYLE INSTRUCTION - Follow the "${styleName}" style exactly:\n`;
-            styledSystemPrompt = `${styleEmphasis}${systemPrompt}`;
-          }
-          
-          // 최종 프롬프트 생성
-          const fullPrompt = styledSystemPrompt 
-            ? `${styledSystemPrompt}\n\n${scenePrompt}` 
-            : scenePrompt;
-          
-          // 프롬프트 디버깅
-          logInfo(`이미지 ${index + 1} 생성 프롬프트`, { 
-            scenePromptLength: scenePrompt.length,
+          logInfo(`이미지 ${sequence} 생성 프롬프트`, {
+            userPromptLength: userPrompt.length,
             systemPromptLength: systemPrompt.length,
-            fullPromptLength: fullPrompt.length 
+            finalPromptLength: finalPrompt.length
           });
           
-          let imageUrl;
+          // 이미지 생성
           try {
-            imageUrl = await generateDreamImage(fullPrompt);
+            const imageUrl = await generateDreamImage(finalPrompt);
             
-            // 각 이미지를 DB에 저장
-            const [newImage] = await db.insert(dreamBookImages).values({
+            // 이미지 정보 DB 저장
+            const [savedImage] = await db.insert(dreamBookImages).values({
               dreamBookId,
-              sequence: index + 1,
-              prompt: fullPrompt, // 전체 프롬프트 저장
-              imageUrl,
+              sequence,
+              prompt: userPrompt, // 사용자 입력 프롬프트 저장
+              imageUrl
             }).returning();
+            
+            imageResults.push(savedImage);
           } catch (error) {
-            // 이미지 생성 실패 로그 추가
-            logError(`이미지 ${index + 1} 생성 실패`, { 
-              error: error instanceof Error ? error.message : String(error),
-              promptLength: fullPrompt.length
+            // 이미지 생성 실패 처리
+            logError(`이미지 ${sequence} 생성 실패`, {
+              error: error instanceof Error ? error.message : String(error)
             });
             
             // 사용자에게 오류 알림
-            sendStatus(`이미지 ${index + 1} 생성 중 오류가 발생했습니다. 내용이 부적절하거나 서버 문제일 수 있습니다.`, 50 + (index * 10), 'error');
+            sendStatus(`이미지 ${sequence} 생성 중 오류가 발생했습니다. 내용이 부적절하거나 서버 문제일 수 있습니다.`, 
+              20 + (i * 70 / filteredPrompts.length), 'error');
             
-            // 기본 에러 이미지 URL 설정 (실제 프로젝트에 에러 이미지 추가 필요)
-            imageUrl = 'https://placehold.co/600x400/e74c3c/ffffff?text=이미지+생성+실패';
+            // 기본 에러 이미지로 대체
+            const errorImageUrl = 'https://placehold.co/600x400/e74c3c/ffffff?text=이미지+생성+실패';
             
-            // 실패한 이미지 정보 DB에 저장 (오류 추적용)
+            // 실패한 이미지 정보도 DB에 저장
             const [errorImage] = await db.insert(dreamBookImages).values({
               dreamBookId,
-              sequence: index + 1,
-              prompt: fullPrompt.substring(0, 500) + '... (잘림)', // 프롬프트가 너무 길 수 있으므로 잘라서 저장
-              imageUrl,
-              error: error instanceof Error ? error.message : String(error)
+              sequence,
+              prompt: userPrompt,
+              imageUrl: errorImageUrl
             }).returning();
+            
+            imageResults.push(errorImage);
           }
+        } catch (seqError) {
+          logError(`이미지 시퀀스 ${sequence} 처리 중 오류:`, seqError);
           
-          return newImage;
-        } catch (imgError) {
-          logError(`이미지 ${index + 1} 생성 중 오류:`, imgError);
-          throw imgError;
+          // 이 장면은 건너뛰지만 전체 프로세스는 계속 진행
+          sendStatus(`장면 ${sequence}에서 오류가 발생했지만 계속 진행합니다.`, 
+            20 + (i * 70 / filteredPrompts.length), 'warning');
         }
-      });
-
-      // 모든 이미지 생성 완료 대기
-      const images = await Promise.all(imagePromises);
+      }
+      
+      // 모든 이미지 처리 완료
+      const images = imageResults;
 
       // 5. 최종 결과 반환
       sendStatus('태몽동화 생성이 완료되었습니다!', 100);
