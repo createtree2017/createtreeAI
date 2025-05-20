@@ -57,6 +57,10 @@ router.post('/', isAdmin, async (req: Request, res: Response) => {
     console.log('이미지 스타일 생성 요청 데이터:', JSON.stringify(req.body, null, 2));
     
     // 데이터 필드 검증
+    if (!req.body.styleId || typeof req.body.styleId !== 'string') {
+      return res.status(400).json({ error: '스타일 ID는 필수 항목입니다.' });
+    }
+    
     if (!req.body.name || typeof req.body.name !== 'string') {
       return res.status(400).json({ error: '이름은 필수 항목입니다.' });
     }
@@ -70,6 +74,24 @@ router.post('/', isAdmin, async (req: Request, res: Response) => {
     }
     
     // 최소 길이 검증
+    if (req.body.styleId.length < 2) {
+      return res.status(400).json({ error: '스타일 ID는 최소 2자 이상이어야 합니다.' });
+    }
+    
+    // 스타일 ID 형식 검증 (영문 소문자, 숫자, 하이픈, 언더스코어만 허용)
+    if (!/^[a-z0-9_-]+$/.test(req.body.styleId)) {
+      return res.status(400).json({ error: '스타일 ID는 영문 소문자, 숫자, 하이픈, 언더스코어만 사용 가능합니다.' });
+    }
+    
+    // 스타일 ID 중복 검사
+    const existingStyleWithId = await db.query.imageStyles.findFirst({
+      where: eq(imageStyles.styleId, req.body.styleId)
+    });
+    
+    if (existingStyleWithId) {
+      return res.status(400).json({ error: `이미 존재하는 스타일 ID입니다: ${req.body.styleId}` });
+    }
+    
     if (req.body.name.length < 2) {
       return res.status(400).json({ error: '이름은 최소 2자 이상이어야 합니다.' });
     }
@@ -84,6 +106,7 @@ router.post('/', isAdmin, async (req: Request, res: Response) => {
     
     // 유효성 검사를 직접 수행하지 않고 필요한 필드만 가져옴
     const styleData: any = {
+      styleId: req.body.styleId,
       name: req.body.name,
       description: req.body.description,
       systemPrompt: req.body.systemPrompt,
