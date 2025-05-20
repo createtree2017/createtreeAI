@@ -54,9 +54,7 @@ export const createDreamBookSchema = z.object({
   babyName: z.string().min(1, "아기 이름은 필수입니다"),
   dreamer: z.string().min(1, "꿈을 꾼 사람은 필수입니다"),
   dreamContent: z.string().min(10, "꿈 내용은 최소 10자 이상 입력해주세요"),
-  style: z.string().refine(val => ['ghibli', 'disney', 'watercolor', 'realistic', 'korean'].includes(val), {
-    message: "유효한 스타일을 선택해주세요"
-  }),
+  style: z.string().min(1, "스타일은 필수입니다"),
 });
 
 // 타입 정의
