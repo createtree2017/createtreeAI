@@ -362,12 +362,12 @@ function ServiceItemForm({ initialData, categories, onSubmit, onCancel }: Servic
           name="itemId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>서비스 항목 ID</FormLabel>
+              <FormLabel>서비스 항목 ID (이동 링크)</FormLabel>
               <FormControl>
                 <Input placeholder="maternity-photo" {...field} disabled={!!initialData} />
               </FormControl>
               <FormDescription>
-                고유한 서비스 항목 식별자입니다 (예: 'maternity-photo', 'family-photo')
+                고유한 서비스 항목 식별자이자 이동 경로입니다 (예: 'dream-book' → '/dream-book' 페이지로 이동)
               </FormDescription>
               <FormMessage />
             </FormItem>
