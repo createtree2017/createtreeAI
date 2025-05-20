@@ -767,5 +767,35 @@ export const campaignApplicationsRelations = relations(campaignApplications, ({ 
   })
 }));
 
+// 이미지 스타일 정의 테이블 추가
+export const imageStyles = pgTable("image_styles", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  systemPrompt: text("system_prompt").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  isActive: boolean("is_active").default(true),
+  creatorId: integer("creator_id").references(() => users.id), // 스타일 생성자 (관리자)
+  order: integer("order").default(0), // 정렬 순서
+});
+
+// 이미지 스타일 Zod 스키마 생성
+export const insertImageStyleSchema = createInsertSchema(imageStyles, {
+  name: (schema) => schema.min(2, "이름은 최소 2자 이상이어야 합니다"),
+  description: (schema) => schema.min(5, "설명은 최소 5자 이상이어야 합니다"),
+  systemPrompt: (schema) => schema.min(10, "시스템 프롬프트는 최소 10자 이상이어야 합니다"),
+});
+
+export type ImageStyle = z.infer<typeof insertImageStyleSchema>;
+
+// 이미지 스타일 관계 정의
+export const imageStylesRelations = relations(imageStyles, ({ one }) => ({
+  creator: one(users, {
+    fields: [imageStyles.creatorId],
+    references: [users.id]
+  })
+}));
+
 // Export operators for query building
 export { eq, desc, and, asc, sql, gte, lte, gt, lt, ne, like, notLike, isNull, isNotNull, inArray } from "drizzle-orm";
