@@ -98,28 +98,31 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
       return res.status(400).json({ error: '최소 1개 이상의 장면 프롬프트를 입력해주세요.' });
     }
 
-    // 스타일 ID로 이미지 스타일 정보 조회
+    // 스타일 ID로 이미지 스타일 정보 조회 (문자열 ID 사용)
     logInfo('태몽동화 생성 스타일 ID', { styleId, type: typeof styleId });
     
-    let styleIdNumber: number;
-    try {
-      styleIdNumber = Number(styleId);
-      if (isNaN(styleIdNumber)) {
-        return res.status(400).json({ 
-          error: '입력 데이터가 올바르지 않습니다.', 
-          details: [{ path: 'style', message: '스타일 ID는 숫자여야 합니다.' }] 
-        });
-      }
-    } catch (error) {
-      logError('스타일 ID 변환 오류', error);
+    // 1. 입력된 스타일 ID 검증 (빈 값이면 오류)
+    if (!styleId) {
+      logError('스타일 ID 오류', { error: '스타일 ID가 제공되지 않음' });
       return res.status(400).json({ 
         error: '입력 데이터가 올바르지 않습니다.', 
-        details: [{ path: 'style', message: '스타일 ID는 숫자여야 합니다.' }] 
+        details: [{ path: 'style', message: '스타일 ID는 필수입니다.' }] 
       });
     }
     
+    // 2. 문자열 스타일 ID를 DREAM_BOOK_STYLES에서 확인
+    const styleInfo = DREAM_BOOK_STYLES.find(s => s.id === styleId);
+    if (!styleInfo) {
+      logError('스타일 ID 오류', { error: '유효하지 않은 스타일 ID', styleId });
+      return res.status(400).json({ 
+        error: '입력 데이터가 올바르지 않습니다.', 
+        details: [{ path: 'style', message: '유효하지 않은 스타일 ID입니다.' }] 
+      });
+    }
+    
+    // 3. 스타일 이름으로 데이터베이스에서 스타일 정보 조회
     const imageStyle = await db.query.imageStyles.findFirst({
-      where: eq(imageStyles.id, styleIdNumber)
+      where: eq(imageStyles.name, styleInfo.name)
     });
 
     if (!imageStyle) {
@@ -129,29 +132,25 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
       });
     }
 
-    // 실제 스타일 이름 추출
-    const style = imageStyle.name;
+    // 이제 문자열 스타일 ID(예: 'ghibli')와 스타일 이름('지브리풍')을 모두 갖고 있음
+    const styleName = styleInfo.name; // 스타일 이름 (예: '지브리풍')
+    const styleKey = styleInfo.id;    // 스타일 키 (예: 'ghibli')
     
-    // 스타일 이름에서 DREAM_BOOK_STYLES의 ID를 찾기 (매핑용)
-    let styleKey = "";
-    for (const dreamStyle of DREAM_BOOK_STYLES) {
-      if (dreamStyle.name === style) {
-        styleKey = dreamStyle.id;
-        break;
-      }
-    }
-    
-    // styleKey가 빈 문자열이면 스타일 이름 그대로 사용
-    if (!styleKey) {
-      styleKey = style.toLowerCase();
+    // 시스템 프롬프트가 없으면 오류 반환 (fallback 방지)
+    if (!imageStyle || !imageStyle.systemPrompt || imageStyle.systemPrompt.trim().length === 0) {
+      logError('스타일 오류', { error: '시스템 프롬프트가 없는 스타일', styleId, styleName });
+      return res.status(400).json({ 
+        error: '스타일 정보가 불완전합니다', 
+        details: [{ path: 'style', message: '해당 스타일의 시스템 프롬프트가 없습니다.' }] 
+      });
     }
 
-    // 디버그 로깅
+    // 디버그 로깅 (확인용)
     logInfo('태몽동화 생성 스타일 정보', { 
-      styleId, 
-      styleName: style, 
-      styleKey,
-      systemPrompt: imageStyle.systemPrompt 
+      styleId,          // 원본 스타일 ID (클라이언트에서 전송됨)
+      styleKey,         // 스타일 키 (예: 'ghibli')
+      styleName,        // 스타일 이름 (예: '지브리풍')
+      systemPromptSnippet: imageStyle.systemPrompt.substring(0, 50) + '...'
     });
 
     // 상태 객체로 진행 상황 추적
@@ -216,19 +215,19 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
           
           // 이미지 생성에 사용할 스타일 정보 로깅 (디버깅용)
           logInfo(`이미지 생성 스타일 세부 정보`, {
-            styleId: styleIdNumber,
-            styleName: style,
-            styleKey: styleKey,
-            styleNameType: typeof style,
-            styleNameLength: style.length,
+            styleId,             // 원본 스타일 ID (예: 'ghibli')
+            styleName,           // 스타일 이름 (예: '지브리풍')
+            styleKey,            // 스타일 키 (예: 'ghibli')
             systemPromptSnippet: systemPrompt ? systemPrompt.substring(0, 50) + '...' : '없음'
           });
           
           // 작업지시서에 따라 DALL-E가 잘 인식할 수 있는 형식으로 정리
-          // 스타일 키워드를 추출하는 함수로 스타일 이름 변환 (예: "지브리풍" -> "Studio Ghibli style")
-          const styleKeyword = await getStyleKeyword(style);
+          // 스타일 키워드를 추출하는 함수로 스타일 키 변환 (예: "ghibli" -> "Studio Ghibli style")
+          const styleKeyword = await getStyleKeyword(styleKey);
           logInfo(`스타일 키워드 변환 결과`, { 
-            originalStyle: style, 
+            originalStyleId: styleId, 
+            styleKey: styleKey,
+            styleName: styleName,
             convertedStyleKeyword: styleKeyword 
           });
           

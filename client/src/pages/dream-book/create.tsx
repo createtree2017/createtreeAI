@@ -80,16 +80,8 @@ export default function CreateDreamBook() {
     }
   };
   
-  React.useEffect(() => {
-    if (imageStyles && imageStyles.length > 0) {
-      // 기본 스타일 찾기 (수채화풍 또는 첫 번째 스타일)
-      const defaultStyle = imageStyles.find((style: {id: number, name: string, description: string}) => 
-        style.name === '수채화풍' || style.name.includes('수채화')
-      ) || imageStyles[0];
-      
-      form.setValue('style', Number(defaultStyle.id));
-    }
-  }, [imageStyles, form]);
+  // 이제 DREAM_BOOK_STYLES 상수를 직접 사용하므로 필요없는 useEffect 제거
+  // 폼 기본값에서 직접 'ghibli'(지브리풍) 스타일 ID 사용
 
   const onSubmit = async (data: FormValues) => {
     try {
