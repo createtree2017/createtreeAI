@@ -12,7 +12,7 @@ import ImageDetailModal from "@/components/ImageDetailModal";
 interface GalleryItem {
   id: number;
   title: string;
-  type: "music" | "image" | "chat" | "dreambook";
+  type: "music" | "image" | "chat";
   url: string;
   thumbnailUrl?: string;
   duration?: number;
@@ -23,7 +23,7 @@ interface GalleryItem {
   isOwner?: boolean;    // 현재 로그인한 사용자가 소유자인지 여부
 }
 
-type FilterType = "all" | "music" | "image" | "chat" | "favorite" | "shared" | "dreambook";
+type FilterType = "all" | "music" | "image" | "chat" | "favorite" | "shared";
 
 export default function Gallery() {
   const [, setLocation] = useLocation();
@@ -226,16 +226,13 @@ export default function Gallery() {
     }
   };
   
-  // 사용자에게 표시될 필터 (태몽동화 탭 추가)
   const filters: { type: FilterType; label: string }[] = [
     { type: "all", label: "전체 컨텐츠" },
     { type: "image", label: "이미지" },
     { type: "music", label: "노래" },
     { type: "chat", label: "채팅" },
-    { type: "dreambook", label: "태몽동화" },
-    // 아직 준비 안 된 기능은 임시로 제외
-    // { type: "favorite", label: "즐겨찾기" },
-    // { type: "shared", label: "공유된 이미지" },
+    { type: "favorite", label: "즐겨찾기" },
+    { type: "shared", label: "공유된 이미지" },
   ];
   
   return (
@@ -295,43 +292,6 @@ export default function Gallery() {
                   <div className="h-32 bg-accent2-light flex items-center justify-center">
                     <div className="p-3 bg-white rounded-full text-accent2-dark">
                       <MessageCircle className="h-5 w-5" />
-                    </div>
-                  </div>
-                ) : item.type === "dreambook" ? (
-                  <div 
-                    className="relative cursor-pointer"
-                    onClick={() => {
-                      console.log("태몽동화 클릭:", item);
-                      setLocation(`/dream-book/${item.id}`);
-                    }}
-                  >
-                    <div className="aspect-square w-full overflow-hidden">
-                      <img
-                        src={`/api/dream-books/${item.id}/thumbnail`}
-                        alt={item.title}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          
-                          // 무한 재시도 루프 방지: data-error 속성 확인
-                          if (!target.hasAttribute('data-error')) {
-                            target.setAttribute('data-error', 'true');
-                            target.src = "/placeholder-dreambook.png";
-                            console.error("태몽동화 이미지 로드 실패:", item.id);
-                          }
-                        }}
-                      />
-                    </div>
-                    
-                    {/* 태몽동화 아이콘 */}
-                    <div className="absolute top-2 left-2 bg-black bg-opacity-50 rounded-md p-1 z-10">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
-                        <rect width="7" height="7" x="3" y="3" rx="1" />
-                        <rect width="7" height="7" x="14" y="3" rx="1" />
-                        <rect width="7" height="7" x="14" y="14" rx="1" />
-                        <rect width="7" height="7" x="3" y="14" rx="1" />
-                      </svg>
                     </div>
                   </div>
                 ) : (

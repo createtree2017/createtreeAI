@@ -104,20 +104,9 @@ export default function DreamBookListPage() {
                   {coverImage ? (
                     <div className="relative h-48 overflow-hidden">
                       <img
-                        src={`/api/dream-books/${dreamBook.id}/thumbnail`}
+                        src={coverImage.imageUrl}
                         alt={`${dreamBook.babyName}의 태몽동화 표지`}
                         className="w-full h-full object-cover"
-                        onError={(e) => {
-                          // 무한 재시도 방지: 이미 에러가 발생한 이미지 소스를 플레이스홀더로 설정
-                          const target = e.target as HTMLImageElement;
-                          console.error(`태몽동화 썸네일 로드 실패: ID ${dreamBook.id}`);
-                          
-                          // 타겟에 data-error 속성 추가하여 중복 에러 표시 방지
-                          if (!target.hasAttribute('data-error')) {
-                            target.setAttribute('data-error', 'true');
-                            target.src = "/placeholder-dreambook.png";
-                          }
-                        }}
                       />
                     </div>
                   ) : (

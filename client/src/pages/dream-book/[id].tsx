@@ -155,19 +155,9 @@ export default function DreamBookDetailPage() {
                         <div className="flex flex-col items-center p-1">
                           <div className="overflow-hidden rounded-lg w-full h-[50vh] flex items-center justify-center bg-black">
                             <img
-                              src={`/api/dream-books/${dreamBook.id}/images/${image.sequence || index + 1}`}
+                              src={image.imageUrl}
                               alt={`장면 ${index + 1}`}
                               className="object-contain w-full h-full"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                
-                                // 무한 로딩 루프 방지: 이미 에러 처리된 이미지는 다시 처리하지 않음
-                                if (!target.hasAttribute('data-error')) {
-                                  console.error(`태몽동화 상세 이미지 로드 실패: ID ${dreamBook.id}, 장면 ${index + 1}`);
-                                  target.setAttribute('data-error', 'true');
-                                  target.src = '/placeholder-dreambook.png';
-                                }
-                              }}
                             />
                           </div>
                           <div className="mt-4 text-center">
@@ -189,15 +179,11 @@ export default function DreamBookDetailPage() {
                     onClick={() => {
                       const prev = activeSlide - 1 < 0 ? sortedImages.length - 1 : activeSlide - 1;
                       setActiveSlide(prev);
-                      // DOM 요소가 준비되었는지 확인 후 스크롤
-                      const carouselItems = document.querySelectorAll('.carousel-item');
-                      if (carouselItems && carouselItems.length > prev && carouselItems[prev]) {
-                        carouselItems[prev].scrollIntoView({
-                          behavior: 'smooth',
-                          block: 'nearest',
-                          inline: 'center'
-                        });
-                      }
+                      document.querySelectorAll('.carousel-item')[prev].scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'nearest',
+                        inline: 'center'
+                      });
                     }}
                   >
                     <ChevronLeft className="h-4 w-4" />
@@ -211,15 +197,11 @@ export default function DreamBookDetailPage() {
                     onClick={() => {
                       const next = (activeSlide + 1) % sortedImages.length;
                       setActiveSlide(next);
-                      // DOM 요소가 준비되었는지 확인 후 스크롤
-                      const carouselItems = document.querySelectorAll('.carousel-item');
-                      if (carouselItems && carouselItems.length > next && carouselItems[next]) {
-                        carouselItems[next].scrollIntoView({
-                          behavior: 'smooth',
-                          block: 'nearest',
-                          inline: 'center'
-                        });
-                      }
+                      document.querySelectorAll('.carousel-item')[next].scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'nearest',
+                        inline: 'center'
+                      });
                     }}
                   >
                     <ChevronRight className="h-4 w-4" />
