@@ -307,14 +307,14 @@ export default function Gallery() {
                   >
                     <div className="aspect-square w-full overflow-hidden">
                       <img
-                        src={item.thumbnailUrl || item.url || "https://placehold.co/400x400/e2e8f0/1e293b?text=태몽동화+준비중"}
+                        src={`/api/dream-books/${item.id}/thumbnail`}
                         alt={item.title}
                         className="w-full h-full object-cover"
                         loading="lazy"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
-                          target.src = "https://placehold.co/400x400/e2e8f0/1e293b?text=태몽동화+준비중";
-                          console.error("이미지 로드 실패:", item.url);
+                          target.src = "/placeholder-dreambook.png";
+                          console.error("태몽동화 이미지 로드 실패:", item.id);
                         }}
                       />
                     </div>
