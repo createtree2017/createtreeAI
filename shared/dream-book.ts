@@ -7,7 +7,7 @@ import { relations } from 'drizzle-orm';
 // 태몽동화 테이블 정의
 export const dreamBooks = pgTable('dream_books', {
   id: serial('id').primaryKey(),
-  userId: varchar('user_id').notNull().references(() => users.id),
+  userId: integer('user_id').notNull().references(() => users.id),
   babyName: text('baby_name').notNull(),
   dreamer: text('dreamer').notNull(),
   dreamContent: text('dream_content').notNull(),
@@ -15,7 +15,7 @@ export const dreamBooks = pgTable('dream_books', {
   style: text('style').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-  hospitalId: varchar('hospital_id').references(() => users.hospitalId),
+  hospitalId: integer('hospital_id').references(() => users.hospitalId),
   isPublic: boolean('is_public').default(false),
 });
 
