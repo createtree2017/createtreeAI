@@ -2,7 +2,7 @@
  * 개발 로그를 콘솔에 출력합니다.
  */
 export function logDebug(message: string, ...args: any[]): void {
-  console.log(`[DEBUG] ${message}`, ...args);
+  console.debug(`[DEBUG] ${message}`, ...args);
 }
 
 /**

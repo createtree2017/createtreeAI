@@ -1,16 +1,14 @@
 import OpenAI from "openai";
-import { logDebug, logError } from "../utils/logger";
-
-const API_KEY = process.env.OPENAI_API_KEY;
+import { logDebug, logError } from '../utils/logger';
 
 // OpenAI 인스턴스 생성
-const openai = new OpenAI({ apiKey: API_KEY });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 /**
  * OpenAI API 키가 유효한지 확인
  */
 function isValidApiKey(apiKey?: string): boolean {
-  return !!apiKey && apiKey.startsWith('sk-');
+  return !!apiKey && apiKey.startsWith('sk-') && apiKey.length > 20;
 }
 
 /**
@@ -22,39 +20,44 @@ export async function generateDreamStorySummary(
   dreamContent: string
 ): Promise<string> {
   try {
-    if (!isValidApiKey(API_KEY)) {
-      logError("유효한 OpenAI API 키가 없습니다");
-      throw new Error("API 키가 유효하지 않습니다");
+    // API 키 확인
+    if (!isValidApiKey(process.env.OPENAI_API_KEY)) {
+      throw new Error('유효한 OpenAI API 키가 필요합니다.');
     }
 
-    const prompt = `
-    당신은 한국의 태몽을 아름다운 문학적 이야기로 만드는 작가입니다.
-    다음 정보를 바탕으로 아이가 태어나기 전 꾼 태몽을 감성적이고 아름다운 이야기로 요약해주세요.
-    결과는 한국어로 반환해주세요.
-    
-    조건:
-    - 문학적이고 감성적인 문체로 작성
-    - 아기의 미래에 대한 희망찬 메시지 포함
-    - 태몽의 상징성을 아름답게 해석
-    - 3-4문장으로 간결하게 작성
-    - 태몽을 꾼 사람은 "${dreamer}"
-    - 아이의 이름은 "${babyName}"
-    
-    태몽 내용:
-    ${dreamContent}
-    `;
+    logDebug('태몽 줄거리 생성 시작', { dreamer, babyName });
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 400,
+      messages: [
+        {
+          role: "system",
+          content: `당신은 태몽을 기반으로 아기를 위한 짧은 동화 줄거리를 만드는 전문가입니다. 
+          태몽은 한국 문화에서 임신 중에 꾸는 특별한 꿈으로, 아기의 미래나 특성을 예견한다고 믿어집니다.
+          아래 내용을 바탕으로 긍정적이고 희망적인 동화 줄거리를 3-4문단으로 작성해주세요.
+          문체는 따뜻하고 아이에게 읽어주기 좋은 스타일로 작성하세요.
+          '옛날 옛적에'로 시작하는 전통적인 동화 형식을 사용하세요.
+          꿈 내용에 부정적인 요소가 있더라도 이를 긍정적으로 재해석하여 아름다운 이야기로 만들어주세요.`
+        },
+        {
+          role: "user",
+          content: `꿈을 꾼 사람: ${dreamer}
+          아기 이름: ${babyName}
+          꿈 내용: ${dreamContent}`
+        }
+      ],
+      max_tokens: 1000,
       temperature: 0.7,
     });
 
-    return response.choices[0].message.content || "태몽 이야기를 생성하지 못했습니다.";
+    const summary = response.choices[0].message.content?.trim() || '태몽 내용을 바탕으로 한 아름다운 이야기';
+    
+    logDebug('태몽 줄거리 생성 완료', { length: summary.length });
+    return summary;
+
   } catch (error) {
-    logError("태몽 이야기 생성 중 오류 발생:", error);
-    throw new Error("태몽 이야기를 생성하는 중 문제가 발생했습니다.");
+    logError('태몽 줄거리 생성 오류:', error);
+    throw new Error('태몽 줄거리를 생성하는 중 오류가 발생했습니다.');
   }
 }
 
@@ -66,80 +69,62 @@ export async function generateDreamScenes(
   style: string
 ): Promise<string[]> {
   try {
-    if (!isValidApiKey(API_KEY)) {
-      logError("유효한 OpenAI API 키가 없습니다");
-      throw new Error("API 키가 유효하지 않습니다");
+    // API 키 확인
+    if (!isValidApiKey(process.env.OPENAI_API_KEY)) {
+      throw new Error('유효한 OpenAI API 키가 필요합니다.');
     }
 
-    // 스타일에 따른 프롬프트 조정
-    let stylePrompt = "";
-    switch (style) {
-      case "ghibli":
-        stylePrompt = "in warm and fantasy Studio Ghibli anime style with soft colors and dreamy atmosphere";
-        break;
-      case "disney":
-        stylePrompt = "in cheerful and magical Disney animation style with vibrant colors";
-        break;
-      case "watercolor":
-        stylePrompt = "in soft and emotional watercolor painting style with gentle brushwork";
-        break;
-      case "realistic":
-        stylePrompt = "in realistic style with natural lighting and detailed expressions";
-        break;
-      case "korean":
-        stylePrompt = "in traditional Korean ink painting style (수묵화) with elegant brushstrokes and minimalist aesthetic";
-        break;
-      default:
-        stylePrompt = "in gentle and dreamy illustration style";
-    }
-
-    const prompt = `
-    당신은 태몽을 4개의 시각적 장면으로 나누어 묘사하는 전문가입니다.
-    다음 태몽 내용을 이미지 생성을 위한 4개의 영어 프롬프트로 변환해주세요.
-    
-    각 장면은 다음 조건을 만족해야 합니다:
-    1. 연속적인 내러티브를 형성할 것
-    2. 태몽의 핵심 요소를 포함할 것
-    3. 시각적으로 매력적인 장면일 것
-    4. ${stylePrompt} 스타일에 맞게 묘사할 것
-    5. 각 장면은 2-3줄로 상세히 묘사할 것
-    6. 앞뒤 장면과 연결성이 있을 것
-
-    태몽 내용:
-    ${dreamContent}
-
-    결과 형식:
-    프롬프트를 4개만 반환해주세요. 각 프롬프트는 영어로 작성하고, JSON 배열 형태로 반환해주세요.
-    `;
+    logDebug('태몽 장면 생성 시작', { style });
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-      messages: [{ role: "user", content: prompt }],
-      response_format: { type: "json_object" },
-      max_tokens: 1000,
+      messages: [
+        {
+          role: "system",
+          content: `당신은 태몽을 기반으로 DALL-E로 생성할 4개의 이미지 프롬프트를 작성하는 전문가입니다.
+          태몽은 한국 문화에서 임신 중에 꾸는 특별한 꿈으로, 아기의 미래나 특성을 예견한다고 믿어집니다.
+          아래 내용을 바탕으로 동화책의 각 장면에 해당하는 4개의 이미지 프롬프트를 작성해주세요.
+          각 프롬프트는 DALL-E가 시각적으로 아름답고 디테일한 이미지를 생성할 수 있도록 충분히 상세해야 합니다.
+          
+          프롬프트 앞에는 반드시 스타일 설명을 포함해야 합니다: "${style}, high quality, detailed, soft lighting"
+          
+          각 장면은 스토리의 논리적 흐름을 따라야 합니다:
+          장면 1: 이야기의 시작과 주인공 소개
+          장면 2: 이야기의 전개와 도전/어려움의 등장
+          장면 3: 문제 해결을 위한 노력이나 결정적 순간
+          장면 4: 행복한 결말
+          
+          결과는 JSON 형식이 아닌 각 프롬프트를 별도 줄에 작성해 주세요.
+          각 프롬프트는 한국어와 영어를 혼합하여 작성하되, 영어 비중을 더 높게 해주세요.
+          각 프롬프트는 최대 400자를 넘지 않도록 해주세요.`
+        },
+        {
+          role: "user",
+          content: `태몽 내용: ${dreamContent}
+          원하는 스타일: ${style}`
+        }
+      ],
+      max_tokens: 1500,
       temperature: 0.7,
     });
 
-    const content = response.choices[0].message.content;
-    if (!content) {
-      throw new Error("응답 내용이 비어있습니다");
+    const content = response.choices[0].message.content?.trim() || '';
+    const prompts = content
+      .split('\n')
+      .filter(line => line.trim().length > 0)
+      .slice(0, 4);
+      
+    // 프롬프트가 4개 미만인 경우 기본 프롬프트로 채우기
+    while (prompts.length < 4) {
+      prompts.push(`${style}, fairy tale scene, dreamy atmosphere, soft colors, high quality, detailed, soft lighting`);
     }
+    
+    logDebug('태몽 장면 생성 완료', { count: prompts.length });
+    return prompts;
 
-    try {
-      const parsedResponse = JSON.parse(content);
-      if (Array.isArray(parsedResponse.prompts) && parsedResponse.prompts.length === 4) {
-        return parsedResponse.prompts;
-      } else {
-        logError("잘못된 응답 형식:", parsedResponse);
-        throw new Error("응답 형식이 올바르지 않습니다");
-      }
-    } catch (parseError) {
-      logError("응답 파싱 오류:", parseError, content);
-      throw new Error("응답을 파싱하는 중 오류가 발생했습니다");
-    }
   } catch (error) {
-    logError("태몽 장면 생성 중 오류 발생:", error);
-    throw new Error("태몽 장면을 생성하는 중 문제가 발생했습니다.");
+    logError('태몽 장면 생성 오류:', error);
+    throw new Error('태몽 장면을 생성하는 중 오류가 발생했습니다.');
   }
 }
 
@@ -148,10 +133,12 @@ export async function generateDreamScenes(
  */
 export async function generateDreamImage(prompt: string): Promise<string> {
   try {
-    if (!isValidApiKey(API_KEY)) {
-      logError("유효한 OpenAI API 키가 없습니다");
-      throw new Error("API 키가 유효하지 않습니다");
+    // API 키 확인
+    if (!isValidApiKey(process.env.OPENAI_API_KEY)) {
+      throw new Error('유효한 OpenAI API 키가 필요합니다.');
     }
+
+    logDebug('태몽 이미지 생성 시작', { promptLength: prompt.length });
 
     const response = await openai.images.generate({
       model: "dall-e-3",
@@ -159,15 +146,19 @@ export async function generateDreamImage(prompt: string): Promise<string> {
       n: 1,
       size: "1024x1024",
       quality: "standard",
+      style: "vivid",
     });
 
-    if (!response.data || !response.data[0] || !response.data[0].url) {
-      throw new Error("이미지 URL이 생성되지 않았습니다");
+    const imageUrl = response.data[0]?.url;
+    if (!imageUrl) {
+      throw new Error('이미지 URL을 받지 못했습니다.');
     }
+    
+    logDebug('태몽 이미지 생성 완료', { imageUrl });
+    return imageUrl;
 
-    return response.data[0].url;
   } catch (error) {
-    logError("이미지 생성 중 오류 발생:", error);
-    throw new Error("이미지를 생성하는 중 문제가 발생했습니다.");
+    logError('태몽 이미지 생성 오류:', error);
+    throw new Error('태몽 이미지를 생성하는 중 오류가 발생했습니다.');
   }
 }

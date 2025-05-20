@@ -1,19 +1,19 @@
 import express from 'express';
-import { db } from '@/db';
+import { db } from "@db";
 import { dreamBooks, dreamBookImages } from '@shared/dream-book';
 import { createDreamBookSchema } from '@shared/dream-book';
 import { generateDreamStorySummary, generateDreamScenes, generateDreamImage } from '../services/openai-dream';
 import { logInfo, logError } from '../utils/logger';
-import { isAuthenticated } from '../middleware/auth';
+import { authMiddleware } from '../common/middleware/auth';
 import { ZodError } from 'zod';
-import { eq } from 'drizzle-orm';
+import { eq, and, asc, desc } from 'drizzle-orm';
 
 const router = express.Router();
 
 // 모든 태몽동화 목록 조회 (사용자별)
-router.get('/', isAuthenticated, async (req, res) => {
+router.get('/', authMiddleware, async (req: express.Request, res: express.Response) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.session?.userId;
     if (!userId) {
       return res.status(401).json({ error: '인증이 필요합니다.' });
     }
@@ -23,7 +23,7 @@ router.get('/', isAuthenticated, async (req, res) => {
       with: {
         images: true,
       },
-      orderBy: (dreamBooks, { desc }) => [desc(dreamBooks.createdAt)],
+      orderBy: [desc(dreamBooks.createdAt)],
     });
 
     return res.status(200).json(userDreamBooks);
@@ -34,7 +34,7 @@ router.get('/', isAuthenticated, async (req, res) => {
 });
 
 // 특정 태몽동화 조회
-router.get('/:id', isAuthenticated, async (req, res) => {
+router.get('/:id', authMiddleware, async (req: express.Request, res: express.Response) => {
   try {
     const { id } = req.params;
     const userId = req.user?.id;
