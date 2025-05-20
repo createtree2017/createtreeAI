@@ -132,6 +132,14 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
 
       // 2. 줄거리를 바탕으로 4개의 장면 생성
       sendStatus('동화 장면 프롬프트를 생성하는 중...', 30);
+      
+      // 스타일 이름과 시스템 프롬프트를 함께 전달하여 일관된 스타일 적용
+      logInfo('장면 생성에 사용할 스타일 정보', { 
+        styleId: styleId,
+        styleName: style, 
+        systemPromptLength: imageStyle.systemPrompt?.length || 0 
+      });
+      
       const scenePrompts = await generateDreamScenes(dreamContent, style, imageStyle.systemPrompt);
 
       // 3. 태몽동화 DB 레코드 생성
