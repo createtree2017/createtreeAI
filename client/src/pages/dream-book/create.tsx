@@ -35,7 +35,15 @@ export default function CreateDreamBook() {
     }
   });
 
-  const form = useForm({
+  // 타입 정의를 추가하여 TS 오류 해결
+  type FormValues = {
+    babyName: string;
+    dreamer: string;
+    prompts: string[];
+    style: number;
+  };
+
+  const form = useForm<FormValues>({
     resolver: zodResolver(createDreamBookSchema),
     defaultValues: {
       babyName: '',
@@ -79,11 +87,11 @@ export default function CreateDreamBook() {
         style.name === '수채화풍' || style.name.includes('수채화')
       ) || imageStyles[0];
       
-      form.setValue('style', String(defaultStyle.id));
+      form.setValue('style', Number(defaultStyle.id));
     }
   }, [imageStyles, form]);
 
-  const onSubmit = async (data: CreateDreamBookRequest) => {
+  const onSubmit = async (data: FormValues) => {
     try {
       // 빈 프롬프트 확인
       const nonEmptyPrompts = data.prompts.filter(p => p.trim() !== '');
@@ -308,8 +316,8 @@ export default function CreateDreamBook() {
                   <FormItem>
                     <FormLabel>동화 스타일</FormLabel>
                     <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      onValueChange={(val) => field.onChange(Number(val))}
+                      defaultValue={String(field.value)}
                     >
                       <FormControl>
                         <SelectTrigger>
