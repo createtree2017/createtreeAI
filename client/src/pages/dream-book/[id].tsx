@@ -154,11 +154,22 @@ export default function DreamBookDetailPage() {
                       <CarouselItem key={image.id}>
                         <div className="flex flex-col items-center p-1">
                           <div className="overflow-hidden rounded-lg w-full h-[50vh] flex items-center justify-center bg-black">
-                            <img
-                              src={image.imageUrl}
-                              alt={`장면 ${index + 1}`}
-                              className="object-contain w-full h-full"
-                            />
+                            {image.imageUrl ? (
+                              <img
+                                src={image.imageUrl}
+                                alt={`장면 ${index + 1}`}
+                                className="object-contain w-full h-full"
+                                onError={(e) => {
+                                  e.currentTarget.src = 'https://placehold.co/600x400/e74c3c/ffffff?text=이미지+로딩+실패';
+                                  console.error('이미지 로딩 실패:', image.imageUrl);
+                                }}
+                              />
+                            ) : (
+                              <div className="flex flex-col items-center justify-center text-white">
+                                <p className="text-xl mb-2">이미지를 불러올 수 없습니다</p>
+                                <p className="text-sm text-gray-400">이미지 URL이 없거나 접근할 수 없습니다</p>
+                              </div>
+                            )}
                           </div>
                           <div className="mt-4 text-center">
                             <p className="text-lg font-medium">장면 {index + 1}</p>
