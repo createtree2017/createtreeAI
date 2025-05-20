@@ -470,99 +470,84 @@ export async function generateDreamImage(prompt: string): Promise<string> {
     // 프롬프트 길이 제한 및 안전한 내용으로 필터링
     let processedPrompt = safePrompt;
     
-    // 프롬프트가 너무 길면 자르기 (DALL-E는 약 4000자 제한)
+    // 프롬프트가 너무 길면 자르기 (API는 약 4000자 제한)
     if (processedPrompt.length > 3800) {
       processedPrompt = processedPrompt.substring(0, 3800);
       logInfo('프롬프트 길이 제한', { original: prompt.length, truncated: processedPrompt.length });
     }
     
-    // 개선된 스타일 지시 처리 로직
-    // 1. 스타일 지시가 있는지 확인
-    const hasStyleInstruction = processedPrompt.includes("IMPORTANT STYLE INSTRUCTION");
+    // System:/User: 형식 확인 (작업지시서 요구사항)
+    const hasSystemPrefix = processedPrompt.includes("System:");
+    const hasUserPrefix = processedPrompt.includes("User:");
     
-    if (hasStyleInstruction) {
-      // 스타일 지시가 이미 포함된 경우
-      logInfo('스타일 지시가 포함됨', { 
-        stylePromptPresent: true,
-        promptPreview: processedPrompt.substring(0, 80) + '...'
+    // 프롬프트 구조 분석 로깅
+    logInfo('프롬프트 구조 분석', {
+      hasSystemPrefix,
+      hasUserPrefix,
+      correctFormat: hasSystemPrefix && hasUserPrefix,
+      promptStart: processedPrompt.substring(0, 80) + '...'
+    });
+    
+    if (!hasSystemPrefix || !hasUserPrefix) {
+      logError('잘못된 프롬프트 구조', { 
+        hasSystemPrefix, 
+        hasUserPrefix,
+        promptPreview: processedPrompt.substring(0, 100) + '...'
       });
       
-      // 중복 지시 제거 (첫 번째 지시만 유지)
-      const firstIndex = processedPrompt.indexOf("IMPORTANT STYLE INSTRUCTION");
-      if (firstIndex > -1) {
-        const secondIndex = processedPrompt.indexOf("IMPORTANT STYLE INSTRUCTION", firstIndex + 10);
-        
-        if (secondIndex > -1) {
-          // 중복 지시 발견
-          logInfo('중복 스타일 지시 감지, 처리 시작', {
-            firstPos: firstIndex,
-            secondPos: secondIndex
-          });
-          
-          // 스타일 지시어 중복 패턴 정리
-          // 첫 번째 지시어만 유지하고 나머지 제거
-          const beforeDuplicate = processedPrompt.substring(0, secondIndex);
-          
-          // 두 번째 지시어 이후 첫 번째 콜론 위치 찾기
-          const restOfPrompt = processedPrompt.substring(secondIndex);
-          const nextColonPos = restOfPrompt.indexOf(':');
-          
-          if (nextColonPos > -1) {
-            // 콜론 이후의 텍스트만 추출
-            const afterColon = restOfPrompt.substring(nextColonPos + 1).trim();
-            // 최종 프롬프트 재구성
-            processedPrompt = beforeDuplicate + "\n\n" + afterColon;
-            
-            logInfo('중복 스타일 지시 제거됨', {
-              result: processedPrompt.substring(0, 80) + '...'
-            });
-          }
-        }
-      }
-    } else {
-      // 스타일 지시가 없는 경우, 기본 형식 추가
-      const stylePrefix = "IMPORTANT STYLE INSTRUCTION - Follow this style exactly: ";
-      const styleQuality = "high quality, detailed, soft lighting";
-      processedPrompt = `${stylePrefix}${styleQuality}, ${processedPrompt}`;
-      
-      logInfo('스타일 지시 추가됨', {
-        stylePromptAdded: true,
-        newPrompt: processedPrompt.substring(0, 80) + '...'
-      });
+      // 작업지시서 요구사항: System:/User: 형식 강제
+      // 형식이 잘못된 경우 오류 발생
+      throw new Error('프롬프트가 System:/User: 형식이 아닙니다. 스타일 적용이 제한될 수 있습니다.');
     }
     
-    // 프롬프트 클린업 - 중복 줄바꿈 제거 및 전체 로깅
-    processedPrompt = processedPrompt.replace(/\n{3,}/g, '\n\n').trim();
+    // System:/User: 구조 검증 및 구성요소 추출 (로깅용)
+    const systemIndex = processedPrompt.indexOf("System:");
+    const userIndex = processedPrompt.indexOf("User:");
+    
+    // System: 부분이 User: 부분보다 앞에 있어야 함
+    if (systemIndex >= userIndex) {
+      logError('프롬프트 구성 순서 오류', {
+        systemIndex,
+        userIndex,
+        isCorrectOrder: false
+      });
+      throw new Error('프롬프트 구조 오류: System: 부분이 User: 부분보다 먼저 와야 합니다.');
+    }
+    
+    // 시스템 프롬프트와 사용자 프롬프트 추출 (로깅용)
+    const systemPrompt = processedPrompt.substring(systemIndex + 8, userIndex).trim();
+    const userPrompt = processedPrompt.substring(userIndex + 5).trim();
+    
+    // 프롬프트 구성요소 로깅
+    logInfo('프롬프트 구성 분석', {
+      systemLength: systemPrompt.length,
+      userLength: userPrompt.length,
+      systemPreview: systemPrompt.substring(0, 50) + (systemPrompt.length > 50 ? '...' : ''),
+      userPreview: userPrompt.substring(0, 50) + (userPrompt.length > 50 ? '...' : '')
+    });
     
     // 이미지 생성 전 최종 프롬프트 로깅
     logInfo('🧠 이미지 생성 최종 프롬프트', { 
       promptStart: processedPrompt.substring(0, 100) + (processedPrompt.length > 100 ? '...' : ''),
       promptEnd: processedPrompt.length > 200 ? '...' + processedPrompt.substring(processedPrompt.length - 100) : '',
       totalLength: processedPrompt.length,
-      hasStyleInstruction: processedPrompt.includes("IMPORTANT STYLE INSTRUCTION"),
-      styleNameIncluded: processedPrompt.includes("Follow the")
+      hasSystemUserFormat: hasSystemPrefix && hasUserPrefix
     });
     
-    // 안전한 이미지 생성 요청 구성
+    // 작업지시서 요구사항에 따라 GPT-Image-1 모델 사용
     const requestBody = {
-      model: "dall-e-3",
+      model: "gpt-image-1", // 작업지시서 요구사항: GPT-Image-1 사용
       prompt: processedPrompt,
       n: 1,
       size: "1024x1024",
-      quality: "standard",
-      style: "vivid" // "natural"로 변경하면 더 사실적인 스타일
+      response_format: "url" // URL 형식으로 응답 받음 (b64_json도 가능)
     };
     
-    // 디버깅을 위해 프롬프트 출력 (로그 축소를 위해 앞부분만)
-    logInfo('🧠 이미지 생성 프롬프트 미리보기', { 
-      promptStart: processedPrompt.substring(0, 100) + '...',
-      promptEnd: '...' + processedPrompt.substring(processedPrompt.length - 100),
-      totalLength: processedPrompt.length
-    });
-    
-    logInfo('DALL-E API 호출 준비됨', {
-      model: 'dall-e-3',
-      promptLength: prompt.length
+    // 디버깅을 위한 로깅
+    logInfo('🧠 이미지 생성 API 호출 준비됨', { 
+      model: 'gpt-image-1', // 작업지시서 요구사항: GPT-Image-1 사용
+      promptLength: processedPrompt.length,
+      hasSystemUserFormat: hasSystemPrefix && hasUserPrefix
     });
 
     // API 직접 호출 (fetch 사용)
@@ -582,7 +567,7 @@ export async function generateDreamImage(prompt: string): Promise<string> {
       
       // 오류 응답 확인
       if (openaiResponse.error) {
-        logError('DALL-E API 오류 응답', {
+        logError('GPT-Image-1 API 오류 응답', {
           message: openaiResponse.error.message,
           type: openaiResponse.error.type,
           code: openaiResponse.error.code
@@ -594,46 +579,59 @@ export async function generateDreamImage(prompt: string): Promise<string> {
         if (openaiResponse.error.code === 'content_policy_violation') {
           errorMessage = '프롬프트가 OpenAI 콘텐츠 정책을 위반합니다. 다른 내용으로 시도해주세요.';
         } else if (openaiResponse.error.code === 'rate_limit_exceeded') {
-          errorMessage = 'DALL-E API 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요.';
+          errorMessage = 'OpenAI API 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요.';
         } else if (response.status === 401) {
-          errorMessage = 'DALL-E API 인증에 실패했습니다. API 키를 확인해주세요.';
+          errorMessage = 'OpenAI API 인증에 실패했습니다. API 키를 확인해주세요.';
         } else if (response.status === 429) {
-          errorMessage = 'DALL-E API 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.';
+          errorMessage = 'OpenAI API 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.';
         }
         
         throw new Error(`${errorMessage} (${openaiResponse.error.message})`);
       }
       
       // 응답 구조 로깅 (민감 정보 제외)
-      logInfo('DALL-E 응답 성공', {
+      logInfo('GPT-Image-1 응답 성공', {
         status: response.status,
         hasData: !!openaiResponse.data,
         dataLength: openaiResponse.data?.length || 0,
         created: openaiResponse.created
       });
       
-      // 응답에서 이미지 URL 안전하게 추출
+      // 응답에서 이미지 URL 또는 base64 데이터 안전하게 추출
       if (!openaiResponse.data || !Array.isArray(openaiResponse.data) || openaiResponse.data.length === 0) {
-        throw new Error('DALL-E 응답에 유효한 데이터가 없습니다.');
+        throw new Error('GPT-Image-1 응답에 유효한 데이터가 없습니다.');
       }
       
       const imageData = openaiResponse.data[0];
-      if (!imageData || !imageData.url) {
-        throw new Error('DALL-E 응답에 이미지 URL이 없습니다.');
+      
+      // URL 또는 base64 데이터 확인
+      let imageUrl = imageData.url;
+      const base64Data = imageData.b64_json;
+      
+      // base64 데이터가 있고 URL이 없는 경우 처리
+      if (!imageUrl && base64Data) {
+        logInfo('base64 데이터 활용', { hasBase64: true, urlAvailable: false });
+        imageUrl = `data:image/png;base64,${base64Data}`;
       }
       
-      const imageUrl = imageData.url;
-      logInfo('이미지 URL 추출 성공', { urlLength: imageUrl.length });
+      if (!imageUrl) {
+        throw new Error('GPT-Image-1 응답에 이미지 URL이나 base64 데이터가 없습니다.');
+      }
+      
+      logInfo('이미지 URL 추출 성공', { 
+        urlLength: imageUrl.length,
+        isBase64: imageUrl.startsWith('data:image/')
+      });
       
       return imageUrl;
       
     } catch (parseError: any) {
-      logError('DALL-E 응답 파싱 오류', { 
+      logError('GPT-Image-1 응답 파싱 오류', { 
         error: parseError, 
         responseStatus: response.status,
         responseText: responseText.substring(0, 200) + '...' // 응답 일부만 로깅
       });
-      throw new Error(`DALL-E 응답을 파싱할 수 없습니다. (${parseError.message || '알 수 없는 오류'})`);
+      throw new Error(`GPT-Image-1 응답을 파싱할 수 없습니다. (${parseError.message || '알 수 없는 오류'})`);
     }
   } catch (error: any) {
     // 최상위 오류 처리

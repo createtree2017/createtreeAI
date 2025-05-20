@@ -85,7 +85,8 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
       return res.status(401).json({ error: '인증이 필요합니다.' });
     }
 
-    const hospitalId = req.session?.hospitalId;
+    // 세션에서 병원 ID가 있으면 사용 (타입 에러 수정)
+    const hospitalId = req.session?.user?.hospitalId;
 
     // 입력 데이터 검증
     const validatedData = createDreamBookSchema.parse(req.body);
@@ -266,7 +267,7 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
           // 최종 프롬프트 내용 검증 (디버깅)
           logInfo(`최종 프롬프트 내용 검증`, {
             styleKeyUsed: styleKey,
-            styleKeywordUsed: styleKeyword,
+            // 'styleKeyword' 변수가 사용되지 않음 - 제거 (LSP 오류 수정)
             containsSystemPrompt: systemPrompt ? finalPrompt.includes(systemPrompt.substring(0, 20)) : false,
             containsUserPrompt: finalPrompt.includes(userPrompt.substring(0, Math.min(10, userPrompt.length)))
           });
