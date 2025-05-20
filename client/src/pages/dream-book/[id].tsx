@@ -158,10 +158,15 @@ export default function DreamBookDetailPage() {
                               src={`/api/dream-books/${dreamBook.id}/images/${image.sequence || index + 1}`}
                               alt={`장면 ${index + 1}`}
                               className="object-contain w-full h-full"
-                              onLoad={() => console.log("✅ 태몽동화 이미지 경로:", `/api/dream-books/${dreamBook.id}/images/${image.sequence || index + 1}`)}
                               onError={(e) => {
-                                console.error(`태몽동화 상세 이미지 로드 실패: ID ${dreamBook.id}, 장면 ${index + 1}`);
-                                (e.target as HTMLImageElement).src = '/placeholder-dreambook.png';
+                                const target = e.target as HTMLImageElement;
+                                
+                                // 무한 로딩 루프 방지: 이미 에러 처리된 이미지는 다시 처리하지 않음
+                                if (!target.hasAttribute('data-error')) {
+                                  console.error(`태몽동화 상세 이미지 로드 실패: ID ${dreamBook.id}, 장면 ${index + 1}`);
+                                  target.setAttribute('data-error', 'true');
+                                  target.src = '/placeholder-dreambook.png';
+                                }
                               }}
                             />
                           </div>

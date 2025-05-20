@@ -4920,10 +4920,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // 이미지 가져오기
       try {
-        const response = await fetch(fetchUrl, { headers });
+        console.log(`[태몽동화 이미지 프록시] ID: ${dreamBookId} 이미지 요청 시작`);
+        
+        // 타임아웃 설정 (10초)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        
+        const response = await fetch(fetchUrl, { 
+          headers, 
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId); // 타임아웃 해제
         
         if (!response.ok) {
-          console.error(`[태몽동화 이미지 프록시] 원본 서버 오류: ${response.status} ${response.statusText}`);
+          console.error(`[태몽동화 이미지 프록시] ID: ${dreamBookId} 원본 서버 오류: ${response.status} ${response.statusText}`);
           console.error(`[태몽동화 이미지 프록시] 응답 헤더:`, Object.fromEntries(response.headers.entries()));
           console.error(`[태몽동화 이미지 프록시] 실패 URL:`, fetchUrl.substring(0, 50) + (fetchUrl.length > 50 ? '...' : ''));
           
@@ -4935,7 +4946,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.error(`[태몽동화 이미지 프록시] 실패 응답 본문 읽기 실패:`, e);
           }
           
-          return res.status(404).sendFile(path.join(process.cwd(), 'static', 'placeholder-dreambook.png'));
+          return res.status(502).sendFile(path.join(process.cwd(), 'static', 'placeholder-dreambook.png'));
         }
         
         // 이미지 데이터와 헤더 그대로 전달
@@ -4945,8 +4956,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // 캐싱 헤더 추가
         res.setHeader('Cache-Control', 'public, max-age=86400'); // 24시간 캐싱
         
-        const buffer = await response.arrayBuffer();
-        return res.status(200).send(Buffer.from(buffer));
+        try {
+          const buffer = await response.arrayBuffer();
+          console.log(`[태몽동화 이미지 프록시] ID: ${dreamBookId} 이미지 로드 성공 (${buffer.byteLength} 바이트)`);
+          return res.status(200).send(Buffer.from(buffer));
+        } catch (bufferError) {
+          console.error(`[태몽동화 이미지 프록시] ID: ${dreamBookId} 이미지 버퍼 처리 실패:`, bufferError);
+          return res.status(500).sendFile(path.join(process.cwd(), 'static', 'placeholder-dreambook.png'));
+        }
       } catch (error) {
         console.error('[태몽동화 이미지 프록시] 페치 오류:', error);
         return res.status(500).sendFile(path.join(process.cwd(), 'static', 'placeholder-dreambook.png'));
@@ -4965,8 +4982,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = req.user as any;
       
       console.log("📸 요청된 썸네일 bookId:", req.params.id);
-      
-      console.log(`[태몽동화 이미지 프록시] ID: ${dreamBookId} 요청됨, 사용자: ${user?.id || '로그인 안됨'}`);
       
       // 태몽동화 정보 가져오기
       const { dreamBooks, dreamBookImages } = await import('@shared/dream-book');
@@ -5008,8 +5023,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Azure Blob Storage 인증
       if (fetchUrl.includes('blob.core.windows.net')) {
-        console.log(`[태몽동화 이미지 프록시] Azure Blob URL 감지`);
-        
+        console.log(`[태몽동화 이미지 프록시] Azure Blob URL 감지 - SAS 토큰 확인`);
+        // SAS 토큰은 이미 URL에 포함되어 있음
         // 기존 URL에 이미 SAS 토큰이 포함되어 있는지 확인
         if (!fetchUrl.includes('?sv=') && !fetchUrl.includes('&sv=')) {
           // SAS 토큰이 없는 경우, 환경 변수에서 가져온 SAS 토큰 또는 인증 헤더 추가
