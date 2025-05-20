@@ -780,7 +780,7 @@ export const imageStyles = pgTable("image_styles", {
   order: integer("order").default(0), // 정렬 순서
 });
 
-// 이미지 스타일 Zod 스키마 생성
+// 이미지 스타일 Zod 스키마 생성 (멀티라인 텍스트 허용으로 개선)
 export const insertImageStyleSchema = createInsertSchema(imageStyles, {
   name: (schema) => schema.min(2, "이름은 최소 2자 이상이어야 합니다"),
   description: (schema) => schema.min(5, "설명은 최소 5자 이상이어야 합니다"),

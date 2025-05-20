@@ -49,18 +49,44 @@ router.get('/:id', isAdmin, async (req: Request, res: Response) => {
 // 이미지 스타일 생성
 router.post('/', isAdmin, async (req: Request, res: Response) => {
   try {
-    const validationResult = insertImageStyleSchema.safeParse(req.body);
+    console.log('이미지 스타일 생성 요청 데이터:', JSON.stringify(req.body, null, 2));
     
-    if (!validationResult.success) {
-      return res.status(400).json({ 
-        error: '입력 데이터가 유효하지 않습니다.',
-        details: validationResult.error.format()
-      });
+    // 데이터 필드 검증
+    if (!req.body.name || typeof req.body.name !== 'string') {
+      return res.status(400).json({ error: '이름은 필수 항목입니다.' });
     }
     
-    const styleData = validationResult.data;
+    if (!req.body.description || typeof req.body.description !== 'string') {
+      return res.status(400).json({ error: '설명은 필수 항목입니다.' });
+    }
     
-    // 현재 사용자 ID를 creator_id로 설정 (타입 안전성 확보)
+    if (!req.body.systemPrompt || typeof req.body.systemPrompt !== 'string') {
+      return res.status(400).json({ error: '시스템 프롬프트는 필수 항목입니다.' });
+    }
+    
+    // 최소 길이 검증
+    if (req.body.name.length < 2) {
+      return res.status(400).json({ error: '이름은 최소 2자 이상이어야 합니다.' });
+    }
+    
+    if (req.body.description.length < 5) {
+      return res.status(400).json({ error: '설명은 최소 5자 이상이어야 합니다.' });
+    }
+    
+    if (req.body.systemPrompt.length < 10) {
+      return res.status(400).json({ error: '시스템 프롬프트는 최소 10자 이상이어야 합니다.' });
+    }
+    
+    // 유효성 검사를 직접 수행하지 않고 필요한 필드만 가져옴
+    const styleData: any = {
+      name: req.body.name,
+      description: req.body.description,
+      systemPrompt: req.body.systemPrompt,
+      isActive: req.body.isActive !== false, // undefined인 경우 true로 기본값 설정
+      order: typeof req.body.order === 'number' ? req.body.order : 0
+    };
+    
+    // 현재 사용자 ID를 creator_id로 설정
     if (!req.user) {
       return res.status(401).json({ error: '사용자 정보를 찾을 수 없습니다.' });
     }
@@ -72,6 +98,7 @@ router.post('/', isAdmin, async (req: Request, res: Response) => {
     styleData.updatedAt = now;
     
     const [newStyle] = await db.insert(imageStyles).values(styleData).returning();
+    console.log('이미지 스타일 생성 성공:', newStyle);
     
     return res.status(201).json(newStyle);
   } catch (error) {
@@ -160,6 +187,8 @@ router.post('/:id/clone', isAdmin, async (req: Request, res: Response) => {
     const { id } = req.params;
     const styleId = parseInt(id);
     
+    console.log(`이미지 스타일 복제 요청 - 원본 ID: ${styleId}`);
+    
     if (isNaN(styleId)) {
       return res.status(400).json({ error: '유효하지 않은 스타일 ID입니다.' });
     }
@@ -172,6 +201,13 @@ router.post('/:id/clone', isAdmin, async (req: Request, res: Response) => {
     if (!sourceStyle) {
       return res.status(404).json({ error: '복제할 이미지 스타일을 찾을 수 없습니다.' });
     }
+    
+    console.log(`원본 스타일 조회 성공:`, {
+      id: sourceStyle.id,
+      name: sourceStyle.name,
+      description: sourceStyle.description?.substring(0, 30) + '...',
+      systemPromptLength: sourceStyle.systemPrompt?.length || 0
+    });
     
     // 사용자 정보 확인
     if (!req.user) {
@@ -192,6 +228,7 @@ router.post('/:id/clone', isAdmin, async (req: Request, res: Response) => {
     
     // 새 스타일 생성
     const [newStyle] = await db.insert(imageStyles).values(cloneData).returning();
+    console.log('이미지 스타일 복제 성공:', { id: newStyle.id, name: newStyle.name });
     
     return res.status(201).json(newStyle);
   } catch (error) {
