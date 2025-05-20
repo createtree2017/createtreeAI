@@ -162,7 +162,9 @@ export default function DreamBookDetailPage() {
                           </div>
                           <div className="mt-4 text-center">
                             <p className="text-lg font-medium">장면 {index + 1}</p>
-                            <p className="mt-2 text-sm text-white font-medium whitespace-pre-line bg-black/50 p-2 rounded max-h-32 overflow-y-auto">{image.prompt}</p>
+                            <div className="mt-2 bg-purple-800 p-3 rounded shadow-lg">
+                              <p className="text-sm text-white font-medium whitespace-pre-line max-h-32 overflow-y-auto">{image.prompt}</p>
+                            </div>
                           </div>
                         </div>
                       </CarouselItem>
