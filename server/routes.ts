@@ -9,6 +9,7 @@ import { authMiddleware } from "./common/middleware/auth";
 import { DevHistoryManager } from "./services/dev-history-manager";
 import testAceStepRouter from "./routes/test-ace-step-routes";
 import { registerSunoRoutes } from "./routes/suno-routes";
+import dreamBookRouter from "./routes/dream-book";
 
 // Express session 타입 확장
 declare module 'express-session' {
@@ -4764,6 +4765,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // JWT 토큰 인증 라우터 등록 (모바일 전용)
   app.use("/api/jwt-auth", jwtAuthRoutes);
   console.log("JWT 토큰 인증 라우터가 등록되었습니다 (/api/jwt-auth/*)");
+  
+  // 태몽동화 라우터 등록
+  app.use("/api/dream-books", dreamBookRouter);
+  console.log("태몽동화 라우터가 등록되었습니다 (/api/dream-books)");
 
   const httpServer = createServer(app);
   return httpServer;
