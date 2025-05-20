@@ -251,7 +251,7 @@ export default function CreateDreamBook() {
                           <SelectItem value="loading">불러오는 중...</SelectItem>
                         ) : imageStyles && imageStyles.length > 0 ? (
                           imageStyles.map(style => (
-                            <SelectItem key={style.id} value={style.name.toLowerCase()}>
+                            <SelectItem key={style.id} value={String(style.id)}>
                               {style.name} - {style.description}
                             </SelectItem>
                           ))

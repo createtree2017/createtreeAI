@@ -6,6 +6,7 @@ import { generateDreamStorySummary, generateDreamScenes, generateDreamImage } fr
 import { authMiddleware } from '../common/middleware/auth';
 import { ZodError } from 'zod';
 import { eq, and, asc, desc } from 'drizzle-orm';
+import { imageStyles } from '@shared/schema';
 
 // 로깅 유틸리티가 없는 경우를 대비한 간단한 로거
 const logInfo = (message: string, data?: any) => {
@@ -88,7 +89,25 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
 
     // 입력 데이터 검증
     const validatedData = createDreamBookSchema.parse(req.body);
-    const { babyName, dreamer, dreamContent, style } = validatedData;
+    const { babyName, dreamer, dreamContent, style: styleId } = validatedData;
+
+    // 스타일 ID로 이미지 스타일 정보 조회
+    const imageStyle = await db.query.imageStyles.findFirst({
+      where: eq(imageStyles.id, Number(styleId))
+    });
+
+    if (!imageStyle) {
+      return res.status(400).json({ 
+        error: '입력 데이터가 올바르지 않습니다.', 
+        details: [{ path: 'style', message: '유효하지 않은 스타일입니다.' }] 
+      });
+    }
+
+    // 실제 스타일 이름 추출
+    const style = imageStyle.name;
+
+    // 디버그 로깅
+    logInfo('태몽동화 생성 스타일 정보', { styleId, styleName: style, systemPrompt: imageStyle.systemPrompt });
 
     // 상태 객체로 진행 상황 추적
     const status = { message: '태몽동화 생성을 시작합니다.', progress: 0 };
