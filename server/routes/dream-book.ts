@@ -217,17 +217,18 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
           // 이미지 생성에 사용할 스타일 정보 로깅 (디버깅용)
           logInfo(`이미지 생성 스타일 세부 정보`, {
             styleId: styleIdNumber,
-            styleName,
-            styleNameType: typeof styleName,
-            styleNameLength: styleName.length,
+            styleName: style,
+            styleKey: styleKey,
+            styleNameType: typeof style,
+            styleNameLength: style.length,
             systemPromptSnippet: systemPrompt ? systemPrompt.substring(0, 50) + '...' : '없음'
           });
           
           // 작업지시서에 따라 DALL-E가 잘 인식할 수 있는 형식으로 정리
           // 스타일 키워드를 추출하는 함수로 스타일 이름 변환 (예: "지브리풍" -> "Studio Ghibli style")
-          const styleKeyword = await getStyleKeyword(styleName);
+          const styleKeyword = await getStyleKeyword(style);
           logInfo(`스타일 키워드 변환 결과`, { 
-            originalStyle: styleName, 
+            originalStyle: style, 
             convertedStyleKeyword: styleKeyword 
           });
           
