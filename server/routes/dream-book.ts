@@ -1,6 +1,6 @@
 import express from 'express';
 import { db } from "@db";
-import { dreamBooks, dreamBookImages } from '@shared/dream-book';
+import { dreamBooks, dreamBookImages, DREAM_BOOK_STYLES } from '@shared/dream-book';
 import { createDreamBookSchema } from '@shared/dream-book';
 import { generateDreamImage, getStyleKeyword } from '../services/openai-dream';
 import { authMiddleware } from '../common/middleware/auth';
@@ -131,9 +131,28 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
 
     // 실제 스타일 이름 추출
     const style = imageStyle.name;
+    
+    // 스타일 이름에서 DREAM_BOOK_STYLES의 ID를 찾기 (매핑용)
+    let styleKey = "";
+    for (const dreamStyle of DREAM_BOOK_STYLES) {
+      if (dreamStyle.name === style) {
+        styleKey = dreamStyle.id;
+        break;
+      }
+    }
+    
+    // styleKey가 빈 문자열이면 스타일 이름 그대로 사용
+    if (!styleKey) {
+      styleKey = style.toLowerCase();
+    }
 
     // 디버그 로깅
-    logInfo('태몽동화 생성 스타일 정보', { styleId, styleName: style, systemPrompt: imageStyle.systemPrompt });
+    logInfo('태몽동화 생성 스타일 정보', { 
+      styleId, 
+      styleName: style, 
+      styleKey,
+      systemPrompt: imageStyle.systemPrompt 
+    });
 
     // 상태 객체로 진행 상황 추적
     const status = { message: '태몽동화 생성을 시작합니다.', progress: 0, type: 'info' };
