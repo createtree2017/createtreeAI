@@ -57,7 +57,7 @@ router.get('/:id', authMiddleware, async (req: express.Request, res: express.Res
     const dreamBook = await db.query.dreamBooks.findFirst({
       where: and(
         eq(dreamBooks.id, parseInt(id)), 
-        eq(dreamBooks.userId, userId.toString())
+        eq(dreamBooks.userId, Number(userId))
       ),
       with: {
         images: {

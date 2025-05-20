@@ -467,16 +467,22 @@ export async function generateDreamImage(prompt: string): Promise<string> {
       logInfo('프롬프트 길이 제한', { original: prompt.length, truncated: processedPrompt.length });
     }
     
-    // 스타일이 일관되도록 각 이미지 생성 시 최우선 순위로 표시
-    // 중복 스타일 지시를 방지하기 위한 로직 개선
-    const styleEmphasis = "IMPORTANT STYLE INSTRUCTION - Follow this style exactly for the image: ";
+    // 개선된 스타일 지시 로직
+    // 중복 지시 방지를 위해 프롬프트를 분석
+    const styleEmphasis = "IMPORTANT STYLE INSTRUCTION - Follow this style exactly: ";
     
-    // 이미 스타일 지시가 포함되어 있는지 다양한 형태로 검사
+    // 이미 스타일 지시가 있는지 확인 (더 다양한 패턴 검사)
     if (processedPrompt.includes("IMPORTANT STYLE INSTRUCTION") || 
         processedPrompt.includes("style:") || 
-        processedPrompt.includes("Style:")) {
+        processedPrompt.includes("Style:") || 
+        processedPrompt.includes("follow this style")) {
       // 이미 스타일 지시가 포함되어 있으므로 그대로 사용
-      logInfo('스타일 지시가 이미 포함됨', { promptStart: processedPrompt.substring(0, 100) });
+      logInfo('스타일 지시가 이미 포함되어 있음', { 
+        promptStart: processedPrompt.substring(0, 100),
+        hasStyleInstruction: processedPrompt.includes("IMPORTANT STYLE INSTRUCTION"),
+        hasStyleColon: processedPrompt.includes("style:") || processedPrompt.includes("Style:"),
+        hasFollowStyle: processedPrompt.includes("follow this style")
+      });
     } else {
       // 스타일 지시가 없으면 프롬프트 맨 앞에 추가
       processedPrompt = `${styleEmphasis}${processedPrompt}`;
