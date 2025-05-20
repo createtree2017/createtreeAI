@@ -1028,9 +1028,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Gallery endpoints
   app.get("/api/gallery", async (req, res) => {
     try {
-      // 로그인 체크를 임시로 비활성화 (userId 없이도 갤러리 접근 가능하도록)
+      // 로그인 체크 강화 - 세션 및 JWT 토큰 확인 
       if (!req.isAuthenticated()) {
-        return res.status(401).json({ error: "로그인이 필요합니다." });
+        console.log("[갤러리 API] 인증 실패: isAuthenticated()=false");
+        console.log("[갤러리 API] 세션 정보:", req.session);
+        
+        // 운영 환경에서는 아래 코드 주석 처리해야 함
+        // 테스트용 임시 조치: 세션 인증 실패해도 JWT 토큰 확인하도록
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+          const token = authHeader.split(' ')[1];
+          try {
+            const decoded = await jwt.verify(token, JWT_SECRET);
+            console.log("[갤러리 API] JWT 토큰으로 인증 성공:", decoded);
+            // JWT 토큰에서 사용자 ID 추출해서 쿠키 요청 객체에 저장
+            req.user = { id: decoded.userId };
+          } catch (error) {
+            console.log("[갤러리 API] JWT 토큰 검증 실패:", error.message);
+            return res.status(401).json({ error: "로그인이 필요합니다." });
+          }
+        } else {
+          return res.status(401).json({ error: "로그인이 필요합니다." });
+        }
       }
       
       // 필터링 옵션
