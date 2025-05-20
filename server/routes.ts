@@ -47,6 +47,7 @@ import {
   getAvailableDurations 
 } from "./services/topmedia-music";
 import geminiTestRoutes from "./routes/gemini-test-routes";
+import { dreamBooks, dreamBookImages } from "../shared/dream-book";
 import { exportChatHistoryAsHtml, exportChatHistoryAsText } from "./services/export-logs";
 import { exportDevChatAsHtml, exportDevChatAsText } from "./services/dev-chat-export";
 import { AutoChatSaver } from "./services/auto-chat-saver";
@@ -1083,6 +1084,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
           title: decodeKoreanText(item.title)
           // userId 필드 임시 제거 - 데이터베이스 스키마 업데이트 전까지
         }));
+      } else if (filter === "dreambook") {
+        try {
+          // 태몽동화 탭에서 사용자별 필터링 구현
+          console.log(`[태몽동화 탭] 사용자 ${username || '없음'}`);
+          
+          // 태몽동화 목록 조회 (dreamBooks 테이블에서)
+          const dreamBooks = await db.query.dreamBooks.findMany({
+            where: eq(dreamBooks.userId, userId || 0),
+            orderBy: [desc(dreamBooks.createdAt)],
+            with: {
+              images: {
+                where: eq(dreamBookImages.sequence, 1), // 첫 번째 이미지만 가져옴 (썸네일용)
+                limit: 1
+              }
+            }
+          });
+          
+          console.log(`[갤러리 API] 태몽동화 탭: ${dreamBooks.length}개 태몽동화 로드됨`);
+          
+          // 태몽동화 아이템을 갤러리 아이템으로 변환
+          galleryItems = dreamBooks.map(book => {
+            // 썸네일 이미지 URL (첫 번째 이미지)
+            const thumbnailUrl = book.images && book.images.length > 0 
+              ? book.images[0].imageUrl 
+              : '/placeholder-dreambook.png';
+              
+            return {
+              id: book.id,
+              title: decodeKoreanText(book.babyName + '의 태몽동화'),
+              type: "dreambook" as const,
+              url: `/dream-book/${book.id}`,
+              thumbnailUrl: thumbnailUrl,
+              createdAt: book.createdAt.toISOString(),
+              isFavorite: false,
+              isOwner: true,
+              userId: book.userId
+            };
+          });
+        } catch (error) {
+          console.error("[태몽동화 탭] 조회 중 오류:", error);
+          galleryItems = [];
+        }
       } else if (filter === "image") {
         try {
           // 이미지 탭에서 사용자별 필터링 구현
