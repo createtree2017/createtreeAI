@@ -160,7 +160,10 @@ export default function DreamBookDetailPage() {
                               className="object-contain w-full h-full"
                             />
                           </div>
-                          <p className="mt-4 text-center text-lg font-medium">장면 {index + 1}</p>
+                          <div className="mt-4 text-center">
+                            <p className="text-lg font-medium">장면 {index + 1}</p>
+                            <p className="mt-2 text-sm text-gray-600 whitespace-pre-line">{image.prompt}</p>
+                          </div>
                         </div>
                       </CarouselItem>
                     ))}
