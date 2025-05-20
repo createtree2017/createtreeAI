@@ -1,6 +1,6 @@
 import { db } from './db';
-import { imageStyles } from '@shared/schema';
-import { DREAM_BOOK_STYLES } from '@shared/dream-book';
+import { imageStyles } from './shared/schema';
+import { DREAM_BOOK_STYLES } from './shared/dream-book';
 
 // 태몽동화 스타일 목록을 데이터베이스에 추가하는 시드 스크립트
 async function seedImageStyles() {

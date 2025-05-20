@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { createDreamBookSchema, DREAM_BOOK_STYLES, DREAM_BOOK_DREAMERS, CreateDreamBookRequest } from '@shared/dream-book';
+import { createDreamBookSchema, DREAM_BOOK_DREAMERS, CreateDreamBookRequest } from '@shared/dream-book';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation } from 'wouter';
 import { Loader2 } from "lucide-react";
 import { useAuth } from '@/hooks/useAuth';
+import { useQuery } from '@tanstack/react-query';
 
 export default function CreateDreamBook() {
   const [creating, setCreating] = useState(false);
@@ -22,6 +23,16 @@ export default function CreateDreamBook() {
   const isAuthenticated = !!user;
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  
+  // 이미지 스타일 목록 가져오기
+  const { data: imageStyles, isLoading: isLoadingStyles } = useQuery({
+    queryKey: ['/api/image-styles'],
+    queryFn: async () => {
+      const response = await fetch('/api/image-styles');
+      if (!response.ok) throw new Error('이미지 스타일을 불러오는데 실패했습니다.');
+      return response.json();
+    }
+  });
 
   const form = useForm<CreateDreamBookRequest>({
     resolver: zodResolver(createDreamBookSchema),
@@ -29,7 +40,7 @@ export default function CreateDreamBook() {
       babyName: '',
       dreamer: 'mother',
       dreamContent: '',
-      style: 'watercolor',
+      style: 'watercolor', // 기본값 (API로부터 스타일 목록이 로드된 후 첫 번째 스타일로 업데이트됩니다)
     },
   });
 
@@ -43,6 +54,18 @@ export default function CreateDreamBook() {
       navigate('/login');
     }
   }, [isAuthenticated, navigate, toast]);
+  
+  // 스타일 목록이 로드되면 기본값 설정
+  React.useEffect(() => {
+    if (imageStyles && imageStyles.length > 0) {
+      // 기본 스타일 찾기 (수채화풍 또는 첫 번째 스타일)
+      const defaultStyle = imageStyles.find(style => 
+        style.name === '수채화풍' || style.name.includes('수채화')
+      ) || imageStyles[0];
+      
+      form.setValue('style', defaultStyle.name.toLowerCase());
+    }
+  }, [imageStyles, form]);
 
   const onSubmit = async (data: CreateDreamBookRequest) => {
     try {
@@ -224,11 +247,17 @@ export default function CreateDreamBook() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {DREAM_BOOK_STYLES.map((style) => (
-                          <SelectItem key={style.id} value={style.id}>
-                            {style.name} - {style.description}
-                          </SelectItem>
-                        ))}
+                        {isLoadingStyles ? (
+                          <SelectItem value="loading">불러오는 중...</SelectItem>
+                        ) : imageStyles && imageStyles.length > 0 ? (
+                          imageStyles.map(style => (
+                            <SelectItem key={style.id} value={style.name.toLowerCase()}>
+                              {style.name} - {style.description}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="none">스타일 없음</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
