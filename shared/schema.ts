@@ -770,6 +770,7 @@ export const campaignApplicationsRelations = relations(campaignApplications, ({ 
 // 이미지 스타일 정의 테이블 추가
 export const imageStyles = pgTable("image_styles", {
   id: serial("id").primaryKey(),
+  styleId: text("style_id").unique(), // 스타일 문자열 ID (예: 'ghibli', 'disney' 등)
   name: text("name").notNull(),
   description: text("description").notNull(),
   systemPrompt: text("system_prompt").notNull(),
@@ -782,6 +783,9 @@ export const imageStyles = pgTable("image_styles", {
 
 // 이미지 스타일 Zod 스키마 생성 (멀티라인 텍스트 허용으로 개선)
 export const insertImageStyleSchema = createInsertSchema(imageStyles, {
+  styleId: (schema) => schema
+    .min(2, "스타일 ID는 최소 2자 이상이어야 합니다")
+    .regex(/^[a-z0-9_-]+$/, "스타일 ID는 영문 소문자, 숫자, 하이픈, 언더스코어만 사용 가능합니다"),
   name: (schema) => schema.min(2, "이름은 최소 2자 이상이어야 합니다"),
   description: (schema) => schema.min(5, "설명은 최소 5자 이상이어야 합니다"),
   systemPrompt: (schema) => schema.min(10, "시스템 프롬프트는 최소 10자 이상이어야 합니다"),
