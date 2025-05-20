@@ -155,11 +155,12 @@ export default function DreamBookDetailPage() {
                         <div className="flex flex-col items-center p-1">
                           <div className="overflow-hidden rounded-lg w-full h-[50vh] flex items-center justify-center bg-black">
                             <img
-                              src={image.imageUrl || '/placeholder-dreambook.png'}
+                              src={`/api/dream-books/${dreamBook.id}/images/${image.sequence || index + 1}`}
                               alt={`장면 ${index + 1}`}
                               className="object-contain w-full h-full"
+                              onLoad={() => console.log("✅ 태몽동화 이미지 경로:", `/api/dream-books/${dreamBook.id}/images/${image.sequence || index + 1}`)}
                               onError={(e) => {
-                                console.error(`이미지 로드 실패: ${image.imageUrl}`);
+                                console.error(`태몽동화 상세 이미지 로드 실패: ID ${dreamBook.id}, 장면 ${index + 1}`);
                                 (e.target as HTMLImageElement).src = '/placeholder-dreambook.png';
                               }}
                             />

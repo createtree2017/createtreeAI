@@ -104,9 +104,15 @@ export default function DreamBookListPage() {
                   {coverImage ? (
                     <div className="relative h-48 overflow-hidden">
                       <img
-                        src={coverImage.imageUrl}
+                        src={`/api/dream-books/${dreamBook.id}/thumbnail`}
                         alt={`${dreamBook.babyName}의 태몽동화 표지`}
                         className="w-full h-full object-cover"
+                        onLoad={() => console.log("✅ 썸네일 경로:", `/api/dream-books/${dreamBook.id}/thumbnail`)}
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = "/placeholder-dreambook.png";
+                          console.error(`태몽동화 목록 이미지 로드 실패: ID ${dreamBook.id}`);
+                        }}
                       />
                     </div>
                   ) : (

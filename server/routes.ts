@@ -4843,6 +4843,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const dreamBookId = parseInt(req.params.id);
       const user = req.user as any;
       
+      console.log("📸 요청된 썸네일 bookId:", req.params.id);
+      
       console.log(`[태몽동화 이미지 프록시] ID: ${dreamBookId} 요청됨, 사용자: ${user?.id || '로그인 안됨'}`);
       
       // 태몽동화 정보 가져오기
@@ -4872,6 +4874,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let fetchUrl = dreamBookImage.imageUrl;
       console.log(`[태몽동화 이미지 프록시] 이미지 URL: ${fetchUrl.substring(0, 30)}...`);
+      console.log("📸 전달된 imageUrl:", fetchUrl.substring(0, 50) + "...");
       
       // Azure/OpenAI URL 인증을 위한 헤더 처리
       const headers = new Headers();
