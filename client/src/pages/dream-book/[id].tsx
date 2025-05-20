@@ -1,237 +1,181 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useParams, useLocation, useNavigate } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
-import { DreamBookWithImages } from '@shared/dream-book';
-import { useRoute, Link } from 'wouter';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, ArrowLeft, Share, ChevronLeft, ChevronRight } from "lucide-react";
-import { useAuth } from '@/hooks/useAuth';
-import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 
-export default function DreamBookDetailPage() {
-  const [match, params] = useRoute('/dream-book/:id');
+// UI 컴포넌트
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from '@/components/ui/carousel';
+import { Loader2, Home, Share } from 'lucide-react';
+import { toast, useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/lib/AuthProvider';
+
+export default function DreamBookDetail() {
+  const params = useParams<{ id: string }>();
+  const { id } = params;
+  const [, navigate] = useLocation();
   const { user } = useAuth();
-  const [activeSlide, setActiveSlide] = React.useState(0);
-
-  const { data: dreamBook, isLoading, error } = useQuery<DreamBookWithImages>({
-    queryKey: ['/api/dream-books', params?.id],
-    queryFn: async () => {
-      if (!params?.id) {
-        throw new Error('태몽동화 ID가 없습니다.');
-      }
-      
-      const response = await fetch(`/api/dream-books/${params.id}`, {
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error('태몽동화를 불러오는 중 오류가 발생했습니다.');
-      }
-      
-      return await response.json();
-    },
-    enabled: !!params?.id,
+  
+  const { data: dreamBook, isLoading, error } = useQuery({
+    queryKey: [`/api/dream-books/${id}`],
+    enabled: !!id,
   });
 
-  // 꿈을 꾼 사람 이름 가져오기
-  const getDreamerName = (dreamerId: string) => {
-    const dreamerMap: Record<string, string> = {
-      'mother': '엄마',
-      'father': '아빠',
-      'grandmother_mom': '외할머니',
-      'grandmother_dad': '친할머니',
-      'grandfather_mom': '외할아버지',
-      'grandfather_dad': '친할아버지',
-      'relative': '친척',
-    };
-    return dreamerMap[dreamerId] || dreamerId;
+  const handleShare = async () => {
+    if (navigator.share && window.location.href) {
+      try {
+        await navigator.share({
+          title: `${dreamBook?.babyName}의 태몽동화`,
+          text: `${dreamBook?.dreamer}님이 꾼 태몽으로 만든 ${dreamBook?.babyName}의 동화를 확인해보세요!`,
+          url: window.location.href
+        });
+      } catch (err) {
+        toast({
+          title: '공유 실패',
+          description: '공유하는 도중 오류가 발생했습니다.',
+          variant: 'destructive'
+        });
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        toast({
+          title: '링크 복사됨',
+          description: '이 태몽동화의 주소가 클립보드에 복사되었습니다.'
+        });
+      } catch (err) {
+        toast({
+          title: '복사 실패',
+          description: '주소를 복사하는 도중 오류가 발생했습니다.',
+          variant: 'destructive'
+        });
+      }
+    }
   };
 
-  // 스타일 ID를 스타일 이름으로 변환
-  const getStyleName = (styleId: string | number) => {
-    // 데이터베이스 스타일 ID를 실제 스타일 이름으로 매핑
-    const styleIdMap: Record<string, string> = {
-      '1': '테스트',
-      '2': '지브리풍',
-      '3': '디즈니풍',
-      '4': '수채화풍',
-      '5': '사실적',
-      '6': '전통 한국화',
-    };
-    
-    const styleId_str = String(styleId);
-    return styleIdMap[styleId_str] || `스타일 ${styleId_str}`;
-  };
-
-  const sortedImages = dreamBook?.images
-    ? [...dreamBook.images].sort((a, b) => a.sequence - b.sequence)
-    : [];
+  if (!user) {
+    return (
+      <div className="container mx-auto py-10 px-4">
+        <Card>
+          <CardContent className="p-6 text-center">
+            <h2 className="text-2xl font-bold mb-4">로그인이 필요합니다</h2>
+            <p className="text-gray-500 mb-6">태몽동화를 보기 위해서는 로그인이 필요합니다.</p>
+            <Button onClick={() => navigate('/login')}>로그인 페이지로 이동</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
-      <div className="container mx-auto py-8 px-4 flex justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="container mx-auto py-10 px-4 flex flex-col items-center justify-center min-h-[50vh]">
+        <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
+        <p>태몽동화를 불러오는 중...</p>
       </div>
     );
   }
 
   if (error || !dreamBook) {
     return (
-      <div className="container mx-auto py-8 px-4">
-        <div className="max-w-4xl mx-auto">
-          <Button asChild variant="ghost" className="mb-4">
-            <Link href="/dream-book">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              목록으로 돌아가기
-            </Link>
-          </Button>
-
-          <Card className="mb-8">
-            <CardContent className="pt-6">
-              <p className="text-red-500">태몽동화를 불러오는 중 오류가 발생했습니다.</p>
-              <Button asChild className="mt-4">
-                <Link href="/dream-book">목록으로 돌아가기</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="container mx-auto py-10 px-4">
+        <Card>
+          <CardContent className="p-6 text-center">
+            <h2 className="text-2xl font-bold mb-4">태몽동화를 찾을 수 없습니다</h2>
+            <p className="text-gray-500 mb-6">
+              요청하신 태몽동화를 불러오는 중 오류가 발생했거나 존재하지 않습니다.
+            </p>
+            <Button onClick={() => navigate('/dream-book')}>태몽동화 목록으로</Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        <Button asChild variant="ghost" className="mb-4">
-          <Link href="/dream-book">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            태몽동화 목록으로
-          </Link>
-        </Button>
+    <div className="container mx-auto py-10 px-4">
+      <div className="mb-8 flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">{dreamBook.babyName}의 태몽동화</h1>
+          <p className="text-gray-500 mt-2">
+            {dreamBook.dreamer}님이 꾼 태몽으로 만든 특별한 이야기
+          </p>
+          <p className="text-sm text-gray-400 mt-1">
+            생성일: {new Date(dreamBook.createdAt).toLocaleDateString('ko-KR')}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="icon" onClick={() => navigate('/dream-book')}>
+            <Home className="h-5 w-5" />
+          </Button>
+          <Button variant="outline" size="icon" onClick={handleShare}>
+            <Share className="h-5 w-5" />
+          </Button>
+        </div>
+      </div>
 
-        <Card className="mb-8">
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-3xl">{dreamBook.babyName}의 태몽동화</CardTitle>
-              <Button variant="outline" size="icon" onClick={() => {
-                if (navigator.share) {
-                  navigator.share({
-                    title: `${dreamBook.babyName}의 태몽동화`,
-                    text: '태몽동화를 확인해보세요!',
-                    url: window.location.href,
-                  }).catch(err => console.error('공유 실패:', err));
-                }
-              }}>
-                <Share className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="flex flex-col sm:flex-row sm:justify-between text-sm text-muted-foreground mt-2">
-              <p>{getDreamerName(dreamBook.dreamer)}의 꿈 | {getStyleName(dreamBook.style)} 스타일</p>
-              <p>작성일: {format(new Date(dreamBook.createdAt), 'yyyy년 MM월 dd일', { locale: ko })}</p>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="prose max-w-none mb-8">
-              <p className="whitespace-pre-line">{dreamBook.summaryText}</p>
-            </div>
-
-            {sortedImages.length > 0 && (
-              <div className="mt-8">
-                <h3 className="text-xl font-bold mb-4">태몽동화 장면</h3>
-                
-                <Carousel className="w-full"
-                  onSelect={(index) => setActiveSlide(index)}
-                  opts={{
-                    loop: true,
-                  }}>
-                  <CarouselContent>
-                    {sortedImages.map((image, index) => (
-                      <CarouselItem key={image.id}>
-                        <div className="flex flex-col items-center p-1">
-                          <div className="overflow-hidden rounded-lg w-full h-[50vh] flex items-center justify-center bg-black">
-                            {image.imageUrl ? (
-                              <img
-                                src={image.imageUrl}
-                                alt={`장면 ${index + 1}`}
-                                className="object-contain w-full h-full"
-                                onError={(e) => {
-                                  e.currentTarget.src = 'https://placehold.co/600x400/e74c3c/ffffff?text=이미지+로딩+실패';
-                                  console.error('이미지 로딩 실패:', image.imageUrl);
-                                }}
-                              />
-                            ) : (
-                              <div className="flex flex-col items-center justify-center text-white">
-                                <p className="text-xl mb-2">이미지를 불러올 수 없습니다</p>
-                                <p className="text-sm text-gray-400">이미지 URL이 없거나 접근할 수 없습니다</p>
-                              </div>
-                            )}
-                          </div>
-                          <div className="mt-4 text-center">
-                            <p className="text-lg font-medium">장면 {index + 1}</p>
-                            <div className="mt-2 bg-purple-800 p-3 rounded shadow-lg">
-                              <p className="text-sm text-white font-medium whitespace-pre-line max-h-32 overflow-y-auto">{image.prompt}</p>
+      <div className="mb-10">
+        <Carousel className="w-full max-w-3xl mx-auto">
+          <CarouselContent>
+            {dreamBook.scenes.map((scene, index) => (
+              <CarouselItem key={index}>
+                <Card className="overflow-hidden">
+                  <div className="relative aspect-[4/3] bg-gray-100 overflow-hidden">
+                    <img
+                      src={scene.imageUrl || '/static/uploads/dream-books/error.png'} 
+                      alt={`태몽동화 장면 ${index + 1}`}
+                      className="object-cover w-full h-full"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = '/static/uploads/dream-books/error.png';
+                      }}
+                    />
+                  </div>
+                  <CardContent className="p-6">
+                    <div className="grid gap-4">
+                      <div>
+                        <h3 className="text-xl font-semibold mb-2">장면 {index + 1}</h3>
+                        <p className="text-gray-700 whitespace-pre-line">{scene.scenePrompt}</p>
+                      </div>
+                      
+                      {(scene.backgroundPrompt || scene.characterPrompt) && (
+                        <div className="mt-4 text-sm text-gray-500 border-t pt-4 space-y-2">
+                          {scene.backgroundPrompt && (
+                            <div>
+                              <span className="font-medium">배경:</span> {scene.backgroundPrompt}
                             </div>
-                          </div>
+                          )}
+                          {scene.characterPrompt && (
+                            <div>
+                              <span className="font-medium">인물:</span> {scene.characterPrompt}
+                            </div>
+                          )}
                         </div>
-                      </CarouselItem>
-                    ))}
-                  </CarouselContent>
-                  <CarouselPrevious className="hidden sm:flex" />
-                  <CarouselNext className="hidden sm:flex" />
-                </Carousel>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious className="absolute left-0 -translate-x-1/2" />
+          <CarouselNext className="absolute right-0 translate-x-1/2" />
+        </Carousel>
+      </div>
 
-                <div className="flex justify-center mt-4 gap-4 sm:hidden">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => {
-                      const prev = activeSlide - 1 < 0 ? sortedImages.length - 1 : activeSlide - 1;
-                      setActiveSlide(prev);
-                      document.querySelectorAll('.carousel-item')[prev].scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'nearest',
-                        inline: 'center'
-                      });
-                    }}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <span className="flex items-center">
-                    {activeSlide + 1} / {sortedImages.length}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => {
-                      const next = (activeSlide + 1) % sortedImages.length;
-                      setActiveSlide(next);
-                      document.querySelectorAll('.carousel-item')[next].scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'nearest',
-                        inline: 'center'
-                      });
-                    }}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
-            
-            <div className="flex justify-center mt-8">
-              <Button asChild>
-                <Link href="/dream-book/create">
-                  새 태몽동화 만들기
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="flex justify-center gap-4 mt-10">
+        <Button variant="outline" onClick={() => navigate('/dream-book')}>
+          목록으로 돌아가기
+        </Button>
+        <Button onClick={() => navigate('/dream-book/create')}>
+          새 태몽동화 만들기
+        </Button>
       </div>
     </div>
   );

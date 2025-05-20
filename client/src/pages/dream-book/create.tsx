@@ -1,347 +1,533 @@
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { createDreamBookSchema, DREAM_BOOK_DREAMERS, DREAM_BOOK_STYLES, CreateDreamBookRequest } from '@shared/dream-book';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { useToast } from "@/hooks/use-toast";
+import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
-import { Loader2 } from "lucide-react";
-import { useAuth } from '@/hooks/useAuth';
-import { useQuery } from '@tanstack/react-query';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 
+// UI 컴포넌트
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { FileUpload } from '@/components/ui/file-upload';
+import { Loader2, AlertCircle } from 'lucide-react';
+
+// 유틸리티
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
+import { AuthProvider, useAuth } from '@/lib/AuthProvider';
+
+// 스키마 정의
+const dreamBookSchema = z.object({
+  babyName: z.string().min(1, '아기 이름을 입력해주세요'),
+  dreamer: z.string().min(1, '꿈을 꾼 사람을 입력해주세요'),
+  styleId: z.string().min(1, '스타일을 선택해주세요'),
+  scenes: z.array(
+    z.object({
+      backgroundPrompt: z.string().optional(),
+      characterPrompt: z.string().optional(),
+      scenePrompt: z.string().min(1, '장면 묘사를 입력해주세요'),
+    })
+  ).length(4, '4개의 장면이 필요합니다'),
+});
+
+// 태몽동화 생성 페이지
 export default function CreateDreamBook() {
-  const [creating, setCreating] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [statusMessage, setStatusMessage] = useState('');
-  const [promptsCount, setPromptsCount] = useState(1); // 처음에는 1개 프롬프트만 표시
-  const { user } = useAuth();
-  const isAuthenticated = !!user;
-  const [, navigate] = useLocation();
+  const [activeScene, setActiveScene] = useState(0);
+  const [characterImage, setCharacterImage] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isCharacterDialogOpen, setIsCharacterDialogOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { toast } = useToast();
-  
+  const [, navigate] = useLocation();
+  const { user } = useAuth();
+
   // 이미지 스타일 목록 가져오기
-  const { data: imageStyles, isLoading: isLoadingStyles } = useQuery({
+  const { data: styles, isLoading: isLoadingStyles } = useQuery({
     queryKey: ['/api/image-styles'],
-    queryFn: async () => {
-      const response = await fetch('/api/image-styles');
-      if (!response.ok) throw new Error('이미지 스타일을 불러오는데 실패했습니다.');
-      return response.json();
-    }
   });
 
-  // 타입 정의를 추가하여 TS 오류 해결 - 스타일 ID를 문자열로 수정
-  type FormValues = {
-    babyName: string;
-    dreamer: string;
-    prompts: string[];
-    style: string; // 문자열 ID로 변경 ('ghibli', 'disney' 등)
-  };
-
-  const form = useForm<FormValues>({
-    resolver: zodResolver(createDreamBookSchema),
+  // 폼 설정
+  const form = useForm<z.infer<typeof dreamBookSchema>>({
+    resolver: zodResolver(dreamBookSchema),
     defaultValues: {
       babyName: '',
-      dreamer: 'mother',
-      prompts: [''], // 초기에는 1개의 빈 프롬프트 입력란
-      style: 'ghibli', // 기본값으로 '지브리풍' 스타일 선택 (문자열 ID)
+      dreamer: '',
+      styleId: '',
+      scenes: [
+        { backgroundPrompt: '', characterPrompt: '', scenePrompt: '' },
+        { backgroundPrompt: '', characterPrompt: '', scenePrompt: '' },
+        { backgroundPrompt: '', characterPrompt: '', scenePrompt: '' },
+        { backgroundPrompt: '', characterPrompt: '', scenePrompt: '' },
+      ],
     },
   });
 
-  React.useEffect(() => {
-    if (!isAuthenticated) {
-      toast({
-        title: "로그인이 필요합니다",
-        description: "태몽동화를 만들기 위해 로그인해주세요.",
-        variant: "destructive",
-      });
-      navigate('/login');
-    }
-  }, [isAuthenticated, navigate, toast]);
-  
-  // 스타일 목록이 로드되면 기본값 설정
-  // 프롬프트 추가 함수
-  const addPrompt = () => {
-    if (promptsCount < 4) {
-      const currentPrompts = form.getValues().prompts;
-      form.setValue('prompts', [...currentPrompts, '']);
-      setPromptsCount(promptsCount + 1);
-    } else {
-      toast({
-        title: "최대 컷 수 제한",
-        description: "최대 4개의 장면까지만 추가할 수 있습니다.",
-        variant: "default",
-      });
-    }
-  };
-  
-  // 이제 DREAM_BOOK_STYLES 상수를 직접 사용하므로 필요없는 useEffect 제거
-  // 폼 기본값에서 직접 'ghibli'(지브리풍) 스타일 ID 사용
+  // 스타일 변경 시 캐릭터 이미지 초기화
+  const selectedStyleId = form.watch('styleId');
+  useEffect(() => {
+    setCharacterImage(null);
+  }, [selectedStyleId]);
 
-  const onSubmit = async (data: FormValues) => {
-    try {
-      // 빈 프롬프트 확인
-      const nonEmptyPrompts = data.prompts.filter(p => p.trim() !== '');
-      if (nonEmptyPrompts.length === 0) {
-        toast({
-          title: "입력 오류",
-          description: "최소 한 개 이상의 장면 프롬프트를 입력해주세요.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setCreating(true);
-      setProgress(0);
-      setStatusMessage('태몽동화 생성을 시작합니다...');
-
-      // 실제 제출할 데이터 준비 (빈 프롬프트 제거)
-      const submitData = {
-        ...data,
-        prompts: nonEmptyPrompts,
-        style: String(data.style)
-      };
-
-      console.log('제출 데이터:', submitData);
-
-      // POST 요청 보내기
-      const response = await fetch('/api/dream-books', {
+  // 사용자 사진으로 캐릭터 생성 뮤테이션
+  const generateCharacterMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      return apiRequest('/api/dream-books/character', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(submitData),
+        formData
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || '태몽동화 생성 중 오류가 발생했습니다.');
-      }
-
-      // SSE(Server-Sent Events) 방식으로 진행 상황 받기
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error('응답을 읽을 수 없습니다.');
-      }
-
-      // 응답 처리
-      const decoder = new TextDecoder();
-      
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n\n');
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.substring(6));
-              setProgress(data.progress);
-              setStatusMessage(data.message);
-              
-              // 타입별 토스트 메시지 표시 (warning, error 등)
-              if (data.type === 'error') {
-                toast({
-                  title: "알림",
-                  description: data.message,
-                  variant: "destructive",
-                });
-              } else if (data.type === 'warning') {
-                toast({
-                  title: "주의",
-                  description: data.message,
-                  variant: "default",
-                });
-              }
-              
-              if (data.completed) {
-                if (data.success === false) {
-                  throw new Error(data.error || '태몽동화 생성 중 오류가 발생했습니다.');
-                }
-                
-                toast({
-                  title: "태몽동화 생성 완료",
-                  description: "성공적으로 태몽동화를 생성했습니다!",
-                });
-                
-                // 생성된 태몽동화 페이지로 이동
-                navigate(`/dream-book/${data.result.id}`);
-                return;
-              }
-            } catch (e) {
-              console.error('이벤트 데이터 파싱 오류:', e);
-            }
-          }
-        }
-      }
-    } catch (error) {
+    },
+    onSuccess: (data) => {
+      setCharacterImage(data.imageUrl);
+      setIsCharacterDialogOpen(false);
       toast({
-        title: "오류 발생",
-        description: error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.',
-        variant: "destructive",
+        title: '캐릭터 생성 완료',
+        description: '태몽동화에 사용될 캐릭터가 생성되었습니다.'
       });
-    } finally {
-      setCreating(false);
+    },
+    onError: (error) => {
+      toast({
+        title: '오류 발생',
+        description: '캐릭터 생성 중 오류가 발생했습니다. 다시 시도해주세요.',
+        variant: 'destructive'
+      });
+      console.error('Character generation error:', error);
     }
+  });
+
+  // 태몽동화 생성 뮤테이션
+  const createDreamBookMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof dreamBookSchema>) => {
+      const payload = {
+        ...data,
+        characterImageUrl: characterImage
+      };
+      return apiRequest('/api/dream-books', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+    onSuccess: (data) => {
+      setIsGenerating(false);
+      toast({
+        title: '태몽동화 생성 완료',
+        description: '태몽동화가 성공적으로 생성되었습니다.'
+      });
+      navigate(`/dream-book/${data.id}`);
+    },
+    onError: (error) => {
+      setIsGenerating(false);
+      toast({
+        title: '오류 발생',
+        description: '태몽동화 생성 중 오류가 발생했습니다. 다시 시도해주세요.',
+        variant: 'destructive'
+      });
+      console.error('Dream book creation error:', error);
+    }
+  });
+
+  // 캐릭터 생성 처리
+  const handleGenerateCharacter = () => {
+    if (!selectedFile || !selectedStyleId) {
+      toast({
+        title: '입력 확인',
+        description: '사진과 스타일을 모두 선택해주세요.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('image', selectedFile);
+    formData.append('styleId', selectedStyleId);
+    generateCharacterMutation.mutate(formData);
   };
 
-  return (
-    <div className="container mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold text-center mb-8">태몽동화 만들기</h1>
-      <div className="max-w-2xl mx-auto">
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>태몽동화란?</CardTitle>
-            <CardDescription>
-              임신 중 꾸었던 태몽을 아름다운 동화로 재구성해 드립니다. 
-              아기의 이름, 꿈을 꾼 사람, 각 장면의 내용을 직접 입력하면 AI가 최대 4개의 장면으로 이루어진 동화를 만들어 드립니다.
-            </CardDescription>
-          </CardHeader>
-        </Card>
+  // 파일 선택 처리
+  const handleFileSelected = (file: File) => {
+    setSelectedFile(file);
+  };
 
-        {creating ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>태몽동화 생성 중...</CardTitle>
-              <CardDescription>잠시만 기다려주세요. 약 1~2분 정도 소요됩니다.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <Progress value={progress} className="w-full" />
-                <p className="text-center text-muted-foreground">{statusMessage}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+  // 복사 처리: 이전 장면의 배경/인물 프롬프트를 현재 장면으로
+  const copyFromPreviousScene = () => {
+    if (activeScene === 0) return;
+    
+    const currentScenes = form.getValues('scenes');
+    const previousScene = currentScenes[activeScene - 1];
+    const currentScene = currentScenes[activeScene];
+    
+    form.setValue(`scenes.${activeScene}.backgroundPrompt`, 
+      currentScene.backgroundPrompt || previousScene.backgroundPrompt || '');
+    form.setValue(`scenes.${activeScene}.characterPrompt`, 
+      currentScene.characterPrompt || previousScene.characterPrompt || '');
+  };
+
+  // 폼 제출 처리
+  const onSubmit = async (values: z.infer<typeof dreamBookSchema>) => {
+    if (!user) {
+      toast({
+        title: '로그인 필요',
+        description: '태몽동화를 생성하려면 로그인이 필요합니다.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    createDreamBookMutation.mutate(values);
+  };
+
+  // 스타일 선택 및 캐릭터 생성 섹션
+  const renderStyleAndCharacterSection = () => (
+    <div className="space-y-6">
+      <Card>
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-lg font-medium mb-4">스타일 선택</h3>
               <FormField
                 control={form.control}
-                name="babyName"
+                name="styleId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>아기 이름</FormLabel>
-                    <FormControl>
-                      <Input placeholder="아기의 이름을 입력해주세요" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="dreamer"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>꿈을 꾼 사람</FormLabel>
-                    <Select
+                    <FormLabel>이미지 스타일</FormLabel>
+                    <Select 
+                      value={field.value} 
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      disabled={isLoadingStyles}
                     >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="꿈을 꾼 사람을 선택해주세요" />
-                        </SelectTrigger>
-                      </FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="스타일을 선택해주세요" />
+                      </SelectTrigger>
                       <SelectContent>
-                        {DREAM_BOOK_DREAMERS.map((dreamer) => (
-                          <SelectItem key={dreamer.id} value={dreamer.id}>
-                            {dreamer.name}
+                        {styles?.map((style: any) => (
+                          <SelectItem key={style.styleId} value={style.styleId}>
+                            {style.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                    <FormDescription>
+                      태몽동화의 시각적 스타일을 선택해주세요.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
-              {/* 장면 프롬프트 입력 - 동적으로 표시 */}
-              {Array.from({ length: promptsCount }).map((_, index) => (
-                <FormField
-                  key={`prompt-${index}`}
-                  control={form.control}
-                  name={`prompts.${index}`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>장면 {index + 1} 프롬프트 입력</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder={index === 0 
-                            ? "첫 번째 장면 프롬프트를 입력해주세요 (예: 하늘을 나는 흰 토끼가 분홍 구름 사이를 헤엄치는 장면)" 
-                            : `${index + 1}번째 장면 프롬프트를 입력해주세요 (선택사항)`}
-                          className="min-h-[100px]"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              ))}
-              
-              {/* 컷 추가 버튼 */}
-              <div className="flex justify-center">
-                <Button 
-                  type="button"
-                  variant="outline"
-                  className="mt-2"
-                  onClick={addPrompt}
-                  disabled={promptsCount >= 4}
-                >
-                  + 컷 추가 (현재 {promptsCount}/4)
-                </Button>
-              </div>
-
-              <FormField
-                control={form.control}
-                name="style"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>동화 스타일</FormLabel>
-                    <Select
-                      onValueChange={(val) => field.onChange(val)}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="동화 이미지 스타일을 선택해주세요" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {isLoadingStyles ? (
-                          <SelectItem value="loading">불러오는 중...</SelectItem>
-                        ) : (
-                          // DREAM_BOOK_STYLES에서 직접 가져온 스타일 ID 사용 (데이터베이스 ID 대신)
-                          DREAM_BOOK_STYLES.map((style) => (
-                            <SelectItem key={style.id} value={style.id}>
-                              {style.name} - {style.description}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <Button type="submit" className="w-full" disabled={creating}>
-                {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                태몽동화 만들기
+            </div>
+            <div>
+              <h3 className="text-lg font-medium mb-4">캐릭터 생성 (선택사항)</h3>
+              <Button 
+                onClick={() => setIsCharacterDialogOpen(true)}
+                disabled={!selectedStyleId}
+                variant="outline"
+                className="w-full"
+              >
+                사진으로 캐릭터 생성하기
               </Button>
-            </form>
-          </Form>
-        )}
+              {characterImage && (
+                <div className="mt-4">
+                  <p className="text-sm mb-2">생성된 캐릭터:</p>
+                  <div className="rounded-md overflow-hidden border w-24 h-24">
+                    <img 
+                      src={characterImage} 
+                      alt="생성된 캐릭터" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  // 기본 정보 섹션
+  const renderBasicInfoSection = () => (
+    <div className="space-y-6">
+      <Card>
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              control={form.control}
+              name="babyName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>아기 이름</FormLabel>
+                  <FormControl>
+                    <Input placeholder="아기 이름을 입력해주세요" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    태몽동화에 등장할 아기의 이름입니다.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="dreamer"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>꿈을 꾼 사람</FormLabel>
+                  <FormControl>
+                    <Input placeholder="꿈을 꾼 사람의 이름을 입력해주세요" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    태몽을 꾼 사람의 이름이나 관계를 입력하세요 (예: 엄마, 아빠, 할머니).
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  // 장면 입력 탭 콘텐츠
+  const renderSceneTabContent = (sceneIndex: number) => (
+    <TabsContent value={sceneIndex.toString()} className="mt-6">
+      <Card>
+        <CardContent className="p-6">
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-medium">장면 {sceneIndex + 1} 설정</h3>
+              {sceneIndex > 0 && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={copyFromPreviousScene}
+                >
+                  이전 장면에서 복사
+                </Button>
+              )}
+            </div>
+            
+            <FormField
+              control={form.control}
+              name={`scenes.${sceneIndex}.backgroundPrompt`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>배경 묘사 (선택사항)</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="배경에 대한 묘사를 입력해주세요. 예: 하늘을 나는 고래들이 있는 환상적인 바다 위의 구름 세계"
+                      {...field}
+                      rows={2}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    이 장면의 배경 환경을 자세히 묘사해주세요.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name={`scenes.${sceneIndex}.characterPrompt`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>인물 묘사 (선택사항)</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="인물에 대한 묘사를 입력해주세요. 예: 푸른 잠옷을 입고 행복하게 웃고 있는 아기"
+                      {...field}
+                      rows={2}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    이 장면에 등장하는 인물을 자세히 묘사해주세요.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name={`scenes.${sceneIndex}.scenePrompt`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>장면 묘사 (필수)</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="이 장면에서 일어나는 상황을 설명해주세요. 예: 아기가 고래를 타고 구름 위를 날아다니며 신기한 별들을 만지고 있다"
+                      {...field}
+                      rows={4}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    이 장면에서 일어나는 상황을 자세히 설명해주세요.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </CardContent>
+      </Card>
+    </TabsContent>
+  );
+
+  if (!user) {
+    return (
+      <div className="container mx-auto py-10">
+        <div className="flex items-center justify-center h-[50vh]">
+          <Card className="w-full max-w-md">
+            <CardContent className="p-6 text-center">
+              <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
+              <h2 className="text-xl font-bold mb-4">로그인이 필요합니다</h2>
+              <p className="text-gray-500 mb-6">
+                태몽동화를 생성하기 위해서는 로그인이 필요합니다.
+              </p>
+              <Button 
+                className="w-full"
+                onClick={() => navigate('/login')}
+              >
+                로그인 페이지로 이동
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto py-10">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold">태몽동화 만들기</h1>
+        <p className="text-gray-500 mt-2">
+          태몽으로 아기의 이야기를 만들어보세요. 4개의 장면으로 구성된 동화책을 생성합니다.
+        </p>
+      </div>
+
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          {renderStyleAndCharacterSection()}
+          {renderBasicInfoSection()}
+
+          <div className="space-y-6">
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="text-lg font-medium mb-4">태몽동화 장면 구성</h3>
+                <Tabs
+                  defaultValue="0"
+                  value={activeScene.toString()}
+                  onValueChange={(value) => setActiveScene(parseInt(value))}
+                >
+                  <TabsList className="w-full justify-start mb-4">
+                    <TabsTrigger value="0">장면 1</TabsTrigger>
+                    <TabsTrigger value="1">장면 2</TabsTrigger>
+                    <TabsTrigger value="2">장면 3</TabsTrigger>
+                    <TabsTrigger value="3">장면 4</TabsTrigger>
+                  </TabsList>
+                  {[0, 1, 2, 3].map((index) => renderSceneTabContent(index))}
+                </Tabs>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="flex justify-end">
+            <Button
+              type="submit"
+              disabled={isGenerating}
+              size="lg"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  태몽동화 생성 중...
+                </>
+              ) : (
+                "태몽동화 생성하기"
+              )}
+            </Button>
+          </div>
+        </form>
+      </Form>
+
+      {/* 캐릭터 생성 다이얼로그 */}
+      <Dialog open={isCharacterDialogOpen} onOpenChange={setIsCharacterDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>사진으로 캐릭터 생성하기</DialogTitle>
+            <DialogDescription>
+              사진을 업로드하여 태몽동화에 사용할 캐릭터를 생성할 수 있습니다.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <p className="text-sm font-medium">사진 업로드</p>
+              <FileUpload 
+                accept="image/*"
+                maxSize={5 * 1024 * 1024} // 5MB
+                onFileSelect={handleFileSelected}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsCharacterDialogOpen(false)}
+            >
+              취소
+            </Button>
+            <Button 
+              onClick={handleGenerateCharacter}
+              disabled={generateCharacterMutation.isPending || !selectedFile}
+            >
+              {generateCharacterMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  생성 중...
+                </>
+              ) : (
+                "캐릭터 생성하기"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

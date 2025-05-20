@@ -1,0 +1,120 @@
+📌 [라플 전용 통합 작업지시서]
+창조AI 태몽동화 고도화 기능 개발 – 프롬프트 구조 + 캐릭터 참조 이미지 통합 방식
+🎯 개발 목표
+태몽동화 생성 시스템을 다음 기준에 맞춰 고도화하여
+사용자가 입력한 정보와 선택한 스타일, 업로드한 이미지 또는 샘플 이미지를 기반으로
+
+일관된 스타일과 캐릭터,
+
+정확한 장면 묘사,
+
+감성적이고 고품질의 결과 이미지를 생성할 수 있도록 한다.
+
+✅ 사용자 경험 흐름 요약
+사용자 사진 업로드 (선택사항)
+
+업로드 시: 해당 스타일로 캐릭터 생성
+
+업로드 안함 시: 관리자 등록된 스타일별 샘플 캐릭터 이미지를 사용
+
+태몽동화 정보 입력 (전 장면 공통)
+
+아기 이름
+
+꿈을 꾼 사람
+
+장면별 정보 입력 (1~4컷)
+
+배경 프롬프트 (첫 컷 필수, 이후 자동 이어받기 가능)
+
+인물 프롬프트 (첫 컷 필수, 이후 자동 이어받기 가능)
+
+상황 프롬프트 (컷별 스토리 설명)
+
+✅ 시스템 구조 요약
+1️⃣ 1차 캐릭터 생성 (선택 사항)
+항목	내용
+조건	사용자가 사진을 업로드했을 경우만
+처리 방식	기존 스티커 생성 로직 재사용
+스타일	사용자가 선택한 스타일 (지브리, 디즈니 등)
+시스템프롬프트 예시	
+
+text
+복사
+편집
+Create a portrait sticker of a cute baby character in the style of ${selectedStyle}.
+Make it resemble the uploaded photo.
+No background. Soft lighting and clean outline.
+| 출력 | characterImageUrl (e.g. /uploads/character/uuid.png) |
+
+→ 이 이미지는 이후 모든 장면의 systemPrompt에 참조 이미지로 사용됨
+
+2️⃣ 2차 태몽동화 장면 생성 (1~4컷)
+모든 장면 생성 시, 아래 구조를 기준으로 프롬프트 구성:
+
+✅ systemPrompt 예시
+text
+복사
+편집
+You are creating a dream story about a baby named ${babyName}, seen by ${dreamer}.
+Generate this image in the style of ${selectedStyle}.
+Use this image as the main character reference: ${characterImageUrl}.
+Ensure the baby character remains consistent across all scenes.
+✅ userPrompt 병합 예시
+text
+복사
+편집
+Background: ${backgroundPrompt}
+Character: ${characterPrompt}
+Situation: ${scenePrompt}
+→ 1~4컷 모두 동일한 systemPrompt 구조 사용
+→ 컷마다 userPrompt 값만 다르게 병합
+
+✅ 구현 항목 체크리스트 (라플 작업 항목)
+🛠 프론트엔드
+항목	내용
+사진 업로드 기능	선택적. 없을 경우 스타일별 샘플 이미지 사용
+스타일 선택	디즈니, 지브리, 수채화 등
+장면별 프롬프트 입력 UI	배경 / 인물 / 상황 분리 입력, 예시 버튼 포함
+이전 프롬프트 자동 이어받기	2~4컷에서 미입력 시 이전값 복사 처리
+캐릭터 미리보기	1차 캐릭터 생성 후 썸네일 표시 가능 (선택사항)
+
+🛠 백엔드
+항목	설명
+1차 캐릭터 생성 API	기존 스티커 시스템 재사용 + 저장된 URL 반환
+스타일별 샘플 이미지	/style-samples/{styleId}.png 같은 경로에 등록
+2차 컷 생성 API	GPT-Image-1 호출 / systemPrompt + userPrompt 조합
+이미지 저장	/uploads/dream-books/{bookId}/{sceneIndex}.png
+캐릭터 참조 이미지 전달	GPT systemPrompt 내 포함 (프롬프트 조립 시 삽입)
+
+🛠 DB 구조
+필드	설명
+characterImageUrl	업로드 또는 샘플 캐릭터 이미지 URL
+styleId	선택한 스타일 ID
+scenes[]	각 장면별 배경, 인물, 상황 프롬프트 및 생성된 imageUrl
+
+✅ 예외 및 fallback 처리
+상황	처리 방식
+사진 업로드 없음	스타일별 샘플 이미지 자동 지정
+프롬프트 일부 미입력	이전 장면 값 자동 복사
+캐릭터 생성 실패	샘플 이미지로 fallback
+
+📋 보고 항목
+ 프론트 프롬프트 UI 구조 캡처 (1컷~4컷)
+
+ 1차 캐릭터 생성 결과 및 저장된 URL
+
+ 장면별 systemPrompt + userPrompt 조합 로그
+
+ 동화 4컷 생성 결과 이미지
+
+ 캐릭터 일관성 여부 시각적 확인
+
+⚠️ 주의사항
+✅ 시스템프롬프트는 1차(캐릭터 생성)와 2차(장면 생성) 완전히 다르게 구성됨
+✅ 2차 systemPrompt에는 반드시 참조 이미지 URL 포함
+✅ 캐릭터 이미지에는 배경이 없어야 하며, 인물 중심으로 생성할 것
+✅ 프롬프트 분리 입력과 샘플 이미지 fallback 로직은 모든 장면에 동일하게 적용되어야 함
+
+이 구조를 기준으로 태몽동화 생성 페이지를 프롬프트 중심의 고도화된 감성 콘텐츠 생성기로 전환하라.
+단계별 결과 및 화면 캡처 포함하여 보고하라.
