@@ -4837,6 +4837,127 @@ export async function registerRoutes(app: Express): Promise<Server> {
   console.log("태몽동화 라우터가 등록되었습니다 (/api/dream-books)");
   
   // 태몽동화 썸네일 이미지 프록시 직접 등록 (Azure Blob Storage 인증 해결)
+  
+  // 태몽동화 개별 이미지 프록시 API 등록
+  app.get("/api/dream-books/:id/images/:sequence", async (req, res) => {
+    try {
+      const dreamBookId = parseInt(req.params.id);
+      const sequence = parseInt(req.params.sequence);
+      const user = req.user as any;
+      
+      console.log(`📸 요청된 태몽동화 이미지 (bookId: ${req.params.id}, 장면번호: ${req.params.sequence})`);
+      
+      // 태몽동화 관련 스키마 임포트
+      const { dreamBooks, dreamBookImages } = await import('@shared/dream-book');
+      const { eq, and } = await import('drizzle-orm');
+      
+      // 해당 태몽동화의 특정 시퀀스 이미지 조회
+      const dreamBookImage = await db.query.dreamBookImages.findFirst({
+        where: and(
+          eq(dreamBookImages.dreamBookId, dreamBookId),
+          eq(dreamBookImages.sequence, sequence)
+        ),
+        with: {
+          dreamBook: true
+        }
+      });
+      
+      // 시퀀스로 찾지 못한 경우 인덱스로 시도 (배열 인덱스는 0부터, 시퀀스는 1부터 시작)
+      const getImageByIndex = !dreamBookImage && sequence > 0;
+      
+      let fetchImage = dreamBookImage;
+      
+      if (getImageByIndex) {
+        // 특정 시퀀스를 찾지 못했다면 해당 태몽동화의 모든 이미지를 가져와서 인덱스로 접근
+        const allImages = await db.query.dreamBookImages.findMany({
+          where: eq(dreamBookImages.dreamBookId, dreamBookId),
+          orderBy: [{ column: dreamBookImages.sequence, order: 'asc' }],
+          with: {
+            dreamBook: true
+          }
+        });
+        
+        if (allImages.length >= sequence) {
+          fetchImage = allImages[sequence - 1]; // 인덱스는 0부터, 시퀀스는 1부터 시작
+        }
+      }
+      
+      if (!fetchImage) {
+        console.error(`[태몽동화 이미지 프록시] 이미지 찾을 수 없음: 태몽동화 ID ${dreamBookId}, 장면번호 ${sequence}`);
+        return res.status(404).sendFile(path.join(process.cwd(), 'static', 'placeholder-dreambook.png'));
+      }
+      
+      // dreamBookImage가 있지만 dreamBook이 없는 경우 별도로 조회
+      if (!fetchImage.dreamBook) {
+        const book = await db.query.dreamBooks.findFirst({
+          where: eq(dreamBooks.id, dreamBookId)
+        });
+        
+        if (!book) {
+          console.error(`[태몽동화 이미지 프록시] 태몽동화를 찾을 수 없음: ID ${dreamBookId}`);
+          return res.status(404).sendFile(path.join(process.cwd(), 'static', 'placeholder-dreambook.png'));
+        }
+        
+        fetchImage.dreamBook = book;
+      }
+      
+      // 현재 사용자가 태몽동화 작성자이거나 관리자가 아니고 비공개 태몽동화인 경우 접근 제한
+      if (!fetchImage.dreamBook.isPublic && 
+          user?.id !== fetchImage.dreamBook.userId && 
+          user?.role !== 'admin') {
+        console.error(`[태몽동화 이미지 프록시] 권한 없음: 사용자 ${user?.id}는 태몽동화 ${dreamBookId}에 접근할 수 없음`);
+        return res.status(403).sendFile(path.join(process.cwd(), 'static', 'placeholder-dreambook.png'));
+      }
+      
+      const fetchUrl = fetchImage.imageUrl;
+      console.log(`[태몽동화 이미지 프록시] 이미지 URL 가져오기 성공: ${fetchUrl.substring(0, 30)}...`);
+      
+      // 헤더 설정
+      const headers = new Headers();
+      if (fetchUrl.includes('openai.com')) {
+        headers.append('Authorization', `Bearer ${process.env.OPENAI_API_KEY}`);
+      }
+      
+      // 이미지 가져오기
+      try {
+        const response = await fetch(fetchUrl, { headers });
+        
+        if (!response.ok) {
+          console.error(`[태몽동화 이미지 프록시] 원본 서버 오류: ${response.status} ${response.statusText}`);
+          console.error(`[태몽동화 이미지 프록시] 응답 헤더:`, Object.fromEntries(response.headers.entries()));
+          console.error(`[태몽동화 이미지 프록시] 실패 URL:`, fetchUrl.substring(0, 50) + (fetchUrl.length > 50 ? '...' : ''));
+          
+          // 오류 정보를 로그에 자세히 남기기
+          try {
+            const errorText = await response.text();
+            console.error(`[태몽동화 이미지 프록시] 실패 응답 본문:`, errorText.substring(0, 500));
+          } catch (e) {
+            console.error(`[태몽동화 이미지 프록시] 실패 응답 본문 읽기 실패:`, e);
+          }
+          
+          return res.status(404).sendFile(path.join(process.cwd(), 'static', 'placeholder-dreambook.png'));
+        }
+        
+        // 이미지 데이터와 헤더 그대로 전달
+        const contentType = response.headers.get('content-type');
+        res.setHeader('Content-Type', contentType || 'image/jpeg');
+        
+        // 캐싱 헤더 추가
+        res.setHeader('Cache-Control', 'public, max-age=86400'); // 24시간 캐싱
+        
+        const buffer = await response.arrayBuffer();
+        return res.status(200).send(Buffer.from(buffer));
+      } catch (error) {
+        console.error('[태몽동화 이미지 프록시] 페치 오류:', error);
+        return res.status(500).sendFile(path.join(process.cwd(), 'static', 'placeholder-dreambook.png'));
+      }
+    } catch (error) {
+      console.error('[태몽동화 이미지 프록시] 서버 오류:', error);
+      return res.status(500).sendFile(path.join(process.cwd(), 'static', 'placeholder-dreambook.png'));
+    }
+  });
+  
+  // 태몽동화 썸네일 이미지 프록시 직접 등록 (Azure Blob Storage 인증 해결)
   app.get("/api/dream-books/:id/thumbnail", async (req, res) => {
     try {
       // 인증 검사 제거 (공개 갤러리 접근용)
