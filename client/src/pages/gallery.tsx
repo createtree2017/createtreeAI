@@ -12,7 +12,7 @@ import ImageDetailModal from "@/components/ImageDetailModal";
 interface GalleryItem {
   id: number;
   title: string;
-  type: "music" | "image" | "chat";
+  type: "music" | "image" | "chat" | "dreambook";
   url: string;
   thumbnailUrl?: string;
   duration?: number;
@@ -23,7 +23,7 @@ interface GalleryItem {
   isOwner?: boolean;    // 현재 로그인한 사용자가 소유자인지 여부
 }
 
-type FilterType = "all" | "music" | "image" | "chat" | "favorite" | "shared";
+type FilterType = "all" | "music" | "image" | "chat" | "favorite" | "shared" | "dreambook";
 
 export default function Gallery() {
   const [, setLocation] = useLocation();
@@ -231,6 +231,7 @@ export default function Gallery() {
     { type: "image", label: "이미지" },
     { type: "music", label: "노래" },
     { type: "chat", label: "채팅" },
+    { type: "dreambook", label: "태몽동화" },
     { type: "favorite", label: "즐겨찾기" },
     { type: "shared", label: "공유된 이미지" },
   ];
