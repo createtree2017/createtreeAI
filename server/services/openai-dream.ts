@@ -97,11 +97,28 @@ interface OpenAIImageGenerationResponse {
 /**
  * 태몽 내용을 바탕으로 동화 줄거리 생성
  */
+// 안전한 문자열 처리를 위한 유틸리티 함수
+function safeStringForJSON(input: string): string {
+  if (!input) return '';
+  // 특수 문자들을 이스케이프 처리
+  return input
+    .replace(/\\/g, '\\\\')    // 백슬래시
+    .replace(/"/g, '\\"')      // 큰따옴표
+    .replace(/\n/g, '\\n')     // 줄바꿈
+    .replace(/\r/g, '\\r')     // 캐리지 리턴
+    .replace(/\t/g, '\\t')     // 탭
+    .replace(/\f/g, '\\f');    // 폼 피드
+}
+
 export async function generateDreamStorySummary(
   dreamer: string,
   babyName: string,
   dreamContent: string
 ): Promise<string> {
+  // 입력 문자열 안전하게 처리
+  const safeDreamer = safeStringForJSON(dreamer);
+  const safeBabyName = safeStringForJSON(babyName);
+  const safeDreamContent = safeStringForJSON(dreamContent);
   try {
     // 입력값 유효성 검사 및 로깅
     if (!dreamer || !babyName || !dreamContent) {
