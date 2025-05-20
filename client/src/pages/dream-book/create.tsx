@@ -59,7 +59,7 @@ export default function CreateDreamBook() {
   React.useEffect(() => {
     if (imageStyles && imageStyles.length > 0) {
       // 기본 스타일 찾기 (수채화풍 또는 첫 번째 스타일)
-      const defaultStyle = imageStyles.find(style => 
+      const defaultStyle = imageStyles.find((style: {id: number, name: string, description: string}) => 
         style.name === '수채화풍' || style.name.includes('수채화')
       ) || imageStyles[0];
       
@@ -323,7 +323,7 @@ export default function CreateDreamBook() {
                         {isLoadingStyles ? (
                           <SelectItem value="loading">불러오는 중...</SelectItem>
                         ) : imageStyles && imageStyles.length > 0 ? (
-                          imageStyles.map(style => (
+                          imageStyles.map((style: {id: number, name: string, description: string}) => (
                             <SelectItem key={style.id} value={String(style.id)}>
                               {style.name} - {style.description}
                             </SelectItem>
