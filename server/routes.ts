@@ -4836,6 +4836,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/dream-books", dreamBookRouter);
   console.log("태몽동화 라우터가 등록되었습니다 (/api/dream-books)");
   
+  // 태몽동화 썸네일 이미지 프록시 직접 등록 (이슈 발생으로 인해 직접 등록)
+  app.get("/api/dream-books/:id/thumbnail", async (req, res) => {
+    try {
+      // 인증 검사 간소화 (갤러리 보기 용도)
+      const dreamBookId = parseInt(req.params.id);
+      
+      console.log(`[태몽동화 이미지 프록시] ID: ${dreamBookId} 요청됨`);
+      
+      // 태몽동화 정보 가져오기
+      const { dreamBooks, dreamBookImages } = await import('@shared/dream-book');
+      const { eq, asc } = await import('drizzle-orm');
+      
+      // 해당 태몽동화의 첫 번째 이미지(썸네일) 조회
+      const dreamBookImage = await db.query.dreamBookImages.findFirst({
+        where: eq(dreamBookImages.dreamBookId, dreamBookId),
+        orderBy: asc(dreamBookImages.sequence)
+      });
+      
+      if (!dreamBookImage) {
+        console.error(`[태몽동화 이미지 프록시] ID: ${dreamBookId}의 이미지를 찾을 수 없음`);
+        return res.status(404).sendFile(path.join(process.cwd(), 'static', 'placeholder-dreambook.png'));
+      }
+      
+      const imageUrl = dreamBookImage.imageUrl;
+      console.log(`[태몽동화 이미지 프록시] 이미지 URL: ${imageUrl.substring(0, 30)}...`);
+      
+      // 외부 이미지를 프록시
+      const response = await fetch(imageUrl);
+      
+      if (!response.ok) {
+        console.error(`[태몽동화 이미지 프록시] 원본 이미지 가져오기 실패: ${response.status}`);
+        return res.status(response.status).json({ error: '이미지를 가져오는 중 오류가 발생했습니다.' });
+      }
+      
+      // 이미지 데이터와 헤더 그대로 전달
+      const contentType = response.headers.get('content-type');
+      res.setHeader('Content-Type', contentType || 'image/jpeg');
+      
+      // 이미지 데이터를 스트림으로 전달
+      const imageData = await response.arrayBuffer();
+      res.end(Buffer.from(imageData));
+      
+    } catch (error) {
+      console.error("[태몽동화 이미지 프록시] 오류:", error);
+      return res.status(500).json({ error: '이미지를 가져오는 중 오류가 발생했습니다.' });
+    }
+  });
+  
   // 이미지 스타일 관리 라우터 등록
   app.use("/api/image-styles", imageStyleRouter);
   console.log("이미지 스타일 관리 라우터가 등록되었습니다 (/api/image-styles)");
