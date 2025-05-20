@@ -37,20 +37,19 @@ router.get('/', authMiddleware, async (req: express.Request, res: express.Respon
 router.get('/:id', authMiddleware, async (req: express.Request, res: express.Response) => {
   try {
     const { id } = req.params;
-    const userId = req.user?.id;
+    const userId = req.session?.userId;
     if (!userId) {
       return res.status(401).json({ error: '인증이 필요합니다.' });
     }
 
     const dreamBook = await db.query.dreamBooks.findFirst({
-      where: (dreamBooks, { and, eq }) => 
-        and(
-          eq(dreamBooks.id, parseInt(id)), 
-          eq(dreamBooks.userId, userId.toString())
-        ),
+      where: and(
+        eq(dreamBooks.id, parseInt(id)), 
+        eq(dreamBooks.userId, userId.toString())
+      ),
       with: {
         images: {
-          orderBy: (images, { asc }) => [asc(images.sequence)]
+          orderBy: [asc(dreamBookImages.sequence)]
         },
       },
     });
@@ -67,14 +66,14 @@ router.get('/:id', authMiddleware, async (req: express.Request, res: express.Res
 });
 
 // 태몽동화 생성
-router.post('/', isAuthenticated, async (req, res) => {
+router.post('/', authMiddleware, async (req: express.Request, res: express.Response) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.session?.userId;
     if (!userId) {
       return res.status(401).json({ error: '인증이 필요합니다.' });
     }
 
-    const hospitalId = req.user?.hospitalId;
+    const hospitalId = req.session?.hospitalId;
 
     // 입력 데이터 검증
     const validatedData = createDreamBookSchema.parse(req.body);
@@ -93,7 +92,7 @@ router.post('/', isAuthenticated, async (req, res) => {
     const sendStatus = (message: string, progress: number) => {
       status.message = message;
       status.progress = progress;
-      res.write(\`data: \${JSON.stringify(status)}\n\n\`);
+      res.write(`data: ${JSON.stringify(status)}\n\n`);
     };
 
     try {
@@ -124,7 +123,7 @@ router.post('/', isAuthenticated, async (req, res) => {
       // 4. 각 장면에 대한 이미지 생성
       const imagePromises = scenePrompts.map(async (prompt, index) => {
         try {
-          sendStatus(\`\${index + 1}/4 이미지를 생성하는 중...\`, 50 + (index * 10));
+          sendStatus(`${index + 1}/4 이미지를 생성하는 중...`, 50 + (index * 10));
           const imageUrl = await generateDreamImage(prompt);
           
           // 각 이미지를 DB에 저장
@@ -137,7 +136,7 @@ router.post('/', isAuthenticated, async (req, res) => {
           
           return newImage;
         } catch (imgError) {
-          logError(\`이미지 \${index + 1} 생성 중 오류:\`, imgError);
+          logError(`이미지 ${index + 1} 생성 중 오류:`, imgError);
           throw imgError;
         }
       });
@@ -153,16 +152,16 @@ router.post('/', isAuthenticated, async (req, res) => {
         images,
       };
       
-      res.write(\`data: \${JSON.stringify({ ...status, completed: true, result: finalResult })}\n\n\`);
+      res.write(`data: ${JSON.stringify({ ...status, completed: true, result: finalResult })}\n\n`);
       res.end();
     } catch (processError) {
       logError('태몽동화 생성 처리 중 오류:', processError);
-      res.write(\`data: \${JSON.stringify({ 
+      res.write(`data: ${JSON.stringify({ 
         message: '태몽동화 생성 중 오류가 발생했습니다.', 
         error: processError.message, 
         completed: true, 
         success: false 
-      })}\n\n\`);
+      })}\n\n`);
       res.end();
     }
   } catch (error) {
@@ -178,4 +177,5 @@ router.post('/', isAuthenticated, async (req, res) => {
   }
 });
 
+// 모듈로 내보내기
 export default router;
