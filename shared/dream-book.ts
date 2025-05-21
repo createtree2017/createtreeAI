@@ -13,6 +13,12 @@ export const dreamBooks = pgTable('dream_books', {
   dreamContent: text('dream_content').notNull(),
   summaryText: text('summary_text'),
   style: text('style').notNull(),
+  // 고도화 시스템을 위한 추가 필드
+  characterImageUrl: text('character_image_url'),       // 1차 생성된 캐릭터 이미지 URL
+  characterPrompt: text('character_prompt'),            // 캐릭터 참조용 프롬프트
+  peoplePrompt: text('people_prompt'),                  // 인물 표현 프롬프트
+  backgroundPrompt: text('background_prompt'),          // 배경 표현 프롬프트
+  numberOfScenes: integer('number_of_scenes').default(4), // 컷 수 (1~4)
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   hospitalId: integer('hospital_id').references(() => users.hospitalId),
