@@ -49,7 +49,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ error: '해당 이미지 스타일을 찾을 수 없습니다.' });
     }
     
-    console.log(`이미지 스타일 상세 조회 성공 - ID: ${styleId}, 이름: ${style.name}`);
+    console.log(`이미지 스타일 상세 조회 성공 - ID: ${style.id}, styleId: ${style.styleId}, 이름: ${style.name}`);
     return res.json(style);
   } catch (error) {
     console.error('이미지 스타일 상세 조회 오류:', error);
