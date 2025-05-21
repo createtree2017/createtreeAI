@@ -7,6 +7,9 @@ import { authMiddleware } from '../common/middleware/auth';
 import { ZodError } from 'zod';
 import { eq, and, asc, desc } from 'drizzle-orm';
 import { imageStyles } from '@shared/schema';
+import multer from 'multer';
+import fs from 'fs';
+import path from 'path';
 
 // 로깅 유틸리티가 없는 경우를 대비한 간단한 로거
 const logInfo = (message: string, data?: any) => {
@@ -16,6 +19,31 @@ const logInfo = (message: string, data?: any) => {
 const logError = (message: string, error?: any) => {
   console.error(`[ERROR] ${message}`, error);
 };
+
+// 파일 업로드 디렉토리 설정
+const uploadDir = './uploads/dream-books';
+// 디렉토리가 없으면 생성
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Multer 스토리지 설정
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueId = Math.random().toString(36).substring(2, 15);
+    const ext = path.extname(file.originalname);
+    cb(null, `dreambook-${Date.now()}-${uniqueId}${ext}`);
+  }
+});
+
+// Multer 업로드 인스턴스 생성
+const upload = multer({ 
+  storage, 
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB 제한
+});
 
 const router = express.Router();
 

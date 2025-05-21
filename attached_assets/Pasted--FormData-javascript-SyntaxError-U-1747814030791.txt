@@ -1,0 +1,92 @@
+✅ [라플이 작업지시서]
+태몽동화 생성 오류 해결 – FormData 처리 방식 통합
+🧩 현재 오류 개요
+오류 메시지:
+
+javascript
+복사
+편집
+SyntaxError: Unexpected token 'd' in JSON at position 0
+발생 위치:
+client/src/pages/dream-book/create.tsx:199
+→ fetch() 또는 mutation 실행 시 서버 응답 오류
+
+원인 요약:
+클라이언트는 FormData로 파일 및 텍스트를 전송하고 있지만, 서버는 해당 요청을 JSON으로 잘못 파싱 시도함
+
+🎯 수정 목표
+클라이언트는 FormData 전송 유지
+서버는 FormData를 수신하여 처리 가능한 구조로 수정
+
+🛠️ 작업 항목
+1. 서버 코드 수정 – FormData 수신 처리
+라우트 위치: server/routes/dream-book.ts
+
+현재 문제: express.json() 또는 req.body로 JSON 파싱 시도
+
+수정 사항:
+
+multer 미들웨어 적용 (npm i multer)
+
+이미지 및 텍스트 필드를 FormData로 처리
+
+ts
+복사
+편집
+// 최상단 import
+import multer from "multer";
+const upload = multer({ dest: "uploads/dream-books/" }); // 저장 경로 지정
+
+// POST 라우트 수정
+router.post("/", upload.single("image"), async (req, res) => {
+  const { styleId, babyName, dreamer, scenePrompts, personPrompt, backgroundPrompt } = req.body;
+
+  // 파일 정보는 req.file
+  const uploadedFile = req.file;
+
+  if (!uploadedFile || !babyName || !styleId || !scenePrompts) {
+    return res.status(400).json({ error: "입력 정보가 부족합니다." });
+  }
+
+  // 이후 DB 저장 및 이미지 생성 로직 실행
+});
+2. 클라이언트 코드 확인 – FormData 형식 유지
+파일 위치: client/src/pages/dream-book/create.tsx
+
+유지 사항:
+
+FormData 인스턴스 생성
+
+.append() 로 텍스트 및 파일 추가
+
+fetch() 호출 시 headers: { 'Content-Type': ... } 제거해야 함 (자동 생성됨)
+
+ts
+복사
+편집
+const formData = new FormData();
+formData.append("image", selectedFile); // 업로드 이미지
+formData.append("styleId", style);
+formData.append("babyName", babyName);
+formData.append("dreamer", dreamer);
+formData.append("personPrompt", personPrompt);
+formData.append("backgroundPrompt", backgroundPrompt);
+formData.append("scenePrompts", JSON.stringify(validScenePrompts)); // 문자열 변환 필요
+
+await fetch("/api/dream-books", {
+  method: "POST",
+  body: formData, // Content-Type 생략해야 FormData로 전송됨
+});
+3. 스키마 또는 유효성 검증 수정 (선택)
+scenePrompts 배열은 최소 1개 이상만 요구되도록 검증 로직 수정 필요
+
+1~4개 중 선택 가능하도록 조건문 확인
+
+✅ 최종 확인 체크리스트
+항목	완료 조건
+FormData 전송 방식 유지	fetch() 내 Content-Type 제거
+서버에서 multer로 파일 수신 처리	req.file, req.body 분리하여 사용
+scenePrompts 는 JSON 문자열로 전송	서버에서 다시 JSON.parse() 필요
+1장 이상만 있어도 생성 가능	scene 필수조건 완화
+
+필요 시 multer 미들웨어를 공통 유틸로 구성하거나, imageStyle 등과 같은 다른 이미지 업로드 처리와도 통일 가능하도록 구조화해 주세요.
