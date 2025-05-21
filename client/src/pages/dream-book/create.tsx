@@ -647,27 +647,90 @@ export default function CreateDreamBook() {
             </Card>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex justify-end mt-8">
             <Button
               type="button" 
               disabled={isGenerating}
               size="lg"
-              onClick={() => {
-                // 폼 데이터 유효성 검사 후 직접 onSubmit 호출
-                form.trigger().then(isValid => {
-                  if (isValid) {
-                    console.log('폼 유효성 검사 통과, 제출 시작');
-                    const values = form.getValues();
-                    onSubmit(values);
-                  } else {
-                    console.error('폼 유효성 검사 실패:', form.formState.errors);
-                    toast({
-                      title: '입력 오류',
-                      description: '모든 필수 항목을 입력해주세요.',
-                      variant: 'destructive'
-                    });
-                  }
+              onClick={async () => {
+                if (!characterImage) {
+                  toast({
+                    title: '캐릭터 필요',
+                    description: '먼저 캐릭터를 생성해주세요.',
+                    variant: 'destructive'
+                  });
+                  return;
+                }
+                
+                const formValues = form.getValues();
+                const validScenePrompts = formValues.scenePrompts.filter(p => p.trim().length > 0);
+                
+                if (validScenePrompts.length === 0) {
+                  toast({
+                    title: '장면 입력 필요',
+                    description: '최소 1개 이상의 장면 설명을 입력해주세요.',
+                    variant: 'destructive'
+                  });
+                  return;
+                }
+                
+                console.log('태몽동화 생성 시작:', formValues);
+                
+                // 생성 시작 알림
+                toast({
+                  title: '태몽동화 생성 시작',
+                  description: '태몽동화를 생성하고 있습니다. 잠시 기다려주세요.',
                 });
+                
+                setIsGenerating(true);
+                
+                try {
+                  const payload = {
+                    babyName: formValues.babyName,
+                    dreamer: formValues.dreamer,
+                    style: formValues.styleId,
+                    characterImageUrl: characterImage,
+                    peoplePrompt: formValues.peoplePrompt,
+                    backgroundPrompt: formValues.backgroundPrompt,
+                    scenePrompts: validScenePrompts
+                  };
+                  
+                  console.log('서버로 전송하는 데이터:', payload);
+                  
+                  const response = await fetch('/api/dream-books', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                  });
+                  
+                  if (!response.ok) {
+                    throw new Error(`서버 오류 발생: ${response.status}`);
+                  }
+                  
+                  const data = await response.json();
+                  console.log('서버 응답:', data);
+                  
+                  if (data.success && data.result && data.result.id) {
+                    toast({
+                      title: '태몽동화 생성 완료',
+                      description: '태몽동화가 성공적으로 생성되었습니다.'
+                    });
+                    navigate(`/dream-book/detail/${data.result.id}`);
+                  } else {
+                    throw new Error('서버 응답에 오류가 있습니다');
+                  }
+                } catch (error: any) {
+                  console.error('태몽동화 생성 오류:', error);
+                  toast({
+                    title: '오류 발생',
+                    description: `태몽동화 생성에 실패했습니다: ${error?.message || '알 수 없는 오류'}`,
+                    variant: 'destructive'
+                  });
+                } finally {
+                  setIsGenerating(false);
+                }
               }}
             >
               {isGenerating ? (
