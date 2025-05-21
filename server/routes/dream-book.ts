@@ -232,10 +232,11 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
     }
     
     // 검증용 데이터 객체 생성 (FormData를 직접 쓰지 않고 새 객체 구성)
+    // ⭐ Zod 스키마와 필드명 일치시키기: style, scenePrompts 등
     const validationData = {
       babyName: babyName || '',
       dreamer: dreamer || '엄마',
-      style: styleId, // ⭐ 중요: Zod 스키마에서는 'style'로 정의되어 있음
+      style: styleId, // 클라이언트에서 'style'로 전송, Zod 스키마도 'style'로 정의됨
       characterImageUrl: characterImageUrl || '',
       peoplePrompt: peoplePrompt || '아기는 귀엽고 활기찬 모습이다.',
       backgroundPrompt: backgroundPrompt || '환상적이고 아름다운 배경',
