@@ -128,49 +128,19 @@ export default function DreamBookList() {
             onClick={() => navigate(`/dream-book/${dreamBook.id}`)}
           >
             <div className="aspect-[4/3] relative">
-              {(() => {
-                // 커버 이미지가 있는 경우
-                if (dreamBook.coverImage) {
-                  return (
-                    <img
-                      src={dreamBook.coverImage}
-                      alt={`${dreamBook.babyName}의 태몽동화`}
-                      className="object-cover w-full h-full"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = '/static/uploads/dream-books/error.png';
-                      }}
-                    />
-                  );
+              <img
+                src={
+                  dreamBook.coverImage || 
+                  (dreamBook.images && dreamBook.images[0] && dreamBook.images[0].imageUrl) || 
+                  '/static/uploads/dream-books/error.png'
                 }
-                
-                // 이미지 배열이 있고 첫 번째 이미지의 URL이 있는 경우
-                if (dreamBook.images && dreamBook.images[0] && dreamBook.images[0].imageUrl) {
-                  const imageUrl = dreamBook.images[0].imageUrl;
-                  
-                  // 이미지 URL이 http로 시작하거나 /static으로 시작하는 경우
-                  if (imageUrl.startsWith('http') || imageUrl.startsWith('/static')) {
-                    return (
-                      <img
-                        src={imageUrl}
-                        alt={`${dreamBook.babyName}의 태몽동화`}
-                        className="object-cover w-full h-full"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = '/static/uploads/dream-books/error.png';
-                        }}
-                      />
-                    );
-                  }
-                }
-                
-                // 기본 표시 내용
-                return (
-                  <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                    <Book className="h-16 w-16 text-gray-300" />
-                  </div>
-                );
-              })()}
+                alt={`${dreamBook.babyName}의 태몽동화`}
+                className="object-cover w-full h-full"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = '/static/uploads/dream-books/error.png';
+                }}
+              />
             </div>
             <CardContent className="p-4">
               <h3 className="text-lg font-semibold truncate mb-1">
