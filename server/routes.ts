@@ -4771,6 +4771,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // 태몽동화 라우터 등록
   app.use("/api/dream-books", dreamBookRouter);
+  
+  // 태몽동화 스타일 관리 라우터 등록
+  app.use("/api/dreambook-styles", dreambookStylesRouter);
   console.log("태몽동화 라우터가 등록되었습니다 (/api/dream-books)");
   
   // 이미지 스타일 관리 라우터 등록
