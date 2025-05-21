@@ -323,7 +323,7 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
           
           // 경고만 표시하고 다음 이미지 계속 진행
           sendStatus(`장면 ${sequence}에서 오류가 발생했지만 계속 진행합니다.`, 
-            20 + (i * 70 / filteredPrompts.length), 'warning');
+            20 + (i * 70 / filteredScenePrompts.length), 'warning');
         }
       }
       

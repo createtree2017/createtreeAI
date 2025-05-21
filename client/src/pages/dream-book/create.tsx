@@ -48,18 +48,22 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuthContext } from '@/lib/AuthProvider';
 
-// 스키마 정의
+// 캐릭터 생성 스키마
+const characterSchema = z.object({
+  babyName: z.string().min(1, '아기 이름을 입력해주세요'),
+  styleId: z.string().min(1, '스타일을 선택해주세요')
+});
+
+// 태몽동화 생성 스키마
 const dreamBookSchema = z.object({
   babyName: z.string().min(1, '아기 이름을 입력해주세요'),
   dreamer: z.string().min(1, '꿈을 꾼 사람을 입력해주세요'),
   styleId: z.string().min(1, '스타일을 선택해주세요'),
-  scenes: z.array(
-    z.object({
-      backgroundPrompt: z.string().optional(),
-      characterPrompt: z.string().optional(),
-      scenePrompt: z.string().min(1, '장면 묘사를 입력해주세요'),
-    })
-  ).length(4, '4개의 장면이 필요합니다'),
+  peoplePrompt: z.string().min(1, '인물 표현은 필수입니다').default('아기는 귀엽고 활기찬 모습이다.'),
+  backgroundPrompt: z.string().min(1, '배경 표현은 필수입니다').default('환상적이고 아름다운 배경'),
+  scenePrompts: z.array(z.string().min(1, '장면 묘사를 입력해주세요'))
+    .min(1, '최소 1개 이상의 장면이 필요합니다')
+    .max(4, '최대 4개의 장면까지 가능합니다'),
 });
 
 // 태몽동화 생성 페이지
@@ -92,12 +96,9 @@ export default function CreateDreamBook() {
       babyName: '',
       dreamer: '',
       styleId: '',
-      scenes: [
-        { backgroundPrompt: '', characterPrompt: '', scenePrompt: '' },
-        { backgroundPrompt: '', characterPrompt: '', scenePrompt: '' },
-        { backgroundPrompt: '', characterPrompt: '', scenePrompt: '' },
-        { backgroundPrompt: '', characterPrompt: '', scenePrompt: '' },
-      ],
+      peoplePrompt: '아기는 귀엽고 활기찬 모습이다.',
+      backgroundPrompt: '환상적이고 아름다운 배경',
+      scenePrompts: ['', '', '', ''],
     },
   });
 
@@ -107,21 +108,37 @@ export default function CreateDreamBook() {
     setCharacterImage(null);
   }, [selectedStyleId]);
 
-  // 사용자 사진으로 캐릭터 생성 뮤테이션
+  // 아기 캐릭터 생성 뮤테이션
   const generateCharacterMutation = useMutation({
-    mutationFn: async (formData: FormData) => {
-      return apiRequest('/api/dream-books/character', {
+    mutationFn: async (data: z.infer<typeof characterSchema>) => {
+      return fetch('/api/dream-books/character', {
         method: 'POST',
-        formData
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      }).then(response => {
+        if (!response.ok) {
+          throw new Error('캐릭터 생성에 실패했습니다');
+        }
+        return response.json();
       });
     },
     onSuccess: (data) => {
-      setCharacterImage(data.imageUrl);
-      setIsCharacterDialogOpen(false);
-      toast({
-        title: '캐릭터 생성 완료',
-        description: '태몽동화에 사용될 캐릭터가 생성되었습니다.'
-      });
+      if (data.result && data.result.characterImageUrl) {
+        setCharacterImage(data.result.characterImageUrl);
+        setIsCharacterDialogOpen(false);
+        toast({
+          title: '캐릭터 생성 완료',
+          description: '태몽동화에 사용될 캐릭터가 생성되었습니다.'
+        });
+      } else {
+        toast({
+          title: '오류 발생',
+          description: '캐릭터 이미지를 받지 못했습니다. 다시 시도해주세요.',
+          variant: 'destructive'
+        });
+      }
     },
     onError: (error) => {
       toast({
@@ -136,13 +153,26 @@ export default function CreateDreamBook() {
   // 태몽동화 생성 뮤테이션
   const createDreamBookMutation = useMutation({
     mutationFn: async (data: z.infer<typeof dreamBookSchema>) => {
+      if (!characterImage) {
+        throw new Error('캐릭터 이미지가 필요합니다. 먼저 캐릭터를 생성해주세요.');
+      }
+
       const payload = {
         ...data,
         characterImageUrl: characterImage
       };
-      return apiRequest('/api/dream-books', {
+
+      return fetch('/api/dream-books', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(payload)
+      }).then(response => {
+        if (!response.ok) {
+          throw new Error('태몽동화 생성에 실패했습니다');
+        }
+        return response.json();
       });
     },
     onSuccess: (data) => {
@@ -166,19 +196,22 @@ export default function CreateDreamBook() {
 
   // 캐릭터 생성 처리
   const handleGenerateCharacter = () => {
-    if (!selectedFile || !selectedStyleId) {
+    const babyName = form.getValues('babyName');
+    const styleId = form.getValues('styleId');
+    
+    if (!babyName || !styleId) {
       toast({
         title: '입력 확인',
-        description: '사진과 스타일을 모두 선택해주세요.',
+        description: '아기 이름과 스타일을 모두 입력해주세요.',
         variant: 'destructive'
       });
       return;
     }
 
-    const formData = new FormData();
-    formData.append('image', selectedFile);
-    formData.append('styleId', selectedStyleId);
-    generateCharacterMutation.mutate(formData);
+    generateCharacterMutation.mutate({ 
+      babyName, 
+      styleId 
+    });
   };
 
   // 파일 선택 처리
@@ -186,18 +219,14 @@ export default function CreateDreamBook() {
     setSelectedFile(file);
   };
 
-  // 복사 처리: 이전 장면의 배경/인물 프롬프트를 현재 장면으로
+  // 이전 장면 내용을 현재 장면으로 복사
   const copyFromPreviousScene = () => {
     if (activeScene === 0) return;
     
-    const currentScenes = form.getValues('scenes');
-    const previousScene = currentScenes[activeScene - 1];
-    const currentScene = currentScenes[activeScene];
+    const scenePrompts = form.getValues('scenePrompts');
+    const previousScenePrompt = scenePrompts[activeScene - 1];
     
-    form.setValue(`scenes.${activeScene}.backgroundPrompt`, 
-      currentScene.backgroundPrompt || previousScene.backgroundPrompt || '');
-    form.setValue(`scenes.${activeScene}.characterPrompt`, 
-      currentScene.characterPrompt || previousScene.characterPrompt || '');
+    form.setValue(`scenePrompts.${activeScene}`, previousScenePrompt);
   };
 
   // 폼 제출 처리
@@ -326,6 +355,60 @@ export default function CreateDreamBook() {
     </div>
   );
 
+  // 공통 설정 섹션 (인물/배경 프롬프트)
+  const renderCommonSettingsSection = () => (
+    <div className="space-y-6">
+      <Card>
+        <CardContent className="p-6">
+          <h3 className="text-lg font-medium mb-4">공통 설정</h3>
+          <div className="grid grid-cols-1 gap-6">
+            <FormField
+              control={form.control}
+              name="peoplePrompt"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>인물 표현</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="아기 캐릭터의 표현 방식을 입력해주세요. 예: 귀엽고 활기찬 모습의 아기"
+                      {...field}
+                      rows={2}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    모든 장면에서 인물이 어떻게 표현될지 설명해주세요. 일관성 있는 캐릭터 표현에 중요합니다.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="backgroundPrompt"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>배경 표현</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="전체적인 배경 분위기를 입력해주세요. 예: 환상적이고 아름다운 동화 세계"
+                      {...field}
+                      rows={2}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    전체 이야기의 배경 분위기를 설명해주세요. 각 장면의 배경 스타일에 영향을 줍니다.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+  
   // 장면 입력 탭 콘텐츠
   const renderSceneTabContent = (sceneIndex: number) => (
     <TabsContent value={sceneIndex.toString()} className="mt-6">
@@ -347,49 +430,7 @@ export default function CreateDreamBook() {
             
             <FormField
               control={form.control}
-              name={`scenes.${sceneIndex}.backgroundPrompt`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>배경 묘사 (선택사항)</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="배경에 대한 묘사를 입력해주세요. 예: 하늘을 나는 고래들이 있는 환상적인 바다 위의 구름 세계"
-                      {...field}
-                      rows={2}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    이 장면의 배경 환경을 자세히 묘사해주세요.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name={`scenes.${sceneIndex}.characterPrompt`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>인물 묘사 (선택사항)</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="인물에 대한 묘사를 입력해주세요. 예: 푸른 잠옷을 입고 행복하게 웃고 있는 아기"
-                      {...field}
-                      rows={2}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    이 장면에 등장하는 인물을 자세히 묘사해주세요.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name={`scenes.${sceneIndex}.scenePrompt`}
+              name={`scenePrompts.${sceneIndex}`}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>장면 묘사 (필수)</FormLabel>
@@ -451,6 +492,8 @@ export default function CreateDreamBook() {
           {renderStyleAndCharacterSection()}
           {renderBasicInfoSection()}
 
+          {renderCommonSettingsSection()}
+          
           <div className="space-y-6">
             <Card>
               <CardContent className="p-6">
