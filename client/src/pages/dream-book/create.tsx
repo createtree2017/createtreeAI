@@ -440,7 +440,15 @@ export default function CreateDreamBook() {
                 
                 {selectedFile ? (
                   <div className="flex flex-col items-center gap-2">
-                    <FileType2 className="w-10 h-10 text-primary" />
+                    <div className="w-10 h-10 text-primary">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <path d="M9 13v-1h6v1"></path>
+                        <path d="M11 18h2"></path>
+                        <path d="M12 12v6"></path>
+                      </svg>
+                    </div>
                     <p className="font-medium text-center">{selectedFile.name}</p>
                     <p className="text-xs text-gray-500">
                       {(selectedFile.size / 1024).toFixed(1)} KB
@@ -460,7 +468,13 @@ export default function CreateDreamBook() {
                   </div>
                 ) : (
                   <div className="flex flex-col items-center gap-2">
-                    <Upload className="w-10 h-10 text-gray-400 mb-2" />
+                    <div className="w-10 h-10 text-gray-400 mb-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                      </svg>
+                    </div>
                     <p className="text-sm font-medium text-center">
                       이미지를 클릭하여 업로드하세요
                     </p>
