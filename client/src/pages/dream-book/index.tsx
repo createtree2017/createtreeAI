@@ -21,6 +21,13 @@ export default function DreamBookList() {
     error 
   } = useQuery({
     queryKey: ['/api/dream-books'],
+    queryFn: async () => {
+      const response = await fetch('/api/dream-books');
+      if (!response.ok) {
+        throw new Error('태몽동화 목록을 불러오는데 실패했습니다');
+      }
+      return response.json();
+    },
     enabled: !!user,
   });
 

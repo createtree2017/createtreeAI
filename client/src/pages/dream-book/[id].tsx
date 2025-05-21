@@ -24,6 +24,13 @@ export default function DreamBookDetail() {
   
   const { data: dreamBook, isLoading, error } = useQuery({
     queryKey: [`/api/dream-books/${id}`],
+    queryFn: async () => {
+      const response = await fetch(`/api/dream-books/${id}`);
+      if (!response.ok) {
+        throw new Error('태몽동화를 불러오는데 실패했습니다');
+      }
+      return response.json();
+    },
     enabled: !!id,
   });
 

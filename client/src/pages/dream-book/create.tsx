@@ -76,6 +76,13 @@ export default function CreateDreamBook() {
   // 이미지 스타일 목록 가져오기
   const { data: styles, isLoading: isLoadingStyles } = useQuery({
     queryKey: ['/api/image-styles'],
+    queryFn: async () => {
+      const response = await fetch('/api/image-styles');
+      if (!response.ok) {
+        throw new Error('이미지 스타일 목록을 불러오는데 실패했습니다');
+      }
+      return response.json();
+    },
   });
 
   // 폼 설정
