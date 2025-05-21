@@ -219,9 +219,6 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
         원본타입: typeof formData.scenePrompts
       });
       
-      // 테스트용: 장면 프롬프트가 없으면 기본값 설정
-      // filteredScenePrompts = ['아기가 엄마 배 속에서 꿈을 꾸고 있어요.'];
-      
       return res.status(400).json({ 
         error: '최소 1개 이상의 장면 프롬프트를 입력해주세요.',
         details: { 
@@ -234,7 +231,36 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
       });
     }
     
-    // 필수 필드 검증
+    // 검증용 데이터 객체 생성 (FormData를 직접 쓰지 않고 새 객체 구성)
+    const validationData = {
+      babyName,
+      dreamer,
+      style: styleId,
+      characterImageUrl,
+      peoplePrompt,
+      backgroundPrompt,
+      numberOfScenes: filteredScenePrompts.length,
+      scenePrompts: filteredScenePrompts // 파싱된 배열을 직접 전달
+    };
+    
+    // Zod 스키마로 데이터 검증
+    try {
+      const validatedData = createDreamBookSchema.parse(validationData);
+      logInfo('Zod 스키마 검증 성공', { validated: true });
+    } catch (validationError) {
+      if (validationError instanceof ZodError) {
+        logError('Zod 스키마 검증 오류', { 
+          error: validationError.format(),
+          input: validationData 
+        });
+        return res.status(400).json({ 
+          error: '입력 데이터가 올바르지 않습니다.',
+          details: validationError.errors
+        });
+      }
+    }
+    
+    // 필수 필드 검증 (Zod 검증은 이미 위에서 했으나, 이중 검증)
     if (!babyName) {
       return res.status(400).json({ error: '아기 이름은 필수 입력 항목입니다.' });
     }
