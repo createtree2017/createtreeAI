@@ -207,7 +207,7 @@ export default function ImageStylesPage() {
 
   // 이미지 스타일 삭제 mutation
   const deleteStyleMutation = useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async (id: string | number) => {
       const response = await fetch(`/api/image-styles/${id}`, {
         method: 'DELETE',
         credentials: 'include',
