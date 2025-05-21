@@ -236,6 +236,8 @@ export default function CreateDreamBook() {
       description: '업로드한 사진을 기반으로 아기 캐릭터를 생성하고 있습니다. 잠시 기다려주세요.',
     });
 
+    console.log('캐릭터 생성 시작:', { babyName, styleId, fileSelected: !!selectedFile, fileName: selectedFile.name });
+    
     // FormData 생성 및 필요한 데이터 추가
     const formData = new FormData();
     formData.append('babyName', babyName);
@@ -254,8 +256,8 @@ export default function CreateDreamBook() {
     }
   };
 
-  // 파일 선택 처리
-  const handleFileSelected = (file: File) => {
+  // 파일 선택 처리 - FileUpload 컴포넌트에 맞는 함수명
+  const onFileSelect = (file: File) => {
     console.log('파일 선택됨:', file.name, file.size);
     setSelectedFile(file);
   };
@@ -414,12 +416,9 @@ export default function CreateDreamBook() {
           <div className="space-y-4 py-4">
             <div className="flex flex-col items-center">
               <FileUpload
-                onChange={handleFileSelected}
+                onFileSelect={onFileSelect}
                 accept="image/*"
                 maxSize={5 * 1024 * 1024} // 5MB
-                label="캐릭터 생성을 위한 사진 업로드 (5MB 이하)"
-                icon={<AlertCircle className="h-6 w-6 text-amber-500" />}
-                selectedFile={selectedFile}
               />
             </div>
           </div>
