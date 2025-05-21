@@ -292,8 +292,12 @@ export default function DreamBookStylesPage() {
       name: style.name,
       description: style.description,
       systemPrompt: style.systemPrompt,
+      characterPrompt: style.characterPrompt || '',
     });
     setPreviewUrl(style.thumbnailUrl);
+    setCharacterPreviewUrl(style.characterSampleUrl || null);
+    setSelectedFile(null);
+    setSelectedCharacterFile(null);
     setIsEditDialogOpen(true);
   };
 
@@ -502,33 +506,89 @@ export default function DreamBookStylesPage() {
                     </FormItem>
                   )}
                 />
-
-                <div>
-                  <FormLabel>썸네일 이미지</FormLabel>
-                  <div className="mt-2 grid grid-cols-2 gap-4">
+                
+                <div className="border-t pt-4 mt-4">
+                  <h3 className="text-lg font-medium mb-2">태몽동화 캐릭터 참조 설정</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    캐릭터 생성에 사용될 추가 설정입니다. 사용자가 업로드한 사진을 기반으로 일관된 캐릭터를 생성하는 데 사용됩니다.
+                  </p>
+                  
+                  <FormField
+                    control={form.control}
+                    name="characterPrompt"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>캐릭터 참조 프롬프트</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            rows={4}
+                            placeholder="Maintain consistent character appearance across all images. Apply the style while preserving the key facial features and identifiable characteristics from the reference image..."
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          업로드된 인물 사진에서 캐릭터 생성 시 적용할 추가 지시사항 (영어로 작성 권장)
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="grid grid-cols-2 gap-6 mt-4">
                     <div>
-                      <FileUpload
-                        onFileSelect={handleFileSelected}
-                        accept="image/*"
-                        maxSize={5 * 1024 * 1024}
-                      />
-                      <p className="text-sm text-muted-foreground mt-2">
-                        PNG, JPG 형식 (최대 5MB)
-                      </p>
-                    </div>
-                    <div className="border rounded-md p-2 flex items-center justify-center">
-                      {previewUrl ? (
-                        <img
-                          src={previewUrl}
-                          alt="Preview"
-                          className="max-h-[150px] max-w-full object-contain"
+                      <FormLabel>썸네일 이미지</FormLabel>
+                      <div className="mt-2">
+                        <FileUpload
+                          onFileSelect={handleFileSelected}
+                          accept="image/*"
+                          maxSize={5 * 1024 * 1024}
                         />
-                      ) : (
-                        <div className="text-center p-6 text-muted-foreground">
-                          <ImagePlus className="h-10 w-10 mx-auto mb-2" />
-                          <p>이미지 미리보기</p>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          PNG, JPG 형식 (최대 5MB)
+                        </p>
+                        <div className="border rounded-md p-2 flex items-center justify-center h-40 mt-2">
+                          {previewUrl ? (
+                            <img
+                              src={previewUrl}
+                              alt="Preview"
+                              className="max-h-[150px] max-w-full object-contain"
+                            />
+                          ) : (
+                            <div className="text-center p-6 text-muted-foreground">
+                              <ImagePlus className="h-10 w-10 mx-auto mb-2" />
+                              <p>스타일 썸네일 미리보기</p>
+                            </div>
+                          )}
                         </div>
-                      )}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <FormLabel>캐릭터 샘플 이미지 (선택사항)</FormLabel>
+                      <div className="mt-2">
+                        <FileUpload
+                          onFileSelect={handleCharacterFileSelected}
+                          accept="image/*"
+                          maxSize={5 * 1024 * 1024}
+                        />
+                        <p className="text-sm text-muted-foreground mt-2">
+                          캐릭터 생성 예시 이미지 (최대 5MB)
+                        </p>
+                        <div className="border rounded-md p-2 flex items-center justify-center h-40 mt-2">
+                          {characterPreviewUrl ? (
+                            <img
+                              src={characterPreviewUrl}
+                              alt="Character Sample"
+                              className="max-h-[150px] max-w-full object-contain"
+                            />
+                          ) : (
+                            <div className="text-center p-6 text-muted-foreground">
+                              <ImagePlus className="h-10 w-10 mx-auto mb-2" />
+                              <p>캐릭터 샘플 미리보기</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -652,32 +712,88 @@ export default function DreamBookStylesPage() {
                   )}
                 />
 
-                <div>
-                  <FormLabel>썸네일 이미지</FormLabel>
-                  <div className="mt-2 grid grid-cols-2 gap-4">
+                <div className="border-t pt-4 mt-4">
+                  <h3 className="text-lg font-medium mb-2">태몽동화 캐릭터 참조 설정</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    캐릭터 생성에 사용될 추가 설정입니다. 사용자가 업로드한 사진을 기반으로 일관된 캐릭터를 생성하는 데 사용됩니다.
+                  </p>
+                  
+                  <FormField
+                    control={form.control}
+                    name="characterPrompt"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>캐릭터 참조 프롬프트</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            rows={4}
+                            placeholder="Maintain consistent character appearance across all images. Apply the style while preserving the key facial features and identifiable characteristics from the reference image..."
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          업로드된 인물 사진에서 캐릭터 생성 시 적용할 추가 지시사항 (영어로 작성 권장)
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="grid grid-cols-2 gap-6 mt-4">
                     <div>
-                      <FileUpload
-                        onFileSelect={handleFileSelected}
-                        accept="image/*"
-                        maxSize={5 * 1024 * 1024}
-                      />
-                      <p className="text-sm text-muted-foreground mt-2">
-                        PNG, JPG 형식 (최대 5MB). 변경하지 않으려면 비워두세요.
-                      </p>
-                    </div>
-                    <div className="border rounded-md p-2 flex items-center justify-center">
-                      {previewUrl ? (
-                        <img
-                          src={previewUrl}
-                          alt="Preview"
-                          className="max-h-[150px] max-w-full object-contain"
+                      <FormLabel>썸네일 이미지</FormLabel>
+                      <div className="mt-2">
+                        <FileUpload
+                          onFileSelect={handleFileSelected}
+                          accept="image/*"
+                          maxSize={5 * 1024 * 1024}
                         />
-                      ) : (
-                        <div className="text-center p-6 text-muted-foreground">
-                          <ImagePlus className="h-10 w-10 mx-auto mb-2" />
-                          <p>이미지 미리보기</p>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          PNG, JPG 형식 (최대 5MB). 변경하지 않으려면 비워두세요.
+                        </p>
+                        <div className="border rounded-md p-2 flex items-center justify-center h-40 mt-2">
+                          {previewUrl ? (
+                            <img
+                              src={previewUrl}
+                              alt="Preview"
+                              className="max-h-[150px] max-w-full object-contain"
+                            />
+                          ) : (
+                            <div className="text-center p-6 text-muted-foreground">
+                              <ImagePlus className="h-10 w-10 mx-auto mb-2" />
+                              <p>스타일 썸네일 미리보기</p>
+                            </div>
+                          )}
                         </div>
-                      )}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <FormLabel>캐릭터 샘플 이미지 (선택사항)</FormLabel>
+                      <div className="mt-2">
+                        <FileUpload
+                          onFileSelect={handleCharacterFileSelected}
+                          accept="image/*"
+                          maxSize={5 * 1024 * 1024}
+                        />
+                        <p className="text-sm text-muted-foreground mt-2">
+                          캐릭터 생성 예시 이미지 (최대 5MB). 변경하지 않으려면 비워두세요.
+                        </p>
+                        <div className="border rounded-md p-2 flex items-center justify-center h-40 mt-2">
+                          {characterPreviewUrl ? (
+                            <img
+                              src={characterPreviewUrl}
+                              alt="Character Sample"
+                              className="max-h-[150px] max-w-full object-contain"
+                            />
+                          ) : (
+                            <div className="text-center p-6 text-muted-foreground">
+                              <ImagePlus className="h-10 w-10 mx-auto mb-2" />
+                              <p>캐릭터 샘플 미리보기</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
