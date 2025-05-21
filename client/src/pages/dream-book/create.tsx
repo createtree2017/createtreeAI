@@ -208,9 +208,18 @@ export default function CreateDreamBook() {
       return;
     }
 
+    // 캐릭터 생성 시작 알림
+    toast({
+      title: '캐릭터 생성 시작',
+      description: '아기 캐릭터를 생성하고 있습니다. 잠시 기다려주세요.',
+    });
+
+    console.log('캐릭터 생성 시작:', { babyName, styleId });
+    
+    // 데이터 형식 확인
     generateCharacterMutation.mutate({ 
       babyName, 
-      styleId 
+      styleId: String(styleId) // 문자열로 변환하여 확실히 전달
     });
   };
 
@@ -240,8 +249,44 @@ export default function CreateDreamBook() {
       return;
     }
 
+    if (!characterImage) {
+      toast({
+        title: '캐릭터 필요',
+        description: '먼저 캐릭터를 생성해주세요.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // 장면 프롬프트 확인
+    const validScenePrompts = values.scenePrompts.filter(p => p.trim().length > 0);
+    if (validScenePrompts.length === 0) {
+      toast({
+        title: '장면 입력 필요',
+        description: '최소 1개 이상의 장면 설명을 입력해주세요.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    console.log('태몽동화 생성 시작:', { 
+      ...values, 
+      scenesCount: validScenePrompts.length,
+      characterImage: characterImage ? '있음' : '없음'
+    });
+
+    // 생성 시작 알림
+    toast({
+      title: '태몽동화 생성 시작',
+      description: '태몽동화를 생성하고 있습니다. 잠시 기다려주세요.',
+    });
+
     setIsGenerating(true);
-    createDreamBookMutation.mutate(values);
+    createDreamBookMutation.mutate({
+      ...values,
+      // 필요한 경우 특정 필드 형식 조정
+      styleId: String(values.styleId)
+    });
   };
 
   // 스타일 선택 및 캐릭터 생성 섹션
@@ -283,27 +328,69 @@ export default function CreateDreamBook() {
               />
             </div>
             <div>
-              <h3 className="text-lg font-medium mb-4">캐릭터 생성 (선택사항)</h3>
-              <Button 
-                onClick={() => setIsCharacterDialogOpen(true)}
-                disabled={!selectedStyleId}
-                variant="outline"
-                className="w-full"
-              >
-                사진으로 캐릭터 생성하기
-              </Button>
-              {characterImage && (
-                <div className="mt-4">
-                  <p className="text-sm mb-2">생성된 캐릭터:</p>
-                  <div className="rounded-md overflow-hidden border w-24 h-24">
-                    <img 
-                      src={characterImage} 
-                      alt="생성된 캐릭터" 
-                      className="w-full h-full object-cover"
-                    />
+              <h3 className="text-lg font-medium mb-4">캐릭터 생성</h3>
+              <div className="bg-card rounded-lg border p-4">
+                {characterImage ? (
+                  <div className="flex flex-col items-center">
+                    <div className="relative mb-3">
+                      <div className="rounded-md overflow-hidden border w-32 h-32">
+                        <img 
+                          src={characterImage} 
+                          alt="생성된 캐릭터" 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="absolute -top-2 -right-2 bg-green-500 text-white p-1 rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M20 6L9 17l-5-5"></path>
+                        </svg>
+                      </div>
+                    </div>
+                    <p className="text-sm font-medium mb-2">캐릭터가 생성되었습니다!</p>
+                    <Button 
+                      onClick={() => setIsCharacterDialogOpen(true)}
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                    >
+                      캐릭터 다시 생성하기
+                    </Button>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="flex flex-col items-center">
+                    <div className="w-32 h-32 flex items-center justify-center border-2 border-dashed border-gray-300 rounded-md mb-3">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                      </svg>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">캐릭터를 생성해주세요 (필수)</p>
+                    <Button 
+                      onClick={() => setIsCharacterDialogOpen(true)}
+                      disabled={!selectedStyleId || !form.getValues('babyName')}
+                      className="w-full"
+                    >
+                      {generateCharacterMutation.isPending ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          생성 중...
+                        </>
+                      ) : "캐릭터 생성하기"}
+                    </Button>
+                    
+                    {!selectedStyleId || !form.getValues('babyName') ? (
+                      <p className="text-xs text-amber-500 mt-2">
+                        아기 이름과 스타일을 먼저 입력해주세요
+                      </p>
+                    ) : null}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </CardContent>
