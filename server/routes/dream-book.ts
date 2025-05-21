@@ -414,11 +414,11 @@ router.post('/character', authMiddleware, upload.single('image'), async (req: ex
     }
 
     // FormData에서 받은 데이터
-    const babyName = req.body.babyName;
+    const babyName = req.body.babyName || '아기'; // 기본값 제공
     const styleId = req.body.style;
 
-    // 기본 유효성 검사
-    if (!babyName || !styleId) {
+    // 스타일 ID만 필수로 검증 (아기 이름은 기본값 사용 가능)
+    if (!styleId) {
       // 업로드된 파일 삭제
       if (req.file) {
         fs.unlink(req.file.path, (err) => {
@@ -429,7 +429,6 @@ router.post('/character', authMiddleware, upload.single('image'), async (req: ex
       return res.status(400).json({ 
         error: '입력 데이터가 올바르지 않습니다.', 
         details: [
-          { path: 'babyName', message: '아기 이름은 필수입니다.' },
           { path: 'style', message: '스타일 ID는 필수입니다.' }
         ] 
       });

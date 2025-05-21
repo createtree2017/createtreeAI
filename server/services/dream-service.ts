@@ -133,10 +133,10 @@ export async function generateCharacterImage(
       }
       
       // 응답 파싱
-      const visionData = await visionResponse.json();
+      const visionData = await visionResponse.json() as any;
       
       // 이미지 분석 결과 추출
-      const characterDescription = visionData.choices[0]?.message?.content || "";
+      const characterDescription = visionData.choices && visionData.choices[0]?.message?.content || "";
       
       logInfo('Vision API 이미지 분석 완료', { 
         description: characterDescription.substring(0, 100) + '...' 
