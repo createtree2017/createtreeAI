@@ -482,8 +482,9 @@ router.post('/character', authMiddleware, upload.single('image'), async (req: ex
       
       // 업로드된 이미지 파일 경로와 스타일 정보를 활용하여 캐릭터 이미지 생성
       // 이제 generateCharacterImage 함수는 이미지 파일을 입력으로 받아야 함
+      // 프롬프트에 babyName 대신 "원본 사진의 인물"로 변경하여 업로드된 사진의 인물 특성을 보존
       const characterImageUrl = await generateCharacterImage(
-        `${babyName}의 캐릭터`, 
+        "원본 사진의 인물을 기반으로 한 캐릭터", 
         imageStyle.systemPrompt,
         req.file.path // 업로드된 이미지 파일 경로 추가
       );
