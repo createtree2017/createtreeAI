@@ -649,9 +649,26 @@ export default function CreateDreamBook() {
 
           <div className="flex justify-end">
             <Button
-              type="submit" 
+              type="button" 
               disabled={isGenerating}
               size="lg"
+              onClick={() => {
+                // 폼 데이터 유효성 검사 후 직접 onSubmit 호출
+                form.trigger().then(isValid => {
+                  if (isValid) {
+                    console.log('폼 유효성 검사 통과, 제출 시작');
+                    const values = form.getValues();
+                    onSubmit(values);
+                  } else {
+                    console.error('폼 유효성 검사 실패:', form.formState.errors);
+                    toast({
+                      title: '입력 오류',
+                      description: '모든 필수 항목을 입력해주세요.',
+                      variant: 'destructive'
+                    });
+                  }
+                });
+              }}
             >
               {isGenerating ? (
                 <>
