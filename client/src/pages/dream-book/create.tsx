@@ -686,24 +686,31 @@ export default function CreateDreamBook() {
                 
                 try {
                   const payload = {
-                    babyName: formValues.babyName,
-                    dreamer: formValues.dreamer,
+                    babyName: formValues.babyName || '아기',
+                    dreamer: formValues.dreamer || '엄마',
                     style: formValues.styleId,
                     characterImageUrl: characterImage,
-                    peoplePrompt: formValues.peoplePrompt,
-                    backgroundPrompt: formValues.backgroundPrompt,
+                    peoplePrompt: formValues.peoplePrompt || '캐릭터가 중앙에 있는',
+                    backgroundPrompt: formValues.backgroundPrompt || '부드러운 배경이 있는',
+                    numberOfScenes: validScenePrompts.length,
                     scenePrompts: validScenePrompts
                   };
                   
                   console.log('서버로 전송하는 데이터:', payload);
                   
-                  const response = await fetch('/api/dream-books', {
+                  // API 요청 설정 조정
+                  const requestOptions = {
                     method: 'POST',
+                    credentials: 'include', // 중요: 세션 쿠키 포함
                     headers: {
-                      'Content-Type': 'application/json'
+                      'Content-Type': 'application/json',
+                      'Accept': 'application/json'
                     },
                     body: JSON.stringify(payload)
-                  });
+                  };
+                  
+                  // 직접 API 엔드포인트 호출
+                  const response = await fetch('/api/dream-books', requestOptions);
                   
                   if (!response.ok) {
                     throw new Error(`서버 오류 발생: ${response.status}`);
