@@ -89,9 +89,10 @@ export function ImageStyleManagement() {
     setIsEditDialogOpen(true);
   };
   
-  const handleDeleteStyle = (styleId: string) => {
-    if (window.confirm("정말로 이 스타일을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
-      deleteStyleMutation.mutate(styleId);
+  const handleDeleteStyle = (style: any) => {
+    if (window.confirm(`정말로 '${style.name}' 스타일을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) {
+      // 숫자형 ID로 삭제 시도
+      deleteStyleMutation.mutate(style.id.toString());
     }
   };
   
@@ -139,7 +140,7 @@ export function ImageStyleManagement() {
                       <Button variant="ghost" size="sm" onClick={() => handleEditStyle(style)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDeleteStyle(style.styleId)}>
+                      <Button variant="ghost" size="sm" onClick={() => handleDeleteStyle(style)}>
                         <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>
                     </div>
