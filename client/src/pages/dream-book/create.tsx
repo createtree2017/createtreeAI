@@ -653,8 +653,44 @@ export default function CreateDreamBook() {
               disabled={isGenerating}
               size="lg"
               onClick={() => {
-                // 기존 onSubmit 함수를 직접 호출
-                onSubmit(form.getValues());
+                // 검증 및 생성 호출
+                const values = form.getValues();
+                
+                // 캐릭터 이미지가 없으면 생성 중단
+                if (!characterImage) {
+                  toast({
+                    title: '캐릭터 필요',
+                    description: '먼저 캐릭터를 생성해주세요.',
+                    variant: 'destructive'
+                  });
+                  return;
+                }
+                
+                // 장면 프롬프트 유효성 검사 (빈 값 제외)
+                const validScenePrompts = values.scenePrompts.filter(prompt => prompt.trim().length > 0);
+                if (validScenePrompts.length === 0) {
+                  toast({
+                    title: '장면 입력 필요',
+                    description: '최소 1개 이상의 장면 설명을 입력해주세요.',
+                    variant: 'destructive'
+                  });
+                  return;
+                }
+
+                // 생성 시작 알림
+                toast({
+                  title: '태몽동화 생성 시작',
+                  description: '태몽동화를 생성하고 있습니다. 잠시 기다려주세요.',
+                });
+
+                // 처리 중 상태로 변경
+                setIsGenerating(true);
+                
+                // 직접 mutation 함수 호출
+                createDreamBookMutation.mutate({
+                  ...values,
+                  styleId: values.styleId
+                });
               }}
             >
               {isGenerating ? (
