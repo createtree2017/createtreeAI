@@ -1,0 +1,103 @@
+✅ 현재 오류 로그 요약
+plaintext
+복사
+편집
+POST /api/dream-book 400 (Bad Request)
+Dream book creation error: Error: 태몽동화 생성에 실패했습니다
+scenePrompts = [
+ "엄마배를 안겨 환하게 웃는 아기",
+ ...
+]
+→ FormData 구성은 잘 되어 있고, 클라이언트 로그에서도 scenePrompts가 string 배열로 정상 전송되고 있음을 확인했음.
+그럼에도 400 오류가 발생한다는 것은 Zod 스키마 유효성 검증 실패 가능성이 큽니다.
+
+🔍 원인 정리
+구분	원인
+1	서버에서 scenePrompts를 JSON.parse()한 후에도, Zod 스키마에 반영되는 데이터 객체가 req.body를 그대로 참조함
+2	즉, parsedScenePrompts는 잘 만들어졌지만 req.body.scenePrompts는 여전히 string 상태
+3	createDreamBookSchema.parse(req.body) 혹은 safeParse(req.body)가 string[]이 아니라 string으로 인식해서 실패
+4	따로 만든 parsedScenePrompts를 사용한 새 객체로 validate하지 않았기 때문
+
+🛠 최종 해결 방법
+🔧 서버 코드(server/routes/dream-book.ts)
+ts
+복사
+편집
+import { createDreamBookSchema } from "@/shared/dream-book";
+
+// 기존 FormData 필드
+const {
+  babyName,
+  dreamer,
+  styleId,
+  characterImageUrl,
+  peoplePrompt,
+  backgroundPrompt,
+} = req.body;
+
+// scenePrompts만 따로 JSON 파싱
+let scenePrompts: string[] = [];
+try {
+  scenePrompts = JSON.parse(req.body.scenePrompts || "[]");
+} catch (err) {
+  return res.status(400).json({ error: "scenePrompts 형식이 잘못되었습니다." });
+}
+
+// ✅ 유효성 검사를 위한 완전한 객체 생성
+const validatedData = {
+  babyName,
+  dreamer,
+  styleId,
+  characterImageUrl,
+  peoplePrompt,
+  backgroundPrompt,
+  scenePrompts, // 여기에 직접 파싱한 배열 넣기!
+};
+
+// Zod 스키마 검증
+const validation = createDreamBookSchema.safeParse(validatedData);
+if (!validation.success) {
+  console.error("🛑 Zod 유효성 검증 실패", validation.error.flatten());
+  return res.status(400).json({ error: "입력값이 유효하지 않습니다" });
+}
+📦 라플이 작업지시서
+txt
+복사
+편집
+[작업지시서: 태몽동화 생성 오류 수정 - scenePrompts Zod 검증 실패 문제]
+
+📌 목적
+태몽동화 생성 시 클라이언트에서 FormData로 전달된 scenePrompts를 서버에서 파싱한 후, Zod 스키마 유효성 검증까지 올바르게 통과하도록 수정
+
+🧩 발생 원인
+- 클라이언트에서는 scenePrompts를 JSON.stringify된 string으로 전송
+- 서버에서는 JSON.parse()를 하긴 했지만, Zod 스키마 검증 시 req.body.scenePrompts (string)로 그대로 검증
+- 따라서 Zod에서 타입 불일치 오류 발생 → 400 Bad Request
+
+🛠 수정 지침
+
+1. server/routes/dream-book.ts 내 scenePrompts 처리
+- JSON.parse()로 배열로 변환
+- 에러 발생 시 400 응답
+
+```ts
+let scenePrompts: string[] = [];
+try {
+  scenePrompts = JSON.parse(req.body.scenePrompts || "[]");
+} catch (err) {
+  return res.status(400).json({ error: "scenePrompts 형식이 잘못되었습니다." });
+}
+유효성 검증 전 validatedData 객체 생성
+
+ts
+복사
+편집
+const validatedData = {
+  ...req.body,
+  scenePrompts,
+};
+createDreamBookSchema.safeParse(validatedData) 로 검증
+
+실패 시 상세한 console.error 출력 및 400 응답
+
+✅ 참고: 기존 req.body 그대로 validate하지 말고, scenePrompts를 바꾼 새 객체 validatedData를 Zod에 넘겨야 함

@@ -233,32 +233,48 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
     
     // 검증용 데이터 객체 생성 (FormData를 직접 쓰지 않고 새 객체 구성)
     const validationData = {
-      babyName,
-      dreamer,
+      babyName: babyName,
+      dreamer: dreamer || '엄마',
       style: styleId,
-      characterImageUrl,
-      peoplePrompt,
-      backgroundPrompt,
+      characterImageUrl: characterImageUrl,
+      peoplePrompt: peoplePrompt || '아기는 귀엽고 활기찬 모습이다.',
+      backgroundPrompt: backgroundPrompt || '환상적이고 아름다운 배경',
       numberOfScenes: filteredScenePrompts.length,
       scenePrompts: filteredScenePrompts // 파싱된 배열을 직접 전달
     };
     
-    // Zod 스키마로 데이터 검증
-    try {
-      const validatedData = createDreamBookSchema.parse(validationData);
-      logInfo('Zod 스키마 검증 성공', { validated: true });
-    } catch (validationError) {
-      if (validationError instanceof ZodError) {
-        logError('Zod 스키마 검증 오류', { 
-          error: validationError.format(),
-          input: validationData 
-        });
-        return res.status(400).json({ 
-          error: '입력 데이터가 올바르지 않습니다.',
-          details: validationError.errors
-        });
-      }
+    // 디버깅용 로그
+    logInfo('Zod 스키마 검증 전 데이터', {
+      validationData: validationData,
+      scenePromptsType: Array.isArray(validationData.scenePrompts) ? '배열' : typeof validationData.scenePrompts,
+      scenePromptsCount: Array.isArray(validationData.scenePrompts) ? validationData.scenePrompts.length : 0,
+      styleType: typeof validationData.style
+    });
+    
+    // Zod 스키마로 데이터 검증 - safeParse 사용
+    const validation = createDreamBookSchema.safeParse(validationData);
+    
+    if (!validation.success) {
+      logError('Zod 스키마 검증 실패', {
+        error: validation.error.format(),
+        issues: validation.error.issues.map(issue => ({
+          path: issue.path.join('.'),
+          message: issue.message,
+          code: issue.code
+        }))
+      });
+      
+      return res.status(400).json({
+        error: '입력 데이터가 올바르지 않습니다.',
+        details: validation.error.issues.map(issue => ({
+          path: issue.path.join('.'),
+          message: issue.message
+        }))
+      });
     }
+    
+    // 검증 성공 로그
+    logInfo('Zod 스키마 검증 성공', { validated: true });
     
     // 필수 필드 검증 (Zod 검증은 이미 위에서 했으나, 이중 검증)
     if (!babyName) {
