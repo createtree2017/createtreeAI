@@ -1,11 +1,11 @@
 import express from 'express';
 import { db } from '@db';
 import { eq } from 'drizzle-orm';
-import { dreambookStyles } from '@shared/schema';
+import { dreambookStyles } from '@shared/dreambook-styles';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { authMiddleware } from '../auth-middleware';
+import { requireAuth } from '../middleware';
 
 const router = express.Router();
 
@@ -65,7 +65,7 @@ router.get('/:styleId', async (req, res) => {
 });
 
 // 태몽동화 스타일 추가 (관리자 전용)
-router.post('/', authMiddleware, upload.single('thumbnail'), async (req, res) => {
+router.post('/', requireAuth, upload.single('thumbnail'), async (req, res) => {
   try {
     // 관리자 권한 체크
     if (!req.user || req.user.memberType !== 'superadmin') {
@@ -129,7 +129,7 @@ router.post('/', authMiddleware, upload.single('thumbnail'), async (req, res) =>
 });
 
 // 태몽동화 스타일 수정 (관리자 전용)
-router.put('/:styleId', authMiddleware, upload.single('thumbnail'), async (req, res) => {
+router.put('/:styleId', requireAuth, upload.single('thumbnail'), async (req, res) => {
   try {
     // 관리자 권한 체크
     if (!req.user || req.user.memberType !== 'superadmin') {
@@ -207,7 +207,7 @@ router.put('/:styleId', authMiddleware, upload.single('thumbnail'), async (req, 
 });
 
 // 태몽동화 스타일 삭제 (관리자 전용)
-router.delete('/:styleId', authMiddleware, async (req, res) => {
+router.delete('/:styleId', requireAuth, async (req, res) => {
   try {
     // 관리자 권한 체크
     if (!req.user || req.user.memberType !== 'superadmin') {

@@ -259,6 +259,8 @@ import session from "express-session";
 import { placeholderRouter } from './routes/placeholder';
 import musicRouter from './routes/music-routes';
 import testOpenAIRouter from './routes/test-openai-route';
+// 태몽동화 스타일 관리 라우터 추가
+import dreambookStylesRouter from './routes/dreambook-styles';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // 쿠키 파서 미들웨어 등록
