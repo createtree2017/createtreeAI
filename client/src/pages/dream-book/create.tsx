@@ -148,6 +148,9 @@ export default function CreateDreamBook() {
     }
   });
 
+  // wouter 네비게이션 사용
+  const [, navigate] = useLocation();
+
   // 태몽동화 생성 뮤테이션
   const createDreamBookMutation = useMutation({
     mutationFn: async (data: z.infer<typeof dreamBookSchema>) => {
@@ -187,7 +190,7 @@ export default function CreateDreamBook() {
         title: '태몽동화 생성 완료',
         description: '태몽동화가 성공적으로 생성되었습니다.'
       });
-      router.push(`/dream-book/detail/${data.result.id}`);
+      navigate(`/dream-book/detail/${data.result.id}`);
     },
     onError: (error) => {
       setIsGenerating(false);
@@ -647,27 +650,9 @@ export default function CreateDreamBook() {
 
           <div className="flex justify-end">
             <Button
-              type="button" 
+              type="submit" 
               disabled={isGenerating}
               size="lg"
-              onClick={() => {
-                console.log('태몽동화 생성 버튼 클릭됨', form.getValues());
-                
-                // 폼 데이터 유효성 검사
-                form.trigger().then(isValid => {
-                  if (isValid) {
-                    console.log('폼 데이터 유효함, 제출 시작');
-                    onSubmit(form.getValues());
-                  } else {
-                    console.error('폼 데이터 유효하지 않음', form.formState.errors);
-                    toast({
-                      title: '입력 오류',
-                      description: '모든 필수 항목을 입력해주세요.',
-                      variant: 'destructive'
-                    });
-                  }
-                });
-              }}
             >
               {isGenerating ? (
                 <>
