@@ -71,7 +71,7 @@ router.get('/:styleId', async (req, res) => {
 });
 
 // 태몽동화 스타일 추가 (관리자 전용)
-router.post('/', requireAuth, uploadFields, async (req, res) => {
+router.post('/', isAdmin, uploadFields, async (req, res) => {
   try {
     // 관리자 권한 체크
     if (!req.user || req.user.memberType !== 'superadmin') {
