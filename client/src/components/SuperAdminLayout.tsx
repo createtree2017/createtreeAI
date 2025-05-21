@@ -34,6 +34,12 @@ const navItems = [
     requiresHospital: true
   },
   { 
+    href: '/super/dreambook-styles', 
+    label: '태몽동화 스타일', 
+    icon: <StarIcon className="w-5 h-5" />,
+    requiresHospital: false
+  },
+  { 
     href: '/super/promos', 
     label: '프로모션 코드', 
     icon: <TagIcon className="w-5 h-5" />,

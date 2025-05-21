@@ -4,6 +4,8 @@ import { z } from "zod";
 import { relations } from "drizzle-orm";
 // 태몽동화 모듈 추가
 import { dreamBooks, dreamBookImages, dreamBooksRelations, dreamBookImagesRelations } from './dream-book';
+// 태몽동화 스타일 모듈 추가
+import { dreambookStyles } from './dreambook-styles';
 
 // User table - 확장된 사용자 테이블
 export const users = pgTable("users", {
