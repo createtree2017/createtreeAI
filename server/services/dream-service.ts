@@ -6,6 +6,7 @@ import fetch from 'node-fetch';
 import fs from 'fs';
 import path from 'path';
 import { writeFile, mkdir } from 'fs/promises';
+import FormData from 'form-data';
 
 // OpenAI API 키 - 환경 변수에서 가져옴
 const API_KEY = process.env.OPENAI_API_KEY;
@@ -236,7 +237,6 @@ ${imageDescription}
         fs.writeFileSync(tempFilePath, imageBuffer);
         
         // FormData 객체 생성
-        const FormData = require('form-data');
         const formData = new FormData();
         formData.append('model', 'gpt-image-1');
         formData.append('prompt', generatedPrompt);
