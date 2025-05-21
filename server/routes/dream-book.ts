@@ -230,35 +230,22 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
       filteredScenePrompts = ['아이가 행복하게 웃고 있는 모습'];
     }
     
-    // 기본 장면 수
-    const numberOfScenes = filteredScenePrompts.length;
+    // 기본 장면 수 (변수명 중복 방지를 위해 sceneCount로 변경)
+    const sceneCount = filteredScenePrompts.length;
     
     logInfo('scenePrompts 처리 결과:', {
       원본: formData.scenePrompts,
       파싱결과: scenePrompts,
       필터링결과: filteredScenePrompts,
-      장면수: numberOfScenes
+      장면수: sceneCount
     });
     
-    // 장면 프롬프트가 없으면 에러 반환
-    if (filteredScenePrompts.length === 0) {
-      logError('장면 프롬프트가 없음', { 
-        scenePrompts, 
-        filteredScenePrompts,
-        원본타입: typeof formData.scenePrompts
-      });
-      
-      return res.status(400).json({ 
-        error: '최소 1개 이상의 장면 프롬프트를 입력해주세요.',
-        details: { 
-          received: { 
-            type: typeof formData.scenePrompts,
-            value: formData.scenePrompts,
-            keys: Object.keys(formData)
-          }
-        }
-      });
-    }
+    // 장면 프롬프트가 없는 경우는 이미 위에서 기본값 설정했으므로 여기서는 체크하지 않음
+    // 로그만 추가
+    console.log('최종 검증 전 장면 데이터:', {
+      갯수: filteredScenePrompts.length,
+      내용: filteredScenePrompts
+    });
     
     // 검증용 데이터 객체 생성 (FormData를 직접 쓰지 않고 새 객체 구성)
     // ⭐ Zod 스키마와 필드명 일치시키기: style, scenePrompts 등
@@ -277,8 +264,8 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
       characterImageUrl: characterImageUrl || '',
       peoplePrompt: peoplePrompt || '아기는 귀엽고 활기찬 모습이다.',
       backgroundPrompt: backgroundPrompt || '환상적이고 아름다운 배경',
-      numberOfScenes: numberOfScenes,
-      scenePrompts: finalScenePrompts
+      numberOfScenes: sceneCount,
+      scenePrompts: filteredScenePrompts
     };
     
     // 디버깅용 로그
