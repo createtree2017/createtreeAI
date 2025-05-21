@@ -135,15 +135,33 @@ export default function DreamBookDetail() {
                 <CarouselItem key={index}>
                   <Card className="overflow-hidden">
                     <div className="relative aspect-[4/3] bg-gray-100 overflow-hidden">
-                      <img
-                        src={image.imageUrl || '/static/uploads/dream-books/error.png'} 
-                        alt={`태몽동화 장면 ${index + 1}`}
-                        className="object-cover w-full h-full"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = '/static/uploads/dream-books/error.png';
-                        }}
-                      />
+                      {(() => {
+                        const imageUrl = image.imageUrl;
+                        
+                        // 이미지 URL이 유효한 경우
+                        if (imageUrl && (imageUrl.startsWith('http') || imageUrl.startsWith('/static'))) {
+                          return (
+                            <img
+                              src={imageUrl}
+                              alt={`태몽동화 장면 ${index + 1}`}
+                              className="object-cover w-full h-full"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = '/static/uploads/dream-books/error.png';
+                              }}
+                            />
+                          );
+                        }
+                        
+                        // 이미지 URL이 유효하지 않은 경우
+                        return (
+                          <img
+                            src="/static/uploads/dream-books/error.png"
+                            alt={`태몽동화 장면 ${index + 1}`}
+                            className="object-cover w-full h-full"
+                          />
+                        );
+                      })()}
                     </div>
                     <CardContent className="p-6">
                       <div className="grid gap-4">
