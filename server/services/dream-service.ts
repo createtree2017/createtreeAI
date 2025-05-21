@@ -407,23 +407,18 @@ export async function generateDreamSceneImage(
   peoplePrompt: string,
   backgroundPrompt: string
 ): Promise<string> {
-  // 장면 프롬프트와 캐릭터 참조 구성
-  const userPrompt = `
+  const fullPrompt = `
+System: ${stylePrompt}
+
 캐릭터 참조: ${characterPrompt}
 
 인물 표현: ${peoplePrompt}
 
 배경 표현: ${backgroundPrompt}
 
-장면 설명: ${scenePrompt}
+User: ${scenePrompt}
 `;
-  // 스타일 프롬프트는 시스템 프롬프트로 전달하여 일관된 스타일 적용
-  logInfo('태몽동화 장면 이미지 생성', {
-    scenePromptLength: scenePrompt.length,
-    characterPromptLength: characterPrompt.length,
-    stylePromptLength: stylePrompt.length
-  });
-  return generateDreamImage(userPrompt, stylePrompt);
+  return generateDreamImage(fullPrompt);
 }
 
 /**

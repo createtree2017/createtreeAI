@@ -10,22 +10,5 @@
     <script type="module" src="/src/main.tsx"></script>
     <!-- This script injects a replit badge into the page, please feel free to remove this line -->
     <script type="text/javascript" src="https://replit.com/public/js/replit-badge-v3.js"></script>
-    
-    <script>
-      // 공유 기능에 필요한 유틸리티 함수들 직접 정의
-      window.shareModalModule = {
-        initialized: true,
-        copyToClipboard: function(text) {
-          if (navigator.clipboard) {
-            navigator.clipboard.writeText(text);
-          }
-        },
-        nativeShare: function(data) {
-          if (navigator.share) {
-            navigator.share(data);
-          }
-        }
-      };
-    </script>
   </body>
 </html>
