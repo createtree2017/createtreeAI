@@ -17,6 +17,12 @@ const upload = multer({
   },
 });
 
+// 여러 이미지 파일 업로드를 위한 필드 구성
+const uploadFields = upload.fields([
+  { name: 'thumbnail', maxCount: 1 },
+  { name: 'characterSample', maxCount: 1 }
+]);
+
 // 스타일 썸네일 저장 디렉토리 설정
 const uploadDir = 'uploads/dreambook-styles/';
 const staticDir = 'static/uploads/dreambook-styles/';
@@ -65,7 +71,7 @@ router.get('/:styleId', async (req, res) => {
 });
 
 // 태몽동화 스타일 추가 (관리자 전용)
-router.post('/', requireAuth, upload.single('thumbnail'), async (req, res) => {
+router.post('/', requireAuth, uploadFields, async (req, res) => {
   try {
     // 관리자 권한 체크
     if (!req.user || req.user.memberType !== 'superadmin') {
@@ -73,13 +79,14 @@ router.post('/', requireAuth, upload.single('thumbnail'), async (req, res) => {
     }
 
     // 바디 데이터 및 파일 유효성 검사
-    const { id, name, description, systemPrompt } = req.body;
+    const { id, name, description, systemPrompt, characterPrompt } = req.body;
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
     if (!id || !name || !description || !systemPrompt) {
       return res.status(400).json({ error: '필수 입력 데이터가 누락되었습니다.' });
     }
 
-    if (!req.file) {
+    if (!files?.thumbnail || files.thumbnail.length === 0) {
       return res.status(400).json({ error: '썸네일 이미지는 필수입니다.' });
     }
 
@@ -93,18 +100,37 @@ router.post('/', requireAuth, upload.single('thumbnail'), async (req, res) => {
     }
 
     // 썸네일 이미지 저장 처리
-    const fileExt = path.extname(req.file.originalname);
+    const thumbnailFile = files.thumbnail[0];
+    const fileExt = path.extname(thumbnailFile.originalname);
     const fileName = `${id}-thumbnail${fileExt}`;
     const staticFilePath = path.join(staticDir, fileName);
 
     // 업로드된 파일을 static 디렉토리로 복사
-    fs.copyFileSync(req.file.path, staticFilePath);
+    fs.copyFileSync(thumbnailFile.path, staticFilePath);
     
     // 업로드된 임시 파일 삭제
-    fs.unlinkSync(req.file.path);
+    fs.unlinkSync(thumbnailFile.path);
 
     // 썸네일 경로
     const thumbnailUrl = `/uploads/dreambook-styles/${fileName}`;
+
+    // 캐릭터 샘플 이미지 처리 (선택적)
+    let characterSampleUrl = null;
+    if (files.characterSample && files.characterSample.length > 0) {
+      const characterFile = files.characterSample[0];
+      const characterExt = path.extname(characterFile.originalname);
+      const characterFileName = `${id}-character-sample${characterExt}`;
+      const characterFilePath = path.join(staticDir, characterFileName);
+
+      // 업로드된 파일을 static 디렉토리로 복사
+      fs.copyFileSync(characterFile.path, characterFilePath);
+      
+      // 업로드된 임시 파일 삭제
+      fs.unlinkSync(characterFile.path);
+
+      // 캐릭터 이미지 경로
+      characterSampleUrl = `/uploads/dreambook-styles/${characterFileName}`;
+    }
 
     // 데이터베이스에 스타일 추가
     const newStyle = {
@@ -113,6 +139,8 @@ router.post('/', requireAuth, upload.single('thumbnail'), async (req, res) => {
       description,
       systemPrompt,
       thumbnailUrl,
+      characterPrompt: characterPrompt || null,
+      characterSampleUrl: characterSampleUrl,
       isActive: true,
       order: 0,
       createdAt: new Date(),
@@ -129,7 +157,7 @@ router.post('/', requireAuth, upload.single('thumbnail'), async (req, res) => {
 });
 
 // 태몽동화 스타일 수정 (관리자 전용)
-router.put('/:styleId', requireAuth, upload.single('thumbnail'), async (req, res) => {
+router.put('/:styleId', requireAuth, uploadFields, async (req, res) => {
   try {
     // 관리자 권한 체크
     if (!req.user || req.user.memberType !== 'superadmin') {
@@ -137,7 +165,8 @@ router.put('/:styleId', requireAuth, upload.single('thumbnail'), async (req, res
     }
 
     const { styleId } = req.params;
-    const { name, description, systemPrompt } = req.body;
+    const { name, description, systemPrompt, characterPrompt } = req.body;
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] } || {};
 
     if (!name || !description || !systemPrompt) {
       return res.status(400).json({ error: '필수 입력 데이터가 누락되었습니다.' });
@@ -157,12 +186,14 @@ router.put('/:styleId', requireAuth, upload.single('thumbnail'), async (req, res
       name,
       description,
       systemPrompt,
+      characterPrompt: characterPrompt || null,
       updatedAt: new Date(),
     };
 
     // 썸네일 이미지가 있는 경우 처리
-    if (req.file) {
-      const fileExt = path.extname(req.file.originalname);
+    if (files.thumbnail && files.thumbnail.length > 0) {
+      const thumbnailFile = files.thumbnail[0];
+      const fileExt = path.extname(thumbnailFile.originalname);
       const fileName = `${styleId}-thumbnail${fileExt}`;
       const staticFilePath = path.join(staticDir, fileName);
 
@@ -185,11 +216,44 @@ router.put('/:styleId', requireAuth, upload.single('thumbnail'), async (req, res
       }
 
       // 새 파일 복사
-      fs.copyFileSync(req.file.path, staticFilePath);
-      fs.unlinkSync(req.file.path); // 임시 파일 삭제
+      fs.copyFileSync(thumbnailFile.path, staticFilePath);
+      fs.unlinkSync(thumbnailFile.path); // 임시 파일 삭제
 
       // 경로 업데이트
       updateData.thumbnailUrl = `/uploads/dreambook-styles/${fileName}`;
+    }
+    
+    // 캐릭터 샘플 이미지가 있는 경우 처리
+    if (files.characterSample && files.characterSample.length > 0) {
+      const characterFile = files.characterSample[0];
+      const characterExt = path.extname(characterFile.originalname);
+      const characterFileName = `${styleId}-character-sample${characterExt}`;
+      const characterFilePath = path.join(staticDir, characterFileName);
+
+      // 이전 파일이 있으면 삭제 시도
+      if (
+        existingStyle.characterSampleUrl &&
+        existingStyle.characterSampleUrl.includes('/uploads/dreambook-styles/')
+      ) {
+        const oldCharacterPath = path.join(
+          'static',
+          existingStyle.characterSampleUrl
+        );
+        try {
+          if (fs.existsSync(oldCharacterPath)) {
+            fs.unlinkSync(oldCharacterPath);
+          }
+        } catch (err) {
+          console.error('이전 캐릭터 샘플 파일 삭제 실패:', err);
+        }
+      }
+
+      // 새 파일 복사
+      fs.copyFileSync(characterFile.path, characterFilePath);
+      fs.unlinkSync(characterFile.path); // 임시 파일 삭제
+
+      // 경로 업데이트
+      updateData.characterSampleUrl = `/uploads/dreambook-styles/${characterFileName}`;
     }
 
     // 데이터베이스 업데이트

@@ -10,6 +10,11 @@ export const dreambookStyles = pgTable('dreambook_styles', {
   description: text('description').notNull(), // 스타일 설명
   systemPrompt: text('system_prompt').notNull(), // 이미지 생성 시 사용되는 프롬프트
   thumbnailUrl: text('thumbnail_url').notNull(), // 스타일 썸네일 이미지 URL
+  
+  // 태몽동화 전용 필드 추가
+  characterPrompt: text('character_prompt'), // 캐릭터 참조용 프롬프트
+  characterSampleUrl: text('character_sample_url'), // 캐릭터 샘플 이미지 URL
+  
   isActive: boolean('is_active').default(true), // 활성화 여부
   order: integer('order').default(0), // 표시 순서
   createdAt: timestamp('created_at').defaultNow().notNull(),
