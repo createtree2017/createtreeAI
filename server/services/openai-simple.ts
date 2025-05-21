@@ -2,17 +2,22 @@
  * Simplified OpenAI Service 
  * DALL-E 3 이미지 생성을 위한 간소화된 서비스
  */
+import OpenAI from "openai";
+
 // OpenAI API 키
 const API_KEY = process.env.OPENAI_API_KEY;
+
+// OpenAI 클라이언트 생성
+const openai = new OpenAI({
+  apiKey: API_KEY,
+});
 
 // 간단한 API 키 유효성 검증
 function isValidApiKey(apiKey: string | undefined): boolean {
   return !!apiKey && (apiKey.startsWith('sk-') || apiKey.startsWith('sk-proj-'));
 }
 
-// 임시 조치: OpenAI 클라이언트 없이 작동하도록 수정
-// OpenAI 모듈 임포트 오류가 해결될 때까지 대체 로직 사용
-console.log("OpenAI 클라이언트 생성을 건너뜁니다 - 임시 모드로 작동");
+console.log("OpenAI 클라이언트 생성됨");
 
 // 서비스 불가능 상태 메시지
 const SERVICE_UNAVAILABLE = "https://placehold.co/1024x1024/A7C1E2/FFF?text=현재+이미지생성+서비스가+금일+종료+되었습니다";
@@ -54,27 +59,18 @@ export async function transformImage(
       return SERVICE_UNAVAILABLE;
     }
 
-    // 스타일별 프롬프트 템플릿
-    const stylePrompts: Record<string, string> = {
-      watercolor: "Transform this image into a beautiful watercolor painting with soft, flowing colors and gentle brush strokes",
-      sketch: "Convert this image into a detailed pencil sketch with elegant lines and shading",
-      cartoon: "Transform this image into a charming cartoon style with bold outlines and vibrant colors",
-      oil: "Convert this image into a classic oil painting style with rich textures and depth",
-      fantasy: "Transform this image into a magical fantasy art style with ethereal lighting and dreamlike qualities",
-      storybook: "Convert this image into a sweet children's storybook illustration style with gentle colors and charming details",
-      ghibli: "Transform this image into a Studio Ghibli anime style with delicate hand-drawn details, soft expressions, pastel color palette, dreamy background elements, gentle lighting, and the whimsical charming aesthetic that Studio Ghibli is known for. The image should be gentle and magical.",
-      disney: "Transform this image into a Disney animation style with expressive characters, vibrant colors, and enchanting details",
-      korean_webtoon: "Transform this image into a Korean webtoon style with clean lines, pastel colors, and expressive characters",
-      fairytale: "Transform this image into a fairytale illustration with magical elements, dreamy atmosphere, and storybook aesthetics"
-    };
-
-    // 프롬프트 선택 (커스텀 또는 기본)
+    // DB에서 스타일 정보를 찾아 프롬프트를 사용하도록 함
+    // 프롬프트 선택 (커스텀 또는 스타일 ID)
     let promptText: string;
+
     if (customPromptTemplate) {
       console.log("커스텀 프롬프트 템플릿 사용");
       promptText = customPromptTemplate;
     } else {
-      promptText = stylePrompts[style] || "Transform this image into a beautiful artistic style";
+      // style 파라미터는 이제 스타일 ID(관리자가 생성한)로 간주함
+      // 이 시점에서는 이미 스타일 정보가 파라미터로 전달되어야 함 
+      // (호출 전에 DB에서 스타일 정보를 조회하여 시스템 프롬프트를 전달해야 함)
+      promptText = style || "Transform this image into a beautiful artistic style";
     }
 
     console.log("DALL-E 3로 이미지 변환 시도");

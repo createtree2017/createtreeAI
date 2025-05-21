@@ -477,7 +477,7 @@ router.post('/character', authMiddleware, upload.single('image'), async (req: ex
     }
 
     try {
-      console.log('[INFO] 캐릭터 이미지 생성 시작 - 스타일:', styleInfo.name);
+      console.log('[INFO] 캐릭터 이미지 생성 시작 - 스타일:', imageStyle.name);
       console.log('[INFO] 업로드된 이미지 경로:', req.file.path);
       
       // 업로드된 이미지 파일 경로와 스타일 정보를 활용하여 캐릭터 이미지 생성

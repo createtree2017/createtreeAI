@@ -240,81 +240,16 @@ export default function Home() {
                 </div>
               ))
             ) : (
-              // 기본 더미 데이터 (데이터베이스에 데이터가 없을 경우)
-              <>
-                {/* 지브리 AI 스타일 */}
-                <div className="relative rounded-2xl overflow-hidden bg-neutral-800 border border-neutral-700 hover:border-primary-lavender hover:shadow-lg transition-all duration-300">
-                  <Link href="/image?style=ghibli" className="block">
-                    <div className="aspect-square relative overflow-hidden">
-                      <img 
-                        src="https://images.pexels.com/photos/1590549/pexels-photo-1590549.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" 
-                        alt="지브리 AI 생성기" 
-                        className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
-                      />
-                      <div className="absolute top-3 right-3 px-3 py-1 bg-[#FF4D6D] text-white text-xs font-bold rounded-md">
-                        신규
-                      </div>
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-16">
-                        <h3 className="text-white font-bold text-xl">지브리 AI 생성기</h3>
-                      </div>
-                    </div>
-                  </Link>
+              // 데이터가 없을 경우 안내 메시지 표시
+              <div className="col-span-full text-center py-8">
+                <div className="flex flex-col items-center justify-center">
+                  <ImagePlus className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">사용 가능한 이미지 스타일이 없습니다</h3>
+                  <p className="text-muted-foreground max-w-md">
+                    관리자 페이지에서 이미지 스타일을 추가해주세요. 관리자가 추가한 스타일만 이곳에 표시됩니다.
+                  </p>
                 </div>
-                
-                {/* 디즈니 스타일 */}
-                <div className="relative rounded-2xl overflow-hidden bg-neutral-800 border border-neutral-700 hover:border-primary-lavender hover:shadow-lg transition-all duration-300">
-                  <Link href="/image?style=disney" className="block">
-                    <div className="aspect-square relative overflow-hidden">
-                      <img 
-                        src="https://images.pexels.com/photos/3608263/pexels-photo-3608263.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" 
-                        alt="디즈니 AI 생성기" 
-                        className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
-                      />
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-16">
-                        <h3 className="text-white font-bold text-xl">디즈니 AI 생성기</h3>
-                      </div>
-                    </div>
-                  </Link>
-                </div>
-                
-                {/* 심슨 스타일 */}
-                <div className="relative rounded-2xl overflow-hidden bg-neutral-800 border border-neutral-700 hover:border-primary-lavender hover:shadow-lg transition-all duration-300">
-                  <Link href="/image?style=simpsons" className="block">
-                    <div className="aspect-square relative overflow-hidden">
-                      <img 
-                        src="https://images.pexels.com/photos/1405773/pexels-photo-1405773.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" 
-                        alt="심슨 AI 생성기" 
-                        className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
-                      />
-                      <div className="absolute top-3 right-3 px-3 py-1 bg-[#FF4D6D] text-white text-xs font-bold rounded-md">
-                        신규
-                      </div>
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-16">
-                        <h3 className="text-white font-bold text-xl">심슨 AI 생성기</h3>
-                      </div>
-                    </div>
-                  </Link>
-                </div>
-                
-                {/* 픽사 스타일 */}
-                <div className="relative rounded-2xl overflow-hidden bg-neutral-800 border border-neutral-700 hover:border-primary-lavender hover:shadow-lg transition-all duration-300">
-                  <Link href="/image?style=pixar" className="block">
-                    <div className="aspect-square relative overflow-hidden">
-                      <img 
-                        src="https://images.pexels.com/photos/1314550/pexels-photo-1314550.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" 
-                        alt="픽사 AI 생성기" 
-                        className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
-                      />
-                      <div className="absolute top-3 right-3 px-3 py-1 bg-[#FF4D6D] text-white text-xs font-bold rounded-md">
-                        신규
-                      </div>
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-16">
-                        <h3 className="text-white font-bold text-xl">픽사 AI 생성기</h3>
-                      </div>
-                    </div>
-                  </Link>
-                </div>
-              </>
+              </div>
             )}
           </div>
         </div>
