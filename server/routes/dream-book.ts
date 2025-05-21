@@ -215,7 +215,20 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
     }
     
     // 빈 프롬프트 제거하고 입력된 것만 필터링
-    const filteredScenePrompts = scenePrompts.filter((prompt: string) => prompt && prompt.trim().length > 0);
+    let filteredScenePrompts: string[] = [];
+    
+    // 배열인 경우만 필터링
+    if (Array.isArray(scenePrompts)) {
+      filteredScenePrompts = scenePrompts.filter((prompt: string) => prompt && prompt.trim().length > 0);
+    } else {
+      console.warn("scenePrompts가 배열이 아님:", typeof scenePrompts);
+    }
+    
+    // 필터링 후에도 비어 있으면 기본값 할당
+    if (filteredScenePrompts.length === 0) {
+      console.log("🔴 scenePrompts 필터링 후 빈 배열. 기본값 사용");
+      filteredScenePrompts = ['아이가 행복하게 웃고 있는 모습'];
+    }
     
     // 기본 장면 수
     const numberOfScenes = filteredScenePrompts.length;
@@ -253,16 +266,9 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
     // scenePrompts 최종 검증
     console.log('scenePrompts 최종 확인:', { filteredScenePrompts, type: typeof filteredScenePrompts });
     
-    // 1개 이상의 값이 있는지 확인
-    let finalScenePrompts = filteredScenePrompts;
-    if (!Array.isArray(finalScenePrompts) || finalScenePrompts.length === 0) {
-      finalScenePrompts = ['아이가 행복하게 웃고 있는 모습']; // 기본값 제공
-      console.log('scenePrompts 기본값 사용');
-    }
-    
-    // numberOfScenes 값 조정 (scenePrompts 배열 길이와 일치)
-    const numberOfScenes = finalScenePrompts.length;
-    console.log('장면 수 최종 결정:', numberOfScenes);
+    // 1개 이상의 값이 있는지 확인 
+    // (기존 로직 수정-필터링은 이미 앞에서 처리했으므로 여기서는 로깅만)
+    console.log('장면 수 최종 결정:', filteredScenePrompts.length);
     
     const validationData = {
       babyName: babyName || '',
@@ -283,7 +289,22 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
       styleType: typeof validationData.style
     });
     
+    // scenePrompts 재검증 및 수정 (마지막 안전장치)
+    console.log("최종 검증 전 scenePrompts 상태:", {
+      isArray: Array.isArray(validationData.scenePrompts),
+      length: validationData.scenePrompts ? validationData.scenePrompts.length : 0,
+      value: validationData.scenePrompts
+    });
+    
+    // 배열이 아니거나 빈 배열인 경우 강제로 기본값 설정
+    if (!Array.isArray(validationData.scenePrompts) || validationData.scenePrompts.length === 0) {
+      console.log("⚠️ scenePrompts 강제 보정 - 유효한 배열이 아님");
+      validationData.scenePrompts = ["아이가 행복하게 웃고 있는 모습"];
+      validationData.numberOfScenes = 1;
+    }
+    
     // Zod 스키마로 데이터 검증 - safeParse 사용
+    console.log("최종 검증 데이터:", JSON.stringify(validationData, null, 2));
     const validation = createDreamBookSchema.safeParse(validationData);
     
     if (!validation.success) {
