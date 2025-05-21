@@ -130,46 +130,68 @@ export default function DreamBookDetail() {
       <div className="mb-10">
         <Carousel className="w-full max-w-3xl mx-auto">
           <CarouselContent>
-            {dreamBook.scenes.map((scene, index) => (
-              <CarouselItem key={index}>
+            {dreamBook.scenes && dreamBook.scenes.length > 0 ? (
+              dreamBook.scenes.map((scene, index) => (
+                <CarouselItem key={index}>
+                  <Card className="overflow-hidden">
+                    <div className="relative aspect-[4/3] bg-gray-100 overflow-hidden">
+                      <img
+                        src={scene.imageUrl || '/static/uploads/dream-books/error.png'} 
+                        alt={`태몽동화 장면 ${index + 1}`}
+                        className="object-cover w-full h-full"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = '/static/uploads/dream-books/error.png';
+                        }}
+                      />
+                    </div>
+                    <CardContent className="p-6">
+                      <div className="grid gap-4">
+                        <div>
+                          <h3 className="text-xl font-semibold mb-2">장면 {index + 1}</h3>
+                          <p className="text-gray-700 whitespace-pre-line">{scene.scenePrompt}</p>
+                        </div>
+                        
+                        {(scene.backgroundPrompt || scene.characterPrompt) && (
+                          <div className="mt-4 text-sm text-gray-500 border-t pt-4 space-y-2">
+                            {scene.backgroundPrompt && (
+                              <div>
+                                <span className="font-medium">배경:</span> {scene.backgroundPrompt}
+                              </div>
+                            )}
+                            {scene.characterPrompt && (
+                              <div>
+                                <span className="font-medium">인물:</span> {scene.characterPrompt}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </CarouselItem>
+              ))
+            ) : (
+              <CarouselItem>
                 <Card className="overflow-hidden">
                   <div className="relative aspect-[4/3] bg-gray-100 overflow-hidden">
                     <img
-                      src={scene.imageUrl || '/static/uploads/dream-books/error.png'} 
-                      alt={`태몽동화 장면 ${index + 1}`}
+                      src="/static/uploads/dream-books/error.png" 
+                      alt="이미지를 찾을 수 없음"
                       className="object-cover w-full h-full"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = '/static/uploads/dream-books/error.png';
-                      }}
                     />
                   </div>
                   <CardContent className="p-6">
                     <div className="grid gap-4">
                       <div>
-                        <h3 className="text-xl font-semibold mb-2">장면 {index + 1}</h3>
-                        <p className="text-gray-700 whitespace-pre-line">{scene.scenePrompt}</p>
+                        <h3 className="text-xl font-semibold mb-2">태몽동화 장면</h3>
+                        <p className="text-gray-700">태몽동화 데이터가 손상되었거나 장면 정보가 없습니다.</p>
                       </div>
-                      
-                      {(scene.backgroundPrompt || scene.characterPrompt) && (
-                        <div className="mt-4 text-sm text-gray-500 border-t pt-4 space-y-2">
-                          {scene.backgroundPrompt && (
-                            <div>
-                              <span className="font-medium">배경:</span> {scene.backgroundPrompt}
-                            </div>
-                          )}
-                          {scene.characterPrompt && (
-                            <div>
-                              <span className="font-medium">인물:</span> {scene.characterPrompt}
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </div>
                   </CardContent>
                 </Card>
               </CarouselItem>
-            ))}
+            )}
           </CarouselContent>
           <CarouselPrevious className="absolute left-0 -translate-x-1/2" />
           <CarouselNext className="absolute right-0 translate-x-1/2" />
