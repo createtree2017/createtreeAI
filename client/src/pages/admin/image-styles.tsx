@@ -238,7 +238,7 @@ export default function ImageStylesPage() {
 
   // 이미지 스타일 복제 mutation
   const cloneStyleMutation = useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async (id: string) => {
       const response = await fetch(`/api/image-styles/${id}/clone`, {
         method: 'POST',
         credentials: 'include',
@@ -340,12 +340,12 @@ export default function ImageStylesPage() {
   };
 
   // 스타일 삭제 처리
-  const handleDeleteClick = (id: number) => {
+  const handleDeleteClick = (id: string) => {
     deleteStyleMutation.mutate(id);
   };
 
   // 스타일 복제 처리
-  const handleCloneClick = (id: number) => {
+  const handleCloneClick = (id: string) => {
     cloneStyleMutation.mutate(id);
   };
 
@@ -618,7 +618,7 @@ export default function ImageStylesPage() {
                                       <AlertDialogFooter>
                                         <AlertDialogCancel>취소</AlertDialogCancel>
                                         <AlertDialogAction 
-                                          onClick={() => handleDeleteClick(style.id)}
+                                          onClick={() => handleDeleteClick(style.styleId)}
                                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                         >
                                           삭제
@@ -639,7 +639,7 @@ export default function ImageStylesPage() {
                                   <Button 
                                     variant="ghost" 
                                     size="icon"
-                                    onClick={() => handleCloneClick(style.id)}
+                                    onClick={() => handleCloneClick(style.styleId)}
                                   >
                                     <Copy className="h-4 w-4" />
                                   </Button>
