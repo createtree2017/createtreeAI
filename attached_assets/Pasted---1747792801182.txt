@@ -1,0 +1,143 @@
+알겠습니다 대표님.
+지금까지의 문제 정리와 정확한 해결방안을 포함한
+📋 \*\*“태몽동화 이미지 출력 오류 통일 및 예외 처리 리팩토링 작업지시서”\*\*를 아래에 정리드립니다.
+
+---
+
+# 📌 \[라플 전용 작업지시서]
+
+## 태몽동화 이미지 출력 오류 통일 및 예외 처리 리팩토링
+
+---
+
+## 🎯 작업 목적
+
+현재 태몽동화 목록 및 상세 페이지에서 다음과 같은 **이미지 출력 불일치 및 오류 상황**이 발생하고 있음:
+
+* 일부는 정상 출력 (`/static/uploads/dream-books/...`)
+* 일부는 `???` 이미지 또는 무한 로딩 상태 (OpenAI URL 만료 또는 비정상 URL)
+* 일부는 완전히 빈 화면 (imageUrl 누락, 오류처리 누락)
+
+이를 **가장 안정적인 방식으로 통일하고**, **클라이언트 및 서버 예외 처리를 일관되게 정리하여**,
+더 이상 오류 반복, 무한로딩, 하드코딩 fallback 등을 방지한다.
+
+---
+
+## ✅ 현재 문제 유형
+
+| 유형       | 문제    | 원인                                             |
+| -------- | ----- | ---------------------------------------------- |
+| ✅ 정상 출력  | 상단 항목 | `/static/uploads/dream-books/...` 경로           |
+| ❌ ??? 표시 | 중간 항목 | OpenAI URL 만료 (`https://files.openai.com/...`) |
+| ❌ 무한로딩   | 하단 항목 | imageUrl 필드 없음 or 잘못된 URL                      |
+
+---
+
+## ✅ 수정 작업 항목
+
+### 1. 🔒 서버: DB 내 imageUrl 정리
+
+#### 처리 기준:
+
+* 유지: `/static/uploads/dream-books/...` 로 시작하는 URL만 유지
+* 수정: OpenAI URL(`https://files.openai.com/`) → `null` 또는 fallback 값으로 변경
+* 삭제: imageUrl이 null이거나 불완전한 경로 → `null` 처리
+
+#### 예시 SQL (PostgreSQL 기준):
+
+```sql
+UPDATE dream_book_scenes
+SET image_url = '/static/uploads/dream-books/error.png'
+WHERE image_url IS NULL
+   OR image_url NOT LIKE '/static/uploads/dream-books/%';
+```
+
+---
+
+### 2. 🧠 서버 스크립트 개선 (`fix-image-urls.ts`)
+
+* 만료된 OpenAI 이미지 URL → 실제 이미지가 로컬에 없다면 자동 다운로드 시도 (가능 시)
+* 실패하면 `/static/uploads/dream-books/error.png`로 일괄 교체
+* 모든 수정 후 DB update 적용
+
+---
+
+### 3. 🖼 클라이언트 이미지 렌더링 구조 통일
+
+#### 대상 파일:
+
+* `client/src/pages/dream-book/index.tsx`
+* `client/src/pages/dream-book/[id].tsx`
+
+#### 통일된 로직:
+
+```tsx
+const isValidImage = imageUrl?.startsWith('/static/uploads/dream-books/');
+
+<img
+  src={isValidImage ? imageUrl : '/static/uploads/dream-books/error.png'}
+  onError={(e) => {
+    e.currentTarget.src = '/static/uploads/dream-books/error.png';
+  }}
+  alt="태몽동화 이미지"
+/>
+```
+
+→ 조건이 맞지 않으면 무조건 fallback 이미지 사용
+→ 무한로딩 방지
+
+---
+
+### 4. 🧭 무한로딩 방지 로직 추가
+
+* 이미지 로딩 실패 시 `setLoaded(true)` 처리
+* placeholder 상태에서 빠져나오도록 제어
+
+```tsx
+useEffect(() => {
+  if (!imageUrl || imageUrl === '/static/uploads/dream-books/error.png') {
+    setLoaded(true);
+  }
+}, [imageUrl]);
+```
+
+---
+
+### 5. ✅ 목록/상세 페이지 모두 통일
+
+* `dream-book/index.tsx` (목록)
+* `dream-book/[id].tsx` (상세)
+
+→ 위 이미지 조건 필터 + fallback 로직을 동일하게 적용
+→ 향후 관리자가 등록한 “기본 에러 이미지”도 사용할 수 있게 확장 고려
+
+---
+
+## 📋 완료 보고 항목
+
+* [ ] fix-image-urls.ts 실행 후 로그 및 교체 내역
+* [ ] DB 정제 결과 (`imageUrl` 정규화 전후 수치)
+* [ ] 목록 페이지 캡처 (정상/에러 이미지 분리 확인)
+* [ ] 상세 페이지 캡처 (fallback 처리 정상 확인)
+* [ ] 무한로딩 발생 여부 테스트 결과
+
+---
+
+## ⚠️ 주의사항
+
+> ❌ OpenAI URL 직접 저장 금지 (시간 만료로 인해 영구 사용 불가)
+> ❌ imageUrl 하드코딩 금지 → 관리자가 등록한 에러 이미지도 가능하도록 향후 분리 설계 고려
+> ✅ `/static/uploads/...` 경로만 UI에 직접 연결 가능
+> ✅ fallback 이미지는 명확히 분리되어 `/static/uploads/dream-books/error.png` 등으로 고정 지정
+
+---
+
+## 🧩 후속 제안 (선택)
+
+* `관리자용 에러 이미지 설정 기능` 추가 → 디자인 교체 가능
+* `썸네일 유효성 검사 API` → 일괄 검증 및 수동 재처리 기능 추가
+
+---
+
+**이 작업은 태몽동화 이미지 시스템의 안정성과 사용자 경험을 모두 개선하기 위한 핵심 리팩토링입니다.
+즉시 통일 처리하고 결과를 보고하라.**
