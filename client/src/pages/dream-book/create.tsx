@@ -652,92 +652,9 @@ export default function CreateDreamBook() {
               type="button" 
               disabled={isGenerating}
               size="lg"
-              onClick={async () => {
-                if (!characterImage) {
-                  toast({
-                    title: '캐릭터 필요',
-                    description: '먼저 캐릭터를 생성해주세요.',
-                    variant: 'destructive'
-                  });
-                  return;
-                }
-                
-                const formValues = form.getValues();
-                const validScenePrompts = formValues.scenePrompts.filter(p => p.trim().length > 0);
-                
-                if (validScenePrompts.length === 0) {
-                  toast({
-                    title: '장면 입력 필요',
-                    description: '최소 1개 이상의 장면 설명을 입력해주세요.',
-                    variant: 'destructive'
-                  });
-                  return;
-                }
-                
-                console.log('태몽동화 생성 시작:', formValues);
-                
-                // 생성 시작 알림
-                toast({
-                  title: '태몽동화 생성 시작',
-                  description: '태몽동화를 생성하고 있습니다. 잠시 기다려주세요.',
-                });
-                
-                setIsGenerating(true);
-                
-                try {
-                  const payload = {
-                    babyName: formValues.babyName || '아기',
-                    dreamer: formValues.dreamer || '엄마',
-                    style: formValues.styleId,
-                    characterImageUrl: characterImage,
-                    peoplePrompt: formValues.peoplePrompt || '캐릭터가 중앙에 있는',
-                    backgroundPrompt: formValues.backgroundPrompt || '부드러운 배경이 있는',
-                    numberOfScenes: validScenePrompts.length,
-                    scenePrompts: validScenePrompts
-                  };
-                  
-                  console.log('서버로 전송하는 데이터:', payload);
-                  
-                  // API 요청 설정 조정
-                  const requestOptions = {
-                    method: 'POST',
-                    credentials: 'include', // 중요: 세션 쿠키 포함
-                    headers: {
-                      'Content-Type': 'application/json',
-                      'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                  };
-                  
-                  // 직접 API 엔드포인트 호출
-                  const response = await fetch('/api/dream-books', requestOptions);
-                  
-                  if (!response.ok) {
-                    throw new Error(`서버 오류 발생: ${response.status}`);
-                  }
-                  
-                  const data = await response.json();
-                  console.log('서버 응답:', data);
-                  
-                  if (data.success && data.result && data.result.id) {
-                    toast({
-                      title: '태몽동화 생성 완료',
-                      description: '태몽동화가 성공적으로 생성되었습니다.'
-                    });
-                    navigate(`/dream-book/detail/${data.result.id}`);
-                  } else {
-                    throw new Error('서버 응답에 오류가 있습니다');
-                  }
-                } catch (error: any) {
-                  console.error('태몽동화 생성 오류:', error);
-                  toast({
-                    title: '오류 발생',
-                    description: `태몽동화 생성에 실패했습니다: ${error?.message || '알 수 없는 오류'}`,
-                    variant: 'destructive'
-                  });
-                } finally {
-                  setIsGenerating(false);
-                }
+              onClick={() => {
+                // 기존 onSubmit 함수를 직접 호출
+                onSubmit(form.getValues());
               }}
             >
               {isGenerating ? (
