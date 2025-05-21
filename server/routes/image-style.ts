@@ -4,6 +4,35 @@ import { imageStyles, insertImageStyleSchema } from '@shared/schema';
 import { eq, desc, asc } from 'drizzle-orm';
 import { isAdmin } from '../middleware/auth';
 import { z } from 'zod';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+
+// 업로드 디렉토리 설정
+const uploadDir = './static/uploads/image-styles';
+
+// 디렉토리가 없으면 생성
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Multer 스토리지 설정
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+  }
+});
+
+// Multer 업로드 인스턴스 생성
+const upload = multer({ 
+  storage, 
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB 제한
+});
 
 const router = Router();
 
@@ -65,9 +94,13 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // 이미지 스타일 생성
-router.post('/', isAdmin, async (req: Request, res: Response) => {
+router.post('/', isAdmin, upload.fields([
+  { name: 'thumbnail', maxCount: 1 },
+  { name: 'characterSample', maxCount: 1 }
+]), async (req: Request, res: Response) => {
   try {
-    console.log('이미지 스타일 생성 요청 데이터:', JSON.stringify(req.body, null, 2));
+    console.log('이미지 스타일 생성 요청 데이터:', req.body);
+    console.log('업로드된 파일:', req.files);
     
     // 데이터 필드 검증
     if (!req.body.styleId || typeof req.body.styleId !== 'string') {
