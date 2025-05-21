@@ -418,70 +418,39 @@ router.post('/character', authMiddleware, async (req: express.Request, res: expr
     // 캐릭터 생성 프롬프트 구성
     const characterPrompt = `${babyName}의 캐릭터`;
 
-    // 진행 상황 추적 상태 객체
-    const status = { message: '캐릭터 생성을 시작합니다.', progress: 0, type: 'info' };
-    
-    // SSE 응답 헤더 설정
-    res.writeHead(200, {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
-    });
-
-    // 진행 상황 전송 함수
-    const sendStatus = (message: string, progress: number, type = 'info') => {
-      status.message = message;
-      status.progress = progress;
-      status.type = type;
-      res.write(`data: ${JSON.stringify(status)}\n\n`);
-    };
-
     try {
-      sendStatus('캐릭터 이미지를 생성하는 중...', 30);
+      console.log('[INFO] 캐릭터 이미지 생성 시작 - 스타일:', styleInfo.name);
       
       // OpenAI API로 캐릭터 이미지 생성
       const characterImageUrl = await generateCharacterImage(characterPrompt, imageStyle.systemPrompt);
       
       if (characterImageUrl === SERVICE_UNAVAILABLE) {
-        sendStatus('캐릭터 생성 중 오류가 발생했습니다.', 0, 'error');
-        res.write(`data: ${JSON.stringify({ 
-          message: '캐릭터 생성 중 오류가 발생했습니다.', 
-          type: 'error',
-          completed: true, 
-          success: false 
-        })}\n\n`);
-        res.end();
-        return;
+        return res.status(503).json({ 
+          success: false,
+          error: '서비스를 일시적으로 사용할 수 없습니다.',
+          message: '캐릭터 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.' 
+        });
       }
       
       // 캐릭터 프롬프트 생성 (다음 단계에서 참조용)
       const characterReferencePrompt = `${babyName}의 캐릭터는 다음과 같습니다: ${characterPrompt}`;
       
-      // 결과 반환
-      sendStatus('캐릭터 생성이 완료되었습니다!', 100);
-      res.write(`data: ${JSON.stringify({ 
-        message: '캐릭터 생성이 완료되었습니다!', 
-        progress: 100, 
-        type: 'info',
-        completed: true, 
+      // 결과 반환 - 일반 JSON 응답으로 변경
+      console.log('[INFO] 캐릭터 이미지 생성 완료:', characterImageUrl);
+      return res.status(200).json({ 
         success: true,
         result: {
           characterImageUrl,
           characterPrompt: characterReferencePrompt
         }
-      })}\n\n`);
-      res.end();
+      });
     } catch (error) {
       logError('캐릭터 생성 중 오류 발생:', error);
-      res.write(`data: ${JSON.stringify({ 
-        message: '캐릭터 생성 중 오류가 발생했습니다.', 
-        progress: 0,
-        type: 'error',
-        error: error instanceof Error ? error.message : String(error),
-        completed: true, 
-        success: false 
-      })}\n\n`);
-      res.end();
+      return res.status(500).json({ 
+        success: false,
+        error: '캐릭터 생성 중 오류가 발생했습니다.',
+        details: error instanceof Error ? error.message : String(error)
+      });
     }
   } catch (error) {
     if (error instanceof ZodError) {
