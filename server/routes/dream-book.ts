@@ -20,31 +20,6 @@ const logError = (message: string, error?: any) => {
   console.error(`[ERROR] ${message}`, error);
 };
 
-// 파일 업로드 디렉토리 설정
-const uploadDir = './uploads/dream-books';
-// 디렉토리가 없으면 생성
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Multer 스토리지 설정
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueId = Math.random().toString(36).substring(2, 15);
-    const ext = path.extname(file.originalname);
-    cb(null, `dreambook-${Date.now()}-${uniqueId}${ext}`);
-  }
-});
-
-// Multer 업로드 인스턴스 생성
-const upload = multer({ 
-  storage, 
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB 제한
-});
-
 const router = express.Router();
 
 // 모든 태몽동화 목록 조회 (사용자별)
@@ -106,7 +81,7 @@ router.get('/:id', authMiddleware, async (req: express.Request, res: express.Res
 });
 
 // 태몽동화 생성
-router.post('/', authMiddleware, async (req: express.Request, res: express.Response) => {
+router.post('/', [authMiddleware, upload.none()], async (req: express.Request, res: express.Response) => {
   try {
     const userId = req.session?.userId;
     if (!userId) {
