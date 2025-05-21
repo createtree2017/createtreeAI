@@ -244,22 +244,18 @@ export default function CreateDreamBook() {
     formData.append('style', String(styleId)); // 서버에서는 'style' 필드를 기대함
     formData.append('image', selectedFile); // 업로드한 이미지 파일 추가
     
-    try {
-      generateCharacterMutation.mutate(formData);
-    } catch (error) {
-      console.error('캐릭터 생성 오류:', error);
-      toast({
-        title: '오류 발생',
-        description: '캐릭터 생성 중 오류가 발생했습니다.',
-        variant: 'destructive'
-      });
-    }
+    // 에러 핸들링을 위해 try-catch를 mutation 내부에서 처리하도록 수정
+    generateCharacterMutation.mutate(formData);
   };
 
   // 파일 선택 처리 - FileUpload 컴포넌트에 맞는 함수명
   const onFileSelect = (file: File) => {
     console.log('파일 선택됨:', file.name, file.size);
     setSelectedFile(file);
+    // 다이얼로그가 열린 상태에서 파일이 선택되면 추가 로그 기록
+    if (isCharacterDialogOpen) {
+      console.log('다이얼로그에서 파일 선택됨');
+    }
   };
 
   // 이전 장면 내용을 현재 장면으로 복사
