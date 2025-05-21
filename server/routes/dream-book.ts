@@ -483,9 +483,17 @@ router.post('/character', authMiddleware, upload.single('image'), async (req: ex
       // 업로드된 이미지 파일 경로와 스타일 정보를 활용하여 캐릭터 이미지 생성
       // 이제 generateCharacterImage 함수는 이미지 파일을 입력으로 받아야 함
       // 프롬프트에 babyName 대신 "원본 사진의 인물"로 변경하여 업로드된 사진의 인물 특성을 보존
+      // 캐릭터 생성에는 동화 시스템 프롬프트가 아닌 캐릭터 전용 프롬프트 사용
+      const characterPrompt = imageStyle.characterPrompt || '업로드된 사진 속 인물을 기반으로 캐릭터를 생성하세요. 인물의 특징과 외모를 유지하면서, 해당 스타일에 맞게 생성해주세요.';
+      console.log('[INFO] 캐릭터 생성에 사용할 프롬프트:', { 
+        characterPrompt: characterPrompt.substring(0, 100) + '...',
+        styleId: imageStyle.styleId,
+        styleName: imageStyle.name
+      });
+      
       const characterImageUrl = await generateCharacterImage(
         "원본 사진의 인물을 기반으로 한 캐릭터", 
-        imageStyle.systemPrompt,
+        characterPrompt, // systemPrompt 대신 characterPrompt 사용
         req.file.path // 업로드된 이미지 파일 경로 추가
       );
       

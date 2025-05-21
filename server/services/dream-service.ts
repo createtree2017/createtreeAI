@@ -78,8 +78,9 @@ export async function generateCharacterImage(
         return SERVICE_UNAVAILABLE;
       }
       
-      // 사진 기반 캐릭터 생성 프롬프트
-      const characterSystemPrompt = `${systemPrompt}\n\n업로드된 사진 속 인물을 기반으로 캐릭터를 생성하세요. 인물의 특징과 외모를 유지하면서, 해당 스타일에 맞게 생성해주세요. 전신이 보이는 캐릭터 한 명만 정면에서 바라본 모습으로 생성하세요. 배경은 단순하게 하고 캐릭터에 집중하세요.`;
+      // 사진 기반 캐릭터 생성 프롬프트 - 캐릭터용 전용 프롬프트 사용
+      // systemPrompt에는 characterPrompt가 전달됨 (server/routes/dream-book.ts에서 수정됨)
+      const characterSystemPrompt = systemPrompt;
       
       // OpenAI Vision API 엔드포인트 (GPT-4-vision)
       const OPENAI_VISION_URL = "https://api.openai.com/v1/chat/completions";
