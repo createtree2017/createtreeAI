@@ -314,9 +314,12 @@ export default function DreamBookStylesPage() {
       name: '',
       description: '',
       systemPrompt: '',
+      characterPrompt: '',
     });
     setSelectedFile(null);
+    setSelectedCharacterFile(null);
     setPreviewUrl(null);
+    setCharacterPreviewUrl(null);
     setIsAddDialogOpen(true);
   };
 
