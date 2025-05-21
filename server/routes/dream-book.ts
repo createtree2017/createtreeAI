@@ -492,8 +492,12 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
           // 장면 프롬프트 정제 (스타일 지시어 제거)
           const sanitizedScenePrompt = sanitizePrompt(scenePrompt);
           
-          // 캐릭터 프롬프트
-          const characterReferencePrompt = `${babyName}의 캐릭터`;
+          // 캐릭터 프롬프트 - 캐릭터 일관성을 위해 확장
+          // 캐릭터 이미지 URL을 바탕으로 더 상세한 참조 프롬프트 생성
+          const characterReferencePrompt = `
+${babyName}의 캐릭터는 앞서 생성된 캐릭터 이미지(${characterImageUrl})와 일관성 있게 표현해야 합니다.
+모든 장면에서 ${babyName}의 얼굴 특징, 헤어스타일, 의상 스타일을 동일하게 유지하세요.
+${peoplePrompt}의 특징을 반영하되, 앞서 생성된 캐릭터와 시각적으로 일치하도록 표현해주세요.`;
           
           // 로깅 - 프롬프트 구성 요소 확인
           logInfo(`프롬프트 구성 요소`, {
