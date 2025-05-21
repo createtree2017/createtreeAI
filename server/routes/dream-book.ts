@@ -111,7 +111,7 @@ router.get('/:id', authMiddleware, async (req: express.Request, res: express.Res
   }
 });
 
-// 태몽동화 생성
+// 태몽동화 생성 - FormData 처리를 위해 multer 적용
 router.post('/', [authMiddleware, upload.none()], async (req: express.Request, res: express.Response) => {
   try {
     const userId = req.session?.userId;
@@ -408,7 +408,7 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
   }
 });
 
-// 이미 상단에서 정의됨
+// 이 부분은 상단에서 이미 정의되어 있음
 
 // 태몽동화 캐릭터 생성 API (사진 기반)
 router.post('/character', authMiddleware, upload.single('image'), async (req: express.Request, res: express.Response) => {
