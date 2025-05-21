@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useForm } from 'react-hook-form';
@@ -21,6 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import {
   Form,
@@ -35,7 +36,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
 // 아이콘
-import { PlusCircle, Edit, Trash2, Loader2 } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Loader2, Upload, Image, ImagePlus } from 'lucide-react';
 
 // 이미지 스타일 관리 컴포넌트
 export function ImageStyleManagement() {
@@ -194,10 +195,71 @@ export function ImageStyleManagement() {
   );
 }
 
+// 파일 업로드 컴포넌트
+function FileUpload({
+  onFileSelect,
+  accept = "image/*",
+  maxSize = 5 * 1024 * 1024 // 기본 5MB
+}: {
+  onFileSelect: (file: File) => void;
+  accept?: string;
+  maxSize?: number;
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    
+    if (!file) return;
+    
+    // 파일 크기 검증
+    if (file.size > maxSize) {
+      toast({
+        title: "파일 크기 초과",
+        description: `파일 크기는 ${Math.floor(maxSize / 1024 / 1024)}MB를 초과할 수 없습니다.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    onFileSelect(file);
+  };
+
+  const handleClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  return (
+    <div>
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept={accept}
+        className="hidden"
+      />
+      <Button
+        type="button"
+        variant="outline"
+        onClick={handleClick}
+        className="w-full"
+      >
+        <Upload className="mr-2 h-4 w-4" />
+        파일 선택
+      </Button>
+    </div>
+  );
+}
+
 // 이미지 스타일 폼 컴포넌트
 function ImageStyleForm({ initialData, onSuccess }: { initialData?: any, onSuccess: () => void }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(initialData?.thumbnailUrl || null);
+  const [selectedCharacterFile, setSelectedCharacterFile] = useState<File | null>(null);
+  const [characterPreviewUrl, setCharacterPreviewUrl] = useState<string | null>(initialData?.characterSampleUrl || null);
   
   // 폼 설정
   const form = useForm({
@@ -210,18 +272,48 @@ function ImageStyleForm({ initialData, onSuccess }: { initialData?: any, onSucce
     }
   });
   
+  // 파일 선택 핸들러
+  const handleFileSelected = (file: File) => {
+    setSelectedFile(file);
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+  };
+  
+  // 캐릭터 샘플 파일 선택 핸들러
+  const handleCharacterFileSelected = (file: File) => {
+    setSelectedCharacterFile(file);
+    const url = URL.createObjectURL(file);
+    setCharacterPreviewUrl(url);
+  };
+  
   // 스타일 생성/수정 뮤테이션
   const stylesMutation = useMutation({
     mutationFn: (data: any) => {
+      // FormData 객체면 JSON.stringify 하지 않고 그대로 전달
+      const isFormData = data instanceof FormData;
+      
       if (initialData) {
-        return apiRequest(`/api/image-styles/${initialData.styleId}`, {
+        return fetch(`/api/image-styles/${initialData.styleId}`, {
           method: "PUT",
-          body: JSON.stringify(data)
+          body: data,
+          // FormData는 Content-Type을 설정하지 않아 브라우저가 자동으로 multipart/form-data로 설정함
+          headers: isFormData ? undefined : {
+            'Content-Type': 'application/json'
+          }
+        }).then(res => {
+          if (!res.ok) throw new Error('요청 실패');
+          return res.json();
         });
       } else {
-        return apiRequest("/api/image-styles", {
+        return fetch("/api/image-styles", {
           method: "POST",
-          body: JSON.stringify(data)
+          body: data,
+          headers: isFormData ? undefined : {
+            'Content-Type': 'application/json'
+          }
+        }).then(res => {
+          if (!res.ok) throw new Error('요청 실패');
+          return res.json();
         });
       }
     },
@@ -246,7 +338,25 @@ function ImageStyleForm({ initialData, onSuccess }: { initialData?: any, onSucce
   });
   
   const onSubmit = (values: any) => {
-    stylesMutation.mutate(values);
+    // FormData를 사용하여 멀티파트 요청 생성
+    const formData = new FormData();
+    
+    // 텍스트 필드 추가
+    Object.keys(values).forEach(key => {
+      formData.append(key, values[key]);
+    });
+    
+    // 스타일 썸네일 이미지 추가
+    if (selectedFile) {
+      formData.append('thumbnail', selectedFile);
+    }
+    
+    // 캐릭터 샘플 이미지 추가
+    if (selectedCharacterFile) {
+      formData.append('characterSample', selectedCharacterFile);
+    }
+    
+    stylesMutation.mutate(formData);
   };
   
   return (
@@ -353,6 +463,67 @@ function ImageStyleForm({ initialData, onSuccess }: { initialData?: any, onSucce
               </FormItem>
             )}
           />
+          
+          {/* 이미지 업로드 영역 */}
+          <div className="grid grid-cols-2 gap-6 mt-6">
+            {/* 스타일 샘플 이미지 */}
+            <div className="border rounded-md p-4">
+              <FormLabel>스타일 샘플 이미지</FormLabel>
+              <div className="mt-2">
+                <FileUpload
+                  onFileSelect={handleFileSelected}
+                  accept="image/*"
+                  maxSize={5 * 1024 * 1024}
+                />
+                <p className="text-sm text-muted-foreground mt-2">
+                  PNG, JPG 형식 (최대 5MB)
+                </p>
+                <div className="border rounded-md p-2 flex items-center justify-center h-40 mt-2">
+                  {previewUrl ? (
+                    <img
+                      src={previewUrl}
+                      alt="스타일 미리보기"
+                      className="max-h-[150px] max-w-full object-contain"
+                    />
+                  ) : (
+                    <div className="text-center p-6 text-muted-foreground">
+                      <ImagePlus className="h-10 w-10 mx-auto mb-2" />
+                      <p>스타일 샘플 미리보기</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            {/* 캐릭터 샘플 이미지 */}
+            <div className="border rounded-md p-4">
+              <FormLabel>캐릭터 참조 샘플 이미지 (선택사항)</FormLabel>
+              <div className="mt-2">
+                <FileUpload
+                  onFileSelect={handleCharacterFileSelected}
+                  accept="image/*"
+                  maxSize={5 * 1024 * 1024}
+                />
+                <p className="text-sm text-muted-foreground mt-2">
+                  캐릭터 생성 참조용 이미지 (최대 5MB)
+                </p>
+                <div className="border rounded-md p-2 flex items-center justify-center h-40 mt-2">
+                  {characterPreviewUrl ? (
+                    <img
+                      src={characterPreviewUrl}
+                      alt="캐릭터 샘플"
+                      className="max-h-[150px] max-w-full object-contain"
+                    />
+                  ) : (
+                    <div className="text-center p-6 text-muted-foreground">
+                      <ImagePlus className="h-10 w-10 mx-auto mb-2" />
+                      <p>캐릭터 샘플 미리보기</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         
         <div className="flex justify-end space-x-2">
