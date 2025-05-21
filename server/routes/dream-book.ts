@@ -197,6 +197,22 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
     // 디버깅: 원시 요청 출력
     console.log('요청 헤더:', req.headers);
     console.log('요청 본문 키:', Object.keys(req.body));
+    console.log('scenePrompts 원시 값:', req.body.scenePrompts);
+    
+    // scenePrompts 타입 확인 및 예외 처리 로직 추가
+    if (req.body.scenePrompts && typeof req.body.scenePrompts === 'string') {
+      try {
+        // scenePrompts 문자열 확인 로깅
+        console.log('scenePrompts 문자열:', req.body.scenePrompts.substring(0, 100));
+        
+        // 문자열이 배열처럼 보이는지 확인
+        const startsWithBracket = req.body.scenePrompts.trim().startsWith('[');
+        const endsWithBracket = req.body.scenePrompts.trim().endsWith(']');
+        console.log('배열 형식 확인:', { startsWithBracket, endsWithBracket });
+      } catch (e) {
+        console.error('문자열 검사 중 오류:', e);
+      }
+    }
     
     // 빈 프롬프트 제거하고 입력된 것만 필터링
     const filteredScenePrompts = scenePrompts.filter((prompt: string) => prompt && prompt.trim().length > 0);
@@ -233,6 +249,21 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
     
     // 검증용 데이터 객체 생성 (FormData를 직접 쓰지 않고 새 객체 구성)
     // ⭐ Zod 스키마와 필드명 일치시키기: style, scenePrompts 등
+    
+    // scenePrompts 최종 검증
+    console.log('scenePrompts 최종 확인:', { filteredScenePrompts, type: typeof filteredScenePrompts });
+    
+    // 1개 이상의 값이 있는지 확인
+    let finalScenePrompts = filteredScenePrompts;
+    if (!Array.isArray(finalScenePrompts) || finalScenePrompts.length === 0) {
+      finalScenePrompts = ['아이가 행복하게 웃고 있는 모습']; // 기본값 제공
+      console.log('scenePrompts 기본값 사용');
+    }
+    
+    // numberOfScenes 값 조정 (scenePrompts 배열 길이와 일치)
+    const numberOfScenes = finalScenePrompts.length;
+    console.log('장면 수 최종 결정:', numberOfScenes);
+    
     const validationData = {
       babyName: babyName || '',
       dreamer: dreamer || '엄마',
@@ -240,8 +271,8 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
       characterImageUrl: characterImageUrl || '',
       peoplePrompt: peoplePrompt || '아기는 귀엽고 활기찬 모습이다.',
       backgroundPrompt: backgroundPrompt || '환상적이고 아름다운 배경',
-      numberOfScenes: filteredScenePrompts.length || 1,
-      scenePrompts: filteredScenePrompts.length > 0 ? filteredScenePrompts : ['기본 장면 내용입니다.'] // 최소 1개의 장면 보장
+      numberOfScenes: numberOfScenes,
+      scenePrompts: finalScenePrompts
     };
     
     // 디버깅용 로그
