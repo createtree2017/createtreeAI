@@ -240,8 +240,8 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
       characterImageUrl: characterImageUrl || '',
       peoplePrompt: peoplePrompt || '아기는 귀엽고 활기찬 모습이다.',
       backgroundPrompt: backgroundPrompt || '환상적이고 아름다운 배경',
-      numberOfScenes: filteredScenePrompts.length,
-      scenePrompts: filteredScenePrompts // 파싱된 배열을 직접 전달
+      numberOfScenes: filteredScenePrompts.length || 1,
+      scenePrompts: filteredScenePrompts.length > 0 ? filteredScenePrompts : ['기본 장면 내용입니다.'] // 최소 1개의 장면 보장
     };
     
     // 디버깅용 로그
@@ -257,6 +257,9 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
     
     if (!validation.success) {
       // 전체 오류 상세 내용 출력 (flatten 결과 포함)
+      console.error('🛑 Zod 스키마 검증 실패:', JSON.stringify(validation.error.flatten(), null, 2));
+      console.error('❗ 검증 실패 입력값:', JSON.stringify(validationData, null, 2));
+      
       logError('Zod 스키마 검증 실패', {
         input: validationData,
         error: validation.error.format(),
