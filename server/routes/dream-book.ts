@@ -136,11 +136,31 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
     // 장면 프롬프트는 JSON 문자열로 전송되었으므로 파싱 필요
     let scenePrompts = [];
     try {
-      scenePrompts = JSON.parse(formData.scenePrompts);
+      // FormData에서 전달된 형태에 따라 처리 방식 분기
+      if (typeof formData.scenePrompts === 'string') {
+        scenePrompts = JSON.parse(formData.scenePrompts);
+        logInfo('장면 프롬프트를 문자열에서 파싱:', { length: scenePrompts.length });
+      } else if (Array.isArray(formData.scenePrompts)) {
+        // 이미 배열인 경우 그대로 사용
+        scenePrompts = formData.scenePrompts;
+        logInfo('장면 프롬프트가 이미 배열 형태임:', { length: scenePrompts.length });
+      } else {
+        logError('장면 프롬프트가 예상치 않은 형식임:', typeof formData.scenePrompts);
+        scenePrompts = [];
+      }
     } catch (e) {
       logError('장면 프롬프트 파싱 오류:', e);
       scenePrompts = [];
     }
+    
+    // 입력 데이터 로깅 (디버깅용)
+    logInfo('태몽동화 생성 입력 데이터:', { 
+      babyName, 
+      style: styleId, 
+      characterImageUrl: characterImageUrl ? '있음' : '없음',
+      scenePromptType: typeof formData.scenePrompts,
+      scenePromptCount: scenePrompts.length
+    });
     
     // 빈 프롬프트 제거하고 입력된 것만 필터링
     const filteredScenePrompts = scenePrompts.filter((prompt: string) => prompt && prompt.trim().length > 0);
@@ -149,7 +169,29 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
     const numberOfScenes = filteredScenePrompts.length;
     
     if (filteredScenePrompts.length === 0) {
-      return res.status(400).json({ error: '최소 1개 이상의 장면 프롬프트를 입력해주세요.' });
+      logError('장면 프롬프트가 없음', { scenePrompts, filteredScenePrompts });
+      return res.status(400).json({ 
+        error: '최소 1개 이상의 장면 프롬프트를 입력해주세요.',
+        details: { 
+          received: { 
+            type: typeof formData.scenePrompts,
+            scenePrompts: formData.scenePrompts
+          }
+        }
+      });
+    }
+    
+    // 필수 필드 검증
+    if (!babyName) {
+      return res.status(400).json({ error: '아기 이름은 필수 입력 항목입니다.' });
+    }
+    
+    if (!styleId) {
+      return res.status(400).json({ error: '스타일을 선택해주세요.' });
+    }
+    
+    if (!characterImageUrl) {
+      return res.status(400).json({ error: '캐릭터 이미지 생성이 필요합니다. 먼저 캐릭터를 생성해주세요.' });
     }
 
     // 스타일 ID로 이미지 스타일 정보 조회 (문자열 ID 사용)
