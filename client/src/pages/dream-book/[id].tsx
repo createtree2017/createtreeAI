@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 
@@ -21,6 +21,26 @@ export default function DreamBookDetail() {
   const { id } = params;
   const [, navigate] = useLocation();
   const { user } = useAuthContext();
+  const [imagesLoaded, setImagesLoaded] = useState<{[key: number]: boolean}>({});
+  
+  // 무한 로딩 상태 관리
+  useEffect(() => {
+    if (!dreamBook) return;
+    
+    // 이미지 존재하지 않거나 에러 이미지인 경우 즉시 로드 완료 처리
+    if (dreamBook.images && dreamBook.images.length > 0) {
+      const newLoadedState: {[key: number]: boolean} = {};
+      
+      dreamBook.images.forEach((image, index) => {
+        const imageUrl = image.imageUrl;
+        if (!imageUrl || imageUrl === '/static/uploads/dream-books/error.png' || !imageUrl.startsWith('/static/uploads/dream-books/')) {
+          newLoadedState[index] = true;
+        }
+      });
+      
+      setImagesLoaded(prev => ({...prev, ...newLoadedState}));
+    }
+  }, [dreamBook]);
   
   const { data: dreamBook, isLoading, error } = useQuery({
     queryKey: [`/api/dream-books/${id}`],
@@ -136,7 +156,11 @@ export default function DreamBookDetail() {
                   <Card className="overflow-hidden">
                     <div className="relative aspect-[4/3] bg-gray-100 overflow-hidden">
                       <img
-                        src={image.imageUrl || '/static/uploads/dream-books/error.png'}
+                        src={(() => {
+                          const imageUrl = image.imageUrl;
+                          const isValidImage = imageUrl?.startsWith('/static/uploads/dream-books/');
+                          return isValidImage ? imageUrl : '/static/uploads/dream-books/error.png';
+                        })()}
                         alt={`태몽동화 장면 ${index + 1}`}
                         className="object-cover w-full h-full"
                         onError={(e) => {

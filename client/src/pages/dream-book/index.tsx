@@ -129,11 +129,12 @@ export default function DreamBookList() {
           >
             <div className="aspect-[4/3] relative">
               <img
-                src={
-                  dreamBook.coverImage || 
-                  (dreamBook.images && dreamBook.images[0] && dreamBook.images[0].imageUrl) || 
-                  '/static/uploads/dream-books/error.png'
-                }
+                src={(() => {
+                  const imageUrl = dreamBook.coverImage || 
+                    (dreamBook.images && dreamBook.images[0] && dreamBook.images[0].imageUrl);
+                  const isValidImage = imageUrl?.startsWith('/static/uploads/dream-books/');
+                  return isValidImage ? imageUrl : '/static/uploads/dream-books/error.png';
+                })()}
                 alt={`${dreamBook.babyName}의 태몽동화`}
                 className="object-cover w-full h-full"
                 onError={(e) => {
