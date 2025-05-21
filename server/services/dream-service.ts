@@ -276,9 +276,10 @@ ${imageDescription}
           const errorMessage = responseData.error?.message || `HTTP 오류: ${apiResponse.status}`;
           logError("GPT-Image-1 Edit API 오류:", errorMessage);
           
-          // GPT-Image-1 실패 시 DALL-E 3로 폴백
-          logInfo("GPT-Image-1 실패, DALL-E 3로 폴백합니다");
-          return generateDreamImage(generatedPrompt, systemPrompt);
+          // GPT-Image-1 실패 시 DALL-E 3로 폴백 (캐릭터 프롬프트 유지)
+          logInfo("GPT-Image-1 실패, DALL-E 3로 캐릭터 생성 폴백합니다");
+          // 캐릭터 생성에 사용된 것과 동일한 프롬프트 전달 (캐릭터 프롬프트)
+          return generateDreamImage(generatedPrompt, characterSystemPrompt);
         }
         
         // 응답 데이터 검증
