@@ -122,21 +122,31 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
     // 세션에서 병원 ID가 있으면 사용 (타입 에러 수정)
     const hospitalId = req.session?.user?.hospitalId;
 
-    // 입력 데이터 검증
-    const validatedData = createDreamBookSchema.parse(req.body);
-    const { 
-      babyName, 
-      dreamer, 
-      style: styleId, 
-      characterImageUrl, 
-      peoplePrompt, 
-      backgroundPrompt, 
-      numberOfScenes, 
-      scenePrompts 
-    } = validatedData;
+    // FormData에서 데이터 추출
+    const formData = req.body;
+    
+    // FormData에서 필요한 필드 추출
+    const babyName = formData.babyName;
+    const dreamer = formData.dreamer || '';
+    const styleId = formData.style; // 클라이언트에서는 style로 전송됨
+    const characterImageUrl = formData.characterImageUrl;
+    const peoplePrompt = formData.peoplePrompt || '아기는 귀엽고 활기찬 모습이다.';
+    const backgroundPrompt = formData.backgroundPrompt || '환상적이고 아름다운 배경';
+    
+    // 장면 프롬프트는 JSON 문자열로 전송되었으므로 파싱 필요
+    let scenePrompts = [];
+    try {
+      scenePrompts = JSON.parse(formData.scenePrompts);
+    } catch (e) {
+      logError('장면 프롬프트 파싱 오류:', e);
+      scenePrompts = [];
+    }
     
     // 빈 프롬프트 제거하고 입력된 것만 필터링
-    const filteredScenePrompts = scenePrompts.filter((prompt: string) => prompt.trim().length > 0);
+    const filteredScenePrompts = scenePrompts.filter((prompt: string) => prompt && prompt.trim().length > 0);
+    
+    // 기본 장면 수
+    const numberOfScenes = filteredScenePrompts.length;
     
     if (filteredScenePrompts.length === 0) {
       return res.status(400).json({ error: '최소 1개 이상의 장면 프롬프트를 입력해주세요.' });
@@ -408,10 +418,10 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
   }
 });
 
-// 이 부분은 상단에서 이미 정의되어 있음
+// 이미 상단에서 multer 설정과 upload 인스턴스가 정의되어 있음
 
-// 태몽동화 캐릭터 생성 API (사진 기반)
-router.post('/character', authMiddleware, upload.single('image'), async (req: express.Request, res: express.Response) => {
+// 태몽동화 캐릭터 생성 API (FormData + 사진 업로드)
+router.post('/character', [authMiddleware, upload.single('image')], async (req: express.Request, res: express.Response) => {
   try {
     const userId = req.session?.userId;
     if (!userId) {
