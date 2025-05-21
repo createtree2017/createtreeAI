@@ -16,6 +16,13 @@ router.get('/', async (req: Request, res: Response) => {
     });
     
     console.log(`이미지 스타일 ${allStyles.length}개 조회 성공`);
+    
+    // 디버깅을 위해 모든 스타일 정보 상세 출력
+    console.log('현재 DB의 모든 이미지 스타일 목록:');
+    allStyles.forEach(style => {
+      console.log(`- ID: ${style.id}, styleId: '${style.styleId || 'NULL'}', 이름: ${style.name}`);
+    });
+    
     return res.json(allStyles);
   } catch (error) {
     console.error('이미지 스타일 목록 조회 오류:', error);
