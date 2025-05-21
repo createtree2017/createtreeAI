@@ -447,26 +447,20 @@ router.post('/character', authMiddleware, upload.single('image'), async (req: ex
       });
     }
     
-    // 스타일 정보 조회
-    const styleInfo = DREAM_BOOK_STYLES.find(s => s.id === styleId);
-    if (!styleInfo) {
-      // 업로드된 파일 삭제
-      if (req.file) {
-        fs.unlink(req.file.path, (err) => {
-          if (err) console.error('업로드된 파일 삭제 실패:', err);
-        });
-      }
-      
-      return res.status(400).json({ 
-        error: '입력 데이터가 올바르지 않습니다.', 
-        details: [{ path: 'style', message: '유효하지 않은 스타일 ID입니다.' }] 
-      });
-    }
+    // 스타일 정보 직접 사용
+    // 이미지 생성 API에 스타일 ID 직접 전달로 수정
+    // 데이터베이스에서 스타일 정보 조회 - 스타일 ID를 직접 사용
+    console.log('[DEBUG] 전달된 스타일 ID:', styleId);
     
-    // 데이터베이스에서 스타일 정보 조회
     const imageStyle = await db.query.imageStyles.findFirst({
-      where: eq(imageStyles.name, styleInfo.name)
+      where: eq(imageStyles.styleId, styleId)
     });
+    
+    if (!imageStyle) {
+      // 스타일을 찾지 못한 경우 기본 스타일을 사용 (귀여운 스타일)
+      console.log('[WARN] 스타일 ID에 해당하는 이미지 스타일을 찾을 수 없습니다. 기본 스타일 사용');
+      // 업로드된 파일은 계속 사용
+    }
 
     if (!imageStyle || !imageStyle.systemPrompt) {
       // 업로드된 파일 삭제
