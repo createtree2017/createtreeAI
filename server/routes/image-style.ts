@@ -185,19 +185,20 @@ router.delete('/:id', isAdmin, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     
-    console.log(`이미지 스타일 삭제 요청 - ID: ${id}`);
+    console.log(`이미지 스타일 삭제 요청 - ID 또는 styleId: ${id}`);
     
     // ID가 숫자인지 문자열인지 확인
     let existingStyle;
-    if (!isNaN(parseInt(id))) {
-      // 숫자 ID로 검색
+    
+    // 첫번째 시도: styleId로 검색 (문자열 ID 우선)
+    existingStyle = await db.query.imageStyles.findFirst({
+      where: eq(imageStyles.styleId, id)
+    });
+    
+    // styleId로 찾지 못한 경우, 숫자 ID로 시도
+    if (!existingStyle && !isNaN(parseInt(id))) {
       existingStyle = await db.query.imageStyles.findFirst({
         where: eq(imageStyles.id, parseInt(id))
-      });
-    } else {
-      // 문자열 styleId로 검색
-      existingStyle = await db.query.imageStyles.findFirst({
-        where: eq(imageStyles.styleId, id)
       });
     }
     
@@ -205,12 +206,11 @@ router.delete('/:id', isAdmin, async (req: Request, res: Response) => {
       return res.status(404).json({ error: '해당 이미지 스타일을 찾을 수 없습니다.' });
     }
     
-    // 스타일 삭제
-    if (!isNaN(parseInt(id))) {
-      await db.delete(imageStyles).where(eq(imageStyles.id, parseInt(id)));
-    } else {
-      await db.delete(imageStyles).where(eq(imageStyles.styleId, id));
-    }
+    // 스타일 삭제 - existingStyle의 ID를 사용하여 삭제
+    console.log(`삭제할 스타일: ID=${existingStyle.id}, styleId=${existingStyle.styleId}, 이름=${existingStyle.name}`);
+    
+    // 항상 실제 DB 테이블의 PK(id)로 삭제
+    await db.delete(imageStyles).where(eq(imageStyles.id, existingStyle.id));
     
     return res.status(204).end();
   } catch (error) {
@@ -257,10 +257,20 @@ router.post('/:id/clone', isAdmin, async (req: Request, res: Response) => {
     }
     
     // 복제 데이터 준비
+    const newStyleId = `${sourceStyle.styleId}_clone_${Date.now().toString().substring(8, 13)}`;
+    console.log(`새 스타일 ID 생성: ${newStyleId} (원본: ${sourceStyle.styleId})`);
+    
     const cloneData = {
+      styleId: newStyleId,
       name: `복제 - ${sourceStyle.name}`,
       description: sourceStyle.description,
       systemPrompt: sourceStyle.systemPrompt,
+      prompt: sourceStyle.prompt,
+      negativePrompt: sourceStyle.negativePrompt,
+      type: sourceStyle.type,
+      uploadedImageUrl: sourceStyle.uploadedImageUrl,
+      uploadedImageId: sourceStyle.uploadedImageId,
+      thumbnailUrl: sourceStyle.thumbnailUrl,
       isActive: true,
       creatorId: req.user.id,
       order: sourceStyle.order,
