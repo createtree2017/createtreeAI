@@ -200,31 +200,36 @@ router.delete('/:id', isAdmin, async (req: Request, res: Response) => {
     
     console.log(`이미지 스타일 삭제 요청 - ID 또는 styleId: ${id}`);
     
-    // ID가 숫자인지 문자열인지 확인
-    let existingStyle;
-    
-    // 첫번째 시도: styleId로 검색 (문자열 ID 우선)
-    existingStyle = await db.query.imageStyles.findFirst({
+    // 숫자 ID든 문자열 styleId든 모두 처리 가능하도록 함
+    let style = null;
+
+    // 먼저 문자열 styleId로 검색 시도
+    style = await db.query.imageStyles.findFirst({
       where: eq(imageStyles.styleId, id)
     });
     
-    // styleId로 찾지 못한 경우, 숫자 ID로 시도
-    if (!existingStyle && !isNaN(parseInt(id))) {
-      existingStyle = await db.query.imageStyles.findFirst({
-        where: eq(imageStyles.id, parseInt(id))
-      });
+    // 찾지 못한 경우에만 숫자 ID로 시도
+    if (!style && /^\d+$/.test(id)) {
+      const numericId = parseInt(id, 10);
+      if (!isNaN(numericId)) {
+        style = await db.query.imageStyles.findFirst({
+          where: eq(imageStyles.id, numericId)
+        });
+      }
     }
     
-    if (!existingStyle) {
+    // 스타일을 찾지 못한 경우
+    if (!style) {
+      console.error(`스타일을 찾을 수 없음: ${id}`);
       return res.status(404).json({ error: '해당 이미지 스타일을 찾을 수 없습니다.' });
     }
     
-    // 스타일 삭제 - existingStyle의 ID를 사용하여 삭제
-    console.log(`삭제할 스타일: ID=${existingStyle.id}, styleId=${existingStyle.styleId}, 이름=${existingStyle.name}`);
+    // 스타일 삭제 - 항상 ID(숫자)로 삭제
+    console.log(`삭제할 스타일: ID=${style.id}, styleId=${style.styleId}, 이름=${style.name}`);
     
-    // 항상 실제 DB 테이블의 PK(id)로 삭제
-    await db.delete(imageStyles).where(eq(imageStyles.id, existingStyle.id));
+    await db.delete(imageStyles).where(eq(imageStyles.id, style.id));
     
+    console.log(`스타일 삭제 완료: ${style.name} (ID: ${style.id})`);
     return res.status(204).end();
   } catch (error) {
     console.error('이미지 스타일 삭제 오류:', error);
