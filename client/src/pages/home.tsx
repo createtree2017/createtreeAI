@@ -165,10 +165,10 @@ export default function Home() {
   // 인기 기능 및 참고 자료
   const trendingResources = [
     {
-      title: "지브리 스타일",
+      title: "AI 이미지 스타일",
       icon: Sparkles,
       imageSrc: "https://images.pexels.com/photos/757882/pexels-photo-757882.jpeg?auto=compress&cs=tinysrgb&w=600",
-      href: "/image?style=ghibli",
+      href: "/image",
     },
     {
       title: "자장가 모음",
@@ -243,7 +243,7 @@ export default function Home() {
               // 데이터가 없을 경우 안내 메시지 표시
               <div className="col-span-full text-center py-8">
                 <div className="flex flex-col items-center justify-center">
-                  <ImagePlus className="h-12 w-12 text-muted-foreground mb-4" />
+                  <Images className="h-12 w-12 text-muted-foreground mb-4" />
                   <h3 className="text-lg font-semibold mb-2">사용 가능한 이미지 스타일이 없습니다</h3>
                   <p className="text-muted-foreground max-w-md">
                     관리자 페이지에서 이미지 스타일을 추가해주세요. 관리자가 추가한 스타일만 이곳에 표시됩니다.
