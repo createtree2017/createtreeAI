@@ -61,8 +61,8 @@ const dreamBookSchema = z.object({
   styleId: z.string().min(1, '스타일을 선택해주세요'),
   peoplePrompt: z.string().min(1, '인물 표현은 필수입니다').default('아기는 귀엽고 활기찬 모습이다.'),
   backgroundPrompt: z.string().min(1, '배경 표현은 필수입니다').default('환상적이고 아름다운 배경'),
-  scenePrompts: z.array(z.string().min(1, '장면 묘사를 입력해주세요'))
-    .min(1, '최소 1개 이상의 장면이 필요합니다')
+  // 모든 장면을 string으로 취급하고 나중에 빈 문자열을 필터링
+  scenePrompts: z.array(z.string())
     .max(4, '최대 4개의 장면까지 가능합니다'),
 });
 
@@ -653,10 +653,10 @@ export default function CreateDreamBook() {
               disabled={isGenerating}
               size="lg"
               onClick={() => {
-                // 검증 및 생성 호출
-                const values = form.getValues();
+                // 폼 데이터 가져오기
+                const formValues = form.getValues();
                 
-                // 캐릭터 이미지가 없으면 생성 중단
+                // 캐릭터 확인
                 if (!characterImage) {
                   toast({
                     title: '캐릭터 필요',
@@ -666,8 +666,8 @@ export default function CreateDreamBook() {
                   return;
                 }
                 
-                // 장면 프롬프트 유효성 검사 (빈 값 제외)
-                const validScenePrompts = values.scenePrompts.filter(prompt => prompt.trim().length > 0);
+                // 장면 확인 (빈 값 제외, 최소 1개)
+                const validScenePrompts = formValues.scenePrompts.filter(p => p && p.trim().length > 0);
                 if (validScenePrompts.length === 0) {
                   toast({
                     title: '장면 입력 필요',
@@ -676,71 +676,66 @@ export default function CreateDreamBook() {
                   });
                   return;
                 }
-
+                
                 // 생성 시작 알림
                 toast({
                   title: '태몽동화 생성 시작',
                   description: '태몽동화를 생성하고 있습니다. 잠시 기다려주세요.',
                 });
-
-                // 처리 중 상태로 변경
+                
+                // 처리 중 상태 설정
                 setIsGenerating(true);
                 
-                // 직접 mutation 함수 호출
-                // 모든 기능 대신 간단한 테스트 호출만 수행
-                try {
-                  // 1. 직접 API 호출
-                  console.log("직접 API 호출 시작");
-                  const testPayload = {
-                    babyName: values.babyName || '아기',
-                    dreamer: values.dreamer || '엄마',
-                    style: values.styleId,
-                    characterImageUrl: characterImage,
-                    peoplePrompt: values.peoplePrompt || '캐릭터가 중앙에 있는',
-                    backgroundPrompt: values.backgroundPrompt || '부드러운 배경이 있는',
-                    numberOfScenes: validScenePrompts.length,
-                    scenePrompts: validScenePrompts
-                  };
-                  
-                  console.log('테스트 페이로드:', testPayload);
-                  
-                  fetch('/api/dream-books', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(testPayload)
-                  })
-                  .then(response => {
-                    console.log('API 응답 상태:', response.status, response.statusText);
-                    return response.json();
-                  })
-                  .then(data => {
-                    console.log('API 응답 데이터:', data);
+                // 서버 요청 데이터
+                const payload = {
+                  babyName: formValues.babyName,
+                  dreamer: formValues.dreamer,
+                  style: formValues.styleId,
+                  characterImageUrl: characterImage,
+                  peoplePrompt: formValues.peoplePrompt || '캐릭터가 중앙에 있는',
+                  backgroundPrompt: formValues.backgroundPrompt || '부드러운 배경이 있는',
+                  numberOfScenes: validScenePrompts.length,
+                  scenePrompts: validScenePrompts
+                };
+                
+                console.log('태몽동화 생성 요청:', payload);
+                
+                // API 호출
+                fetch('/api/dream-books', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(payload)
+                })
+                .then(response => {
+                  console.log('API 응답 상태:', response.status);
+                  if (!response.ok) {
+                    throw new Error(`서버 오류: ${response.status}`);
+                  }
+                  return response.json();
+                })
+                .then(data => {
+                  console.log('API 응답 데이터:', data);
+                  if (data.success && data.result && data.result.id) {
                     toast({
-                      title: 'API 응답 확인',
-                      description: '개발자 콘솔에서 응답을 확인해주세요.'
+                      title: '태몽동화 생성 완료',
+                      description: '태몽동화가 성공적으로 생성되었습니다.'
                     });
-                    setIsGenerating(false);
-                  })
-                  .catch(error => {
-                    console.error('API 오류:', error);
-                    toast({
-                      title: 'API 오류 발생',
-                      description: '개발자 콘솔에서 오류를 확인해주세요.',
-                      variant: 'destructive'
-                    });
-                    setIsGenerating(false);
-                  });
-                } catch(e) {
-                  console.error('API 호출 중 예외 발생:', e);
+                    navigate(`/dream-book/detail/${data.result.id}`);
+                  } else {
+                    throw new Error('응답 형식이 올바르지 않습니다');
+                  }
+                })
+                .catch(error => {
+                  console.error('태몽동화 생성 오류:', error);
                   toast({
-                    title: '예외 발생',
-                    description: '개발자 콘솔에서 오류를 확인해주세요.',
+                    title: '태몽동화 생성 실패',
+                    description: `오류가 발생했습니다: ${error.message || '알 수 없는 오류'}`,
                     variant: 'destructive'
                   });
+                })
+                .finally(() => {
                   setIsGenerating(false);
-                }
+                });
               }}
             >
               {isGenerating ? (
