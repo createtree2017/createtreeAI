@@ -187,7 +187,7 @@ export default function CreateDreamBook() {
         title: '태몽동화 생성 완료',
         description: '태몽동화가 성공적으로 생성되었습니다.'
       });
-      navigate(`/dream-book/${data.id}`);
+      router.push(`/dream-book/detail/${data.result.id}`);
     },
     onError: (error) => {
       setIsGenerating(false);
@@ -315,11 +315,21 @@ export default function CreateDreamBook() {
     });
 
     setIsGenerating(true);
-    createDreamBookMutation.mutate({
-      ...values,
-      // 필요한 경우 특정 필드 형식 조정
-      styleId: String(values.styleId)
-    });
+    try {
+      await createDreamBookMutation.mutateAsync({
+        ...values,
+        // 필요한 경우 특정 필드 형식 조정
+        styleId: String(values.styleId)
+      });
+    } catch (error: any) {
+      console.error('태몽동화 생성 오류:', error);
+      toast({
+        title: '오류 발생',
+        description: `태몽동화 생성에 실패했습니다: ${error?.message || '알 수 없는 오류'}`,
+        variant: 'destructive'
+      });
+      setIsGenerating(false);
+    }
   };
 
   // 스타일 선택 및 캐릭터 생성 섹션
