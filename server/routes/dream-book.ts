@@ -445,6 +445,23 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
         promptCount: filteredScenePrompts.length
       });
       
+      // 캐릭터 이미지 분석 (GPT-4o Vision 활용)
+      sendStatus('캐릭터 분석 중...', 15);
+      logInfo('캐릭터 이미지 GPT-4o Vision 분석 시작', { characterImageUrl });
+      
+      // 캐릭터 상세 분석 요청
+      let characterAnalysis = '';
+      try {
+        characterAnalysis = await analyzeCharacterImage(characterImageUrl);
+        logInfo('캐릭터 분석 완료', { 
+          analysisLength: characterAnalysis.length,
+          snippet: characterAnalysis.substring(0, 100) + '...'
+        });
+      } catch (analysisError) {
+        logError('캐릭터 분석 중 오류 발생', analysisError);
+        // 분석 실패해도 계속 진행 (핵심 기능 아님)
+      }
+      
       // 이미지 처리 결과 저장 배열
       const imageResults = [];
       
@@ -510,13 +527,14 @@ ${peoplePrompt}의 특징을 반영하되, 앞서 생성된 캐릭터와 시각�
           });
           
           try {
-            // 고도화된 태몽동화 이미지 생성 (캐릭터 참조 포함)
+            // 고도화된 태몽동화 이미지 생성 (캐릭터 참조 포함 + GPT-4o Vision 분석 데이터)
             const imageUrl = await generateDreamSceneImage(
               sanitizedScenePrompt,
               characterReferencePrompt,
               systemPrompt,
               peoplePrompt,
-              backgroundPrompt
+              backgroundPrompt,
+              characterAnalysis // GPT-4o Vision으로 분석한 캐릭터 상세 설명 추가
             );
             
             // 생성된 이미지 정보 DB 저장

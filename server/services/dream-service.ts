@@ -55,6 +55,12 @@ function logError(message: string, error?: any): void {
  * @param uploadedImagePath 업로드된 이미지 파일 경로 (옵션)
  * @returns 생성된 캐릭터 이미지의 URL 경로
  */
+// 타입 정의 추가
+interface CharacterAnalysisResult {
+  imageUrl: string;
+  analysis: string;
+}
+
 export async function generateCharacterImage(
   prompt: string, 
   systemPrompt: string, 
@@ -394,6 +400,105 @@ ${imageDescription}
 }
 
 /**
+ * GPT-4o Vision으로 캐릭터 이미지 분석하여 상세 설명 생성
+ * @param characterImageUrl 캐릭터 이미지 URL
+ * @returns 분석된 캐릭터 상세 설명
+ */
+export async function analyzeCharacterImage(characterImageUrl: string): Promise<string> {
+  try {
+    // 이미지 URL이 로컬 경로인 경우 전체 URL 구성
+    let fullImageUrl = characterImageUrl;
+    if (characterImageUrl.startsWith('/static')) {
+      // 로컬 파일 시스템 경로로 변환
+      const localPath = path.join(process.cwd(), 'static', characterImageUrl.substring(8));
+      if (!fs.existsSync(localPath)) {
+        logError('캐릭터 이미지 파일을 찾을 수 없습니다', { path: localPath });
+        return '';
+      }
+      
+      // 이미지를 Buffer로 읽고 base64로 인코딩
+      const imageBuffer = fs.readFileSync(localPath);
+      const base64Image = imageBuffer.toString('base64');
+      
+      // API 요청 헤더 및 바디 구성
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_KEY}`
+      };
+      
+      // GPT-4o Vision API 엔드포인트
+      const OPENAI_VISION_URL = "https://api.openai.com/v1/chat/completions";
+      
+      // 이미지 분석 요청 본문
+      const requestBody = {
+        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
+        messages: [
+          {
+            role: "system",
+            content: `당신은 이미지 속 캐릭터의 모든 시각적 특성을 상세히 관찰하고 설명하는 전문가입니다. 
+다음 사항을 정확하게 설명해주세요:
+1. 얼굴 특징: 얼굴형, 눈 모양과 색, 코와 입의 형태, 턱선 등을 구체적으로
+2. 헤어스타일: 머리카락 길이, 색상, 스타일, 머리 모양의 특징적 요소
+3. 신체 특성: 체형, 피부색, 나이대, 신체 비율 등
+4. 의상: 옷의 색상, 스타일, 독특한 특징이나 액세서리
+5. 캐릭터의 전반적인 인상과 분위기
+
+아주 상세하게 묘사해 주세요. 이 정보는 다른 장면에서 이 캐릭터를 일관되게 표현하는 데 사용됩니다.`
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "이 캐릭터 이미지를 상세히 분석해주세요. 다른 장면에서 동일한 캐릭터를 일관되게 표현하기 위한 참조로 사용됩니다."
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: `data:image/jpeg;base64,${base64Image}`
+                }
+              }
+            ]
+          }
+        ],
+        max_tokens: 1000
+      };
+      
+      // API 호출
+      logInfo('GPT-4o Vision으로 캐릭터 분석 요청 시작');
+      const response = await fetch(OPENAI_VISION_URL, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(requestBody)
+      });
+      
+      if (!response.ok) {
+        logError('GPT-4o Vision API 호출 오류', { status: response.status });
+        return '';
+      }
+      
+      const data = await response.json();
+      const analysisText = data.choices?.[0]?.message?.content || '';
+      
+      if (analysisText) {
+        logInfo('캐릭터 분석 완료', { analysisLength: analysisText.length });
+        return analysisText;
+      } else {
+        logError('캐릭터 분석 결과가 없습니다');
+        return '';
+      }
+    } else {
+      // 원격 URL인 경우 처리하지 않음
+      logError('원격 URL 분석은 지원하지 않습니다', { url: characterImageUrl });
+      return '';
+    }
+  } catch (error) {
+    logError('캐릭터 이미지 분석 중 오류 발생', error);
+    return '';
+  }
+}
+
+/**
  * 태몽동화 장면 이미지 생성 (캐릭터 참조 포함)
  * @param scenePrompt 장면 프롬프트
  * @param characterPrompt 캐릭터 참조 프롬프트
@@ -405,12 +510,18 @@ export async function generateDreamSceneImage(
   characterPrompt: string, 
   stylePrompt: string, 
   peoplePrompt: string,
-  backgroundPrompt: string
+  backgroundPrompt: string,
+  characterAnalysis?: string // 추가: GPT-4o Vision으로 분석한 캐릭터 설명
 ): Promise<string> {
+  // 캐릭터 분석 결과가 있으면 함께 사용
+  const characterDescription = characterAnalysis && characterAnalysis.trim() 
+    ? `\n\n자세한 캐릭터 분석:\n${characterAnalysis}\n` 
+    : '';
+    
   const fullPrompt = `
 System: ${stylePrompt}
 
-캐릭터 참조: ${characterPrompt}
+캐릭터 참조: ${characterPrompt}${characterDescription}
 
 인물 표현: ${peoplePrompt}
 
