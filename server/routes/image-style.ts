@@ -239,8 +239,14 @@ router.put('/:id', isAdmin, upload.fields([
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
     
     // 기본 업데이트 데이터 구성
+    // 요청 본문에서 데이터 추출 및 타입 변환
     const updateData: any = {
-      ...req.body,
+      name: req.body.name,
+      description: req.body.description,
+      systemPrompt: req.body.systemPrompt,
+      characterPrompt: req.body.characterPrompt,
+      isActive: req.body.isActive === 'true' || req.body.isActive === true,
+      order: parseInt(req.body.order || '0'),
       updatedAt: new Date()
     };
     
