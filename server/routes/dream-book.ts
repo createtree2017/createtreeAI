@@ -2,7 +2,7 @@ import express from 'express';
 import { db } from "@db";
 import { dreamBooks, dreamBookImages, DREAM_BOOK_STYLES } from '@shared/dream-book';
 import { createDreamBookSchema, createCharacterSchema } from '@shared/dream-book';
-import { generateDreamImage, generateCharacterImage, generateDreamSceneImage, getStylePrompt } from '../services/dream-service';
+import { generateDreamImage, generateCharacterImage, generateDreamSceneImage, getStylePrompt, SERVICE_UNAVAILABLE } from '../services/dream-service';
 import { authMiddleware } from '../common/middleware/auth';
 import { ZodError } from 'zod';
 import { eq, and, asc, desc } from 'drizzle-orm';
@@ -90,12 +90,21 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
 
     // 입력 데이터 검증
     const validatedData = createDreamBookSchema.parse(req.body);
-    const { babyName, dreamer, prompts, style: styleId } = validatedData;
+    const { 
+      babyName, 
+      dreamer, 
+      style: styleId, 
+      characterImageUrl, 
+      peoplePrompt, 
+      backgroundPrompt, 
+      numberOfScenes, 
+      scenePrompts 
+    } = validatedData;
     
     // 빈 프롬프트 제거하고 입력된 것만 필터링
-    const filteredPrompts = prompts.filter(prompt => prompt.trim().length > 0);
+    const filteredScenePrompts = scenePrompts.filter((prompt: string) => prompt.trim().length > 0);
     
-    if (filteredPrompts.length === 0) {
+    if (filteredScenePrompts.length === 0) {
       return res.status(400).json({ error: '최소 1개 이상의 장면 프롬프트를 입력해주세요.' });
     }
 
@@ -172,19 +181,24 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
     };
 
     try {
-      // 1. 태몽동화 DB 레코드 생성 - 사용자가 직접 입력한 프롬프트 방식
+      // 1. 태몽동화 DB 레코드 생성 - 2단계 생성 방식
       sendStatus('태몽동화 정보를 저장하는 중...', 10);
       
-      // dreamContent 필드에는 첫 번째 프롬프트를 저장하고, summaryText에는 간단한 설명을 저장
-      const summaryText = `사용자가 직접 입력한 ${filteredPrompts.length}개의 장면 프롬프트`;
+      // 첫 번째 장면 프롬프트를 대표 내용으로, summaryText에는 간단한 설명 저장
+      const summaryText = `${dreamer}가 꾼 ${babyName}의 태몽동화 (${filteredScenePrompts.length}개 장면)`;
       
       const [newDreamBook] = await db.insert(dreamBooks).values({
         userId: Number(userId),
         babyName,
         dreamer,
-        dreamContent: filteredPrompts[0], // 첫 번째 프롬프트를 대표 내용으로 저장
+        dreamContent: filteredScenePrompts[0], // 첫 번째 프롬프트를 대표 내용으로 저장
         summaryText,
         style: styleId, // 스타일 ID 저장
+        characterImageUrl, // 1차 생성된 캐릭터 이미지 URL
+        characterPrompt: `${babyName}의 캐릭터`, // 캐릭터 참조용 프롬프트
+        peoplePrompt, // 인물 표현 프롬프트
+        backgroundPrompt, // 배경 표현 프롬프트
+        numberOfScenes: filteredScenePrompts.length, // 장면 수
         hospitalId: hospitalId ? Number(hospitalId) : null,
         isPublic: false,
         updatedAt: new Date(),
@@ -192,27 +206,27 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
 
       const dreamBookId = newDreamBook.id;
 
-      // 4. 사용자가 직접 입력한 프롬프트로 이미지 생성
+      // 4. 태몽동화 장면 이미지 생성 (캐릭터 참조 포함)
       // 스타일 시스템 프롬프트가 일관되게 적용되도록 설정
       const systemPrompt = imageStyle.systemPrompt || '';
       const styleName = imageStyle.name || ''; // 스타일 이름 추가
       logInfo('이미지 생성에 사용할 스타일 정보', { 
         styleName,
         systemPromptLength: systemPrompt.length,
-        promptCount: filteredPrompts.length
+        promptCount: filteredScenePrompts.length
       });
       
       // 이미지 처리 결과 저장 배열
       const imageResults = [];
       
       // 각 프롬프트별로 순차적으로 이미지 생성
-      for (let i = 0; i < filteredPrompts.length; i++) {
-        const userPrompt = filteredPrompts[i];
+      for (let i = 0; i < filteredScenePrompts.length; i++) {
+        const scenePrompt = filteredScenePrompts[i];
         const sequence = i + 1;
         
         try {
           // 진행 상황 업데이트
-          sendStatus(`${sequence}/${filteredPrompts.length} 이미지를 생성하는 중...`, 20 + (i * 70 / filteredPrompts.length));
+          sendStatus(`${sequence}/${filteredScenePrompts.length} 이미지를 생성하는 중...`, 20 + (i * 70 / filteredScenePrompts.length));
           
           // 이미지 생성에 사용할 스타일 정보 로깅 (디버깅용)
           logInfo(`이미지 생성 스타일 세부 정보`, {
@@ -222,10 +236,7 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
             systemPromptSnippet: systemPrompt ? systemPrompt.substring(0, 50) + '...' : '없음'
           });
           
-          // 작업지시서에 따라 프롬프트 우선순위 구조 완전 변경
-          // 1. System: 시스템 프롬프트(스타일)가 항상 최우선
-          // 2. User: 사용자 프롬프트(장면 설명)는 보조 정보로만 활용
-          
+          // 프롬프트 정제 및 구성 (2단계 생성 방식)
           // 사용자 프롬프트에서 스타일 지시어 필터링 함수
           const sanitizePrompt = (rawPrompt: string): string => {
             // 스타일 지시어 패턴 (예: '지브리풍으로', '디즈니 스타일로', '파스텔톤으로' 등)
@@ -249,45 +260,36 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
             return cleanedPrompt;
           };
           
-          // 사용자 프롬프트 정제 (스타일 지시어 제거)
-          const sanitizedUserPrompt = sanitizePrompt(userPrompt);
+          // 장면 프롬프트 정제 (스타일 지시어 제거)
+          const sanitizedScenePrompt = sanitizePrompt(scenePrompt);
           
-          // 시스템 프롬프트와 사용자 프롬프트를 명확히 구분된 형식으로 구성
-          let finalPrompt = `System: ${systemPrompt}\nUser: ${sanitizedUserPrompt}`;
+          // 캐릭터 프롬프트
+          const characterReferencePrompt = `${babyName}의 캐릭터`;
           
-          // 로깅 - 최종 프롬프트 구조 확인
-          logInfo(`프롬프트 구조 재구성 완료`, {
+          // 로깅 - 프롬프트 구성 요소 확인
+          logInfo(`프롬프트 구성 요소`, {
             systemPromptLength: systemPrompt.length,
-            originalUserPromptLength: userPrompt.length,
-            sanitizedUserPromptLength: sanitizedUserPrompt.length,
-            finalPromptLength: finalPrompt.length,
-            containsSystemUserFormat: finalPrompt.includes("System:") && finalPrompt.includes("User:")
-          });
-          
-          // 최종 프롬프트 내용 검증 (디버깅)
-          logInfo(`최종 프롬프트 내용 검증`, {
-            styleKeyUsed: styleKey,
-            // 'styleKeyword' 변수가 사용되지 않음 - 제거 (LSP 오류 수정)
-            containsSystemPrompt: systemPrompt ? finalPrompt.includes(systemPrompt.substring(0, 20)) : false,
-            containsUserPrompt: finalPrompt.includes(userPrompt.substring(0, Math.min(10, userPrompt.length)))
-          });
-          
-          // 프롬프트 정보 로깅
-          logInfo(`이미지 ${sequence} 생성 프롬프트`, {
-            userPromptLength: userPrompt.length,
-            systemPromptLength: systemPrompt.length,
-            finalPromptLength: finalPrompt.length
+            characterPromptLength: characterReferencePrompt.length,
+            peoplePromptLength: peoplePrompt.length,
+            backgroundPromptLength: backgroundPrompt.length,
+            scenePromptLength: sanitizedScenePrompt.length
           });
           
           try {
-            // OpenAI API로 이미지 생성
-            const imageUrl = await generateDreamImage(finalPrompt);
+            // 고도화된 태몽동화 이미지 생성 (캐릭터 참조 포함)
+            const imageUrl = await generateDreamSceneImage(
+              sanitizedScenePrompt,
+              characterReferencePrompt,
+              systemPrompt,
+              peoplePrompt,
+              backgroundPrompt
+            );
             
             // 생성된 이미지 정보 DB 저장
             const [savedImage] = await db.insert(dreamBookImages).values({
               dreamBookId,
               sequence,
-              prompt: userPrompt, // 사용자 입력 프롬프트만 저장
+              prompt: scenePrompt, // 장면 프롬프트 저장
               imageUrl
             }).returning();
             
@@ -300,7 +302,7 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
             
             // 사용자에게 오류 알림
             sendStatus(`이미지 ${sequence} 생성 중 오류가 발생했습니다. 내용이 부적절하거나 서버 문제일 수 있습니다.`, 
-              20 + (i * 70 / filteredPrompts.length), 'error');
+              20 + (i * 70 / filteredScenePrompts.length), 'error');
             
             // 에러용 기본 이미지
             const errorImageUrl = 'https://placehold.co/600x400/e74c3c/ffffff?text=이미지+생성+실패';
@@ -309,7 +311,7 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
             const [errorImage] = await db.insert(dreamBookImages).values({
               dreamBookId,
               sequence,
-              prompt: userPrompt,
+              prompt: scenePrompt,
               imageUrl: errorImageUrl
             }).returning();
             
@@ -415,9 +417,6 @@ router.post('/character', authMiddleware, async (req: express.Request, res: expr
 
     // 캐릭터 생성 프롬프트 구성
     const characterPrompt = `${babyName}의 캐릭터`;
-    
-    // 서비스 불가능 상태 메시지 상수 (SERVICE_UNAVAILABLE에 접근할 수 없는 문제 해결)
-    const SERVICE_UNAVAILABLE_PATH = "/static/uploads/dream-books/error.png";
 
     // 진행 상황 추적 상태 객체
     const status = { message: '캐릭터 생성을 시작합니다.', progress: 0, type: 'info' };
@@ -443,7 +442,7 @@ router.post('/character', authMiddleware, async (req: express.Request, res: expr
       // OpenAI API로 캐릭터 이미지 생성
       const characterImageUrl = await generateCharacterImage(characterPrompt, imageStyle.systemPrompt);
       
-      if (characterImageUrl === SERVICE_UNAVAILABLE_PATH) {
+      if (characterImageUrl === SERVICE_UNAVAILABLE) {
         sendStatus('캐릭터 생성 중 오류가 발생했습니다.', 0, 'error');
         res.write(`data: ${JSON.stringify({ 
           message: '캐릭터 생성 중 오류가 발생했습니다.', 
