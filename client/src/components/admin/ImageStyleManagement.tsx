@@ -60,10 +60,14 @@ export function ImageStyleManagement() {
   
   // 이미지 스타일 삭제 뮤테이션
   const deleteStyleMutation = useMutation({
-    mutationFn: (styleId: string) => apiRequest(`/api/image-styles/${styleId}`, {
-      method: "DELETE",
-    }),
-    onSuccess: () => {
+    mutationFn: (styleId: string) => {
+      console.log(`삭제 요청을 보내는 중: /api/image-styles/${styleId}`);
+      return apiRequest(`/api/image-styles/${styleId}`, {
+        method: "DELETE",
+      });
+    },
+    onSuccess: (data) => {
+      console.log('삭제 성공 응답:', data);
       toast({
         title: "스타일 삭제 완료",
         description: "이미지 스타일이 성공적으로 삭제되었습니다.",
@@ -71,12 +75,12 @@ export function ImageStyleManagement() {
       queryClient.invalidateQueries({ queryKey: ["/api/image-styles"] });
     },
     onError: (error) => {
+      console.error("Error deleting image style:", error);
       toast({
         title: "오류",
         description: "이미지 스타일 삭제 중 오류가 발생했습니다.",
         variant: "destructive",
       });
-      console.error("Error deleting image style:", error);
     },
   });
   
