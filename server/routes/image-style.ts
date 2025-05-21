@@ -184,23 +184,33 @@ router.put('/:id', isAdmin, async (req: Request, res: Response) => {
 router.delete('/:id', isAdmin, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const styleId = parseInt(id);
     
-    if (isNaN(styleId)) {
-      return res.status(400).json({ error: '유효하지 않은 스타일 ID입니다.' });
+    console.log(`이미지 스타일 삭제 요청 - ID: ${id}`);
+    
+    // ID가 숫자인지 문자열인지 확인
+    let existingStyle;
+    if (!isNaN(parseInt(id))) {
+      // 숫자 ID로 검색
+      existingStyle = await db.query.imageStyles.findFirst({
+        where: eq(imageStyles.id, parseInt(id))
+      });
+    } else {
+      // 문자열 styleId로 검색
+      existingStyle = await db.query.imageStyles.findFirst({
+        where: eq(imageStyles.styleId, id)
+      });
     }
-    
-    // 기존 스타일 확인
-    const existingStyle = await db.query.imageStyles.findFirst({
-      where: eq(imageStyles.id, styleId)
-    });
     
     if (!existingStyle) {
       return res.status(404).json({ error: '해당 이미지 스타일을 찾을 수 없습니다.' });
     }
     
     // 스타일 삭제
-    await db.delete(imageStyles).where(eq(imageStyles.id, styleId));
+    if (!isNaN(parseInt(id))) {
+      await db.delete(imageStyles).where(eq(imageStyles.id, parseInt(id)));
+    } else {
+      await db.delete(imageStyles).where(eq(imageStyles.styleId, id));
+    }
     
     return res.status(204).end();
   } catch (error) {
@@ -213,18 +223,22 @@ router.delete('/:id', isAdmin, async (req: Request, res: Response) => {
 router.post('/:id/clone', isAdmin, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const styleId = parseInt(id);
     
-    console.log(`이미지 스타일 복제 요청 - 원본 ID: ${styleId}`);
+    console.log(`이미지 스타일 복제 요청 - 원본 styleId: ${id}`);
     
-    if (isNaN(styleId)) {
-      return res.status(400).json({ error: '유효하지 않은 스타일 ID입니다.' });
+    // ID가 숫자인지 문자열인지 확인
+    let sourceStyle;
+    if (!isNaN(parseInt(id))) {
+      // 숫자 ID로 검색
+      sourceStyle = await db.query.imageStyles.findFirst({
+        where: eq(imageStyles.id, parseInt(id))
+      });
+    } else {
+      // 문자열 styleId로 검색
+      sourceStyle = await db.query.imageStyles.findFirst({
+        where: eq(imageStyles.styleId, id)
+      });
     }
-    
-    // 복제할 스타일 검색
-    const sourceStyle = await db.query.imageStyles.findFirst({
-      where: eq(imageStyles.id, styleId)
-    });
     
     if (!sourceStyle) {
       return res.status(404).json({ error: '복제할 이미지 스타일을 찾을 수 없습니다.' });
