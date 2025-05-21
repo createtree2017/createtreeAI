@@ -637,9 +637,27 @@ export default function CreateDreamBook() {
 
           <div className="flex justify-end">
             <Button
-              type="submit"
+              type="button" 
               disabled={isGenerating}
               size="lg"
+              onClick={() => {
+                console.log('태몽동화 생성 버튼 클릭됨', form.getValues());
+                
+                // 폼 데이터 유효성 검사
+                form.trigger().then(isValid => {
+                  if (isValid) {
+                    console.log('폼 데이터 유효함, 제출 시작');
+                    onSubmit(form.getValues());
+                  } else {
+                    console.error('폼 데이터 유효하지 않음', form.formState.errors);
+                    toast({
+                      title: '입력 오류',
+                      description: '모든 필수 항목을 입력해주세요.',
+                      variant: 'destructive'
+                    });
+                  }
+                });
+              }}
             >
               {isGenerating ? (
                 <>
