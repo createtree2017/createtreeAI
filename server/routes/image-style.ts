@@ -145,16 +145,23 @@ router.post('/', isAdmin, async (req: Request, res: Response) => {
 router.put('/:id', isAdmin, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const styleId = parseInt(id);
     
-    if (isNaN(styleId)) {
-      return res.status(400).json({ error: '유효하지 않은 스타일 ID입니다.' });
-    }
+    console.log(`이미지 스타일 수정 요청 - ID 또는 styleId: ${id}`);
     
-    // 기존 스타일 확인
-    const existingStyle = await db.query.imageStyles.findFirst({
-      where: eq(imageStyles.id, styleId)
+    // 스타일 조회 - styleId(문자열) 또는 id(숫자) 사용 가능
+    let existingStyle;
+    
+    // 첫번째 시도: styleId로 검색 (문자열 ID 우선)
+    existingStyle = await db.query.imageStyles.findFirst({
+      where: eq(imageStyles.styleId, id)
     });
+    
+    // styleId로 찾지 못한 경우, 숫자 ID로 시도
+    if (!existingStyle && !isNaN(parseInt(id))) {
+      existingStyle = await db.query.imageStyles.findFirst({
+        where: eq(imageStyles.id, parseInt(id))
+      });
+    }
     
     if (!existingStyle) {
       return res.status(404).json({ error: '해당 이미지 스타일을 찾을 수 없습니다.' });
