@@ -775,6 +775,9 @@ export const imageStyles = pgTable("image_styles", {
   name: text("name").notNull(),
   description: text("description").notNull(),
   systemPrompt: text("system_prompt").notNull(),
+  characterPrompt: text("character_prompt"), // 캐릭터 생성용 특화 프롬프트
+  thumbnailUrl: text("thumbnail_url"), // 스타일 썸네일 이미지 URL
+  characterSampleUrl: text("character_sample_url"), // 캐릭터 샘플 이미지 URL
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   isActive: boolean("is_active").default(true),
