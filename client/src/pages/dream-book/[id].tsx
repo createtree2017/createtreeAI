@@ -130,13 +130,13 @@ export default function DreamBookDetail() {
       <div className="mb-10">
         <Carousel className="w-full max-w-3xl mx-auto">
           <CarouselContent>
-            {dreamBook.scenes && dreamBook.scenes.length > 0 ? (
-              dreamBook.scenes.map((scene, index) => (
+            {dreamBook.images && dreamBook.images.length > 0 ? (
+              dreamBook.images.map((image, index) => (
                 <CarouselItem key={index}>
                   <Card className="overflow-hidden">
                     <div className="relative aspect-[4/3] bg-gray-100 overflow-hidden">
                       <img
-                        src={scene.imageUrl || '/static/uploads/dream-books/error.png'} 
+                        src={image.imageUrl || '/static/uploads/dream-books/error.png'} 
                         alt={`태몽동화 장면 ${index + 1}`}
                         className="object-cover w-full h-full"
                         onError={(e) => {
@@ -149,23 +149,8 @@ export default function DreamBookDetail() {
                       <div className="grid gap-4">
                         <div>
                           <h3 className="text-xl font-semibold mb-2">장면 {index + 1}</h3>
-                          <p className="text-gray-700 whitespace-pre-line">{scene.scenePrompt}</p>
+                          <p className="text-gray-700 whitespace-pre-line">{image.prompt}</p>
                         </div>
-                        
-                        {(scene.backgroundPrompt || scene.characterPrompt) && (
-                          <div className="mt-4 text-sm text-gray-500 border-t pt-4 space-y-2">
-                            {scene.backgroundPrompt && (
-                              <div>
-                                <span className="font-medium">배경:</span> {scene.backgroundPrompt}
-                              </div>
-                            )}
-                            {scene.characterPrompt && (
-                              <div>
-                                <span className="font-medium">인물:</span> {scene.characterPrompt}
-                              </div>
-                            )}
-                          </div>
-                        )}
                       </div>
                     </CardContent>
                   </Card>

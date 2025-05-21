@@ -138,11 +138,10 @@ export default function DreamBookList() {
                     target.src = '/static/uploads/dream-books/error.png';
                   }}
                 />
-              ) : dreamBook.scenes && dreamBook.scenes[0] && dreamBook.scenes[0].imageUrl ? (
+              ) : dreamBook.images && dreamBook.images[0] && dreamBook.images[0].imageUrl ? (
                 <img
-                  src={dreamBook.scenes[0].imageUrl}
-                  alt={`${dreamBook.babyName}의
-                  태몽동화`}
+                  src={dreamBook.images[0].imageUrl}
+                  alt={`${dreamBook.babyName}의 태몽동화`}
                   className="object-cover w-full h-full"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
