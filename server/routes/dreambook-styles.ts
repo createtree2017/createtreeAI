@@ -5,7 +5,7 @@ import { dreambookStyles } from '@shared/dreambook-styles';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { requireAuth } from '../middleware';
+import { isAdmin } from '../middleware/auth';
 
 const router = express.Router();
 

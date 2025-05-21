@@ -1,0 +1,151 @@
+물론입니다! 지금까지의 문제 분석 및 해결 방향을 바탕으로, **라플이 작업지시서**를 완성된 형태로 아래에 정리했습니다.
+
+---
+
+# ✅ \[라플이 작업지시서]
+
+**태몽동화 – 관리자 이미지 스타일 생성 오류 수정 및 업로드 기능 완성**
+
+---
+
+## 📌 작업 목적
+
+* 관리자페이지에서 **새 이미지 스타일 생성 시 오류가 발생하는 문제**를 해결하고,
+* **썸네일 이미지 / 캐릭터 샘플 이미지 업로드** 기능을 정상 작동하도록 구현함.
+
+---
+
+## 🧱 전제 조건
+
+* 현재 클라이언트에서는 `FormData`로 텍스트 + 파일 데이터를 함께 전송하고 있음.
+* 서버는 아직 `multer` 설정이 불완전하거나 DB 스키마에 필요한 컬럼이 누락됨.
+
+---
+
+## 🧩 1. 데이터베이스(DB) 스키마 수정
+
+> 🔧 파일: `shared/schema.ts`
+
+imageStyles 테이블에 다음 필드를 **추가**하세요:
+
+```ts
+thumbnailUrl: text("thumbnail_url"),
+characterSampleUrl: text("character_sample_url"),
+characterPrompt: text("character_prompt"),
+```
+
+> 💡 주의:
+
+* `styleId`는 고유해야 하며 `styleId: text("style_id").unique()` 유지
+* 수정 완료 후 `npx drizzle-kit push` 또는 `npm run db:push` 명령 실행
+
+---
+
+## 🧩 2. 서버 라우터 수정 (이미지 스타일 생성 API)
+
+> 🔧 파일: `server/routes/image-style.ts`
+
+`POST /api/image-styles` 라우터를 `multer`로 처리되도록 다음과 같이 수정:
+
+```ts
+import multer from "multer";
+const upload = multer({ dest: "static/uploads/image-style" }); // 업로드 위치 조정
+
+router.post(
+  "/api/image-styles",
+  upload.fields([
+    { name: "thumbnail", maxCount: 1 },
+    { name: "characterSample", maxCount: 1 },
+  ]),
+  async (req, res) => {
+    const body = req.body;
+    const files = req.files as {
+      thumbnail?: Express.Multer.File[];
+      characterSample?: Express.Multer.File[];
+    };
+
+    const thumbnailUrl = files?.thumbnail?.[0]?.path || "";
+    const characterSampleUrl = files?.characterSample?.[0]?.path || "";
+
+    const inserted = await db.insert(imageStyles).values({
+      styleId: body.styleId,
+      name: body.name,
+      description: body.description,
+      systemPrompt: body.systemPrompt,
+      characterPrompt: body.characterPrompt,
+      thumbnailUrl,
+      characterSampleUrl,
+      creatorId: req.user?.id ?? null,
+    });
+
+    res.status(201).json(inserted);
+  }
+);
+```
+
+---
+
+## 🧩 3. 클라이언트 FormData 전송 구조 확인 및 보완
+
+> 🔧 파일: `client/src/components/admin/ImageStyleManagement.tsx`
+
+`FormData`를 다음과 같이 구성하고 API로 전송해야 합니다:
+
+```ts
+const formData = new FormData();
+formData.append("styleId", values.styleId);
+formData.append("name", values.name);
+formData.append("description", values.description);
+formData.append("systemPrompt", values.systemPrompt);
+formData.append("characterPrompt", values.characterPrompt);
+if (thumbnailFile) formData.append("thumbnail", thumbnailFile);
+if (characterSampleFile) formData.append("characterSample", characterSampleFile);
+
+await axios.post("/api/image-styles", formData, {
+  headers: { "Content-Type": "multipart/form-data" }
+});
+```
+
+---
+
+## 📸 4. 파일 경로 처리 방식 정리 (선택 사항)
+
+* 이미지 URL은 `/static/uploads/image-style/파일명.png` 형태로 저장됩니다.
+* 이 URL을 `imageStyles.thumbnailUrl` 및 `characterSampleUrl`에 저장해두고,
+  클라이언트에서 `img src="/{thumbnailUrl}"` 형식으로 출력합니다.
+
+---
+
+## 🧪 5. 테스트 및 검증 시나리오
+
+1. 관리자 > "새 스타일 추가" 클릭
+2. 모든 텍스트 필드 입력
+3. 썸네일 및 캐릭터 샘플 이미지 업로드
+4. 저장 클릭 → DB에 저장 및 클라이언트에서 목록에 표시됨
+5. 새로 추가된 스타일을 삭제/복제 가능해야 함
+
+---
+
+## 🧷 정리
+
+| 항목          | 처리 방식                                                      |
+| ----------- | ---------------------------------------------------------- |
+| 텍스트 데이터     | `FormData`에 append (styleId, systemPrompt 등)               |
+| 파일 업로드      | `multer`를 통해 `static/uploads/image-style` 경로에 저장           |
+| DB 저장 필드    | `thumbnailUrl`, `characterSampleUrl`, `characterPrompt` 추가 |
+| 라우터 변경      | POST `/api/image-styles` 및 PUT 수정 필요                       |
+| 클라이언트 표시 방식 | img src={thumbnailUrl} 형식으로 표시                             |
+
+---
+
+## ✅ 최종 목표
+
+* [x] 관리자 스타일 생성 오류 해결
+* [x] 썸네일/샘플 이미지 업로드 구현
+* [x] 텍스트 및 파일 함께 처리 가능하도록 구조 개선
+* [x] 하드코딩 제거 → DB 기반 스타일만 사용
+
+---
+
+필요 시 복제 기능, 스타일 상세 보기 UI 개선 지시서도 후속으로 작성 가능합니다.
+🛠 다음 작업 요청 시 키워드만 주세요.
