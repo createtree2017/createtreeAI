@@ -202,13 +202,24 @@ export default function CreateDreamBook() {
 
   // 캐릭터 생성 처리 (사진 기반)
   const handleGenerateCharacter = () => {
-    const babyName = form.getValues('babyName');
+    console.log('캐릭터 생성 버튼 클릭됨');
+    
+    if (!selectedFile) {
+      toast({
+        title: '사진 필요',
+        description: '캐릭터 생성을 위해 사진을 업로드해주세요.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    const babyName = form.getValues('babyName') || '아기';
     const styleId = form.getValues('styleId');
     
-    if (!babyName || !styleId || !selectedFile) {
+    if (!styleId) {
       toast({
-        title: '입력 확인',
-        description: '아기 이름, 스타일, 그리고 사진을 모두 준비해주세요.',
+        title: '스타일 필요',
+        description: '캐릭터 생성을 위해 스타일을 선택해주세요.',
         variant: 'destructive'
       });
       return;
@@ -220,7 +231,7 @@ export default function CreateDreamBook() {
       description: '업로드한 사진을 기반으로 아기 캐릭터를 생성하고 있습니다. 잠시 기다려주세요.',
     });
 
-    console.log('캐릭터 생성 시작:', { babyName, styleId, fileSelected: !!selectedFile });
+    console.log('캐릭터 생성 시작:', { babyName, styleId, fileSelected: !!selectedFile, fileName: selectedFile.name });
     
     // FormData 생성 및 필요한 데이터 추가
     const formData = new FormData();
@@ -228,12 +239,25 @@ export default function CreateDreamBook() {
     formData.append('style', String(styleId)); // 서버에서는 'style' 필드를 기대함
     formData.append('image', selectedFile); // 업로드한 이미지 파일 추가
     
-    console.log('서버에 보내는 데이터:', { babyName, styleId, fileName: selectedFile.name });
-    generateCharacterMutation.mutate(formData);
+    // 디버깅 확인을 위한 FormData 출력
+    console.log('FormData 생성 완료, 파일 포함 여부:', formData.has('image'));
+    console.log('서버에 API 요청 시작');
+    
+    try {
+      generateCharacterMutation.mutate(formData);
+    } catch (error) {
+      console.error('캐릭터 생성 오류:', error);
+      toast({
+        title: '오류 발생',
+        description: '캐릭터 생성 중 오류가 발생했습니다.',
+        variant: 'destructive'
+      });
+    }
   };
 
   // 파일 선택 처리
   const handleFileSelected = (file: File) => {
+    console.log('파일 선택됨:', file.name, file.size);
     setSelectedFile(file);
   };
 

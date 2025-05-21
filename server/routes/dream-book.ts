@@ -379,9 +379,22 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
+// 파일 업로드 디렉토리 설정
+const uploadDir = 'uploads/dreambook/';
+const staticUploadDir = 'static/uploads/dream-books/';
+
+// 업로드 디렉토리가 없으면 생성
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+if (!fs.existsSync(staticUploadDir)) {
+  fs.mkdirSync(staticUploadDir, { recursive: true });
+}
+
 // 파일 업로드 설정
 const upload = multer({
-  dest: 'uploads/dreambook/',
+  dest: uploadDir,
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB 제한
   },
