@@ -48,14 +48,121 @@ function logError(message: string, error?: any): void {
 }
 
 /**
- * 태몽동화 캐릭터 이미지 생성
+ * 태몽동화 캐릭터 이미지 생성 (사진 기반)
  * @param prompt 기본 프롬프트 (이름, 특징 등)
- * @param style 스타일 (시스템 프롬프트에 사용)
+ * @param systemPrompt 스타일 시스템 프롬프트
+ * @param uploadedImagePath 업로드된 이미지 파일 경로 (옵션)
  * @returns 생성된 캐릭터 이미지의 URL 경로
  */
-export async function generateCharacterImage(prompt: string, systemPrompt: string): Promise<string> {
-  const characterSystemPrompt = `${systemPrompt}\n\n전신이 보이는 캐릭터 한 명만 정면에서 바라본 모습으로 생성하세요. 배경은 단순하게 하고 캐릭터에 집중하세요.`;
-  return generateDreamImage(prompt, characterSystemPrompt);
+export async function generateCharacterImage(
+  prompt: string, 
+  systemPrompt: string, 
+  uploadedImagePath?: string
+): Promise<string> {
+  try {
+    // 업로드된 이미지가 있는 경우 (사진 기반 캐릭터 생성)
+    if (uploadedImagePath && fs.existsSync(uploadedImagePath)) {
+      logInfo('사진 기반 캐릭터 생성 시작', { 
+        prompt, 
+        imagePath: uploadedImagePath 
+      });
+      
+      // 업로드된 이미지를 Base64로 인코딩
+      const imageBuffer = fs.readFileSync(uploadedImagePath);
+      const base64Image = imageBuffer.toString('base64');
+      
+      // API 키 검증
+      if (!isValidApiKey(API_KEY)) {
+        logError('유효한 API 키가 없습니다');
+        return SERVICE_UNAVAILABLE;
+      }
+      
+      // 사진 기반 캐릭터 생성 프롬프트
+      const characterSystemPrompt = `${systemPrompt}\n\n업로드된 사진 속 인물을 기반으로 캐릭터를 생성하세요. 인물의 특징과 외모를 유지하면서, 해당 스타일에 맞게 생성해주세요. 전신이 보이는 캐릭터 한 명만 정면에서 바라본 모습으로 생성하세요. 배경은 단순하게 하고 캐릭터에 집중하세요.`;
+      
+      // OpenAI Vision API 엔드포인트 (GPT-4-vision)
+      const OPENAI_VISION_URL = "https://api.openai.com/v1/chat/completions";
+      
+      // 요청 본문 구성
+      const requestBody = {
+        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+        messages: [
+          {
+            role: "system",
+            content: characterSystemPrompt
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: `이 사진을 기반으로 "${prompt}"를 생성해주세요.`
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: `data:image/jpeg;base64,${base64Image}`
+                }
+              }
+            ]
+          }
+        ],
+        max_tokens: 1000
+      };
+      
+      // API 헤더 설정
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_KEY}`
+      };
+
+      // 단계 1: Vision API로 이미지 분석 및 캐릭터 설명 생성
+      logInfo('Vision API를 사용한 이미지 분석 시작');
+      
+      // 1차 API 호출: 이미지 분석
+      const visionResponse = await fetch(OPENAI_VISION_URL, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(requestBody)
+      });
+      
+      if (!visionResponse.ok) {
+        const errorData = await visionResponse.json();
+        logError('Vision API 오류', errorData);
+        return SERVICE_UNAVAILABLE;
+      }
+      
+      // 응답 파싱
+      const visionData = await visionResponse.json();
+      
+      // 이미지 분석 결과 추출
+      const characterDescription = visionData.choices[0]?.message?.content || "";
+      
+      logInfo('Vision API 이미지 분석 완료', { 
+        description: characterDescription.substring(0, 100) + '...' 
+      });
+      
+      // 단계 2: 캐릭터 설명을 바탕으로 캐릭터 이미지 생성
+      const generationPrompt = `
+사진 분석 결과: ${characterDescription}
+
+위 설명을 바탕으로 "${prompt}"의 캐릭터를 생성해주세요. 
+인물의 특징과 외모를 유지하며, 전신이 보이게 생성해주세요.
+배경은 단순하게 하고 캐릭터에만 집중해주세요.
+`;
+      
+      // 2차 이미지 생성
+      return generateDreamImage(generationPrompt, systemPrompt);
+    } 
+    // 사진이 없는 경우 (기존 방식)
+    else {
+      const characterSystemPrompt = `${systemPrompt}\n\n전신이 보이는 캐릭터 한 명만 정면에서 바라본 모습으로 생성하세요. 배경은 단순하게 하고 캐릭터에 집중하세요.`;
+      return generateDreamImage(prompt, characterSystemPrompt);
+    }
+  } catch (error) {
+    logError('캐릭터 이미지 생성 중 오류 발생', error);
+    return SERVICE_UNAVAILABLE;
+  }
 }
 
 /**

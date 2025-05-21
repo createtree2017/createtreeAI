@@ -374,29 +374,77 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
   }
 });
 
-// 태몽동화 캐릭터 생성 API
-router.post('/character', authMiddleware, async (req: express.Request, res: express.Response) => {
+// 이미지 업로드를 위한 multer 임포트
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+
+// 파일 업로드 설정
+const upload = multer({
+  dest: 'uploads/dreambook/',
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB 제한
+  },
+});
+
+// 태몽동화 캐릭터 생성 API (사진 기반)
+router.post('/character', authMiddleware, upload.single('image'), async (req: express.Request, res: express.Response) => {
   try {
     const userId = req.session?.userId;
     if (!userId) {
       return res.status(401).json({ error: '인증이 필요합니다.' });
     }
 
-    // 입력 데이터 검증
-    const validatedData = createCharacterSchema.parse(req.body);
-    const { babyName, style: styleId, userImage } = validatedData;
-    
-    // 스타일 ID 검증
-    if (!styleId) {
+    console.log('[INFO] 캐릭터 생성 요청 데이터:', { 
+      body: req.body,
+      file: req.file ? { 
+        filename: req.file.filename,
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+      } : 'No file uploaded' 
+    });
+
+    // 파일 업로드 확인
+    if (!req.file) {
       return res.status(400).json({ 
         error: '입력 데이터가 올바르지 않습니다.', 
-        details: [{ path: 'style', message: '스타일 ID는 필수입니다.' }] 
+        details: [{ path: 'image', message: '이미지 파일을 업로드해주세요.' }] 
+      });
+    }
+
+    // FormData에서 받은 데이터
+    const babyName = req.body.babyName;
+    const styleId = req.body.style;
+
+    // 기본 유효성 검사
+    if (!babyName || !styleId) {
+      // 업로드된 파일 삭제
+      if (req.file) {
+        fs.unlink(req.file.path, (err) => {
+          if (err) console.error('업로드된 파일 삭제 실패:', err);
+        });
+      }
+      
+      return res.status(400).json({ 
+        error: '입력 데이터가 올바르지 않습니다.', 
+        details: [
+          { path: 'babyName', message: '아기 이름은 필수입니다.' },
+          { path: 'style', message: '스타일 ID는 필수입니다.' }
+        ] 
       });
     }
     
     // 스타일 정보 조회
     const styleInfo = DREAM_BOOK_STYLES.find(s => s.id === styleId);
     if (!styleInfo) {
+      // 업로드된 파일 삭제
+      if (req.file) {
+        fs.unlink(req.file.path, (err) => {
+          if (err) console.error('업로드된 파일 삭제 실패:', err);
+        });
+      }
+      
       return res.status(400).json({ 
         error: '입력 데이터가 올바르지 않습니다.', 
         details: [{ path: 'style', message: '유효하지 않은 스타일 ID입니다.' }] 
@@ -409,22 +457,37 @@ router.post('/character', authMiddleware, async (req: express.Request, res: expr
     });
 
     if (!imageStyle || !imageStyle.systemPrompt) {
+      // 업로드된 파일 삭제
+      if (req.file) {
+        fs.unlink(req.file.path, (err) => {
+          if (err) console.error('업로드된 파일 삭제 실패:', err);
+        });
+      }
+      
       return res.status(400).json({ 
         error: '스타일 정보가 불완전합니다', 
         details: [{ path: 'style', message: '해당 스타일의 시스템 프롬프트가 없습니다.' }] 
       });
     }
 
-    // 캐릭터 생성 프롬프트 구성
-    const characterPrompt = `${babyName}의 캐릭터`;
-
     try {
       console.log('[INFO] 캐릭터 이미지 생성 시작 - 스타일:', styleInfo.name);
+      console.log('[INFO] 업로드된 이미지 경로:', req.file.path);
       
-      // OpenAI API로 캐릭터 이미지 생성
-      const characterImageUrl = await generateCharacterImage(characterPrompt, imageStyle.systemPrompt);
+      // 업로드된 이미지 파일 경로와 스타일 정보를 활용하여 캐릭터 이미지 생성
+      // 이제 generateCharacterImage 함수는 이미지 파일을 입력으로 받아야 함
+      const characterImageUrl = await generateCharacterImage(
+        `${babyName}의 캐릭터`, 
+        imageStyle.systemPrompt,
+        req.file.path // 업로드된 이미지 파일 경로 추가
+      );
       
       if (characterImageUrl === SERVICE_UNAVAILABLE) {
+        // 업로드된 파일 삭제
+        fs.unlink(req.file.path, (err) => {
+          if (err) console.error('업로드된 파일 삭제 실패:', err);
+        });
+        
         return res.status(503).json({ 
           success: false,
           error: '서비스를 일시적으로 사용할 수 없습니다.',
@@ -433,10 +496,16 @@ router.post('/character', authMiddleware, async (req: express.Request, res: expr
       }
       
       // 캐릭터 프롬프트 생성 (다음 단계에서 참조용)
-      const characterReferencePrompt = `${babyName}의 캐릭터는 다음과 같습니다: ${characterPrompt}`;
+      const characterReferencePrompt = `${babyName}의 캐릭터`;
       
       // 결과 반환 - 일반 JSON 응답으로 변경
       console.log('[INFO] 캐릭터 이미지 생성 완료:', characterImageUrl);
+      
+      // 처리 완료 후 임시 파일 삭제
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error('업로드된 파일 삭제 실패:', err);
+      });
+      
       return res.status(200).json({ 
         success: true,
         result: {
@@ -445,6 +514,13 @@ router.post('/character', authMiddleware, async (req: express.Request, res: expr
         }
       });
     } catch (error) {
+      // 업로드된 파일 삭제
+      if (req.file) {
+        fs.unlink(req.file.path, (err) => {
+          if (err) console.error('업로드된 파일 삭제 실패:', err);
+        });
+      }
+      
       logError('캐릭터 생성 중 오류 발생:', error);
       return res.status(500).json({ 
         success: false,
@@ -453,6 +529,13 @@ router.post('/character', authMiddleware, async (req: express.Request, res: expr
       });
     }
   } catch (error) {
+    // 업로드된 파일 삭제
+    if (req.file) {
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error('업로드된 파일 삭제 실패:', err);
+      });
+    }
+    
     if (error instanceof ZodError) {
       return res.status(400).json({ 
         error: '입력 데이터가 올바르지 않습니다.', 

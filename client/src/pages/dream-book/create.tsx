@@ -108,15 +108,13 @@ export default function CreateDreamBook() {
     setCharacterImage(null);
   }, [selectedStyleId]);
 
-  // 아기 캐릭터 생성 뮤테이션
+  // 아기 캐릭터 생성 뮤테이션 (업로드된 사진 기반)
   const generateCharacterMutation = useMutation({
-    mutationFn: async (data: z.infer<typeof characterSchema>) => {
+    mutationFn: async (data: FormData) => {
       return fetch('/api/dream-books/character', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
+        // FormData를 사용하므로 Content-Type 헤더를 생략 (브라우저가 자동으로 설정)
+        body: data
       }).then(response => {
         if (!response.ok) {
           throw new Error('캐릭터 생성에 실패했습니다');
@@ -202,15 +200,15 @@ export default function CreateDreamBook() {
     }
   });
 
-  // 캐릭터 생성 처리
+  // 캐릭터 생성 처리 (사진 기반)
   const handleGenerateCharacter = () => {
     const babyName = form.getValues('babyName');
     const styleId = form.getValues('styleId');
     
-    if (!babyName || !styleId) {
+    if (!babyName || !styleId || !selectedFile) {
       toast({
         title: '입력 확인',
-        description: '아기 이름과 스타일을 모두 입력해주세요.',
+        description: '아기 이름, 스타일, 그리고 사진을 모두 준비해주세요.',
         variant: 'destructive'
       });
       return;
@@ -219,19 +217,19 @@ export default function CreateDreamBook() {
     // 캐릭터 생성 시작 알림
     toast({
       title: '캐릭터 생성 시작',
-      description: '아기 캐릭터를 생성하고 있습니다. 잠시 기다려주세요.',
+      description: '업로드한 사진을 기반으로 아기 캐릭터를 생성하고 있습니다. 잠시 기다려주세요.',
     });
 
-    console.log('캐릭터 생성 시작:', { babyName, styleId });
+    console.log('캐릭터 생성 시작:', { babyName, styleId, fileSelected: !!selectedFile });
     
-    // 서버 API에 맞는 필드명으로 데이터 전송
-    const characterData = {
-      babyName,
-      style: String(styleId) // 서버에서는 'style' 필드를 기대함
-    };
+    // FormData 생성 및 필요한 데이터 추가
+    const formData = new FormData();
+    formData.append('babyName', babyName);
+    formData.append('style', String(styleId)); // 서버에서는 'style' 필드를 기대함
+    formData.append('image', selectedFile); // 업로드한 이미지 파일 추가
     
-    console.log('서버에 보내는 데이터:', characterData);
-    generateCharacterMutation.mutate(characterData);
+    console.log('서버에 보내는 데이터:', { babyName, styleId, fileName: selectedFile.name });
+    generateCharacterMutation.mutate(formData);
   };
 
   // 파일 선택 처리
