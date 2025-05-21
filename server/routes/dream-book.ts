@@ -11,6 +11,37 @@ import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
 
+// 파일 업로드 디렉토리 설정
+const uploadDir = './uploads/dreambook';
+const staticUploadDir = './static/uploads/dream-books';
+
+// 업로드 디렉토리가 없으면 생성
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+if (!fs.existsSync(staticUploadDir)) {
+  fs.mkdirSync(staticUploadDir, { recursive: true });
+}
+
+// Multer 스토리지 설정
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueId = Math.random().toString(36).substring(2, 15);
+    const ext = path.extname(file.originalname);
+    cb(null, `dreambook-${Date.now()}-${uniqueId}${ext}`);
+  }
+});
+
+// Multer 업로드 인스턴스 생성
+const upload = multer({ 
+  storage, 
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB 제한
+});
+
 // 로깅 유틸리티가 없는 경우를 대비한 간단한 로거
 const logInfo = (message: string, data?: any) => {
   console.log(`[INFO] ${message}`, data ? JSON.stringify(data) : '');
@@ -377,31 +408,7 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
   }
 });
 
-// 이미지 업로드를 위한 multer 임포트
-import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
-
-// 파일 업로드 디렉토리 설정
-const uploadDir = 'uploads/dreambook/';
-const staticUploadDir = 'static/uploads/dream-books/';
-
-// 업로드 디렉토리가 없으면 생성
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-if (!fs.existsSync(staticUploadDir)) {
-  fs.mkdirSync(staticUploadDir, { recursive: true });
-}
-
-// 파일 업로드 설정
-const upload = multer({
-  dest: uploadDir,
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB 제한
-  },
-});
+// 이미 상단에서 정의됨
 
 // 태몽동화 캐릭터 생성 API (사진 기반)
 router.post('/character', authMiddleware, upload.single('image'), async (req: express.Request, res: express.Response) => {

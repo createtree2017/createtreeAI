@@ -155,25 +155,31 @@ export default function CreateDreamBook() {
         throw new Error('캐릭터 이미지가 필요합니다. 먼저 캐릭터를 생성해주세요.');
       }
 
-      // 서버에 보내는 데이터 형식을 API 요구사항에 맞게 변환
-      const payload = {
+      // 유효한 장면 프롬프트만 필터링
+      const validScenePrompts = data.scenePrompts.filter(p => p.trim() !== '');
+      
+      // FormData 생성
+      const formData = new FormData();
+      formData.append('babyName', data.babyName);
+      formData.append('dreamer', data.dreamer || '');
+      formData.append('style', data.styleId); // styleId → style 변환 (서버 기대 형식)
+      formData.append('characterImageUrl', characterImage);
+      formData.append('peoplePrompt', data.peoplePrompt || '아기는 귀엽고 활기찬 모습이다.');
+      formData.append('backgroundPrompt', data.backgroundPrompt || '환상적이고 아름다운 배경');
+      
+      // 장면 프롬프트는 JSON 문자열로 변환하여 전송
+      formData.append('scenePrompts', JSON.stringify(validScenePrompts));
+      
+      console.log('태몽동화 생성 FormData 준비:', {
         babyName: data.babyName,
-        dreamer: data.dreamer,
-        style: data.styleId, // styleId → style 변환 (서버 기대 형식)
-        characterImageUrl: characterImage,
-        peoplePrompt: data.peoplePrompt,
-        backgroundPrompt: data.backgroundPrompt,
-        scenePrompts: data.scenePrompts.filter(p => p.trim() !== '')
-      };
-
-      console.log('태몽동화 생성 요청 데이터:', payload);
+        style: data.styleId,
+        sceneCount: validScenePrompts.length
+      });
 
       return fetch('/api/dream-books', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
+        // FormData를 사용하므로 Content-Type 헤더를 설정하지 않음 (브라우저가 자동으로 설정)
+        body: formData
       }).then(response => {
         if (!response.ok) {
           throw new Error('태몽동화 생성에 실패했습니다');
