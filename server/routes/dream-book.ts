@@ -233,10 +233,10 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
     
     // 검증용 데이터 객체 생성 (FormData를 직접 쓰지 않고 새 객체 구성)
     const validationData = {
-      babyName: babyName,
+      babyName: babyName || '',
       dreamer: dreamer || '엄마',
-      style: styleId,
-      characterImageUrl: characterImageUrl,
+      style: styleId, // ⭐ 중요: Zod 스키마에서는 'style'로 정의되어 있음
+      characterImageUrl: characterImageUrl || '',
       peoplePrompt: peoplePrompt || '아기는 귀엽고 활기찬 모습이다.',
       backgroundPrompt: backgroundPrompt || '환상적이고 아름다운 배경',
       numberOfScenes: filteredScenePrompts.length,
@@ -255,8 +255,11 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
     const validation = createDreamBookSchema.safeParse(validationData);
     
     if (!validation.success) {
+      // 전체 오류 상세 내용 출력 (flatten 결과 포함)
       logError('Zod 스키마 검증 실패', {
+        input: validationData,
         error: validation.error.format(),
+        flatten: validation.error.flatten(),
         issues: validation.error.issues.map(issue => ({
           path: issue.path.join('.'),
           message: issue.message,
@@ -264,9 +267,11 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
         }))
       });
       
+      // 클라이언트에 보다 상세한 오류 정보 제공
       return res.status(400).json({
         error: '입력 데이터가 올바르지 않습니다.',
-        details: validation.error.issues.map(issue => ({
+        details: validation.error.flatten(), // 전체 오류 정보를 클라이언트에도 전달
+        fields: validation.error.issues.map(issue => ({
           path: issue.path.join('.'),
           message: issue.message
         }))

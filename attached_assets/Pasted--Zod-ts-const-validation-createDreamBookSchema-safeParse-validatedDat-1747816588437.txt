@@ -1,0 +1,80 @@
+🛠 반드시 필요한 조치: Zod 오류 내용 출력
+ts
+복사
+편집
+const validation = createDreamBookSchema.safeParse(validatedData);
+
+if (!validation.success) {
+  console.error("Zod 스키마 오류:", validation.error.flatten());
+  return res.status(400).json({
+    error: "입력값이 유효하지 않습니다.",
+    details: validation.error.flatten(), // 👈 클라이언트 디버깅용 응답 포함!
+  });
+}
+이렇게 해두면 브라우저 개발자 도구에서 details 항목이 표시되어 어떤 필드가 왜 실패했는지 즉시 확인 가능합니다.
+
+🧩 예상 원인 추정 (가능성이 높은 항목 순)
+scenePrompts가 string[]가 아닌 string 하나로 처리되는 경우
+
+["장면1", "장면2"] 가 아닌 "장면1, 장면2" 로 처리되는 경우
+
+JSON.stringify(scenePrompts) → ["장면1","장면2"] 이므로 서버에서 반드시 JSON.parse() 해야 함
+
+styleId 혹은 다른 필드가 undefined 상태
+
+FormData로 보냈지만 req.body.styleId 등 필드명이 잘못된 경우
+
+또는 서버에서 파일 파싱 전에 req.body에 접근해서 빈 값 참조하는 경우
+
+Zod 스키마 자체에서 필수값 정의 오류
+
+예: scenePrompts: z.array(z.string())가 아닌 z.string()으로 되어 있는 경우
+
+✅ 최종 라플이 작업지시서 (업데이트 버전)
+ts
+복사
+편집
+[작업지시서: 태몽동화 생성 오류 디버깅 및 최종 해결]
+
+📌 목적
+FormData로 전달된 scenePrompts와 기타 텍스트 필드들이 Zod 스키마에서 유효성 검사 실패로 인해 400 오류가 발생 중.
+Zod 오류 내용을 콘솔과 클라이언트 응답으로 명확히 표시하여 정확한 원인을 파악 가능하도록 처리.
+
+✅ 1. Zod 오류 상세 로깅 추가
+server/routes/dream-book.ts 내 다음 로직 수정:
+
+const validation = createDreamBookSchema.safeParse(validatedData);
+if (!validation.success) {
+  console.error("🛑 Zod 스키마 검증 실패:", validation.error.flatten());
+  return res.status(400).json({
+    error: "입력값이 유효하지 않습니다.",
+    details: validation.error.flatten(),
+  });
+}
+
+✅ 2. scenePrompts 파싱 위치 확인
+req.body.scenePrompts가 string 타입일 경우 반드시 아래처럼 파싱:
+
+let scenePrompts: string[] = [];
+try {
+  scenePrompts = JSON.parse(req.body.scenePrompts || "[]");
+} catch (e) {
+  return res.status(400).json({ error: "scenePrompts 파싱 실패" });
+}
+
+✅ 3. 최종 validatedData 구성
+
+const validatedData = {
+  babyName: req.body.babyName,
+  dreamer: req.body.dreamer,
+  styleId: req.body.styleId,
+  characterImageUrl: req.body.characterImageUrl,
+  peoplePrompt: req.body.peoplePrompt,
+  backgroundPrompt: req.body.backgroundPrompt,
+  scenePrompts, // ⬅️ 반드시 JSON.parse 한 결과 사용
+};
+
+🧪 테스트 항목
+- scenePrompts 1개만 입력해도 정상 동작
+- 필드 하나 빠졌을 때 적절한 오류 메시지 출력
+- 클라이언트 콘솔에서 서버 응답의 `details` 로그 확인 가능
