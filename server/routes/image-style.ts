@@ -151,6 +151,9 @@ router.post('/', isAdmin, upload.fields([
     }
     
     // 유효성 검사를 직접 수행하지 않고 필요한 필드만 가져옴
+    // 파일 정보 처리
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+    
     const styleData: any = {
       styleId: req.body.styleId,
       name: req.body.name,
@@ -159,6 +162,25 @@ router.post('/', isAdmin, upload.fields([
       isActive: req.body.isActive !== false, // undefined인 경우 true로 기본값 설정
       order: typeof req.body.order === 'number' ? req.body.order : 0
     };
+    
+    // 캐릭터 프롬프트 추가
+    if (req.body.characterPrompt) {
+      styleData.characterPrompt = req.body.characterPrompt;
+    }
+    
+    // 썸네일 이미지가 업로드된 경우
+    if (files && files.thumbnail && files.thumbnail.length > 0) {
+      const thumbnailFile = files.thumbnail[0];
+      styleData.thumbnailUrl = `/static/uploads/image-styles/${thumbnailFile.filename}`;
+      console.log('썸네일 이미지 업로드 완료:', styleData.thumbnailUrl);
+    }
+    
+    // 캐릭터 샘플 이미지가 업로드된 경우
+    if (files && files.characterSample && files.characterSample.length > 0) {
+      const characterFile = files.characterSample[0];
+      styleData.characterSampleUrl = `/static/uploads/image-styles/${characterFile.filename}`;
+      console.log('캐릭터 샘플 이미지 업로드 완료:', styleData.characterSampleUrl);
+    }
     
     // 현재 사용자 ID를 creator_id로 설정
     if (!req.user) {
@@ -182,7 +204,10 @@ router.post('/', isAdmin, upload.fields([
 });
 
 // 이미지 스타일 수정
-router.put('/:id', isAdmin, async (req: Request, res: Response) => {
+router.put('/:id', isAdmin, upload.fields([
+  { name: 'thumbnail', maxCount: 1 },
+  { name: 'characterSample', maxCount: 1 }
+]), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     
@@ -207,18 +232,31 @@ router.put('/:id', isAdmin, async (req: Request, res: Response) => {
       return res.status(404).json({ error: '해당 이미지 스타일을 찾을 수 없습니다.' });
     }
     
-    // 입력 데이터 검증
-    const validationResult = insertImageStyleSchema.safeParse(req.body);
+    console.log('이미지 스타일 수정 데이터:', req.body);
+    console.log('업로드된 파일:', req.files);
     
-    if (!validationResult.success) {
-      return res.status(400).json({ 
-        error: '입력 데이터가 유효하지 않습니다.',
-        details: validationResult.error.format()
-      });
+    // 파일 정보 처리
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+    
+    // 기본 업데이트 데이터 구성
+    const updateData: any = {
+      ...req.body,
+      updatedAt: new Date()
+    };
+    
+    // 썸네일 이미지가 업로드된 경우
+    if (files && files.thumbnail && files.thumbnail.length > 0) {
+      const thumbnailFile = files.thumbnail[0];
+      updateData.thumbnailUrl = `/static/uploads/image-styles/${thumbnailFile.filename}`;
+      console.log('썸네일 이미지 업로드 완료:', updateData.thumbnailUrl);
     }
     
-    const updateData = validationResult.data;
-    updateData.updatedAt = new Date();
+    // 캐릭터 샘플 이미지가 업로드된 경우
+    if (files && files.characterSample && files.characterSample.length > 0) {
+      const characterFile = files.characterSample[0];
+      updateData.characterSampleUrl = `/static/uploads/image-styles/${characterFile.filename}`;
+      console.log('캐릭터 샘플 이미지 업로드 완료:', updateData.characterSampleUrl);
+    }
     
     // 스타일 업데이트 - 항상 숫자 ID로 업데이트
     const [updatedStyle] = await db.update(imageStyles)
