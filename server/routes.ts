@@ -260,7 +260,8 @@ import { placeholderRouter } from './routes/placeholder';
 import musicRouter from './routes/music-routes';
 import testOpenAIRouter from './routes/test-openai-route';
 // 태몽동화 스타일 관리 라우터 추가
-import dreambookStylesRouter from './routes/dreambook-styles';
+// 임시로 드림북 스타일 라우터 비활성화
+// import dreambookStylesRouter from './routes/dreambook-styles';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // 쿠키 파서 미들웨어 등록
@@ -4773,7 +4774,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/dream-books", dreamBookRouter);
   
   // 태몽동화 스타일 관리 라우터 등록
-  app.use("/api/dreambook-styles", dreambookStylesRouter);
+  // app.use("/api/dreambook-styles", dreambookStylesRouter);
   console.log("태몽동화 라우터가 등록되었습니다 (/api/dream-books)");
   
   // 이미지 스타일 관리 라우터 등록
