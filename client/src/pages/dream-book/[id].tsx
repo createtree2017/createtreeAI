@@ -23,7 +23,19 @@ export default function DreamBookDetail() {
   const { user } = useAuthContext();
   const [imagesLoaded, setImagesLoaded] = useState<{[key: number]: boolean}>({});
   
-  // 무한 로딩 상태 관리
+  const { data: dreamBook, isLoading, error } = useQuery({
+    queryKey: [`/api/dream-books/${id}`],
+    queryFn: async () => {
+      const response = await fetch(`/api/dream-books/${id}`);
+      if (!response.ok) {
+        throw new Error('태몽동화를 불러오는데 실패했습니다');
+      }
+      return response.json();
+    },
+    enabled: !!id,
+  });
+  
+  // 무한 로딩 방지 로직
   useEffect(() => {
     if (!dreamBook) return;
     
@@ -41,18 +53,6 @@ export default function DreamBookDetail() {
       setImagesLoaded(prev => ({...prev, ...newLoadedState}));
     }
   }, [dreamBook]);
-  
-  const { data: dreamBook, isLoading, error } = useQuery({
-    queryKey: [`/api/dream-books/${id}`],
-    queryFn: async () => {
-      const response = await fetch(`/api/dream-books/${id}`);
-      if (!response.ok) {
-        throw new Error('태몽동화를 불러오는데 실패했습니다');
-      }
-      return response.json();
-    },
-    enabled: !!id,
-  });
 
   const handleShare = async () => {
     if (navigator.share && window.location.href) {
@@ -166,7 +166,9 @@ export default function DreamBookDetail() {
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.src = '/static/uploads/dream-books/error.png';
+                          setImagesLoaded(prev => ({...prev, [index]: true}));
                         }}
+                        onLoad={() => setImagesLoaded(prev => ({...prev, [index]: true}))}
                       />
                     </div>
                     <CardContent className="p-6">
