@@ -48,10 +48,10 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuthContext } from '@/lib/AuthProvider';
 
-// 캐릭터 생성 스키마
+// 캐릭터 생성 스키마 (서버 API와 일치하도록 수정)
 const characterSchema = z.object({
   babyName: z.string().min(1, '아기 이름을 입력해주세요'),
-  styleId: z.string().min(1, '스타일을 선택해주세요')
+  style: z.string().min(1, '스타일을 선택해주세요')
 });
 
 // 태몽동화 생성 스키마
@@ -224,12 +224,14 @@ export default function CreateDreamBook() {
 
     console.log('캐릭터 생성 시작:', { babyName, styleId });
     
-    // 데이터 형식을 서버가 기대하는 형태로 변환
-    console.log('서버에 보내는 데이터', { babyName, style: styleId });
-    generateCharacterMutation.mutate({ 
-      babyName, 
-      style: String(styleId) // 서버는 'styleId'가 아닌 'style' 필드를 기대함
-    });
+    // 서버 API에 맞는 필드명으로 데이터 전송
+    const characterData = {
+      babyName,
+      style: String(styleId) // 서버에서는 'style' 필드를 기대함
+    };
+    
+    console.log('서버에 보내는 데이터:', characterData);
+    generateCharacterMutation.mutate(characterData);
   };
 
   // 파일 선택 처리
