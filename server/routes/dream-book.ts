@@ -194,20 +194,41 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
       scenePromptCount: scenePrompts.length
     });
     
+    // 디버깅: 원시 요청 출력
+    console.log('요청 헤더:', req.headers);
+    console.log('요청 본문 키:', Object.keys(req.body));
+    
     // 빈 프롬프트 제거하고 입력된 것만 필터링
     const filteredScenePrompts = scenePrompts.filter((prompt: string) => prompt && prompt.trim().length > 0);
     
     // 기본 장면 수
     const numberOfScenes = filteredScenePrompts.length;
     
+    logInfo('scenePrompts 처리 결과:', {
+      원본: formData.scenePrompts,
+      파싱결과: scenePrompts,
+      필터링결과: filteredScenePrompts,
+      장면수: numberOfScenes
+    });
+    
+    // 장면 프롬프트가 없으면 에러 반환
     if (filteredScenePrompts.length === 0) {
-      logError('장면 프롬프트가 없음', { scenePrompts, filteredScenePrompts });
+      logError('장면 프롬프트가 없음', { 
+        scenePrompts, 
+        filteredScenePrompts,
+        원본타입: typeof formData.scenePrompts
+      });
+      
+      // 테스트용: 장면 프롬프트가 없으면 기본값 설정
+      // filteredScenePrompts = ['아기가 엄마 배 속에서 꿈을 꾸고 있어요.'];
+      
       return res.status(400).json({ 
         error: '최소 1개 이상의 장면 프롬프트를 입력해주세요.',
         details: { 
           received: { 
             type: typeof formData.scenePrompts,
-            scenePrompts: formData.scenePrompts
+            value: formData.scenePrompts,
+            keys: Object.keys(formData)
           }
         }
       });
