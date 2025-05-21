@@ -687,10 +687,60 @@ export default function CreateDreamBook() {
                 setIsGenerating(true);
                 
                 // 직접 mutation 함수 호출
-                createDreamBookMutation.mutate({
-                  ...values,
-                  styleId: values.styleId
-                });
+                // 모든 기능 대신 간단한 테스트 호출만 수행
+                try {
+                  // 1. 직접 API 호출
+                  console.log("직접 API 호출 시작");
+                  const testPayload = {
+                    babyName: values.babyName || '아기',
+                    dreamer: values.dreamer || '엄마',
+                    style: values.styleId,
+                    characterImageUrl: characterImage,
+                    peoplePrompt: values.peoplePrompt || '캐릭터가 중앙에 있는',
+                    backgroundPrompt: values.backgroundPrompt || '부드러운 배경이 있는',
+                    numberOfScenes: validScenePrompts.length,
+                    scenePrompts: validScenePrompts
+                  };
+                  
+                  console.log('테스트 페이로드:', testPayload);
+                  
+                  fetch('/api/dream-books', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testPayload)
+                  })
+                  .then(response => {
+                    console.log('API 응답 상태:', response.status, response.statusText);
+                    return response.json();
+                  })
+                  .then(data => {
+                    console.log('API 응답 데이터:', data);
+                    toast({
+                      title: 'API 응답 확인',
+                      description: '개발자 콘솔에서 응답을 확인해주세요.'
+                    });
+                    setIsGenerating(false);
+                  })
+                  .catch(error => {
+                    console.error('API 오류:', error);
+                    toast({
+                      title: 'API 오류 발생',
+                      description: '개발자 콘솔에서 오류를 확인해주세요.',
+                      variant: 'destructive'
+                    });
+                    setIsGenerating(false);
+                  });
+                } catch(e) {
+                  console.error('API 호출 중 예외 발생:', e);
+                  toast({
+                    title: '예외 발생',
+                    description: '개발자 콘솔에서 오류를 확인해주세요.',
+                    variant: 'destructive'
+                  });
+                  setIsGenerating(false);
+                }
               }}
             >
               {isGenerating ? (
