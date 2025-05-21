@@ -11,7 +11,7 @@ import { writeFile, mkdir } from 'fs/promises';
 const API_KEY = process.env.OPENAI_API_KEY;
 
 // 서비스 불가능 상태 메시지
-const SERVICE_UNAVAILABLE = "/static/uploads/dream-books/error.png";
+export const SERVICE_UNAVAILABLE = "/static/uploads/dream-books/error.png";
 
 // API 키 유효성 검증
 function isValidApiKey(apiKey: string | undefined): boolean {
@@ -45,6 +45,45 @@ function logInfo(message: string, data?: any): void {
 
 function logError(message: string, error?: any): void {
   console.error(`[ERROR] ${message}`, error || '');
+}
+
+/**
+ * 태몽동화 캐릭터 이미지 생성
+ * @param prompt 기본 프롬프트 (이름, 특징 등)
+ * @param style 스타일 (시스템 프롬프트에 사용)
+ * @returns 생성된 캐릭터 이미지의 URL 경로
+ */
+export async function generateCharacterImage(prompt: string, systemPrompt: string): Promise<string> {
+  const characterSystemPrompt = `${systemPrompt}\n\n전신이 보이는 캐릭터 한 명만 정면에서 바라본 모습으로 생성하세요. 배경은 단순하게 하고 캐릭터에 집중하세요.`;
+  return generateDreamImage(prompt, characterSystemPrompt);
+}
+
+/**
+ * 태몽동화 장면 이미지 생성 (캐릭터 참조 포함)
+ * @param scenePrompt 장면 프롬프트
+ * @param characterPrompt 캐릭터 참조 프롬프트
+ * @param stylePrompt 스타일 지시 프롬프트
+ * @returns 생성된 장면 이미지의 URL 경로
+ */
+export async function generateDreamSceneImage(
+  scenePrompt: string, 
+  characterPrompt: string, 
+  stylePrompt: string, 
+  peoplePrompt: string,
+  backgroundPrompt: string
+): Promise<string> {
+  const fullPrompt = `
+System: ${stylePrompt}
+
+캐릭터 참조: ${characterPrompt}
+
+인물 표현: ${peoplePrompt}
+
+배경 표현: ${backgroundPrompt}
+
+User: ${scenePrompt}
+`;
+  return generateDreamImage(fullPrompt);
 }
 
 /**

@@ -55,15 +55,26 @@ export const dreamBookImagesRelations = relations(dreamBookImages, ({ one }) => 
 export const dreamBooksInsertSchema = createInsertSchema(dreamBooks);
 export const dreamBookImagesInsertSchema = createInsertSchema(dreamBookImages);
 
-// 클라이언트에서 요청 검증용 스키마
+// 캐릭터 생성 요청 스키마
+export const createCharacterSchema = z.object({
+  babyName: z.string().min(1, "아기 이름은 필수입니다"),
+  style: z.union([z.string(), z.number(), z.coerce.number()]).transform(val => String(val)),
+  userImage: z.string().optional(), // 사용자가 업로드한 사진 URL
+});
+
+// 태몽동화 생성 요청 스키마
 export const createDreamBookSchema = z.object({
   babyName: z.string().min(1, "아기 이름은 필수입니다"),
   dreamer: z.string().min(1, "꿈을 꾼 사람은 필수입니다"),
-  prompts: z.array(z.string()).min(1, "최소 1개 이상의 장면 프롬프트를 입력해주세요").refine(
+  style: z.union([z.string(), z.number(), z.coerce.number()]).transform(val => String(val)),
+  characterImageUrl: z.string().min(1, "캐릭터 이미지는 필수입니다"),
+  peoplePrompt: z.string().min(1, "인물 표현은 필수입니다"),
+  backgroundPrompt: z.string().min(1, "배경 표현은 필수입니다"),
+  numberOfScenes: z.number().min(1).max(4).default(4),
+  scenePrompts: z.array(z.string()).min(1, "최소 1개 이상의 장면 프롬프트를 입력해주세요").refine(
     (prompts) => prompts.filter(p => p.trim() !== '').length > 0,
     { message: "최소 1개 이상의 장면 프롬프트를 입력해주세요" }
   ),
-  style: z.union([z.string(), z.number(), z.coerce.number()]).transform(val => String(val)),
 });
 
 // 타입 정의
@@ -82,11 +93,21 @@ export interface DreamBookWithImages extends Omit<DreamBook, 'id'> {
 }
 
 // API 요청 타입
+export interface CreateCharacterRequest {
+  babyName: string;
+  style: number | string; // number 또는 string 형태로 수신될 수 있음
+  userImage?: string; // 선택적 사용자 업로드 이미지
+}
+
 export interface CreateDreamBookRequest {
   babyName: string;
   dreamer: string;
-  prompts: string[]; // 사용자가 직접 입력한 장면 프롬프트(최대 4개)
   style: number | string; // number 또는 string 형태로 수신될 수 있음
+  characterImageUrl: string; // 1차 생성된 캐릭터 이미지 URL
+  peoplePrompt: string; // 인물 표현 프롬프트
+  backgroundPrompt: string; // 배경 표현 프롬프트
+  numberOfScenes: number; // 컷 수 (1~4)
+  scenePrompts: string[]; // 사용자가 직접 입력한 장면 프롬프트(최대 4개)
 }
 
 // 스타일 선택 옵션

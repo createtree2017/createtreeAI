@@ -1,8 +1,8 @@
 import express from 'express';
 import { db } from "@db";
 import { dreamBooks, dreamBookImages, DREAM_BOOK_STYLES } from '@shared/dream-book';
-import { createDreamBookSchema } from '@shared/dream-book';
-import { generateDreamImage, getStylePrompt } from '../services/dream-service';
+import { createDreamBookSchema, createCharacterSchema } from '@shared/dream-book';
+import { generateDreamImage, generateCharacterImage, generateDreamSceneImage, getStylePrompt } from '../services/dream-service';
 import { authMiddleware } from '../common/middleware/auth';
 import { ZodError } from 'zod';
 import { eq, and, asc, desc } from 'drizzle-orm';
@@ -369,6 +369,131 @@ router.post('/', authMiddleware, async (req: express.Request, res: express.Respo
     
     logError('태몽동화 생성 중 오류 발생:', error);
     return res.status(500).json({ error: '태몽동화를 생성하는 중 오류가 발생했습니다.' });
+  }
+});
+
+// 태몽동화 캐릭터 생성 API
+router.post('/character', authMiddleware, async (req: express.Request, res: express.Response) => {
+  try {
+    const userId = req.session?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: '인증이 필요합니다.' });
+    }
+
+    // 입력 데이터 검증
+    const validatedData = createCharacterSchema.parse(req.body);
+    const { babyName, style: styleId, userImage } = validatedData;
+    
+    // 스타일 ID 검증
+    if (!styleId) {
+      return res.status(400).json({ 
+        error: '입력 데이터가 올바르지 않습니다.', 
+        details: [{ path: 'style', message: '스타일 ID는 필수입니다.' }] 
+      });
+    }
+    
+    // 스타일 정보 조회
+    const styleInfo = DREAM_BOOK_STYLES.find(s => s.id === styleId);
+    if (!styleInfo) {
+      return res.status(400).json({ 
+        error: '입력 데이터가 올바르지 않습니다.', 
+        details: [{ path: 'style', message: '유효하지 않은 스타일 ID입니다.' }] 
+      });
+    }
+    
+    // 데이터베이스에서 스타일 정보 조회
+    const imageStyle = await db.query.imageStyles.findFirst({
+      where: eq(imageStyles.name, styleInfo.name)
+    });
+
+    if (!imageStyle || !imageStyle.systemPrompt) {
+      return res.status(400).json({ 
+        error: '스타일 정보가 불완전합니다', 
+        details: [{ path: 'style', message: '해당 스타일의 시스템 프롬프트가 없습니다.' }] 
+      });
+    }
+
+    // 캐릭터 생성 프롬프트 구성
+    const characterPrompt = `${babyName}의 캐릭터`;
+    
+    // 서비스 불가능 상태 메시지 상수 (SERVICE_UNAVAILABLE에 접근할 수 없는 문제 해결)
+    const SERVICE_UNAVAILABLE_PATH = "/static/uploads/dream-books/error.png";
+
+    // 진행 상황 추적 상태 객체
+    const status = { message: '캐릭터 생성을 시작합니다.', progress: 0, type: 'info' };
+    
+    // SSE 응답 헤더 설정
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    });
+
+    // 진행 상황 전송 함수
+    const sendStatus = (message: string, progress: number, type = 'info') => {
+      status.message = message;
+      status.progress = progress;
+      status.type = type;
+      res.write(`data: ${JSON.stringify(status)}\n\n`);
+    };
+
+    try {
+      sendStatus('캐릭터 이미지를 생성하는 중...', 30);
+      
+      // OpenAI API로 캐릭터 이미지 생성
+      const characterImageUrl = await generateCharacterImage(characterPrompt, imageStyle.systemPrompt);
+      
+      if (characterImageUrl === SERVICE_UNAVAILABLE_PATH) {
+        sendStatus('캐릭터 생성 중 오류가 발생했습니다.', 0, 'error');
+        res.write(`data: ${JSON.stringify({ 
+          message: '캐릭터 생성 중 오류가 발생했습니다.', 
+          type: 'error',
+          completed: true, 
+          success: false 
+        })}\n\n`);
+        res.end();
+        return;
+      }
+      
+      // 캐릭터 프롬프트 생성 (다음 단계에서 참조용)
+      const characterReferencePrompt = `${babyName}의 캐릭터는 다음과 같습니다: ${characterPrompt}`;
+      
+      // 결과 반환
+      sendStatus('캐릭터 생성이 완료되었습니다!', 100);
+      res.write(`data: ${JSON.stringify({ 
+        message: '캐릭터 생성이 완료되었습니다!', 
+        progress: 100, 
+        type: 'info',
+        completed: true, 
+        success: true,
+        result: {
+          characterImageUrl,
+          characterPrompt: characterReferencePrompt
+        }
+      })}\n\n`);
+      res.end();
+    } catch (error) {
+      logError('캐릭터 생성 중 오류 발생:', error);
+      res.write(`data: ${JSON.stringify({ 
+        message: '캐릭터 생성 중 오류가 발생했습니다.', 
+        progress: 0,
+        type: 'error',
+        error: error instanceof Error ? error.message : String(error),
+        completed: true, 
+        success: false 
+      })}\n\n`);
+      res.end();
+    }
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return res.status(400).json({ 
+        error: '입력 데이터가 올바르지 않습니다.', 
+        details: error.errors 
+      });
+    }
+    
+    logError('캐릭터 생성 중 오류 발생:', error);
+    return res.status(500).json({ error: '캐릭터를 생성하는 중 오류가 발생했습니다.' });
   }
 });
 
