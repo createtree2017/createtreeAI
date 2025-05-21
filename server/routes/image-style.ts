@@ -180,10 +180,10 @@ router.put('/:id', isAdmin, async (req: Request, res: Response) => {
     const updateData = validationResult.data;
     updateData.updatedAt = new Date();
     
-    // 스타일 업데이트
+    // 스타일 업데이트 - 항상 숫자 ID로 업데이트
     const [updatedStyle] = await db.update(imageStyles)
       .set(updateData)
-      .where(eq(imageStyles.id, styleId))
+      .where(eq(imageStyles.id, existingStyle.id))
       .returning();
     
     return res.json(updatedStyle);
