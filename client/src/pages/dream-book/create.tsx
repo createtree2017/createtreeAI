@@ -378,7 +378,7 @@ export default function CreateDreamBook() {
                     <p className="text-sm text-muted-foreground mb-2">캐릭터를 생성해주세요 (필수)</p>
                     <Button 
                       onClick={() => setIsCharacterDialogOpen(true)}
-                      disabled={!selectedStyleId || !form.getValues('babyName')}
+                      disabled={!selectedStyleId}
                       className="w-full"
                     >
                       {generateCharacterMutation.isPending ? (
