@@ -285,8 +285,8 @@ ${imageDescription}
         // 응답 데이터 검증
         if (!responseData.data || responseData.data.length === 0) {
           logError("이미지 데이터가 없습니다");
-          // DALL-E 3로 폴백
-          return generateDreamImage(generatedPrompt, systemPrompt);
+          // DALL-E 3로 폴백 (캐릭터 프롬프트 유지)
+          return generateDreamImage(generatedPrompt, characterSystemPrompt);
         }
         
         // 이미지 URL 또는 base64 데이터 가져오기
