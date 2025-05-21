@@ -289,7 +289,7 @@ router.delete('/:styleId', requireAuth, async (req, res) => {
       return res.status(404).json({ error: '해당 스타일을 찾을 수 없습니다.' });
     }
 
-    // 파일 삭제 처리
+    // 썸네일 파일 삭제 처리
     if (
       existingStyle.thumbnailUrl &&
       existingStyle.thumbnailUrl.includes('/uploads/dreambook-styles/')
@@ -301,6 +301,21 @@ router.delete('/:styleId', requireAuth, async (req, res) => {
         }
       } catch (err) {
         console.error('썸네일 파일 삭제 실패:', err);
+      }
+    }
+    
+    // 캐릭터 샘플 이미지 파일 삭제 처리
+    if (
+      existingStyle.characterSampleUrl &&
+      existingStyle.characterSampleUrl.includes('/uploads/dreambook-styles/')
+    ) {
+      const characterFilePath = path.join('static', existingStyle.characterSampleUrl);
+      try {
+        if (fs.existsSync(characterFilePath)) {
+          fs.unlinkSync(characterFilePath);
+        }
+      } catch (err) {
+        console.error('캐릭터 샘플 파일 삭제 실패:', err);
       }
     }
 

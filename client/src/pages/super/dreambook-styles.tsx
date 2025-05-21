@@ -51,6 +51,8 @@ interface DreamBookStyle {
   description: string;
   systemPrompt: string;
   thumbnailUrl: string;
+  characterPrompt?: string;
+  characterSampleUrl?: string;
 }
 
 // 폼 검증 스키마
@@ -59,6 +61,7 @@ const styleSchema = z.object({
   name: z.string().min(1, '스타일 이름은 필수입니다'),
   description: z.string().min(1, '설명은 필수입니다'),
   systemPrompt: z.string().min(1, '시스템 프롬프트는 필수입니다'),
+  characterPrompt: z.string().optional(),
 });
 
 export default function DreamBookStylesPage() {
@@ -69,7 +72,9 @@ export default function DreamBookStylesPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedStyle, setSelectedStyle] = useState<DreamBookStyle | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedCharacterFile, setSelectedCharacterFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [characterPreviewUrl, setCharacterPreviewUrl] = useState<string | null>(null);
 
   // 스타일 목록 조회
   const { data: styles, isLoading, isError } = useQuery<DreamBookStyle[]>({
@@ -91,6 +96,7 @@ export default function DreamBookStylesPage() {
       name: '',
       description: '',
       systemPrompt: '',
+      characterPrompt: '',
     },
   });
 
@@ -194,7 +200,7 @@ export default function DreamBookStylesPage() {
     },
   });
 
-  // 파일 선택 처리
+  // 썸네일 파일 선택 처리
   const handleFileSelected = (file: File | null) => {
     setSelectedFile(file);
     if (file) {
@@ -205,6 +211,20 @@ export default function DreamBookStylesPage() {
       reader.readAsDataURL(file);
     } else {
       setPreviewUrl(null);
+    }
+  };
+  
+  // 캐릭터 샘플 이미지 파일 선택 처리
+  const handleCharacterFileSelected = (file: File | null) => {
+    setSelectedCharacterFile(file);
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setCharacterPreviewUrl(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setCharacterPreviewUrl(null);
     }
   };
 
@@ -225,6 +245,15 @@ export default function DreamBookStylesPage() {
     formData.append('description', values.description);
     formData.append('systemPrompt', values.systemPrompt);
     formData.append('thumbnail', selectedFile);
+    
+    // 캐릭터 관련 필드 (선택적)
+    if (values.characterPrompt) {
+      formData.append('characterPrompt', values.characterPrompt);
+    }
+    
+    if (selectedCharacterFile) {
+      formData.append('characterSample', selectedCharacterFile);
+    }
 
     addStyleMutation.mutate(formData);
   };
@@ -237,8 +266,19 @@ export default function DreamBookStylesPage() {
     formData.append('description', values.description);
     formData.append('systemPrompt', values.systemPrompt);
     
+    // 캐릭터 프롬프트 추가 (선택적)
+    if (values.characterPrompt) {
+      formData.append('characterPrompt', values.characterPrompt);
+    }
+    
+    // 썸네일 이미지가 선택된 경우
     if (selectedFile) {
       formData.append('thumbnail', selectedFile);
+    }
+    
+    // 캐릭터 샘플 이미지가 선택된 경우
+    if (selectedCharacterFile) {
+      formData.append('characterSample', selectedCharacterFile);
     }
 
     updateStyleMutation.mutate(formData);
