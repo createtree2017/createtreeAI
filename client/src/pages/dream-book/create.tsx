@@ -411,11 +411,65 @@ export default function CreateDreamBook() {
           
           <div className="space-y-4 py-4">
             <div className="flex flex-col items-center">
-              <FileUpload
-                onFileSelect={onFileSelect}
-                accept="image/*"
-                maxSize={5 * 1024 * 1024} // 5MB
-              />
+              {/* 간단한 파일 업로드 UI로 대체 */}
+              <div 
+                className="border-2 border-dashed rounded-md p-6 flex flex-col items-center justify-center hover:border-primary/50 cursor-pointer"
+                onClick={() => document.getElementById('file-upload-input')?.click()}
+              >
+                <input
+                  id="file-upload-input"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      const file = e.target.files[0];
+                      if (file.size > 5 * 1024 * 1024) {
+                        toast({
+                          title: '파일 크기 초과',
+                          description: '5MB 이하의 파일만 업로드 가능합니다.',
+                          variant: 'destructive'
+                        });
+                        return;
+                      }
+                      console.log('파일 선택됨:', file.name, file.size);
+                      setSelectedFile(file);
+                    }
+                  }}
+                  className="hidden"
+                />
+                
+                {selectedFile ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <FileType2 className="w-10 h-10 text-primary" />
+                    <p className="font-medium text-center">{selectedFile.name}</p>
+                    <p className="text-xs text-gray-500">
+                      {(selectedFile.size / 1024).toFixed(1)} KB
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedFile(null);
+                        const fileInput = document.getElementById('file-upload-input') as HTMLInputElement;
+                        if (fileInput) fileInput.value = '';
+                      }}
+                    >
+                      파일 변경
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-2">
+                    <Upload className="w-10 h-10 text-gray-400 mb-2" />
+                    <p className="text-sm font-medium text-center">
+                      이미지를 클릭하여 업로드하세요
+                    </p>
+                    <p className="text-xs text-gray-500 text-center">
+                      이미지 파일 지원 (최대 5MB)
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           
