@@ -206,6 +206,7 @@ function ImageStyleForm({ initialData, onSuccess }: { initialData?: any, onSucce
       name: "",
       systemPrompt: "",
       description: "",
+      characterPrompt: "", // 캐릭터 프롬프트 추가
     }
   });
   
@@ -326,6 +327,27 @@ function ImageStyleForm({ initialData, onSuccess }: { initialData?: any, onSucce
                 </FormControl>
                 <FormDescription>
                   이미지 생성 시 사용될 스타일 프롬프트입니다. 상세하게 스타일 특성을 설명해주세요.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="characterPrompt"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>캐릭터 참조 프롬프트</FormLabel>
+                <FormControl>
+                  <Textarea 
+                    placeholder="사용자가 업로드한 인물 사진을 기반으로 캐릭터를 생성할 때 사용됩니다. 참조 사진의 인물 특징(얼굴 생김새, 머리 스타일 등)을 유지하면서 스타일에 맞게 변환해주세요." 
+                    {...field} 
+                    rows={5}
+                  />
+                </FormControl>
+                <FormDescription>
+                  인물 사진 기반 캐릭터 생성 시 사용될 추가 프롬프트입니다. 일관된 캐릭터 표현을 위한 지침을 작성해주세요.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
