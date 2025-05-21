@@ -49,7 +49,7 @@ import HospitalCampaignEditPage from "@/pages/hospital/campaign-edit";
 import SharedMusic from "@/pages/shared-music";
 import DreamBookList from "@/pages/dream-book";
 import DreamBookDetail from "@/pages/dream-book/[id]";
-import CreateDreamBook from "@/pages/dream-book/create-new";
+import CreateDreamBook from "@/pages/dream-book/create";
 import ImageStylesPage from "@/pages/admin/image-styles";
 
 // Main layout component
