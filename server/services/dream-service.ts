@@ -67,7 +67,7 @@ export async function generateCharacterImage(
         imagePath: uploadedImagePath 
       });
       
-      // 업로드된 이미지를 Base64로 인코딩
+      // 업로드된 이미지를 Buffer로 읽기
       const imageBuffer = fs.readFileSync(uploadedImagePath);
       const base64Image = imageBuffer.toString('base64');
       
@@ -82,77 +82,303 @@ export async function generateCharacterImage(
       
       // OpenAI Vision API 엔드포인트 (GPT-4-vision)
       const OPENAI_VISION_URL = "https://api.openai.com/v1/chat/completions";
+      const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
       
-      // 요청 본문 구성
-      const requestBody = {
-        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-        messages: [
-          {
-            role: "system",
-            content: characterSystemPrompt
-          },
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: `이 사진을 기반으로 "${prompt}"를 생성해주세요.`
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:image/jpeg;base64,${base64Image}`
-                }
+      // 1단계: GPT-4o Vision으로 이미지 분석하여 사진 정보 추출
+      logInfo('1단계: GPT-4o Vision으로 이미지 분석 시작');
+      
+      // 이미지 분석 메시지 구성
+      const analysisMessages = [
+        {
+          role: "system",
+          content: `당신은 업로드된 사진을 분석하여 인물의 모든 특성을 상세히 설명하는 비전 전문가입니다. 다음 정보를 추출해주세요:
+1. 얼굴 특징: 얼굴형, 눈, 코, 입, 턱 등의 모양과 특징
+2. 헤어스타일: 머리 길이, 색상, 스타일
+3. 신체적 특성: 체형, 피부색, 나이대 등
+4. 의상: 색상, 스타일, 특징
+5. 표정 및 분위기
+6. 기타 독특한 특징
+
+사진을 정확하게 분석하여 이 사람의 특징이 유지되도록 하는 데 필요한 모든 정보를 제공해주세요.`
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `이 사진 속 인물을 ${systemPrompt}에 맞는 스타일로 변환하기 위해 필요한 모든 시각적 특성을 상세히 분석해주세요.`
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${base64Image}`
               }
-            ]
-          }
-        ],
-        max_tokens: 1000
-      };
+            }
+          ]
+        }
+      ];
       
       // API 헤더 설정
       const headers = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${API_KEY}`
       };
-
-      // 단계 1: Vision API로 이미지 분석 및 캐릭터 설명 생성
-      logInfo('Vision API를 사용한 이미지 분석 시작');
       
-      // 1차 API 호출: 이미지 분석
-      const visionResponse = await fetch(OPENAI_VISION_URL, {
+      // 분석 요청 본문 구성
+      const analysisBody = {
+        model: "gpt-4o",  // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+        messages: analysisMessages,
+        max_tokens: 1000
+      };
+      
+      // GPT-4o Vision으로 이미지 분석 요청
+      const analysisResponse = await fetch(OPENAI_VISION_URL, {
         method: 'POST',
         headers: headers,
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(analysisBody)
       });
       
-      if (!visionResponse.ok) {
-        const errorData = await visionResponse.json();
-        logError('Vision API 오류', errorData);
+      const analysisResponseText = await analysisResponse.text();
+      let analysisData;
+      
+      try {
+        analysisData = JSON.parse(analysisResponseText);
+      } catch (e) {
+        logError("이미지 분석 응답 파싱 오류:", e);
         return SERVICE_UNAVAILABLE;
       }
       
-      // 응답 파싱
-      const visionData = await visionResponse.json() as any;
+      if (!analysisResponse.ok || analysisData.error) {
+        logError("이미지 분석 API 오류:", analysisData.error?.message || `HTTP 오류: ${analysisResponse.status}`);
+        return SERVICE_UNAVAILABLE;
+      }
       
-      // 이미지 분석 결과 추출
-      const characterDescription = visionData.choices && visionData.choices[0]?.message?.content || "";
+      // 이미지 분석 결과
+      const imageDescription = analysisData.choices?.[0]?.message?.content || "";
+      if (!imageDescription) {
+        logError("이미지 분석 결과가 없습니다");
+        return SERVICE_UNAVAILABLE;
+      }
       
-      logInfo('Vision API 이미지 분석 완료', { 
-        description: characterDescription.substring(0, 100) + '...' 
+      // 2단계: GPT-4o로 원본 특성 유지 프롬프트 생성
+      logInfo('2단계: GPT-4o로 프롬프트 지침 생성 중...');
+      
+      const promptGenerationBody = {
+        model: "gpt-4o",  // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+        messages: [
+          {
+            role: "system",
+            content: `당신은 이미지 생성 모델을 위한 프롬프트 작성 전문가입니다. GPT-Image-1 모델이 원본 사진 특성을 유지하면서 스타일 변환을 할 수 있도록 프롬프트를 작성해야 합니다.
+
+1. 이미지 분석 정보를 바탕으로 인물의 모든 주요 특성을 포함하세요.
+2. 스타일과 관련된 구체적인 지시사항을 포함하세요: ${systemPrompt}
+3. 머리 스타일, 얼굴 특징, 눈, 입, 자세, 전체적인 모양을 명확하게 설명하세요.
+4. "이미지를 생성하세요"와 같은 지시문은 피하고 대신 시각적 특성만 설명하세요.
+5. 전신이 보이는 캐릭터를 정면에서 바라본 모습으로 설명하세요.
+6. 배경은 단순하게 하고 캐릭터에 집중하도록 지시하세요.
+7. 배경과 인물의 구도에 대한 명확한 지침을 포함하세요.
+
+프롬프트는 명확하고 상세해야 하며, GPT-Image-1 모델이 원본 사진의 특성을 유지하면서 요청된 스타일로 변환할 수 있도록 해야 합니다.`
+          },
+          {
+            role: "user",
+            content: `원본 이미지 분석 정보:
+${imageDescription}
+
+사용자 요청: ${prompt}
+
+위 정보를 바탕으로 GPT-Image-1 모델이 원본 이미지의 특성(인물 외모, 의상, 배경, 구도 등)을 완벽하게 보존하면서 ${systemPrompt} 스타일로 변환할 수 있는 프롬프트를 작성해 주세요. 인물의 특징과 외모를 유지하며, 전신이 보이게 생성하도록 하세요. 배경은 단순하게 하고 캐릭터에만 집중하도록 지시하세요.`
+          }
+        ],
+        max_tokens: 1000
+      };
+      
+      // GPT-4o로 프롬프트 생성 요청
+      const promptResponse = await fetch(OPENAI_CHAT_URL, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(promptGenerationBody)
       });
       
-      // 단계 2: 캐릭터 설명을 바탕으로 캐릭터 이미지 생성
-      const generationPrompt = `
-사진 분석 결과: ${characterDescription}
-
-위 설명을 바탕으로 "${prompt}"의 캐릭터를 생성해주세요. 
-인물의 특징과 외모를 유지하며, 전신이 보이게 생성해주세요.
-배경은 단순하게 하고 캐릭터에만 집중해주세요.
-`;
+      const promptResponseText = await promptResponse.text();
+      let promptData;
       
-      // 2차 이미지 생성
-      return generateDreamImage(generationPrompt, systemPrompt);
+      try {
+        promptData = JSON.parse(promptResponseText);
+      } catch (e) {
+        logError("프롬프트 생성 응답 파싱 오류:", e);
+        return SERVICE_UNAVAILABLE;
+      }
+      
+      if (!promptResponse.ok || promptData.error) {
+        logError("프롬프트 생성 API 오류:", promptData.error?.message || `HTTP 오류: ${promptResponse.status}`);
+        return SERVICE_UNAVAILABLE;
+      }
+      
+      // 생성된 프롬프트
+      const generatedPrompt = promptData.choices?.[0]?.message?.content || "";
+      if (!generatedPrompt) {
+        logError("프롬프트 생성 결과가 없습니다");
+        return SERVICE_UNAVAILABLE;
+      }
+      
+      // 3단계: GPT-Image-1로 이미지 생성 (원본 이미지 참조)
+      logInfo('3단계: GPT-Image-1로 캐릭터 이미지 생성 중...');
+      
+      try {
+        // OpenAI GPT-Image-1 Edit API를 호출하기 위한 준비
+        const OPENAI_IMAGE_EDITING_URL = "https://api.openai.com/v1/images/edits";
+        
+        // 임시 파일 경로 설정 (Buffer를 파일로 저장)
+        const tempFilePath = path.join(process.cwd(), 'temp_image.jpg');
+        
+        // 이미지 Buffer를 임시 파일로 저장
+        fs.writeFileSync(tempFilePath, imageBuffer);
+        
+        // FormData 객체 생성
+        const FormData = require('form-data');
+        const formData = new FormData();
+        formData.append('model', 'gpt-image-1');
+        formData.append('prompt', generatedPrompt);
+        formData.append('image', fs.createReadStream(tempFilePath));
+        formData.append('size', '1024x1024');
+        formData.append('quality', 'high');
+        formData.append('n', '1');
+        
+        // multipart/form-data를 사용하므로 Content-Type 헤더는 자동 설정됨
+        const authHeader = {
+          'Authorization': `Bearer ${API_KEY}`
+        };
+        
+        // API 호출
+        const apiResponse = await fetch(OPENAI_IMAGE_EDITING_URL, {
+          method: 'POST',
+          headers: authHeader,
+          body: formData
+        });
+        
+        // 응답 텍스트로 가져오기
+        const responseText = await apiResponse.text();
+        
+        // JSON 파싱 시도
+        let responseData;
+        try {
+          responseData = JSON.parse(responseText);
+        } catch (e) {
+          logError("GPT-Image-1 Edit API 응답 파싱 오류:", e);
+          // 이 경우 DALL-E 3로 폴백하지 않고 오류를 반환
+          return SERVICE_UNAVAILABLE;
+        }
+        
+        // 오류 응답 확인
+        if (!apiResponse.ok || responseData.error) {
+          const errorMessage = responseData.error?.message || `HTTP 오류: ${apiResponse.status}`;
+          logError("GPT-Image-1 Edit API 오류:", errorMessage);
+          
+          // GPT-Image-1 실패 시 DALL-E 3로 폴백
+          logInfo("GPT-Image-1 실패, DALL-E 3로 폴백합니다");
+          return generateDreamImage(generatedPrompt, systemPrompt);
+        }
+        
+        // 응답 데이터 검증
+        if (!responseData.data || responseData.data.length === 0) {
+          logError("이미지 데이터가 없습니다");
+          // DALL-E 3로 폴백
+          return generateDreamImage(generatedPrompt, systemPrompt);
+        }
+        
+        // 이미지 URL 또는 base64 데이터 가져오기
+        let imageUrl = responseData.data[0]?.url;
+        const base64Data = responseData.data[0]?.b64_json;
+        
+        // 이미지 URL 또는 base64가 있는지 확인
+        if (!imageUrl && !base64Data) {
+          logError("이미지 URL과 base64 데이터가 모두 없습니다");
+          return SERVICE_UNAVAILABLE;
+        }
+        
+        // base64 데이터가 있는 경우
+        if (base64Data) {
+          // 파일 이름 및 경로 설정
+          const timestamp = Date.now();
+          const randomId = Math.floor(Math.random() * 10000);
+          const filename = `dreambook-${timestamp}-${randomId}.png`;
+          
+          // 저장 경로 설정
+          const uploadPath = path.join(process.cwd(), 'static', 'uploads', 'dream-books');
+          
+          try {
+            // 디렉토리가 없으면 생성
+            if (!fs.existsSync(uploadPath)) {
+              fs.mkdirSync(uploadPath, { recursive: true });
+            }
+            
+            const filePath = path.join(uploadPath, filename);
+            
+            // Base64 데이터를 파일로 저장
+            fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
+            
+            // 웹에서 접근 가능한 URL 경로 반환
+            imageUrl = `/static/uploads/dream-books/${filename}`;
+            
+            logInfo('이미지 파일 저장 완료', {
+              filePath,
+              accessUrl: imageUrl
+            });
+            
+            return imageUrl;
+          } catch (err) {
+            logError('이미지 파일 저장 실패', err);
+            return SERVICE_UNAVAILABLE;
+          }
+        }
+        
+        // URL이 있는 경우 (원격 파일 다운로드 후 저장)
+        if (imageUrl) {
+          try {
+            // 파일 이름 및 경로 설정
+            const timestamp = Date.now();
+            const randomId = Math.floor(Math.random() * 10000);
+            const filename = `dreambook-${timestamp}-${randomId}.png`;
+            
+            // 저장 경로 설정
+            const uploadPath = path.join(process.cwd(), 'static', 'uploads', 'dream-books');
+            
+            // 디렉토리가 없으면 생성
+            if (!fs.existsSync(uploadPath)) {
+              fs.mkdirSync(uploadPath, { recursive: true });
+            }
+            
+            const filePath = path.join(uploadPath, filename);
+            
+            // 원격 이미지 다운로드 및 저장
+            const imageResponse = await fetch(imageUrl);
+            const imageBuffer = await imageResponse.buffer();
+            fs.writeFileSync(filePath, imageBuffer);
+            
+            // 웹에서 접근 가능한 URL 경로 반환
+            const localImageUrl = `/static/uploads/dream-books/${filename}`;
+            
+            logInfo('원격 이미지 다운로드 및 저장 완료', {
+              filePath,
+              accessUrl: localImageUrl
+            });
+            
+            return localImageUrl;
+          } catch (downloadErr) {
+            logError('원격 이미지 다운로드 실패', downloadErr);
+            // 원격 URL을 그대로 반환 (임시 방편, 향후 만료될 수 있음)
+            return imageUrl;
+          }
+        }
+        
+        // 여기까지 왔는데 URL이 없다면 오류
+        return SERVICE_UNAVAILABLE;
+      } catch (gptImageError) {
+        // GPT-Image-1 호출 오류 발생 시 DALL-E 3로 폴백
+        logError('GPT-Image-1 처리 오류, DALL-E 3로 폴백합니다', gptImageError);
+        return generateDreamImage(generatedPrompt, systemPrompt);
+      }
     } 
     // 사진이 없는 경우 (기존 방식)
     else {
