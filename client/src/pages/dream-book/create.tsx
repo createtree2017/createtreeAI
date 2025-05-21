@@ -157,10 +157,18 @@ export default function CreateDreamBook() {
         throw new Error('캐릭터 이미지가 필요합니다. 먼저 캐릭터를 생성해주세요.');
       }
 
+      // 서버에 보내는 데이터 형식을 API 요구사항에 맞게 변환
       const payload = {
-        ...data,
-        characterImageUrl: characterImage
+        babyName: data.babyName,
+        dreamer: data.dreamer,
+        style: data.styleId, // styleId → style 변환 (서버 기대 형식)
+        characterImageUrl: characterImage,
+        peoplePrompt: data.peoplePrompt,
+        backgroundPrompt: data.backgroundPrompt,
+        scenePrompts: data.scenePrompts.filter(p => p.trim() !== '')
       };
+
+      console.log('태몽동화 생성 요청 데이터:', payload);
 
       return fetch('/api/dream-books', {
         method: 'POST',
@@ -216,10 +224,11 @@ export default function CreateDreamBook() {
 
     console.log('캐릭터 생성 시작:', { babyName, styleId });
     
-    // 데이터 형식 확인
+    // 데이터 형식을 서버가 기대하는 형태로 변환
+    console.log('서버에 보내는 데이터', { babyName, style: styleId });
     generateCharacterMutation.mutate({ 
       babyName, 
-      styleId: String(styleId) // 문자열로 변환하여 확실히 전달
+      style: String(styleId) // 서버는 'styleId'가 아닌 'style' 필드를 기대함
     });
   };
 
