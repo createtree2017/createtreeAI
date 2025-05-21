@@ -133,23 +133,55 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
     const peoplePrompt = formData.peoplePrompt || '아기는 귀엽고 활기찬 모습이다.';
     const backgroundPrompt = formData.backgroundPrompt || '환상적이고 아름다운 배경';
     
+    // 전체 입력 데이터 로깅 (디버깅용)
+    logInfo('태몽동화 생성 - 전체 요청 바디:', formData);
+    
     // 장면 프롬프트는 JSON 문자열로 전송되었으므로 파싱 필요
     let scenePrompts = [];
     try {
       // FormData에서 전달된 형태에 따라 처리 방식 분기
+      logInfo('scenePrompts 원시 데이터:', { 
+        exists: formData.scenePrompts !== undefined,
+        type: typeof formData.scenePrompts,
+        value: formData.scenePrompts
+      });
+      
       if (typeof formData.scenePrompts === 'string') {
-        scenePrompts = JSON.parse(formData.scenePrompts);
-        logInfo('장면 프롬프트를 문자열에서 파싱:', { length: scenePrompts.length });
+        // 문자열 형태로 받은 경우 (일반적인 경우)
+        try {
+          scenePrompts = JSON.parse(formData.scenePrompts);
+          logInfo('장면 프롬프트를 문자열에서 파싱 성공:', { 
+            length: scenePrompts.length,
+            isArray: Array.isArray(scenePrompts)
+          });
+        } catch (parseError: any) {
+          logError('JSON 파싱 오류 세부 정보:', { 
+            error: parseError.message || '알 수 없는 오류',
+            inputString: formData.scenePrompts
+          });
+          
+          // 파싱 실패하면 단일 문자열로 취급
+          if (formData.scenePrompts.trim().length > 0) {
+            scenePrompts = [formData.scenePrompts];
+            logInfo('단일 문자열로 처리:', { length: 1 });
+          }
+        }
       } else if (Array.isArray(formData.scenePrompts)) {
         // 이미 배열인 경우 그대로 사용
         scenePrompts = formData.scenePrompts;
         logInfo('장면 프롬프트가 이미 배열 형태임:', { length: scenePrompts.length });
+      } else if (formData.scenePrompts === undefined || formData.scenePrompts === null) {
+        logError('scenePrompts가 전송되지 않음');
+        // 빈 배열 유지
       } else {
-        logError('장면 프롬프트가 예상치 않은 형식임:', typeof formData.scenePrompts);
-        scenePrompts = [];
+        // 예상치 못한 형식 (문자열, 배열 아님)
+        logError('장면 프롬프트가 예상치 않은 형식임:', {
+          type: typeof formData.scenePrompts,
+          value: formData.scenePrompts
+        });
       }
     } catch (e) {
-      logError('장면 프롬프트 파싱 오류:', e);
+      logError('장면 프롬프트 처리 중 예외 발생:', e);
       scenePrompts = [];
     }
     

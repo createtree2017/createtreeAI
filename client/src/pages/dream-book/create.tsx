@@ -170,10 +170,19 @@ export default function CreateDreamBook() {
       // 장면 프롬프트는 JSON 문자열로 변환하여 전송
       formData.append('scenePrompts', JSON.stringify(validScenePrompts));
       
+      // FormData 내용 상세 디버깅을 위한 로깅
       console.log('태몽동화 생성 FormData 준비:', {
         babyName: data.babyName,
         style: data.styleId,
-        sceneCount: validScenePrompts.length
+        sceneCount: validScenePrompts.length,
+        validScenePrompts,
+        scenePrompts_json: JSON.stringify(validScenePrompts)
+      });
+      
+      // FormData의 모든 값 확인 (디버깅용)
+      // Array.from으로 변환하여 TypeScript 오류 방지
+      Array.from(formData.entries()).forEach(([key, value]) => {
+        console.log(`FormData 항목 - ${key}:`, typeof value === 'string' ? value : '파일 또는 객체');
       });
 
       return fetch('/api/dream-books', {
