@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -44,9 +44,19 @@ const LoginForm: React.FC = () => {
     login(values);
   };
   
+  // 로그인 진행 상태 관리
+  const [isGoogleLoginInProgress, setIsGoogleLoginInProgress] = useState(false);
+
   // Google 로그인 핸들러 - Firebase 팝업 로그인 사용 (작업지시서 기반)
   const handleGoogleLogin = async () => {
+    // 중복 요청 방지
+    if (isGoogleLoginInProgress) {
+      console.log('⚠️ 이미 로그인 진행 중입니다.');
+      return;
+    }
+
     try {
+      setIsGoogleLoginInProgress(true);
       console.log("🚀 Firebase Google 팝업 로그인 시작");
       
       // Firebase 동적 임포트 및 앱 초기화
@@ -115,10 +125,19 @@ const LoginForm: React.FC = () => {
       } else if (error.code === 'auth/network-request-failed') {
         errorMessage = '네트워크 오류가 발생했습니다. 인터넷 연결을 확인하고 다시 시도해주세요.';
       } else if (error.code === 'auth/cancelled-popup-request') {
-        errorMessage = '로그인이 취소되었습니다.';
+        // 사용자가 팝업을 취소한 경우 - 조용히 처리
+        console.log('👤 사용자가 로그인 팝업을 취소했습니다.');
+        return; // 에러 메시지 표시하지 않음
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        // 사용자가 팝업을 직접 닫은 경우
+        console.log('👤 사용자가 로그인 팝업을 닫았습니다.');
+        return; // 에러 메시지 표시하지 않음
       }
       
       alert(errorMessage + '\n\n오류 코드: ' + (error.code || 'UNKNOWN'));
+    } finally {
+      // 로그인 진행 상태 초기화
+      setIsGoogleLoginInProgress(false);
     }
   };
 
@@ -182,9 +201,9 @@ const LoginForm: React.FC = () => {
           variant="outline" 
           className="w-full flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-black border-gray-300 py-6"
           onClick={handleGoogleLogin}
-          disabled={isLoggingIn}
+          disabled={isLoggingIn || isGoogleLoginInProgress}
         >
-          {isLoggingIn ? (
+          {(isLoggingIn || isGoogleLoginInProgress) ? (
             <>
               <Loader2 className="h-5 w-5 animate-spin" />
               <span>구글 로그인 중...</span>
