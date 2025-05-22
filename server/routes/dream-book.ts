@@ -657,6 +657,7 @@ router.post('/character', [authMiddleware, upload.single('image')], async (req: 
     // FormData에서 받은 데이터
     const babyName = req.body.babyName || '아기'; // 기본값 제공
     const styleId = req.body.style;
+    const backgroundDescription = req.body.backgroundDescription || '환상적이고 아름다운 배경'; // 배경 설명 추가
 
     // 스타일 ID만 필수로 검증 (아기 이름은 기본값 사용 가능)
     if (!styleId) {
@@ -719,9 +720,21 @@ router.post('/character', [authMiddleware, upload.single('image')], async (req: 
         styleName: imageStyle.name
       });
       
+      // 캐릭터 생성 프롬프트에 배경 설명 추가
+      const characterWithBackgroundPrompt = `${characterPrompt}
+      
+이 이미지는 사용자가 업로드한 인물 사진을 바탕으로 ${imageStyle.name || '디즈니'} 스타일 캐릭터로 표현한 것입니다.
+배경은 사용자가 입력한 설명을 참고하여 함께 그려주세요.
+배경 설명: ${backgroundDescription}`;
+
+      console.log('[INFO] 캐릭터+배경 생성에 사용할 프롬프트:', {
+        backgroundDescription,
+        fullPromptPreview: characterWithBackgroundPrompt.substring(0, 150) + '...'
+      });
+      
       const characterImageUrl = await generateCharacterImage(
-        "원본 사진의 인물을 기반으로 한 캐릭터", 
-        characterPrompt, // systemPrompt 대신 characterPrompt 사용
+        "원본 사진의 인물을 기반으로 한 캐릭터와 배경", 
+        characterWithBackgroundPrompt, // 배경 설명이 포함된 프롬프트 사용
         req.file.path // 업로드된 이미지 파일 경로 추가
       );
       
@@ -742,7 +755,7 @@ router.post('/character', [authMiddleware, upload.single('image')], async (req: 
       const characterReferencePrompt = `${babyName}의 캐릭터`;
       
       // 결과 반환 - 일반 JSON 응답으로 변경
-      console.log('[INFO] 캐릭터 이미지 생성 완료:', characterImageUrl);
+      console.log('[INFO] 캐릭터+배경 이미지 생성 완료:', characterImageUrl);
       
       // 처리 완료 후 임시 파일 삭제
       fs.unlink(req.file.path, (err) => {
@@ -753,7 +766,9 @@ router.post('/character', [authMiddleware, upload.single('image')], async (req: 
         success: true,
         result: {
           characterImageUrl,
-          characterPrompt: characterReferencePrompt
+          scene0ImageUrl: characterImageUrl, // 캐릭터+배경 이미지를 scene0ImageUrl로 설정
+          characterPrompt: characterReferencePrompt,
+          backgroundDescription // 배경 설명도 함께 반환
         }
       });
     } catch (error) {

@@ -15,6 +15,7 @@ export const dreamBooks = pgTable('dream_books', {
   style: text('style').notNull(),
   // 고도화 시스템을 위한 추가 필드
   characterImageUrl: text('character_image_url'),       // 1차 생성된 캐릭터 이미지 URL
+  scene0ImageUrl: text('scene0_image_url'),             // 캐릭터+배경 통합 이미지 URL (기준 이미지)
   characterPrompt: text('character_prompt'),            // 캐릭터 참조용 프롬프트
   peoplePrompt: text('people_prompt'),                  // 인물 표현 프롬프트
   backgroundPrompt: text('background_prompt'),          // 배경 표현 프롬프트
@@ -60,6 +61,7 @@ export const createCharacterSchema = z.object({
   babyName: z.string().min(1, "아기 이름은 필수입니다"),
   style: z.union([z.string(), z.number(), z.coerce.number()]).transform(val => String(val)),
   userImage: z.string().optional(), // 사용자가 업로드한 사진 URL
+  backgroundDescription: z.string().default("환상적이고 아름다운 배경"), // 배경 설명 추가
 });
 
 // 태몽동화 생성 요청 스키마
