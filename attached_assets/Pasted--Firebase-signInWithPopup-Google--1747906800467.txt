@@ -1,0 +1,89 @@
+✅ [라플이 작업지시서]
+📌 작업 목적
+모바일 환경에서도 Firebase signInWithPopup() 기반 Google 로그인 방식이 안정적으로 동작하도록 디버깅 및 개선합니다.
+
+🧩 1. 클라이언트 로그인 흐름 점검 및 수정
+🔧 수정 대상: /client/src/components/forms/LoginForm.tsx
+tsx
+복사
+편집
+import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+
+const auth = getAuth();
+const provider = new GoogleAuthProvider();
+
+signInWithPopup(auth, provider)
+  .then((result) => result.user.getIdToken())
+  .then((idToken) => {
+    // 서버로 전달
+    return fetch("/api/auth/firebase-login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ idToken }),
+    });
+  })
+  .then((res) => res.json())
+  .then((data) => {
+    // 로그인 후 토큰 저장 또는 리디렉션 처리
+    console.log("로그인 성공:", data);
+  })
+  .catch((error) => {
+    console.error("Firebase 로그인 실패:", error.code, error.message);
+  });
+🔸 브라우저 콘솔에 출력되는 error.code와 message는 반드시 캡처할 것
+
+🧩 2. 서버 라우팅 확인 및 Firebase ID 토큰 처리
+🔧 확인 대상: /server/routes/auth.ts 또는 /api/auth/firebase-login
+필수 동작 조건:
+
+idToken을 수신
+
+Firebase Admin SDK를 통해 검증
+
+사용자 이메일/UID 추출
+
+자체 JWT 또는 세션 발급 → 클라이언트에 반환
+
+🔧 예시 코드 (Node/Express 기반)
+ts
+복사
+편집
+import { getAuth } from "firebase-admin/auth";
+
+app.post("/api/auth/firebase-login", async (req, res) => {
+  const { idToken } = req.body;
+
+  try {
+    const decoded = await getAuth().verifyIdToken(idToken);
+    const { uid, email } = decoded;
+
+    // TODO: DB 사용자 확인 또는 생성
+
+    // 자체 JWT 발급
+    const jwt = issueCustomJWT(uid); // 자체 발급 함수
+
+    res.json({ token: jwt, uid, email });
+  } catch (error) {
+    console.error("ID 토큰 검증 실패:", error);
+    res.status(401).json({ error: "Invalid token" });
+  }
+});
+🧩 3. 모바일 환경 대응 테스트
+모바일 브라우저 (Chrome, Safari 등)에서 로그인 테스트
+
+팝업 차단, 새 탭 열림, 로그인 실패 현상 등 동작 로그 확인
+
+🧩 4. 추가 예외 처리 구현 (권장)
+예외 상황	처리 방식
+auth/popup-blocked	로그인 버튼 클릭 시 안내 메시지 또는 새 창 유도
+auth/network-request-failed	네트워크 오류 시 재시도 기능 추가
+로그인 성공 후 리디렉션 필요	window.location.href = "/dashboard" 등 적용
+
+🧩 5. 완료 조건
+✅ 모바일 환경에서도 로그인 성공
+
+✅ Firebase 인증 성공 후 사용자 세션 또는 JWT 정상 발급
+
+✅ 클라이언트에서 사용자 정보 및 로그인 상태 확인 가능

@@ -44,7 +44,7 @@ const LoginForm: React.FC = () => {
     login(values);
   };
   
-  // Google 로그인 핸들러 - Firebase 팝업 로그인 사용
+  // Google 로그인 핸들러 - Firebase 팝업 로그인 사용 (작업지시서 기반)
   const handleGoogleLogin = async () => {
     try {
       console.log("🚀 Firebase Google 팝업 로그인 시작");
@@ -60,34 +60,48 @@ const LoginForm: React.FC = () => {
       
       console.log('✅ Firebase 로그인 성공:', user.email);
       
-      // 서버에 사용자 정보 전송하여 세션 생성
+      // ID 토큰 받기
+      const idToken = await user.getIdToken();
+      console.log('🎫 ID 토큰 획득 완료:', idToken.substring(0, 50) + '...');
+      
+      // 서버로 ID 토큰 전달 (작업지시서 방식)
       const response = await fetch('/api/auth/firebase-login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({
-          user: {
-            uid: user.uid,
-            email: user.email,
-            displayName: user.displayName,
-            photoURL: user.photoURL,
-          },
-          idToken: await user.getIdToken() // Firebase ID 토큰 추가
-        }),
+        body: JSON.stringify({ idToken }),
       });
       
-      if (response.ok) {
-        console.log('✅ 서버 세션 생성 완료');
-        window.location.href = '/';
-      } else {
-        throw new Error('서버 인증 실패');
+      console.log('📨 서버 응답 상태:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: '서버 오류' }));
+        throw new Error(errorData.error || `서버 오류 (${response.status})`);
       }
       
-    } catch (error) {
-      console.error('💥 Firebase Google 로그인 오류:', error);
-      alert('Google 로그인 중 오류가 발생했습니다. 다시 시도해주세요.');
+      const data = await response.json();
+      console.log('✅ 로그인 성공:', data);
+      
+      // 성공 시 메인 페이지로 리디렉션
+      window.location.href = '/';
+      
+    } catch (error: any) {
+      console.error('💥 Firebase Google 로그인 실패:', error.code, error.message);
+      
+      // 구체적인 오류 처리
+      let errorMessage = 'Google 로그인 중 오류가 발생했습니다.';
+      
+      if (error.code === 'auth/popup-blocked') {
+        errorMessage = '팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해주세요.';
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = '네트워크 오류가 발생했습니다. 인터넷 연결을 확인하고 다시 시도해주세요.';
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        errorMessage = '로그인이 취소되었습니다.';
+      }
+      
+      alert(errorMessage + '\n\n오류 코드: ' + (error.code || 'UNKNOWN'));
     }
   };
 
