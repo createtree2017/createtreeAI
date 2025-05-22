@@ -188,10 +188,10 @@ router.post("/firebase-jwt", async (req, res) => {
     }
 
     // JWT 토큰 생성
-    const jwt = require('jsonwebtoken');
+    const jwt = await import('jsonwebtoken');
     const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key-2025";
     
-    const token = jwt.sign(
+    const token = jwt.default.sign(
       { 
         userId: user.id,
         email: user.email,
