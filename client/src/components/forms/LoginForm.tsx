@@ -44,13 +44,50 @@ const LoginForm: React.FC = () => {
     login(values);
   };
   
-  // Google 로그인 핸들러 - 새로운 Google OAuth2 시스템 사용
+  // Google 로그인 핸들러 - Firebase 팝업 로그인 사용
   const handleGoogleLogin = async () => {
     try {
-      console.log("Google 로그인 버튼 클릭됨 - 새로운 OAuth2 시스템 사용");
-      loginWithGoogle();
+      console.log("🚀 Firebase Google 팝업 로그인 시작");
+      
+      // Firebase 동적 임포트
+      const { signInWithPopup, GoogleAuthProvider, getAuth } = await import('firebase/auth');
+      const auth = getAuth();
+      const provider = new GoogleAuthProvider();
+      
+      // 팝업으로 Google 로그인
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      
+      console.log('✅ Firebase 로그인 성공:', user.email);
+      
+      // 서버에 사용자 정보 전송하여 세션 생성
+      const response = await fetch('/api/auth/firebase-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          user: {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            photoURL: user.photoURL,
+          },
+          idToken: await user.getIdToken() // Firebase ID 토큰 추가
+        }),
+      });
+      
+      if (response.ok) {
+        console.log('✅ 서버 세션 생성 완료');
+        window.location.href = '/';
+      } else {
+        throw new Error('서버 인증 실패');
+      }
+      
     } catch (error) {
-      console.error("Google 로그인 버튼 오류:", error);
+      console.error('💥 Firebase Google 로그인 오류:', error);
+      alert('Google 로그인 중 오류가 발생했습니다. 다시 시도해주세요.');
     }
   };
 
