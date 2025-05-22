@@ -598,8 +598,14 @@ export function useAuth() {
     },
   });
 
+  // setUser 함수 추가 - React Query 캐시 직접 업데이트
+  const setUser = (userData: User | null) => {
+    queryClient.setQueryData(["/api/auth/me"], userData);
+  };
+
   return {
     user,
+    setUser,  // ✅ setUser 함수 반환 추가
     isLoading,
     error,
     login: login.mutate,
