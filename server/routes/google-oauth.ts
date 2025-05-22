@@ -32,14 +32,13 @@ router.get('/login', (req, res) => {
       });
     }
 
-    // Google OAuth2 인증 URL 생성
+    // Google OAuth2 인증 URL 생성 (403 오류 해결을 위한 수정)
     const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/auth');
     googleAuthUrl.searchParams.append('client_id', GOOGLE_CLIENT_ID);
     googleAuthUrl.searchParams.append('redirect_uri', REDIRECT_URI);
     googleAuthUrl.searchParams.append('response_type', 'code');
     googleAuthUrl.searchParams.append('scope', 'openid email profile');
-    googleAuthUrl.searchParams.append('access_type', 'offline');
-    googleAuthUrl.searchParams.append('prompt', 'consent');
+    googleAuthUrl.searchParams.append('prompt', 'select_account'); // consent 대신 select_account 사용
 
     console.log('[Google OAuth] 로그인 URL 생성:', googleAuthUrl.toString());
 
