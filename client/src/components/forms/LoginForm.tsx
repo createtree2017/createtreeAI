@@ -74,7 +74,21 @@ const LoginForm: React.FC = () => {
       };
       
       console.log('🔥 Firebase 앱 초기화 중...');
-      const app = initializeApp(firebaseConfig);
+      
+      // 기존 Firebase 앱이 있는지 확인
+      const { getApps } = await import('firebase/app');
+      const existingApps = getApps();
+      
+      let app;
+      if (existingApps.length > 0) {
+        // 기존 앱 사용
+        app = existingApps[0];
+        console.log('✅ 기존 Firebase 앱 사용');
+      } else {
+        // 새 앱 초기화
+        app = initializeApp(firebaseConfig);
+        console.log('✅ 새 Firebase 앱 초기화 완료');
+      }
       
       const auth = getAuth(app);
       const provider = new GoogleAuthProvider();
