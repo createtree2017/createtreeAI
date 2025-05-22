@@ -532,24 +532,46 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
 모든 장면에서 캐릭터의 얼굴 특징, 헤어스타일, 의상 스타일을 동일하게 유지하세요.
 ${peoplePrompt}의 특징을 반영하되, 앞서 생성된 캐릭터와 시각적으로 일치하도록 표현해주세요.`;
           
+          // 이전 장면 이미지 URL 가져오기
+          let previousSceneImageUrl = '';
+          
+          // 각 장면별로 참조할 이전 이미지 선택
+          if (sequence === 1) {
+            // 첫 번째 장면은 scene0(캐릭터+배경 통합 이미지)를 참조
+            previousSceneImageUrl = scene0ImageUrl || characterImageUrl;
+            logInfo('첫 번째 장면은 scene0 이미지를 참조합니다', { previousSceneImageUrl });
+          } else if (sequence > 1 && imageResults.length > 0) {
+            // 이후 장면들은 직전 장면 이미지를 참조
+            const previousSceneIndex = sequence - 2; // 배열 인덱스는 0부터 시작하므로 -2
+            if (previousSceneIndex >= 0 && previousSceneIndex < imageResults.length) {
+              previousSceneImageUrl = imageResults[previousSceneIndex].imageUrl;
+              logInfo(`장면 ${sequence}는 이전 장면 ${sequence-1} 이미지를 참조합니다`, { 
+                previousSceneImageUrl,
+                previousSceneIndex
+              });
+            }
+          }
+          
           // 로깅 - 프롬프트 구성 요소 확인
           logInfo(`프롬프트 구성 요소`, {
             systemPromptLength: systemPrompt.length,
             characterPromptLength: characterReferencePrompt.length,
             peoplePromptLength: peoplePrompt.length,
             backgroundPromptLength: backgroundPrompt.length,
-            scenePromptLength: sanitizedScenePrompt.length
+            scenePromptLength: sanitizedScenePrompt.length,
+            hasPreviousSceneImage: !!previousSceneImageUrl
           });
           
           try {
-            // 고도화된 태몽동화 이미지 생성 (캐릭터 참조 포함 + GPT-4o Vision 분석 데이터)
+            // 고도화된 태몽동화 이미지 생성 (캐릭터 참조 포함 + GPT-4o Vision 분석 데이터 + 이전 장면 이미지 참조)
             const imageUrl = await generateDreamSceneImage(
               sanitizedScenePrompt,
               characterReferencePrompt,
               systemPrompt,
               peoplePrompt,
               backgroundPrompt,
-              characterAnalysis // GPT-4o Vision으로 분석한 캐릭터 상세 설명 추가
+              characterAnalysis, // GPT-4o Vision으로 분석한 캐릭터 상세 설명 추가
+              previousSceneImageUrl // 이전 장면 이미지 URL 추가
             );
             
             // 생성된 이미지 정보 DB 저장

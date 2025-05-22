@@ -477,8 +477,10 @@ export async function analyzeCharacterImage(characterImageUrl: string): Promise<
         return '';
       }
       
-      const data = await response.json();
-      const analysisText = data.choices?.[0]?.message?.content || '';
+      // TypeScript 오류를 방지하기 위해 응답을 any 타입으로 처리
+      const data: any = await response.json();
+      const analysisText = data.choices && data.choices[0] && data.choices[0].message ? 
+        data.choices[0].message.content || '' : '';
       
       if (analysisText) {
         logInfo('캐릭터 분석 완료', { analysisLength: analysisText.length });
