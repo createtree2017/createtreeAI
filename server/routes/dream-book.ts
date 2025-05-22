@@ -4,6 +4,7 @@ import { dreamBooks, dreamBookImages, DREAM_BOOK_STYLES } from '@shared/dream-bo
 import { createDreamBookSchema, createCharacterSchema } from '@shared/dream-book';
 import { generateDreamImage, generateCharacterImage, generateDreamSceneImage, getStylePrompt, SERVICE_UNAVAILABLE, analyzeCharacterImage } from '../services/dream-service';
 import { authMiddleware } from '../common/middleware/auth';
+import { authenticateJWT } from '../services/auth';
 import { ZodError } from 'zod';
 import { eq, and, asc, desc } from 'drizzle-orm';
 import { imageStyles } from '@shared/schema';
@@ -51,10 +52,42 @@ const logError = (message: string, error?: any) => {
   console.error(`[ERROR] ${message}`, error);
 };
 
+// 🎯 통합 인증 미들웨어 - JWT 쿠키와 세션 인증 모두 지원
+const unifiedAuthMiddleware = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  try {
+    // 1. JWT 쿠키에서 사용자 ID 추출
+    const authToken = req.cookies?.auth_token;
+    if (authToken) {
+      try {
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(authToken, process.env.JWT_SECRET || 'fallback-secret') as any;
+        if (decoded?.userId) {
+          req.session = req.session || {};
+          req.session.userId = decoded.userId;
+          return next();
+        }
+      } catch (jwtError) {
+        console.log('[통합 인증] JWT 토큰 검증 실패:', jwtError);
+      }
+    }
+
+    // 2. 기존 세션 인증 시도
+    if (req.session?.userId) {
+      return next();
+    }
+
+    // 3. 모든 인증 실패
+    return res.status(401).json({ message: '로그인이 필요합니다.' });
+  } catch (error) {
+    console.error('[통합 인증] 인증 오류:', error);
+    return res.status(401).json({ message: '인증에 실패했습니다.' });
+  }
+};
+
 const router = express.Router();
 
 // 모든 태몽동화 목록 조회 (사용자별)
-router.get('/', authMiddleware, async (req: express.Request, res: express.Response) => {
+router.get('/', unifiedAuthMiddleware, async (req: express.Request, res: express.Response) => {
   try {
     const userId = req.session?.userId;
     if (!userId) {
@@ -80,7 +113,7 @@ router.get('/', authMiddleware, async (req: express.Request, res: express.Respon
 });
 
 // 특정 태몽동화 조회
-router.get('/:id', authMiddleware, async (req: express.Request, res: express.Response) => {
+router.get('/:id', unifiedAuthMiddleware, async (req: express.Request, res: express.Response) => {
   try {
     const { id } = req.params;
     const userId = req.session?.userId;
