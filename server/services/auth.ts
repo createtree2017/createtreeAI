@@ -286,21 +286,18 @@ export async function invalidateRefreshToken(token: string): Promise<boolean> {
 
 // JWT 인증 미들웨어
 export function authenticateJWT(req: Request, res: Response, next: NextFunction) {
-  const authHeader = req.headers.authorization;
+  const token = req.cookies?.auth_token;
 
-  if (authHeader) {
-    const token = authHeader.split(" ")[1];
+  if (!token) {
+    return res.status(401).json({ success: false, message: "인증 토큰이 없습니다" });
+  }
 
-    jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
-      if (err) {
-        return res.sendStatus(403);
-      }
-
-      req.user = user;
-      next();
-    });
-  } else {
-    res.sendStatus(401);
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ success: false, message: "토큰 검증 실패", error: (err as any).message });
   }
 }
 

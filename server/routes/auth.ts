@@ -873,5 +873,39 @@ router.post("/firebase-login", async (req, res) => {
     return res.status(500).json({ error: "로그인 처리 중 오류가 발생했습니다." });
   }
 });
+// 로그인된 사용자 정보 반환
+router.get("/me", authenticateJWT, async (req: Request, res: Response) => {
+  try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized - 사용자 인증이 필요합니다",
+      });
+    }
+
+    const userId = req.user.id;
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, userId),
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "사용자 정보를 찾을 수 없습니다",
+      });
+    }
+
+    res.json({
+      success: true,
+      user: sanitizeUser(user),
+    });
+  } catch (error) {
+    console.error("[GET /api/auth/me] 사용자 정보 조회 실패:", error);
+    res.status(500).json({
+      success: false,
+      message: "서버 내부 오류가 발생했습니다",
+    });
+  }
+});
 
 export default router;
