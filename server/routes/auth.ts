@@ -643,13 +643,25 @@ router.get("/me", async (req, res) => {
     if (!userId) {
       console.log("[인증] 세션 인증 실패, JWT 토큰 확인 중...");
       
+      let token = null;
+      
+      // Authorization 헤더에서 토큰 확인
       const authHeader = req.headers.authorization;
       if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+      }
+      
+      // 쿠키에서 JWT 토큰 확인 (Google OAuth에서 설정된 토큰)
+      if (!token && req.cookies && req.cookies.auth_token) {
+        token = req.cookies.auth_token;
+        console.log("[인증] 쿠키에서 JWT 토큰 발견");
+      }
+      
+      if (token) {
         try {
           const jwt = require('jsonwebtoken');
           const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key-2025";
           
-          const token = authHeader.substring(7);
           const decoded = jwt.verify(token, JWT_SECRET) as any;
           
           userId = decoded.userId;
