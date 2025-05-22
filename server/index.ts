@@ -1,6 +1,3 @@
-import dotenv from 'dotenv';
-dotenv.config();
-
 import express, { type Request, Response, NextFunction } from "express";
 import path from "path";
 import { registerRoutes } from "./routes";
@@ -91,33 +88,6 @@ app.use((req, res, next) => {
   // ALWAYS serve the app on port 5000
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  // 🔥 Express 에러 핸들러 - 모든 에러를 JSON으로 응답
-  app.use((err: any, req: any, res: any, next: any) => {
-    console.error('Express 에러 핸들러:', err.stack);
-    
-    // 이미 응답이 전송된 경우 기본 Express 에러 핸들러로 넘김
-    if (res.headersSent) {
-      return next(err);
-    }
-    
-    // 모든 에러를 JSON으로 응답
-    res.status(500).json({ 
-      success: false, 
-      message: err.message || '서버 내부 오류가 발생했습니다.',
-      error: 'internal_server_error'
-    });
-  });
-
-  // 🔥 404 핸들러 - HTML 대신 JSON 응답
-  app.use('*', (req: any, res: any) => {
-    res.status(404).json({
-      success: false,
-      message: '요청한 리소스를 찾을 수 없습니다.',
-      error: 'not_found',
-      path: req.originalUrl
-    });
-  });
-
   const port = 5000;
   server.listen({
     port,

@@ -20,7 +20,7 @@ declare module 'express-session' {
 }
 
 // JWT 설정
-const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key-2025"; // 실제 환경에서는 환경 변수로 관리
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"; // 실제 환경에서는 환경 변수로 관리
 const JWT_EXPIRES_IN = "30m"; // Access 토큰 유효 시간
 const REFRESH_TOKEN_EXPIRES_IN = 14 * 24 * 60 * 60 * 1000; // 리프레시 토큰 유효 시간 (14일)
 

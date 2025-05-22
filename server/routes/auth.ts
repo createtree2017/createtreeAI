@@ -660,7 +660,7 @@ router.get("/me", async (req, res) => {
       if (token) {
         try {
           const jwt = await import('jsonwebtoken');
-          const JWT_SECRET = process.env.JWT_SECRET || "super-secret-key-2024";
+          const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key-2025";
           
           const decoded = jwt.default.verify(token, JWT_SECRET) as any;
           
@@ -669,6 +669,12 @@ router.get("/me", async (req, res) => {
           console.log("[인증] JWT 토큰 인증 성공, 사용자 ID:", userId);
         } catch (jwtError) {
           console.log("[인증] JWT 토큰 검증 실패:", jwtError);
+          // JWT 토큰이 유효하지 않으면 즉시 401 응답 반환
+          return res.status(401).json({ 
+            success: false, 
+            message: "JWT 토큰이 유효하지 않습니다.",
+            error: "invalid_token"
+          });
         }
       }
     }
