@@ -54,6 +54,11 @@ export async function verifyPassword(
 export function sanitizeUser(user: any) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { password, ...sanitizedUser } = user;
+  
+  // 회원등급 정보 디버그 로그
+  console.log('[sanitizeUser] 원본 user:', { id: user.id, memberType: user.memberType, member_type: user.member_type });
+  console.log('[sanitizeUser] 정제된 사용자:', { id: sanitizedUser.id, memberType: sanitizedUser.memberType, member_type: sanitizedUser.member_type });
+  
   return sanitizedUser;
 }
 
