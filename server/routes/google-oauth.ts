@@ -186,19 +186,8 @@ router.get('/callback', async (req, res) => {
       maxAge: 30 * 24 * 60 * 60 * 1000
     });
 
-    // 8. 성공 응답
-    res.json({
-      success: true,
-      message: '로그인 성공',
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.fullName,
-        username: user.username,
-        memberType: user.memberType
-      },
-      redirectUrl: '/'
-    });
+    // 8. 성공 후 메인 페이지로 리디렉션
+    res.redirect('/');
 
   } catch (error) {
     console.error('[Google OAuth] 콜백 처리 오류:', error);
