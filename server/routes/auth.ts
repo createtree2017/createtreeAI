@@ -562,17 +562,45 @@ router.get("/me", async (req, res) => {
 ===================================================
     `);
 
-    if (!req.isAuthenticated()) {
+    let userId = null;
+    let authMethod = null;
+
+    // 1. 세션 기반 인증 확인
+    if (req.isAuthenticated && req.isAuthenticated()) {
+      userId = req.user?.id || req.session?.user?.id;
+      authMethod = "session";
+    }
+    
+    // 2. 세션 인증 실패 시 JWT 토큰 인증 시도
+    if (!userId) {
+      console.log("[인증] 세션 인증 실패, JWT 토큰 확인 중...");
+      
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        try {
+          const jwt = require('jsonwebtoken');
+          const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key-2025";
+          
+          const token = authHeader.substring(7);
+          const decoded = jwt.verify(token, JWT_SECRET) as any;
+          
+          userId = decoded.userId;
+          authMethod = "jwt";
+          console.log("[인증] JWT 토큰 인증 성공, 사용자 ID:", userId);
+        } catch (jwtError) {
+          console.log("[인증] JWT 토큰 검증 실패:", jwtError);
+        }
+      }
+    }
+
+    if (!userId) {
       return res.status(401).json({ message: "로그인이 필요합니다." });
     }
 
     // 이미 인증된 사용자 정보가 req.user에 있음
     console.log(
-      `인증된 사용자 정보: ID=${req.user.id}, 이름=${req.user.username || req.user.email || "알 수 없음"}`,
+      `인증된 사용자 정보: ID=${userId}, 인증 방법=${authMethod}`,
     );
-    
-    // 사용자 ID 확인
-    const userId = req.user?.id || req.session?.user?.id;
     
     // 항상 DB에서 최신 사용자 정보 확인
     const freshUserData = await db.query.users.findFirst({
