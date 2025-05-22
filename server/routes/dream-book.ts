@@ -5,6 +5,7 @@ import { createDreamBookSchema, createCharacterSchema } from '@shared/dream-book
 import { generateDreamImage, generateCharacterImage, generateDreamSceneImage, getStylePrompt, SERVICE_UNAVAILABLE, analyzeCharacterImage } from '../services/dream-service';
 import { authMiddleware } from '../common/middleware/auth';
 import { authenticateJWT } from '../services/auth';
+import jwt from 'jsonwebtoken';
 import { ZodError } from 'zod';
 import { eq, and, asc, desc } from 'drizzle-orm';
 import { imageStyles } from '@shared/schema';
@@ -59,7 +60,6 @@ const unifiedAuthMiddleware = async (req: express.Request, res: express.Response
     const authToken = req.cookies?.auth_token;
     if (authToken) {
       try {
-        const jwt = require('jsonwebtoken');
         const decoded = jwt.verify(authToken, process.env.JWT_SECRET || 'fallback-secret') as any;
         if (decoded?.userId) {
           req.session = req.session || {};
