@@ -1,0 +1,98 @@
+✅ [라플이 작업지시서] – JWT 인증 오류 근본 해결 (useAuth.ts)
+🧩 작업 대상 파일
+bash
+복사
+편집
+📂 client/src/hooks/useAuth.ts
+🎯 현재 문제 요약
+로그인 이후 /api/auth/me API 요청이 실패하며 401 Unauthorized 응답이 발생하고 있습니다.
+
+콘솔 오류 로그:
+ReferenceError: jwtToken is not defined
+이는 jwtToken을 선언하지 않고 사용하려 해서 발생한 JS 런타임 오류입니다.
+
+결과적으로 로그인 후에도 사용자 인증 상태가 유지되지 않음.
+
+🛠 수정 항목 1: jwtToken 변수 선언 추가
+🔍 수정 위치
+useQuery<User | null> 내부의 queryFn 함수 시작 직후
+(예: try { 블록 안)
+
+🔧 수정 전
+ts
+복사
+편집
+queryFn: async (): Promise<User | null> => {
+  try {
+    console.log("[인증 API 호출] /api/auth/me 요청 시작");
+    
+    // ... 이하 생략
+✅ 수정 후
+ts
+복사
+편집
+queryFn: async (): Promise<User | null> => {
+  try {
+    console.log("[인증 API 호출] /api/auth/me 요청 시작");
+
+    // 🔧 JWT 토큰 선언
+    const jwtToken = localStorage.getItem("auth_token");  // ✅ 반드시 추가할 것
+
+    const headers: Record<string, string> = {};
+🛠 수정 항목 2: Authorization 헤더에 JWT 토큰 추가
+🔍 수정 위치
+위에서 선언한 jwtToken이 존재할 경우, fetch 요청 헤더에 추가
+
+🔧 수정 전
+ts
+복사
+편집
+const headers: Record<string, string> = {};
+✅ 수정 후
+ts
+복사
+편집
+const headers: Record<string, string> = {};
+
+if (jwtToken) {
+  headers["Authorization"] = `Bearer ${jwtToken}`;  // ✅ JWT 인증 헤더 삽입
+  console.log("[인증 API] JWT 토큰을 Authorization 헤더에 포함");
+}
+✅ 전체 코드 구조 예시 (수정 후)
+ts
+복사
+편집
+queryFn: async (): Promise<User | null> => {
+  try {
+    console.log("[인증 API 호출] /api/auth/me 요청 시작");
+
+    const jwtToken = localStorage.getItem("auth_token");  // ✅ 선언
+    const headers: Record<string, string> = {};
+
+    if (jwtToken) {
+      headers["Authorization"] = `Bearer ${jwtToken}`;  // ✅ JWT 헤더 구성
+      console.log("[인증 API] JWT 토큰을 Authorization 헤더에 포함");
+    }
+
+    const response = await fetch("/api/auth/me", {
+      credentials: "include",
+      headers: headers,
+    });
+
+    // 이후 코드 동일...
+✅ 수정 완료 후 기대 결과
+항목	기대 효과
+jwtToken 선언 오류	❌ 더 이상 발생하지 않음
+인증 헤더 누락	❌ 없음 → 서버가 JWT 인증 가능
+/api/auth/me 요청	✅ 정상 작동
+로그인 상태 유지	✅ 전역 사용자 정보 정상 반영
+
+📌 마무리 요약 문구 (라플이 주의사항)
+diff
+복사
+편집
+이 작업은 현재 로그인 후 인증 유지가 되지 않는 치명적 버그를 해결하는 핵심 수정입니다.
+
+- 이 2개의 수정(1. jwtToken 선언, 2. Authorization 헤더 삽입)은 반드시 동시에 반영되어야 합니다.
+- 빠지면 또 다시 401 에러 발생 및 로그인 실패 상태로 보입니다.
+- 꼭 fetch 요청 전에 토큰 선언 → 헤더 추가 순서로 정확히 구현해야 합니다.

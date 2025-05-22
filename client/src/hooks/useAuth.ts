@@ -137,13 +137,14 @@ export function useAuth() {
     queryFn: async (): Promise<User | null> => {
       try {
         console.log("[인증 API 호출] /api/auth/me 요청 시작");
-        
-        // JWT 토큰이 있으면 Authorization 헤더에 포함
-        const authToken = localStorage.getItem('auth_token');
+
+        // 🔧 JWT 토큰 선언
+        const jwtToken = localStorage.getItem("auth_token");  // ✅ 반드시 추가할 것
+
         const headers: Record<string, string> = {};
-        
-        if (authToken) {
-          headers['Authorization'] = `Bearer ${authToken}`;
+
+        if (jwtToken) {
+          headers["Authorization"] = `Bearer ${jwtToken}`;  // ✅ JWT 인증 헤더 삽입
           console.log("[인증 API] JWT 토큰을 Authorization 헤더에 포함");
         }
 
