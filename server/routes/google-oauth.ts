@@ -186,8 +186,9 @@ router.get('/callback', async (req, res) => {
       maxAge: 30 * 24 * 60 * 60 * 1000
     });
 
-    // 8. 성공 후 메인 페이지로 리디렉션
-    res.redirect('/');
+    // 8. 성공 후 토큰과 함께 클라이언트 콜백 페이지로 리디렉션
+    const redirectUrl = `/?token=${jwtToken}&status=login_success&user_id=${user.id}`;
+    res.redirect(redirectUrl);
 
   } catch (error) {
     console.error('[Google OAuth] 콜백 처리 오류:', error);

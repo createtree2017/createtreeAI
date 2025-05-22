@@ -32,15 +32,40 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 // AuthProvider 컴포넌트
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // 컴포넌트 마운트시 세션 쿠키 확인
+  // 컴포넌트 마운트시 세션 쿠키 확인 및 Google OAuth 콜백 처리
   React.useEffect(() => {
     // 현재 쿠키 및 로컬 스토리지 상태 로깅
-  console.log("[AuthProvider] 현재 쿠키:", document.cookie);
-  console.log("[AuthProvider] 현재 로컬 스토리지:", {
-    auth_status: localStorage.getItem("auth_status"),
-    auth_user_id: localStorage.getItem("auth_user_id"),
-    auth_timestamp: localStorage.getItem("auth_timestamp")
-  });
+    console.log("[AuthProvider] 현재 쿠키:", document.cookie);
+    console.log("[AuthProvider] 현재 로컬 스토리지:", {
+      auth_status: localStorage.getItem("auth_status"),
+      auth_user_id: localStorage.getItem("auth_user_id"),
+      auth_timestamp: localStorage.getItem("auth_timestamp")
+    });
+
+    // URL 파라미터에서 JWT 토큰 확인 (Google OAuth 콜백 처리)
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    const status = urlParams.get('status');
+    const userId = urlParams.get('user_id');
+
+    if (token && status === 'login_success') {
+      console.log('🎉 Google OAuth 로그인 성공! JWT 토큰 저장 중...');
+      
+      // JWT 토큰을 localStorage에 저장
+      localStorage.setItem('auth_token', token);
+      localStorage.setItem('auth_status', 'logged_in');
+      localStorage.setItem('auth_user_id', userId || '');
+      localStorage.setItem('auth_timestamp', Date.now().toString());
+      
+      // URL에서 토큰 파라미터 제거 (보안을 위해)
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+      
+      // 페이지 새로고침으로 로그인 상태 적용
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
+    }
   }, []);
   
   const {

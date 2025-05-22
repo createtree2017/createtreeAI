@@ -138,9 +138,19 @@ export function useAuth() {
       try {
         console.log("[인증 API 호출] /api/auth/me 요청 시작");
         
-        // 1. 먼저 세션 쿠키로 인증 시도
+        // JWT 토큰이 있으면 Authorization 헤더에 포함
+        const authToken = localStorage.getItem('auth_token');
+        const headers: Record<string, string> = {};
+        
+        if (authToken) {
+          headers['Authorization'] = `Bearer ${authToken}`;
+          console.log("[인증 API] JWT 토큰을 Authorization 헤더에 포함");
+        }
+
+        // 1. 먼저 세션 쿠키로 인증 시도 (JWT 토큰도 함께 전송)
         const response = await fetch("/api/auth/me", {
           credentials: "include", // 쿠키 포함 (중요!)
+          headers: headers
         });
 
         const headerEntries: [string, string][] = [];
@@ -160,9 +170,8 @@ export function useAuth() {
           return userData;
         }
         
-        // 2. 세션 인증 실패 시, JWT 토큰 인증 시도 (모바일 환경용 백업)
+        // 2. 세션 인증 실패 시, JWT 토큰 인증 시도 (Google OAuth용)
         console.log("[인증 API 응답] 세션 인증 실패, JWT 토큰 인증 시도");
-        const jwtToken = localStorage.getItem('jwt_token');
         
         if (jwtToken) {
           console.log("[인증 API] JWT 토큰 발견, 토큰 검증 시도");
