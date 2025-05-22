@@ -11,6 +11,7 @@ import testAceStepRouter from "./routes/test-ace-step-routes";
 import { registerSunoRoutes } from "./routes/suno-routes";
 import dreamBookRouter from "./routes/dream-book";
 import imageStyleRouter from "./routes/image-style";
+import jwtAuthRouter from "./routes/jwt-auth";
 
 // Express session 타입 확장
 declare module 'express-session' {
