@@ -173,7 +173,7 @@ router.get('/callback', async (req, res) => {
     // 6. JWT를 HttpOnly 쿠키로 설정
     res.cookie('auth_token', jwtToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: false,
       sameSite: 'lax',
       maxAge: 30 * 24 * 60 * 60 * 1000 // 30일
     });
