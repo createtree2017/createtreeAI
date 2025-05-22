@@ -73,19 +73,16 @@ export function useMobileGoogleLogin() {
         console.log("[모바일 Google 로그인] JWT 토큰 저장 완료");
       }
 
-      // 사용자 정보 캐시 업데이트
-      queryClient.setQueryData(["/api/auth/me"], data.user);
-
       toast({
         title: "Google 로그인 성공",
         description: "환영합니다!",
         variant: "default",
       });
 
-      // 홈으로 리디렉션
+      // JWT 토큰이 적용되도록 즉시 페이지 새로고침
       setTimeout(() => {
-        window.location.href = "/";
-      }, 1000);
+        window.location.reload();
+      }, 500);
 
       return data;
 
