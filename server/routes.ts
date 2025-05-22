@@ -4782,6 +4782,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 이미지 스타일 관리 라우터 등록
   app.use("/api/image-styles", imageStyleRouter);
   console.log("이미지 스타일 관리 라우터가 등록되었습니다 (/api/image-styles)");
+  
+  // Google OAuth2 라우터 등록
+  app.use("/api/google-oauth", googleOAuthRouter);
+  console.log("Google OAuth2 라우터가 등록되었습니다 (/api/google-oauth/*)");
+  console.log("🔐 Google OAuth2 설정 확인:", {
+    CLIENT_ID: process.env.GOOGLE_CLIENT_ID ? '설정됨' : '없음',
+    CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ? '설정됨' : '없음'
+  });
 
   const httpServer = createServer(app);
   return httpServer;

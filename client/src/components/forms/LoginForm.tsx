@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useAuthContext } from "@/lib/AuthProvider";
-import { useMobileGoogleLogin } from "@/hooks/useMobileAuth";
+import { useGoogleAuth, useGoogleCallbackHandler } from "@/hooks/useGoogleAuth";
 import { Loader2 } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import { Separator } from "@/components/ui/separator";
@@ -24,8 +24,11 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const LoginForm: React.FC = () => {
-  const { login, loginWithGoogle, isLoginLoading, isGoogleLoginLoading } = useAuthContext();
-  const { loginWithGoogle: mobileLoginWithGoogle } = useMobileGoogleLogin();
+  const { login, isLoginLoading } = useAuthContext();
+  const { loginWithGoogle, isLoggingIn } = useGoogleAuth();
+  
+  // Google OAuth 콜백 처리
+  useGoogleCallbackHandler();
 
   // React Hook Form 설정
   const form = useForm<LoginFormValues>({
@@ -41,25 +44,13 @@ const LoginForm: React.FC = () => {
     login(values);
   };
   
-  // Google 로그인 핸들러 - 단순화 및 직접 호출 방식
+  // Google 로그인 핸들러 - 새로운 Google OAuth2 시스템 사용
   const handleGoogleLogin = async () => {
     try {
-      console.log("Google 로그인 버튼 클릭됨");
-      
-      // 모바일 환경 감지
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      console.log("모바일 환경 감지:", isMobile ? "예" : "아니오");
-      
-      if (isMobile) {
-        console.log("모바일 환경 - JWT 인증 방식 사용");
-        await mobileLoginWithGoogle();
-      } else {
-        console.log("데스크탑 환경 - 세션 인증 방식 사용");
-        loginWithGoogle();
-      }
+      console.log("Google 로그인 버튼 클릭됨 - 새로운 OAuth2 시스템 사용");
+      loginWithGoogle();
     } catch (error) {
       console.error("Google 로그인 버튼 오류:", error);
-      alert("Google 로그인을 시작할 수 없습니다.");
     }
   };
 
@@ -123,9 +114,9 @@ const LoginForm: React.FC = () => {
           variant="outline" 
           className="w-full flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-black border-gray-300 py-6"
           onClick={handleGoogleLogin}
-          disabled={isGoogleLoginLoading}
+          disabled={isLoggingIn}
         >
-          {isGoogleLoginLoading ? (
+          {isLoggingIn ? (
             <>
               <Loader2 className="h-5 w-5 animate-spin" />
               <span>구글 로그인 중...</span>
