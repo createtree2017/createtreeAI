@@ -4768,7 +4768,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   console.log("세션 체크 라우터가 등록되었습니다 (/api/session-check)");
   
   // JWT 토큰 인증 라우터 등록 (모바일 전용)
-  app.use("/api/jwt-auth", jwtAuthRoutes);
+  app.use("/api/jwt-auth", jwtAuthRouter);
   console.log("JWT 토큰 인증 라우터가 등록되었습니다 (/api/jwt-auth/*)");
   
   // 태몽동화 라우터 등록
