@@ -60,8 +60,9 @@ const dreamBookSchema = z.object({
   babyName: z.string().min(1, '아기 이름을 입력해주세요'),
   dreamer: z.string().min(1, '꿈을 꾼 사람을 입력해주세요'),
   styleId: z.string().min(1, '스타일을 선택해주세요'),
-  peoplePrompt: z.string().min(1, '인물 표현은 필수입니다').default('아기는 귀엽고 활기찬 모습이다.'),
-  backgroundPrompt: z.string().min(1, '배경 표현은 필수입니다').default('환상적이고 아름다운 배경'),
+  // 인물 표현과 배경 표현 필드는 UI에서 제거되지만, 서버와의 호환성을 위해 유지합니다
+  peoplePrompt: z.string().default('아기는 귀엽고 활기찬 모습이다.'),
+  backgroundPrompt: z.string().default('환상적이고 아름다운 배경'),
   scenePrompts: z.array(z.string().min(1, '장면 묘사를 입력해주세요'))
     .min(1, '최소 1개 이상의 장면이 필요합니다')
     .max(4, '최대 4개의 장면까지 가능합니다'),
@@ -74,6 +75,7 @@ export default function CreateDreamBook() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCharacterDialogOpen, setIsCharacterDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [backgroundDescription, setBackgroundDescription] = useState<string>('환상적이고 아름다운 배경');
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const { user } = useAuthContext();
@@ -254,6 +256,7 @@ export default function CreateDreamBook() {
     formData.append('babyName', babyName);
     formData.append('style', String(styleId)); // 서버에서는 'style' 필드를 기대함
     formData.append('image', selectedFile); // 업로드한 이미지 파일 추가
+    formData.append('backgroundDescription', backgroundDescription); // 배경 설명 추가
     
     // 디버깅 확인을 위한 FormData 출력
     console.log('FormData 생성 완료, 파일 포함 여부:', formData.has('image'));
@@ -491,59 +494,7 @@ export default function CreateDreamBook() {
     </div>
   );
 
-  // 공통 설정 섹션 (인물/배경 프롬프트)
-  const renderCommonSettingsSection = () => (
-    <div className="space-y-6">
-      <Card>
-        <CardContent className="p-6">
-          <h3 className="text-lg font-medium mb-4">공통 설정</h3>
-          <div className="grid grid-cols-1 gap-6">
-            <FormField
-              control={form.control}
-              name="peoplePrompt"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>인물 표현</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="아기 캐릭터의 표현 방식을 입력해주세요. 예: 귀엽고 활기찬 모습의 아기"
-                      {...field}
-                      rows={2}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    모든 장면에서 인물이 어떻게 표현될지 설명해주세요. 일관성 있는 캐릭터 표현에 중요합니다.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="backgroundPrompt"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>배경 표현</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="전체적인 배경 분위기를 입력해주세요. 예: 환상적이고 아름다운 동화 세계"
-                      {...field}
-                      rows={2}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    전체 이야기의 배경 분위기를 설명해주세요. 각 장면의 배경 스타일에 영향을 줍니다.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+  // 이전 공통 설정 섹션은 제거되었습니다
   
   // 장면 입력 탭 콘텐츠
   const renderSceneTabContent = (sceneIndex: number) => (
@@ -627,8 +578,6 @@ export default function CreateDreamBook() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           {renderStyleAndCharacterSection()}
           {renderBasicInfoSection()}
-
-          {renderCommonSettingsSection()}
           
           <div className="space-y-6">
             <Card>
@@ -681,13 +630,28 @@ export default function CreateDreamBook() {
           </DialogHeader>
           
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
+            <div className="space-y-4">
               <p className="text-sm font-medium">사진 업로드</p>
               <FileUpload 
                 accept="image/*"
                 maxSize={5 * 1024 * 1024} // 5MB
                 onFileSelect={handleFileSelected}
               />
+            </div>
+            
+            <div className="space-y-2">
+              <p className="text-sm font-medium">배경 설명</p>
+              <Textarea 
+                placeholder="이 캐릭터가 있는 장면의 배경을 묘사해주세요. (예: 밤하늘에 별이 가득하고 잔디밭이 펼쳐진 초원)"
+                id="backgroundDescription"
+                rows={3}
+                className="resize-none"
+                value={backgroundDescription}
+                onChange={(e) => setBackgroundDescription(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                캐릭터가 있는 장면의 배경을 자세히 묘사해주세요. 이 설명에 따라 배경이 함께 생성됩니다.
+              </p>
             </div>
           </div>
           
