@@ -262,6 +262,10 @@ export default function Sidebar({ collapsed = false }) {
               {/* 🔍 디버깅용 로그 추가 */}
               {console.log('[Sidebar] 사용자 정보:', { id: user.id, memberType: user.memberType, 전체정보: user })}
               <div className="text-xs text-neutral-300 mt-1 flex items-center gap-1">
+                {/* 🔍 강제 디버깅 표시 */}
+                <div className="bg-red-500 text-white px-2 py-1 text-xs rounded mb-1">
+                  DEBUG: memberType = "{user?.memberType || 'undefined'}"
+                </div>
                 {user?.memberType === 'membership' ? (
                   <>
                     <span className="bg-blue-600/20 text-blue-400 px-1.5 py-0.5 rounded-sm">멤버십</span>
