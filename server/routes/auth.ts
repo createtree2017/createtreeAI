@@ -612,142 +612,25 @@ router.post("/complete-profile", async (req, res) => {
 });
 
 // 현재 로그인한 사용자 정보 조회 API
-router.get("/me", async (req, res) => {
+router.get("/me", authenticateJWT, async (req, res) => {
   try {
-    // 세션 확인 우선 처리
-    if (!req.session?.user) {
-      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    if (!req.user || !(req.user as any).userId) {
+      return res.status(401).json({ success: false, message: "Unauthorized - 사용자 인증이 필요합니다" });
     }
 
-    // 인증 상태 디버깅
-    console.log(`
-===================================================
-[인증 상태 확인]
-- 요청 경로: ${req.path}
-- 요청 헤더: ${JSON.stringify(req.headers["cookie"] || "(없음)")}
-- isAuthenticated 함수 존재 여부: ${!!req.isAuthenticated}
-- 인증 상태: ${req.isAuthenticated ? req.isAuthenticated() : "undefined"}
-- 세션 존재 여부: ${!!req.session}
-- 세션 ID: ${req.session.id || "(없음)"}
-- 세션 쿠키 설정: ${JSON.stringify(req.session.cookie || {})}
-- 사용자 정보 존재 여부: ${!!req.user}
-- passport 세션 데이터: ${JSON.stringify(req.session.passport || "(없음)")}
-===================================================
-    `);
+    const userId = (req.user as any).userId;
 
-    let userId = null;
-    let authMethod = null;
-
-    // 1. 세션 기반 인증 확인
-    if (req.isAuthenticated && req.isAuthenticated()) {
-      userId = req.user?.id || req.session?.user?.id;
-      authMethod = "session";
-    }
-    
-    // 2. 세션 인증 실패 시 JWT 토큰 인증 시도
-    if (!userId) {
-      console.log("[인증] 세션 인증 실패, JWT 토큰 확인 중...");
-      
-      let token = null;
-      
-      // Authorization 헤더에서 토큰 확인
-      const authHeader = req.headers.authorization;
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        token = authHeader.substring(7);
-      }
-      
-      // 쿠키에서 JWT 토큰 확인 (Google OAuth에서 설정된 토큰)
-      if (!token && req.cookies && req.cookies.auth_token) {
-        token = req.cookies.auth_token;
-        console.log("[인증] 쿠키에서 JWT 토큰 발견");
-      }
-      
-      if (token) {
-        try {
-          const jwt = await import('jsonwebtoken');
-          const JWT_SECRET = process.env.JWT_SECRET || "super-secret-key-2024";
-          
-          const decoded = jwt.default.verify(token, JWT_SECRET) as any;
-          
-          userId = decoded.userId;
-          authMethod = "jwt";
-          console.log("[인증] JWT 토큰 인증 성공, 사용자 ID:", userId);
-        } catch (jwtError) {
-          console.log("[인증] JWT 토큰 검증 실패:", jwtError);
-          // JWT 토큰이 유효하지 않으면 즉시 401 응답 반환
-          return res.status(401).json({ 
-            success: false, 
-            message: "JWT 토큰이 유효하지 않습니다.",
-            error: "invalid_token"
-          });
-        }
-      }
-    }
-
-    if (!userId) {
-      return res.status(401).json({ message: "로그인이 필요합니다." });
-    }
-
-    // 이미 인증된 사용자 정보가 req.user에 있음
-    console.log(
-      `인증된 사용자 정보: ID=${userId}, 인증 방법=${authMethod}`,
-    );
-    
-    // 항상 DB에서 최신 사용자 정보 확인
-    const freshUserData = await db.query.users.findFirst({
-      where: eq(users.id, userId)
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, userId),
     });
-    
-    if (!freshUserData) {
-      return res.status(404).json({ message: "사용자 정보를 찾을 수 없습니다." });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "사용자 정보를 찾을 수 없습니다" });
     }
     
-    // 프로필 완성 여부 판단 (DB 기반)
-    // 1. needProfileComplete가 명시적으로 false면 완성됨
-    // 2. 아니면 전화번호와 병원ID(멤버십인 경우) 존재 여부로 판단
-    const needProfileComplete = 
-      freshUserData.needProfileComplete === false ? false : 
-      !freshUserData.phoneNumber || 
-      (freshUserData.memberType === "membership" && !freshUserData.hospitalId);
-      
-    // 멤버십 사용자인 경우 병원 정보 조회
-    let hospitalName = null;
-    if (freshUserData.hospitalId) {
-      try {
-        // hospitals 테이블 임포트 확인
-        const { hospitals } = await import("../../shared/schema");
-        
-        const hospital = await db.query.hospitals.findFirst({
-          where: eq(hospitals.id, freshUserData.hospitalId)
-        });
-        hospitalName = hospital?.name || null;
-      } catch (err) {
-        console.error("병원 정보 조회 실패:", err);
-      }
-    }
-    
-    console.log(`[/me API] 최신 프로필 완성 상태:
-    - DB needProfileComplete: ${freshUserData.needProfileComplete}
-    - 전화번호: ${freshUserData.phoneNumber || '(없음)'}
-    - 병원ID: ${freshUserData.hospitalId || '(없음)'}
-    - 병원명: ${hospitalName || '(없음)'}
-    - 최종 판단: ${needProfileComplete ? '프로필 입력 필요' : '프로필 완성됨'}`);
-    
-    // 세션 정보도 갱신
-    if (req.session.user) {
-      req.session.user.needProfileComplete = needProfileComplete;
-      req.session.user.hospitalName = hospitalName;
-    }
-    
-    // 필요한 정보만 담아서 응답
-    return res.json({
-      ...freshUserData,
-      needProfileComplete,
-      hospitalName
-    });
+    return res.json({ success: true, user: sanitizeUser(user) });
   } catch (error) {
-    console.error("사용자 정보 조회 오류:", error);
-    return res.status(500).json({ message: "서버 오류가 발생했습니다." });
+    return res.status(500).json({ success: false, message: "서버 내부 오류", error });
   }
 });
 
