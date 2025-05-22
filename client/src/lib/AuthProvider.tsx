@@ -69,6 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const {
     user,
+    setUser,   // ✅ 반드시 추가할 것
     isLoading,
     login,
     register,
