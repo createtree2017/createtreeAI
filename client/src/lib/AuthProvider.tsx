@@ -72,8 +72,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .then(userData => {
         if (userData && userData.id) {
           console.log('✅ 사용자 정보 로드 성공:', userData.email);
-          // 메인 페이지로 이동
-          window.location.href = '/';
+          
+          // React Query 캐시에 사용자 정보 직접 설정
+          import('@/lib/queryClient').then(({ queryClient }) => {
+            queryClient.setQueryData(["/api/auth/me"], userData);
+            console.log('✅ React Query 캐시 업데이트 완료');
+            
+            // 메인 페이지로 이동
+            window.location.href = '/';
+          });
         } else {
           console.log('⚠️ 사용자 정보 없음, 페이지 새로고침');
           window.location.reload();
