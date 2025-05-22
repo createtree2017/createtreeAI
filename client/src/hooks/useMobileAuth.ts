@@ -22,18 +22,16 @@ export function useMobileGoogleLogin() {
       let result;
       
       try {
-        // 팝업 방식 시도
+        // 팝업 방식만 사용 (리디렉트 제거)
         console.log("[모바일 Google 로그인] 팝업 방식 시도");
         result = await signInWithPopup(firebaseAuth, googleProvider);
       } catch (popupError: any) {
-        console.log("[모바일 Google 로그인] 팝업 실패, 리디렉트 방식으로 전환");
+        console.log("[모바일 Google 로그인] 팝업 오류:", popupError.code);
         
-        if (popupError.code === 'auth/popup-blocked' || 
-            popupError.code === 'auth/popup-closed-by-user') {
-          // 리디렉트 방식으로 전환
-          localStorage.setItem('mobile_auth_redirect_started', 'true');
-          await signInWithRedirect(firebaseAuth, googleProvider);
-          return; // 리디렉트되므로 여기서 종료
+        if (popupError.code === 'auth/popup-blocked') {
+          throw new Error("팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해주세요.");
+        } else if (popupError.code === 'auth/popup-closed-by-user') {
+          throw new Error("로그인이 취소되었습니다.");
         } else {
           throw popupError;
         }
