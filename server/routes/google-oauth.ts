@@ -126,17 +126,51 @@ router.get('/callback', async (req, res) => {
 
     if (!user) {
       console.log('[Google OAuth] 새 사용자 생성 중...');
+      
+      // 🎯 스마트 회원등급 자동 설정 시스템
+      let memberType = 'general'; // 기본값
+      
+      // 1. 관리자 이메일 도메인 체크
+      const adminDomains = ['createtree.com', 'admin.com'];
+      const emailDomain = googleUser.email.split('@')[1];
+      
+      // 2. 특정 관리자 이메일 리스트
+      const superAdminEmails = [
+        'ct.createtree@gmail.com',
+        'createtree.admin@gmail.com',
+        'admin@createtree.com'
+      ];
+      
+      const hospitalAdminEmails = [
+        'hospital@gmail.com',
+        'admin@hospital.com'
+      ];
+      
+      // 3. 회원등급 자동 결정 로직
+      if (superAdminEmails.includes(googleUser.email.toLowerCase())) {
+        memberType = 'superadmin';
+        console.log('[Google OAuth] 슈퍼관리자 이메일 감지:', googleUser.email);
+      } else if (hospitalAdminEmails.includes(googleUser.email.toLowerCase())) {
+        memberType = 'hospital_admin';
+        console.log('[Google OAuth] 병원관리자 이메일 감지:', googleUser.email);
+      } else if (adminDomains.includes(emailDomain)) {
+        memberType = 'admin';
+        console.log('[Google OAuth] 관리자 도메인 감지:', emailDomain);
+      } else {
+        console.log('[Google OAuth] 일반회원으로 설정:', googleUser.email);
+      }
+      
       const [newUser] = await db.insert(users).values({
         username: googleUser.email, // username 필드 사용
         email: googleUser.email,
         fullName: googleUser.name || googleUser.email,
         firebaseUid: googleUser.id, // Google ID를 firebaseUid에 저장
         emailVerified: true,
-        memberType: 'general'
+        memberType: memberType // 🎯 자동 설정된 회원등급 사용
       }).returning();
       
       user = newUser;
-      console.log('[Google OAuth] 새 사용자 생성 완료:', user.id);
+      console.log('[Google OAuth] 새 사용자 생성 완료:', `ID: ${user.id}, 등급: ${memberType}`);
     } else {
       console.log('[Google OAuth] 기존 사용자 로그인:', user.id);
       
