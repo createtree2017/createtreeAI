@@ -83,7 +83,8 @@ export function useAuth() {
 
         if (response.ok) {
           const userData = await response.json();
-          return userData;
+          // 🎯 서버 응답 구조에 맞게 user 객체 반환
+          return userData.user || userData;
         }
 
         // 세션 실패 시 JWT 인증 시도
