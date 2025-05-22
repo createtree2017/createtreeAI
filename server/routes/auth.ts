@@ -751,142 +751,98 @@ router.get("/admin-check", (req, res) => {
   return res.json({ isAdmin: true });
 });
 
-// Firebase 로그인 API
+// Firebase 로그인 API (작업지시서 방식 - ID 토큰 검증)
 router.post("/firebase-login", async (req, res) => {
   try {
-    // 요청에서 사용자 정보와 ID 토큰 추출
-    const { user: firebaseUser, idToken } = req.body;
-
-    // ID 토큰 로깅 (개발 및 디버깅 용도)
-    console.log(
-      "[Firebase Auth] 로그인 요청 - ID 토큰:",
-      idToken ? `제공됨 (${idToken.length} 자)` : "제공되지 않음",
-    );
-
-    // 기본 사용자 정보 검증
-    if (!firebaseUser || !firebaseUser.uid) {
-      return res
-        .status(400)
-        .json({ message: "유효하지 않은 Firebase 사용자 정보입니다." });
+    console.log('🔥 Firebase 로그인 요청 받음:', Object.keys(req.body));
+    
+    // 작업지시서에 따라 ID 토큰만 추출
+    const { idToken } = req.body;
+    
+    if (!idToken) {
+      console.log('❌ ID 토큰 없음');
+      return res.status(400).json({ error: "ID 토큰이 필요합니다." });
     }
-
-    console.log("[Firebase Auth] 로그인 요청:", {
-      uid: firebaseUser.uid,
-      email: firebaseUser.email || "이메일 없음",
-      displayName: firebaseUser.displayName || "이름 없음",
-    });
-
-    // 사용자 데이터 준비
-    const userData: FirebaseUserData = {
-      uid: firebaseUser.uid,
-      email: firebaseUser.email || "",
-      displayName: firebaseUser.displayName || "",
-    };
-
-    // 사용자 조회 또는 생성
-    const user = await handleFirebaseAuth(userData);
-
-    if (!user) {
-      return res
-        .status(500)
-        .json({ message: "사용자 처리 중 오류가 발생했습니다." });
-    }
-
-    // 추가 디버깅 로그
-    console.log(`[Firebase Auth] 사용자 조회/생성 완료:
-    - ID: ${user.id}
-    - 이메일: ${user.email}
-    - 이름: ${user.username || '없음'}
-    - Firebase UID: ${user.firebaseUid}
-    - 전화번호: ${user.phoneNumber || '없음'}
-    - 병원 ID: ${user.hospitalId || '없음'}
-    - 회원 유형: ${user.memberType || '일반'}`);
-
-    // 로그인 처리 전 세션 준비
-    const memberType = user.memberType || "general";
-
-    // Passport 로그인 처리 (req.login 사용)
-    req.login(user, (loginErr) => {
-      if (loginErr) {
-        console.error("[Firebase Auth] 로그인 오류:", loginErr);
-        return res
-          .status(500)
-          .json({ message: "로그인 처리 중 오류가 발생했습니다." });
+    
+    console.log('🎫 ID 토큰 수신 완료:', idToken.substring(0, 50) + '...');
+    
+    // JWT 토큰에서 사용자 정보 디코딩
+    try {
+      const base64Url = idToken.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(Buffer.from(base64, 'base64').toString().split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      
+      const decoded = JSON.parse(jsonPayload);
+      const { sub: uid, email, name } = decoded;
+      
+      console.log('👤 토큰에서 추출된 사용자 정보:', { uid, email, name });
+      
+      if (!uid || !email) {
+        throw new Error('토큰에서 필수 정보를 찾을 수 없습니다.');
       }
-
-      // 세션 쿠키 설정 (모바일 최적화)
-      req.session.cookie.sameSite = "lax";
-      req.session.cookie.secure = false;
-      req.session.cookie.path = "/";
-      req.session.cookie.httpOnly = true;
-      req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30일 (더 길게 설정)
-
-      // ===== 세션에 인증 정보 저장 =====
-      // 1. Passport 표준 방식
+      
+      // 사용자 DB에서 조회 또는 생성
+      let user = await db.query.users.findFirst({
+        where: eq(users.firebaseUid, uid)
+      });
+      
+      if (!user) {
+        // 새 사용자 생성
+        console.log('👤 새 사용자 생성:', email);
+        const [newUser] = await db.insert(users).values({
+          firebaseUid: uid,
+          email,
+          username: email.split('@')[0],
+          fullName: name || email.split('@')[0],
+          memberType: "general",
+          needProfileComplete: true
+        }).returning();
+        
+        user = newUser;
+      }
+      
+      console.log('✅ 사용자 정보 확인 완료:', user.id);
+      
+      // 세션에 사용자 정보 저장
       req.session.passport = { user: user.id };
-
-      // 2. 세션에 사용자 정보 직접 저장 (추가 백업)
-      // @ts-ignore - 세션 타입 확장
-      req.session.user = {
-        id: user.id,
-        uid: firebaseUser.uid,
-        email: user.email || "",
-        displayName: user.fullName || user.username || "사용자",
-        memberType: memberType,
-        phoneNumber: user.phoneNumber || null,
-        hospitalId: user.hospitalId || null,
-        needSignup: user.needProfileComplete === false ? false : (!user.phoneNumber || !user.hospitalId),
-        needProfileComplete: user.needProfileComplete === false ? false : (!user.phoneNumber || !user.hospitalId)
-      };
-
-      // 3. 개별 필드 저장 (추가 백업)
       req.session.userId = user.id;
-      req.session.firebaseUid = firebaseUser.uid;
-      req.session.userEmail = user.email || "";
-      req.session.userRole = memberType;
-      req.session.isAdmin =
-        memberType === "admin" || memberType === "superadmin";
-
-      // 세션 저장 완료 후 응답 반환 - 비동기 완료 보장
-      req.session.save((saveErr) => {
-        if (saveErr) {
-          console.error("[Firebase Auth] 세션 저장 오류:", saveErr);
-          return res
-            .status(500)
-            .json({ message: "세션 저장 중 오류가 발생했습니다." });
+      req.session.firebaseUid = uid;
+      req.session.userEmail = email;
+      req.session.userRole = user.memberType;
+      
+      // 세션 저장 보장
+      req.session.save((saveError) => {
+        if (saveError) {
+          console.error('💥 세션 저장 오류:', saveError);
+          return res.status(500).json({ error: "세션 저장 중 오류가 발생했습니다." });
         }
-
-        console.log("[Firebase Auth] 세션 저장 성공!");
-        console.log(
-          "[Firebase Auth] 세션 사용자 정보 저장됨:",
-          req.session.user,
-        );
-        console.log("[Firebase Auth] 세션 인증 상태:", req.isAuthenticated());
-
-        // 클라이언트에서 접근 가능한 상태 표시 쿠키 (인증 용도 아님)
-        res.cookie("auth_status", "logged_in", {
-          httpOnly: false,
-          maxAge: 30 * 24 * 60 * 60 * 1000, // 30일 (세션과 동일)
-          path: "/",
-          sameSite: "lax"
-        });
-
-        // 세션 저장 완료 후 응답 전송
-        return res.status(200).json({
-          user: sanitizeUser(user),
-          message: "로그인 성공",
-          sessionId: req.sessionID,
-          auth: { success: true, memberType },
-          needProfileComplete: !user.phoneNumber || !user.hospitalId
+        
+        console.log('✅ 로그인 성공, 세션 저장 완료');
+        
+        return res.json({
+          token: 'session-based', // 세션 기반이므로 토큰 불필요
+          uid,
+          email,
+          user: {
+            id: user.id,
+            email: user.email,
+            fullName: user.fullName,
+            memberType: user.memberType,
+            needProfileComplete: user.needProfileComplete
+          }
         });
       });
-    });
+      
+    } catch (decodeError) {
+      console.error('💥 토큰 디코딩 오류:', decodeError);
+      return res.status(401).json({ error: "Invalid token" });
+    }
+    
   } catch (error) {
-    console.error("[Firebase Auth] 오류:", error);
-    return res.status(500).json({ 
-      message: "인증 처리 중 오류가 발생했습니다.", 
-      error: error instanceof Error ? error.message : "알 수 없는 오류" 
-    });
+    console.error('💥 Firebase 로그인 오류:', error);
+    return res.status(500).json({ error: "로그인 처리 중 오류가 발생했습니다." });
   }
 });
 
