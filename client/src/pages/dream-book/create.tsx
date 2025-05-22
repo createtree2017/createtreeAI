@@ -164,34 +164,13 @@ export default function CreateDreamBook() {
 
   // 태몽동화 생성 뮤테이션
   const createDreamBookMutation = useMutation({
-    mutationFn: async (data: z.infer<typeof dreamBookSchema>) => {
+    mutationFn: async (formData: FormData) => {
       if (!characterImage) {
         throw new Error('캐릭터 이미지가 필요합니다. 먼저 캐릭터를 생성해주세요.');
       }
-
-      // 유효한 장면 프롬프트만 필터링
-      const validScenePrompts = data.scenePrompts.filter(p => p.trim() !== '');
-      
-      // FormData 생성
-      const formData = new FormData();
-      formData.append('babyName', data.babyName);
-      formData.append('dreamer', data.dreamer || '');
-      formData.append('style', data.styleId); // styleId → style 변환 (서버 기대 형식)
-      formData.append('characterImageUrl', characterImage);
-      formData.append('peoplePrompt', data.peoplePrompt || '아기는 귀엽고 활기찬 모습이다.');
-      formData.append('backgroundPrompt', data.backgroundPrompt || '환상적이고 아름다운 배경');
-      
-      // 장면 프롬프트는 JSON 문자열로 변환하여 전송
-      formData.append('scenePrompts', JSON.stringify(validScenePrompts));
       
       // FormData 내용 상세 디버깅을 위한 로깅
-      console.log('태몽동화 생성 FormData 준비:', {
-        babyName: data.babyName,
-        style: data.styleId,
-        sceneCount: validScenePrompts.length,
-        validScenePrompts,
-        scenePrompts_json: JSON.stringify(validScenePrompts)
-      });
+      console.log('태몽동화 생성 FormData 준비 완료');
       
       // FormData의 모든 값 확인 (디버깅용)
       // Array.from으로 변환하여 TypeScript 오류 방지
@@ -345,13 +324,30 @@ export default function CreateDreamBook() {
     });
 
     setIsGenerating(true);
-    createDreamBookMutation.mutate({
-      ...values,
-      // 필요한 경우 특정 필드 형식 조정
-      styleId: String(values.styleId),
-      // 캐릭터+배경 이미지 URL 추가
-      scene0ImageUrl: scene0Image || characterImage
+    // 필요한 데이터 준비
+    const formData = new FormData();
+    formData.append('babyName', values.babyName);
+    formData.append('dreamer', values.dreamer);
+    formData.append('style', String(values.styleId));
+    formData.append('characterImageUrl', characterImage || '');
+    formData.append('peoplePrompt', values.peoplePrompt);
+    formData.append('backgroundPrompt', values.backgroundPrompt);
+    
+    // 캐릭터+배경 통합 이미지 URL 추가
+    if (scene0Image) {
+      formData.append('scene0ImageUrl', scene0Image);
+    }
+    
+    // 장면 프롬프트는 JSON 문자열로 변환하여 전송
+    formData.append('scenePrompts', JSON.stringify(validScenePrompts));
+    
+    console.log('태몽동화 생성 FormData 준비:', {
+      scene0Image: scene0Image ? '있음' : '없음',
+      sceneCount: validScenePrompts.length
     });
+    
+    // 태몽동화 생성 API 호출
+    createDreamBookMutation.mutate(formData);
   };
 
   // 스타일 선택 및 캐릭터 생성 섹션

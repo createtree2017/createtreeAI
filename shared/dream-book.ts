@@ -106,6 +106,7 @@ export interface CreateDreamBookRequest {
   dreamer: string;
   style: number | string; // number 또는 string 형태로 수신될 수 있음
   characterImageUrl: string; // 1차 생성된 캐릭터 이미지 URL
+  scene0ImageUrl?: string; // 캐릭터+배경 통합 이미지 URL (선택적)
   peoplePrompt: string; // 인물 표현 프롬프트
   backgroundPrompt: string; // 배경 표현 프롬프트
   numberOfScenes: number; // 컷 수 (1~4)

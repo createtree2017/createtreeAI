@@ -416,6 +416,15 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
       // 첫 번째 장면 프롬프트를 대표 내용으로, summaryText에는 간단한 설명 저장
       const summaryText = `${dreamer}가 꾼 ${babyName}의 태몽동화 (${filteredScenePrompts.length}개 장면)`;
       
+      // scene0ImageUrl이 있으면 사용, 없으면 characterImageUrl 사용
+      const scene0ImageUrl = validationData.scene0ImageUrl || characterImageUrl;
+      
+      // 통합 이미지 로그 기록
+      logInfo('캐릭터+배경 통합 이미지 정보', { 
+        hasScene0Image: !!validationData.scene0ImageUrl,
+        scene0ImageUrl: scene0ImageUrl ? '있음' : '없음'
+      });
+      
       const [newDreamBook] = await db.insert(dreamBooks).values({
         userId: Number(userId),
         babyName,
@@ -424,6 +433,7 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
         summaryText,
         style: styleId, // 스타일 ID 저장
         characterImageUrl, // 1차 생성된 캐릭터 이미지 URL
+        scene0ImageUrl, // 캐릭터+배경 통합 이미지 URL 추가
         characterPrompt: `캐릭터`, // 캐릭터 참조용 프롬프트 (아기 이름은 저장용으로만 사용)
         peoplePrompt, // 인물 표현 프롬프트
         backgroundPrompt, // 배경 표현 프롬프트
