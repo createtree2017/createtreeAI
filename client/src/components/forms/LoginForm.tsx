@@ -63,10 +63,10 @@ const LoginForm: React.FC = () => {
       const { initializeApp } = await import('firebase/app');
       const { signInWithPopup, GoogleAuthProvider, getAuth } = await import('firebase/auth');
       
-      // Firebase 앱 초기화
+      // Firebase 앱 초기화 (authDomain을 현재 도메인으로 설정)
       const firebaseConfig = {
         apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-        authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
+        authDomain: window.location.hostname, // 현재 Replit 도메인 사용
         projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
         storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
         messagingSenderId: "527763789648",
