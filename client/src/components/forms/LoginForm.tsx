@@ -47,7 +47,7 @@ const LoginForm: React.FC = () => {
   // 로그인 진행 상태 관리
   const [isGoogleLoginInProgress, setIsGoogleLoginInProgress] = useState(false);
 
-  // Google 로그인 핸들러 - Firebase 팝업 로그인 사용 (설정 완료 후 재시도)
+  // Google 로그인 핸들러 - 서버 OAuth2 시스템 사용 (확실한 방법)
   const handleGoogleLogin = async () => {
     // 중복 요청 방지
     if (isGoogleLoginInProgress) {
@@ -57,83 +57,14 @@ const LoginForm: React.FC = () => {
 
     try {
       setIsGoogleLoginInProgress(true);
-      console.log("🚀 Firebase Google 팝업 로그인 시작 (설정 완료 후)");
+      console.log("🚀 서버 Google OAuth2 로그인 시작");
       
-      // Firebase 동적 임포트 및 앱 초기화
-      const { initializeApp } = await import('firebase/app');
-      const { signInWithPopup, GoogleAuthProvider, getAuth } = await import('firebase/auth');
+      // 서버의 Google OAuth 엔드포인트로 리디렉션
+      const googleAuthUrl = '/api/google-oauth/login';
+      console.log('🔗 서버 OAuth URL:', googleAuthUrl);
       
-      // Firebase 앱 초기화 (authDomain을 현재 도메인으로 설정)
-      const firebaseConfig = {
-        apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-        authDomain: window.location.hostname, // 현재 Replit 도메인 사용
-        projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-        storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
-        messagingSenderId: "527763789648",
-        appId: import.meta.env.VITE_FIREBASE_APP_ID
-      };
-      
-      console.log('🔥 Firebase 앱 초기화 중...');
-      
-      // 기존 Firebase 앱이 있는지 확인
-      const { getApps } = await import('firebase/app');
-      const existingApps = getApps();
-      
-      let app;
-      if (existingApps.length > 0) {
-        // 기존 앱 사용
-        app = existingApps[0];
-        console.log('✅ 기존 Firebase 앱 사용');
-      } else {
-        // 새 앱 초기화
-        app = initializeApp(firebaseConfig);
-        console.log('✅ 새 Firebase 앱 초기화 완료');
-      }
-      
-      const auth = getAuth(app);
-      const provider = new GoogleAuthProvider();
-      
-      // 팝업 방식 강제 설정 (모바일 호환성)
-      provider.setCustomParameters({
-        prompt: 'select_account',
-        login_hint: undefined,
-        access_type: 'online'
-      });
-      
-      console.log('✅ Firebase 앱 초기화 완료, 팝업 로그인 시작');
-      
-      // 팝업으로 Google 로그인
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      
-      console.log('✅ Firebase 로그인 성공:', user.email);
-      
-      // ID 토큰 받기
-      const idToken = await user.getIdToken();
-      console.log('🎫 ID 토큰 획득 완료:', idToken.substring(0, 50) + '...');
-      
-      // 서버로 ID 토큰 전달
-      const response = await fetch('/api/auth/firebase-login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ idToken }),
-      });
-      
-      console.log('📨 서버 응답 상태:', response.status);
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: '서버 오류' }));
-        throw new Error(errorData.error || `서버 오류 (${response.status})`);
-      }
-      
-      const data = await response.json();
-      console.log('✅ 로그인 성공:', data);
-      
-      // 성공 시 메인 페이지로 리디렉션
-      window.location.href = '/';
+      // 현재 페이지를 Google OAuth로 리디렉션
+      window.location.href = googleAuthUrl;
       
     } catch (error: any) {
       console.error('💥 Firebase Google 로그인 실패:', error.code, error.message);
