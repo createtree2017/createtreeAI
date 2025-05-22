@@ -155,6 +155,74 @@ router.post("/register", async (req, res) => {
   }
 });
 
+// 모바일 Firebase 로그인 후 JWT 토큰 생성
+router.post("/firebase-jwt", async (req, res) => {
+  try {
+    console.log("[Firebase JWT] Firebase 인증 후 JWT 토큰 생성 요청");
+    
+    const { firebaseUid, email } = req.body;
+    
+    if (!firebaseUid || !email) {
+      return res.status(400).json({ 
+        message: "Firebase UID 및 이메일이 필요합니다." 
+      });
+    }
+
+    // 사용자 DB에서 조회 또는 생성
+    let user = await db.query.users.findFirst({
+      where: eq(users.firebaseUid, firebaseUid)
+    });
+
+    if (!user) {
+      // 새 사용자 생성
+      console.log("[Firebase JWT] 새 사용자 생성:", email);
+      const [newUser] = await db.insert(users).values({
+        username: email.split('@')[0],
+        firebaseUid,
+        fullName: email.split('@')[0],
+        memberType: "general",
+        needProfileComplete: true
+      }).returning();
+      
+      user = newUser;
+    }
+
+    // JWT 토큰 생성
+    const jwt = require('jsonwebtoken');
+    const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key-2025";
+    
+    const token = jwt.sign(
+      { 
+        userId: user.id,
+        email: user.email,
+        firebaseUid: user.firebaseUid
+      },
+      JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    console.log("[Firebase JWT] JWT 토큰 생성 성공, 사용자 ID:", user.id);
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        memberType: user.memberType,
+        needProfileComplete: user.needProfileComplete
+      }
+    });
+
+  } catch (error) {
+    console.error("[Firebase JWT] 오류:", error);
+    res.status(500).json({ 
+      message: "JWT 토큰 생성 중 오류가 발생했습니다." 
+    });
+  }
+});
+
 // TypeScript에서 Session 타입 확장 (모바일 Firebase 인증 지원)
 declare module "express-session" {
   interface SessionData {

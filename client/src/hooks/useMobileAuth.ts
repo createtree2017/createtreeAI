@@ -46,14 +46,13 @@ export function useMobileGoogleLogin() {
 
       console.log("[모바일 Google 로그인] Firebase 인증 성공");
 
-      // 모바일 전용 JWT 인증 API 호출
-      const response = await fetch("/api/jwt-auth/mobile-login", {
+      // Firebase JWT 토큰 생성 API 호출
+      const response = await fetch("/api/auth/firebase-jwt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           firebaseUid: user.uid,
-          email: user.email || "",
-          displayName: user.displayName || ""
+          email: user.email || ""
         }),
         credentials: "include"
       });
