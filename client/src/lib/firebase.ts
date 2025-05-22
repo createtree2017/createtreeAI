@@ -81,14 +81,17 @@ const app = initializeFirebaseApp();
 const auth = getAuth(app);
 auth.languageCode = 'ko'; // 한국어 설정
 
-// Google 로그인 제공업체 초기화
+// Google 로그인 제공업체 초기화 (리디렉트 방지)
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
   prompt: 'select_account',
   login_hint: '',  // 사용자가 항상 계정을 선택하도록 함
-  access_type: 'offline',  // 오프라인 액세스 요청 (리프레시 토큰 발급)
   hl: 'ko'  // UI 언어를 한국어로 설정
 });
+
+// 리디렉트 방지를 위한 추가 설정
+googleProvider.addScope('profile');
+googleProvider.addScope('email');
 
 // Firebase 서비스 내보내기
 export { app, auth, googleProvider };
