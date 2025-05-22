@@ -660,7 +660,7 @@ router.get("/me", async (req, res) => {
       if (token) {
         try {
           const jwt = await import('jsonwebtoken');
-          const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key-2025";
+          const JWT_SECRET = process.env.JWT_SECRET || "super-secret-key-2024";
           
           const decoded = jwt.default.verify(token, JWT_SECRET) as any;
           
