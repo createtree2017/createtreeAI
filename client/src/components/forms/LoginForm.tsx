@@ -47,7 +47,7 @@ const LoginForm: React.FC = () => {
   // 로그인 진행 상태 관리
   const [isGoogleLoginInProgress, setIsGoogleLoginInProgress] = useState(false);
 
-  // Google 로그인 핸들러 - 직접 Google OAuth API 사용 (모바일 호환성)
+  // Google 로그인 핸들러 - Firebase 팝업 로그인 사용 (설정 완료 후 재시도)
   const handleGoogleLogin = async () => {
     // 중복 요청 방지
     if (isGoogleLoginInProgress) {
@@ -57,69 +57,55 @@ const LoginForm: React.FC = () => {
 
     try {
       setIsGoogleLoginInProgress(true);
-      console.log("🚀 직접 Google OAuth 팝업 로그인 시작");
+      console.log("🚀 Firebase Google 팝업 로그인 시작 (설정 완료 후)");
       
-      // Google OAuth URL 생성
-      const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-      const redirectUri = window.location.origin + '/auth';
-      const scope = 'openid email profile';
+      // Firebase 동적 임포트 및 앱 초기화
+      const { initializeApp } = await import('firebase/app');
+      const { signInWithPopup, GoogleAuthProvider, getAuth } = await import('firebase/auth');
       
-      const authUrl = `https://accounts.google.com/oauth/v2/auth?` +
-        `client_id=${googleClientId}&` +
-        `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-        `response_type=code&` +
-        `scope=${encodeURIComponent(scope)}&` +
-        `access_type=online&` +
-        `prompt=select_account`;
+      // Firebase 앱 초기화
+      const firebaseConfig = {
+        apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+        authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
+        projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+        storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
+        messagingSenderId: "527763789648",
+        appId: import.meta.env.VITE_FIREBASE_APP_ID
+      };
       
-      console.log('🔗 Google OAuth URL:', authUrl);
+      console.log('🔥 Firebase 앱 초기화 중...');
+      const app = initializeApp(firebaseConfig);
       
-      // 팝업 창 열기
-      const popup = window.open(
-        authUrl,
-        'googleLogin',
-        'width=500,height=600,scrollbars=yes,resizable=yes'
-      );
+      const auth = getAuth(app);
+      const provider = new GoogleAuthProvider();
       
-      if (!popup) {
-        throw new Error('팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해주세요.');
-      }
-      
-      console.log('✅ Google OAuth 팝업 창 열림');
-      
-      // 팝업에서 콜백 받기
-      const result = await new Promise((resolve, reject) => {
-        const checkClosed = setInterval(() => {
-          if (popup.closed) {
-            clearInterval(checkClosed);
-            reject(new Error('popup-closed-by-user'));
-          }
-        }, 1000);
-        
-        window.addEventListener('message', (event) => {
-          if (event.origin !== window.location.origin) return;
-          
-          clearInterval(checkClosed);
-          popup.close();
-          
-          if (event.data.type === 'GOOGLE_AUTH_SUCCESS') {
-            resolve(event.data.user);
-          } else {
-            reject(new Error(event.data.error || 'Google 로그인 실패'));
-          }
-        }, { once: true });
+      // 팝업 방식 강제 설정 (모바일 호환성)
+      provider.setCustomParameters({
+        prompt: 'select_account',
+        login_hint: undefined,
+        access_type: 'online'
       });
       
-      console.log('✅ Google 로그인 성공:', result);
+      console.log('✅ Firebase 앱 초기화 완료, 팝업 로그인 시작');
       
-      // 서버로 사용자 정보 전달
-      const response = await fetch('/api/auth/google-login', {
+      // 팝업으로 Google 로그인
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      
+      console.log('✅ Firebase 로그인 성공:', user.email);
+      
+      // ID 토큰 받기
+      const idToken = await user.getIdToken();
+      console.log('🎫 ID 토큰 획득 완료:', idToken.substring(0, 50) + '...');
+      
+      // 서버로 ID 토큰 전달
+      const response = await fetch('/api/auth/firebase-login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ user: result }),
+        body: JSON.stringify({ idToken }),
       });
       
       console.log('📨 서버 응답 상태:', response.status);
