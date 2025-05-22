@@ -5,7 +5,7 @@ import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'your-jwt-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key-2025";
 
 // Google OAuth2 설정
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
