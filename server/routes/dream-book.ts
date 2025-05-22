@@ -145,7 +145,7 @@ router.get('/:id', unifiedAuthMiddleware, async (req: express.Request, res: expr
 });
 
 // 태몽동화 생성 - FormData 처리를 위해 multer 적용
-router.post('/', [authMiddleware, upload.none()], async (req: express.Request, res: express.Response) => {
+router.post('/', [unifiedAuthMiddleware, upload.none()], async (req: express.Request, res: express.Response) => {
   try {
     const userId = req.session?.userId;
     if (!userId) {
@@ -699,7 +699,7 @@ ${peoplePrompt}의 특징을 반영하되, 앞서 생성된 캐릭터와 시각�
 // 이미 상단에서 multer 설정과 upload 인스턴스가 정의되어 있음
 
 // 태몽동화 캐릭터 생성 API (FormData + 사진 업로드)
-router.post('/character', [authMiddleware, upload.single('image')], async (req: express.Request, res: express.Response) => {
+router.post('/character', [unifiedAuthMiddleware, upload.single('image')], async (req: express.Request, res: express.Response) => {
   try {
     const userId = req.session?.userId;
     if (!userId) {
