@@ -10,10 +10,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-jwt-secret-key';
 // Google OAuth2 설정
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-// Replit 환경에 맞는 동적 redirect URI 설정
-const REDIRECT_URI = process.env.NODE_ENV === 'production' 
-  ? `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}/api/google-oauth/callback`
-  : 'http://localhost:5000/api/google-oauth/callback';
+// 현재 Replit 도메인을 사용하는 redirect URI 설정
+const REDIRECT_URI = `https://d0d77b78-7584-4870-90de-7e90bf483a1c-00-2fox4esnjilty.kirk.replit.dev/api/google-oauth/callback`;
 
 console.log('🔐 Google OAuth2 설정 확인:', {
   CLIENT_ID: GOOGLE_CLIENT_ID ? '설정됨' : '없음',
