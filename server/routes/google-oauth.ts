@@ -10,7 +10,10 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-jwt-secret-key';
 // Google OAuth2 설정
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const REDIRECT_URI = 'https://createtreeai.web.app/auth/callback';
+// 개발 환경에서는 Replit URL, 프로덕션에서는 실제 도메인 사용
+const REDIRECT_URI = process.env.NODE_ENV === 'production' 
+  ? 'https://createtreeai.web.app/auth/callback'
+  : `https://${process.env.REPL_SLUG || 'd0d77b78-7584-4870-90de-7e90bf483a1c-00-2fox4esnjilty'}.${process.env.REPL_OWNER || 'kirk'}.replit.dev/auth/callback`;
 
 console.log('🔐 Google OAuth2 설정 확인:', {
   CLIENT_ID: GOOGLE_CLIENT_ID ? '설정됨' : '없음',
