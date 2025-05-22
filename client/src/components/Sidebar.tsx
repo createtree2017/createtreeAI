@@ -259,6 +259,8 @@ export default function Sidebar({ collapsed = false }) {
               <span className="font-semibold text-primary-lavender text-sm">
                 {user.username || user.email}
               </span>
+              {/* 🔍 디버깅용 로그 추가 */}
+              {console.log('[Sidebar] 사용자 정보:', { id: user.id, memberType: user.memberType, 전체정보: user })}
               <div className="text-xs text-neutral-300 mt-1 flex items-center gap-1">
                 {user?.memberType === 'membership' ? (
                   <>
