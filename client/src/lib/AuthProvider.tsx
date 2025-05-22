@@ -49,7 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const userId = urlParams.get('user_id');
 
     if (token && status === 'login_success') {
-      console.log('🎉 Google OAuth 로그인 성공! JWT 토큰 저장 중...');
+      console.log('🎉 Google OAuth 로그인 성공! 사용자 정보 가져오는 중...');
       
       // JWT 토큰을 localStorage에 저장
       localStorage.setItem('auth_token', token);
@@ -61,10 +61,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const newUrl = window.location.pathname;
       window.history.replaceState({}, document.title, newUrl);
       
-      // 페이지 새로고침으로 로그인 상태 적용
-      setTimeout(() => {
+      // JWT 토큰으로 사용자 정보 즉시 가져오기
+      fetch('/api/auth/me', {
+        credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      .then(res => res.json())
+      .then(userData => {
+        if (userData && userData.id) {
+          console.log('✅ 사용자 정보 로드 성공:', userData.email);
+          // 메인 페이지로 이동
+          window.location.href = '/';
+        } else {
+          console.log('⚠️ 사용자 정보 없음, 페이지 새로고침');
+          window.location.reload();
+        }
+      })
+      .catch(error => {
+        console.error('❌ 사용자 정보 로드 실패:', error);
         window.location.reload();
-      }, 100);
+      });
     }
   }, []);
   
