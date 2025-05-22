@@ -516,20 +516,49 @@ export async function generateDreamSceneImage(
   characterAnalysis?: string, // 추가: GPT-4o Vision으로 분석한 캐릭터 설명
   previousSceneImageUrl?: string // 추가: 이전 장면 이미지 URL
 ): Promise<string> {
-  // 캐릭터 분석 결과가 있으면 함께 사용
+  // 이전 장면 이미지가 있으면 GPT-4o Vision을 사용하여 캐릭터 일관성 유지
+  if (previousSceneImageUrl && previousSceneImageUrl.startsWith('/static/')) {
+    try {
+      logInfo('이전 장면 이미지를 참조하여 일관된 캐릭터로 생성합니다', { previousSceneImageUrl });
+      
+      // 이전 장면 이미지 파일 경로
+      const previousImagePath = path.join(process.cwd(), previousSceneImageUrl.replace('/static/', 'static/'));
+      
+      if (fs.existsSync(previousImagePath)) {
+        // 이전 장면 이미지를 base64로 변환
+        const imageBuffer = fs.readFileSync(previousImagePath);
+        const base64Image = imageBuffer.toString('base64');
+        
+        // GPT-4o Vision을 사용하여 이전 이미지를 참조한 새 장면 생성
+        const visionPrompt = `
+${stylePrompt}
+
+이 이미지에 나오는 캐릭터와 스타일을 유지하면서 새로운 장면을 그려주세요.
+캐릭터의 얼굴, 헤어스타일, 의상 등 모든 특징을 정확히 동일하게 유지해주세요.
+
+새로운 장면 내용: ${scenePrompt}
+
+캐릭터 참조: ${characterPrompt}
+인물 표현: ${peoplePrompt}
+배경 표현: ${backgroundPrompt}
+
+${characterAnalysis ? `캐릭터 분석: ${characterAnalysis}` : ''}
+`;
+        
+        return await generateCharacterImageWithReference(visionPrompt, base64Image);
+      }
+    } catch (error) {
+      logError('이전 장면 이미지 참조 실패, 기본 방식으로 생성합니다', error);
+    }
+  }
+  
+  // 이전 장면 이미지가 없거나 참조 실패 시 기본 방식 사용
   const characterDescription = characterAnalysis && characterAnalysis.trim() 
     ? `\n\n자세한 캐릭터 분석:\n${characterAnalysis}\n` 
     : '';
-  
-  // 이전 장면 이미지 참조 지시사항 추가
-  const previousSceneReference = previousSceneImageUrl 
-    ? `\n\n이 장면은 이전 장면 이미지와 연결된 이야기입니다.
-아래 이미지를 참고하여 동일한 캐릭터, 배경 스타일, 분위기로 그려주세요.
-이전 장면 이미지: ${previousSceneImageUrl}\n` 
-    : '';
     
   const fullPrompt = `
-System: ${stylePrompt}${previousSceneReference}
+System: ${stylePrompt}
 
 캐릭터 참조: ${characterPrompt}${characterDescription}
 
@@ -540,6 +569,81 @@ System: ${stylePrompt}${previousSceneReference}
 User: ${scenePrompt}
 `;
   return generateDreamImage(fullPrompt);
+}
+
+/**
+ * 이전 이미지를 참조하여 일관된 캐릭터로 새 장면 생성
+ * @param prompt 장면 생성 프롬프트
+ * @param referenceImageBase64 참조할 이전 장면 이미지 (base64)
+ * @returns 생성된 장면 이미지 URL
+ */
+async function generateCharacterImageWithReference(prompt: string, referenceImageBase64: string): Promise<string> {
+  try {
+    // API 키 검증
+    if (!isValidApiKey(API_KEY)) {
+      logError('유효한 API 키가 없습니다');
+      return SERVICE_UNAVAILABLE;
+    }
+    
+    const headers = {
+      "Authorization": `Bearer ${API_KEY}`,
+      "Content-Type": "application/json"
+    };
+    
+    // GPT-4o Vision을 사용하여 이미지 기반 새 장면 생성
+    const requestBody = {
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `이 이미지를 참조하여 동일한 캐릭터로 새로운 장면을 생성해주세요. 
+              
+${prompt}
+
+새로운 이미지를 DALL-E로 생성하기 위한 상세한 프롬프트를 작성해주세요.
+캐릭터의 모든 특징(얼굴, 헤어스타일, 의상, 표정 등)을 정확히 묘사하고 새로운 장면 설정을 포함해주세요.`
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${referenceImageBase64}`
+              }
+            }
+          ]
+        }
+      ],
+      max_tokens: 1000
+    };
+    
+    const visionResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(requestBody)
+    });
+    
+    if (!visionResponse.ok) {
+      logError('GPT-4o Vision API 호출 실패', { status: visionResponse.status });
+      return SERVICE_UNAVAILABLE;
+    }
+    
+    const visionData: any = await visionResponse.json();
+    const detailedPrompt = visionData.choices?.[0]?.message?.content || prompt;
+    
+    logInfo('이미지 참조 기반 상세 프롬프트 생성 완료', { 
+      originalLength: prompt.length,
+      detailedLength: detailedPrompt.length 
+    });
+    
+    // 상세 프롬프트로 DALL-E 이미지 생성
+    return await generateDreamImage(detailedPrompt);
+    
+  } catch (error) {
+    logError('이미지 참조 기반 생성 실패', error);
+    return SERVICE_UNAVAILABLE;
+  }
 }
 
 /**
