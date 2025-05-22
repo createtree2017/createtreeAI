@@ -51,7 +51,8 @@ import { useAuthContext } from '@/lib/AuthProvider';
 // 캐릭터 생성 스키마 (서버 API와 일치하도록 수정)
 const characterSchema = z.object({
   babyName: z.string().min(1, '아기 이름을 입력해주세요'),
-  style: z.string().min(1, '스타일을 선택해주세요')
+  style: z.string().min(1, '스타일을 선택해주세요'),
+  backgroundDescription: z.string().min(1, '배경 설명을 입력해주세요').default('환상적이고 아름다운 배경')
 });
 
 // 태몽동화 생성 스키마
