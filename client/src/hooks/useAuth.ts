@@ -244,8 +244,8 @@ export function useAuth() {
       return data;
     },
     onSuccess: (data) => {
-      // 세션 기반이므로 토큰 저장 불필요
-      
+      setUser(data.user);  // ✅ 이 줄을 반드시 추가!
+
       // 사용자 정보 캐시 업데이트
       queryClient.setQueryData(["/api/auth/me"], data.user);
       
@@ -571,6 +571,8 @@ export function useAuth() {
       }
     },
     onSuccess: (data) => {
+      setUser(data.user);  // ✅ 이 줄을 반드시 추가!
+
       // 사용자 정보 캐시 업데이트
       queryClient.setQueryData(["/api/auth/me"], data.user);
       
