@@ -9,6 +9,9 @@ const MEMBER_TYPE_MAP: Record<string, string> = {
   'superadmin': '슈퍼관리자',
   'hospital_admin': '병원 관리자',
   'admin': '관리자',
+  'membership': '멤버십회원',
+  'pro': '프로회원',
+  'general': '일반회원',
   'user': '일반 사용자'
 };
 
