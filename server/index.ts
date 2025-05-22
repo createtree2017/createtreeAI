@@ -1,3 +1,4 @@
+import 'dotenv/config'; // 꼭 index.ts 최상단에서 실행
 import express, { type Request, Response, NextFunction } from "express";
 import path from "path";
 import { registerRoutes } from "./routes";
@@ -87,6 +88,17 @@ app.use((req, res, next) => {
 
   // ALWAYS serve the app on port 5000
   // this serves both the API and the client.
+  // 전역 에러 핸들러 추가
+  app.use((err: any, req: any, res: any, next: any) => {
+    console.error('Unhandled Error:', err);
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
+  });
+
+  // 404 처리 JSON 응답으로 수정
+  app.use((req: any, res: any) => {
+    res.status(404).json({ success: false, message: 'Not Found' });
+  });
+
   // It is the only port that is not firewalled.
   const port = 5000;
   server.listen({

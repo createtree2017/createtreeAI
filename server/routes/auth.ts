@@ -614,6 +614,11 @@ router.post("/complete-profile", async (req, res) => {
 // 현재 로그인한 사용자 정보 조회 API
 router.get("/me", async (req, res) => {
   try {
+    // 세션 확인 우선 처리
+    if (!req.session?.user) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
     // 인증 상태 디버깅
     console.log(`
 ===================================================
@@ -660,7 +665,7 @@ router.get("/me", async (req, res) => {
       if (token) {
         try {
           const jwt = await import('jsonwebtoken');
-          const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key-2025";
+          const JWT_SECRET = process.env.JWT_SECRET || "super-secret-key-2024";
           
           const decoded = jwt.default.verify(token, JWT_SECRET) as any;
           
