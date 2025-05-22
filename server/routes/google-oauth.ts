@@ -43,10 +43,8 @@ router.get('/login', (req, res) => {
 
     console.log('[Google OAuth] 로그인 URL 생성:', googleAuthUrl.toString());
 
-    res.json({
-      success: true,
-      authUrl: googleAuthUrl.toString()
-    });
+    // JSON 응답 대신 직접 Google로 리디렉션
+    res.redirect(googleAuthUrl.toString());
   } catch (error) {
     console.error('[Google OAuth] 로그인 URL 생성 오류:', error);
     res.status(500).json({
