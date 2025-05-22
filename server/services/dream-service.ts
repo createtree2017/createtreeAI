@@ -511,15 +511,23 @@ export async function generateDreamSceneImage(
   stylePrompt: string, 
   peoplePrompt: string,
   backgroundPrompt: string,
-  characterAnalysis?: string // 추가: GPT-4o Vision으로 분석한 캐릭터 설명
+  characterAnalysis?: string, // 추가: GPT-4o Vision으로 분석한 캐릭터 설명
+  previousSceneImageUrl?: string // 추가: 이전 장면 이미지 URL
 ): Promise<string> {
   // 캐릭터 분석 결과가 있으면 함께 사용
   const characterDescription = characterAnalysis && characterAnalysis.trim() 
     ? `\n\n자세한 캐릭터 분석:\n${characterAnalysis}\n` 
     : '';
+  
+  // 이전 장면 이미지 참조 지시사항 추가
+  const previousSceneReference = previousSceneImageUrl 
+    ? `\n\n이 장면은 이전 장면 이미지와 연결된 이야기입니다.
+아래 이미지를 참고하여 동일한 캐릭터, 배경 스타일, 분위기로 그려주세요.
+이전 장면 이미지: ${previousSceneImageUrl}\n` 
+    : '';
     
   const fullPrompt = `
-System: ${stylePrompt}
+System: ${stylePrompt}${previousSceneReference}
 
 캐릭터 참조: ${characterPrompt}${characterDescription}
 
