@@ -62,6 +62,13 @@ export const apiRequest = async (
     "Content-Type": "application/json",
     ...options.headers,
   };
+
+  // JWT 토큰이 있으면 Authorization 헤더에 포함
+  const jwtToken = localStorage.getItem('jwt_token');
+  if (jwtToken) {
+    headers['Authorization'] = `Bearer ${jwtToken}`;
+    console.log("[JWT 토큰] Authorization 헤더에 포함됨");
+  }
   
   // URL에 쿼리 파라미터 추가 처리
   let finalUrl = url;
