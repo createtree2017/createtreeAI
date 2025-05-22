@@ -393,18 +393,38 @@ export default function CreateDreamBook() {
               <div className="bg-card rounded-lg border p-4">
                 {characterImage ? (
                   <div className="flex flex-col items-center">
-                    <div className="relative mb-3">
-                      <div className="rounded-md overflow-hidden border w-32 h-32">
-                        <img 
-                          src={characterImage} 
-                          alt="생성된 캐릭터" 
-                          className="w-full h-full object-cover"
-                        />
+                    <div className="grid grid-cols-2 gap-4 mb-3 w-full">
+                      {/* 캐릭터 이미지 */}
+                      <div className="flex flex-col items-center">
+                        <div className="relative mb-2">
+                          <div className="rounded-md overflow-hidden border w-32 h-32">
+                            <img 
+                              src={characterImage} 
+                              alt="생성된 캐릭터" 
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="absolute -top-2 -right-2 bg-green-500 text-white p-1 rounded-full">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M20 6L9 17l-5-5"></path>
+                            </svg>
+                          </div>
+                        </div>
+                        <span className="text-xs font-medium">캐릭터</span>
                       </div>
-                      <div className="absolute -top-2 -right-2 bg-green-500 text-white p-1 rounded-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M20 6L9 17l-5-5"></path>
-                        </svg>
+                      
+                      {/* 배경 포함 통합 이미지 */}
+                      <div className="flex flex-col items-center">
+                        <div className="relative mb-2">
+                          <div className="rounded-md overflow-hidden border w-32 h-32">
+                            <img 
+                              src={scene0Image || characterImage} 
+                              alt="캐릭터+배경 이미지" 
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        </div>
+                        <span className="text-xs font-medium">캐릭터+배경</span>
                       </div>
                     </div>
                     <p className="text-sm font-medium mb-2">캐릭터가 생성되었습니다!</p>
