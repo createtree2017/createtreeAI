@@ -41,6 +41,90 @@ export function useAuth() {
 - 로컬 스토리지 항목: ${Object.keys(localStorage).length}개
 ===============================================================
   `);
+
+  // 모바일 Google 로그인 리디렉트 결과 처리
+  React.useEffect(() => {
+    const handleRedirectResult = async () => {
+      try {
+        console.log('[리디렉트 처리] Google 로그인 리디렉트 결과 확인 중...');
+        
+        // Firebase Auth가 초기화되었는지 확인
+        if (!firebaseAuth) {
+          console.log('[리디렉트 처리] Firebase Auth가 아직 초기화되지 않음');
+          return;
+        }
+
+        // 리디렉트 결과 가져오기
+        const result = await getRedirectResult(firebaseAuth);
+        
+        if (result && result.user) {
+          console.log('[리디렉트 처리] Google 로그인 리디렉트 성공:', {
+            email: result.user.email ? result.user.email.substring(0, 3) + "..." : "없음",
+            name: result.user.displayName || "이름 없음"
+          });
+
+          // 리디렉트 진행 상태 정리
+          localStorage.removeItem('auth_redirect_started');
+          localStorage.removeItem('auth_redirect_time');
+
+          // 서버에 Firebase 사용자 정보 전송
+          const userData = {
+            uid: result.user.uid,
+            email: result.user.email || "",
+            displayName: result.user.displayName || ""
+          };
+
+          console.log('[리디렉트 처리] 서버 인증 요청 중...');
+          const response = await fetch("/api/auth/firebase-login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user: userData }),
+            credentials: "include"
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log('[리디렉트 처리] 서버 인증 성공:', data);
+            
+            // 사용자 정보 캐시 업데이트
+            queryClient.setQueryData(["/api/auth/me"], data.user);
+            
+            toast({
+              title: "Google 로그인 성공",
+              description: "환영합니다!",
+              variant: "default",
+            });
+
+            // 홈으로 리디렉션
+            setTimeout(() => {
+              window.location.href = "/";
+            }, 1000);
+          } else {
+            const errorText = await response.text();
+            console.error('[리디렉트 처리] 서버 인증 실패:', response.status, errorText);
+            throw new Error("서버 인증에 실패했습니다");
+          }
+        } else {
+          console.log('[리디렉트 처리] 리디렉트 결과 없음 (정상)');
+        }
+      } catch (error) {
+        console.error('[리디렉트 처리] 오류:', error);
+        
+        // 리디렉트 진행 상태 정리
+        localStorage.removeItem('auth_redirect_started');
+        localStorage.removeItem('auth_redirect_time');
+        
+        toast({
+          title: "Google 로그인 실패",
+          description: error instanceof Error ? error.message : "로그인 처리 중 오류가 발생했습니다",
+          variant: "destructive",
+        });
+      }
+    };
+
+    // Firebase Auth 초기화 후 리디렉트 결과 처리
+    handleRedirectResult();
+  }, []);
   
   // 현재 로그인한 사용자 정보 가져오기 (세션 기반)
   const { 
@@ -59,10 +143,14 @@ export function useAuth() {
           credentials: "include", // 쿠키 포함 (중요!)
         });
 
+        const headerEntries: [string, string][] = [];
+        response.headers.forEach((value, key) => {
+          if (['content-type', 'set-cookie', 'date'].includes(key)) {
+            headerEntries.push([key, value]);
+          }
+        });
         console.log(`[인증 API 응답] 상태 코드: ${response.status}, 헤더:`, 
-          Object.fromEntries([...response.headers.entries()].filter(([key]) => 
-            ['content-type', 'set-cookie', 'date'].includes(key)
-          ))
+          Object.fromEntries(headerEntries)
         );
 
         // 세션 인증 성공 시
@@ -310,9 +398,21 @@ export function useAuth() {
         
         // 기기 환경 감지 (모바일 vs 데스크탑)
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isPopupBlocked = () => {
+          try {
+            const popup = window.open('', '_blank');
+            if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+              return true;
+            }
+            popup.close();
+            return false;
+          } catch (e) {
+            return true;
+          }
+        };
         
-        // 로그인 방식 선택 (모바일은 리디렉션, 데스크탑은 팝업)
-        if (isMobile) {
+        // 로그인 방식 선택 (모바일이거나 팝업이 차단된 경우 리디렉션 사용)
+        if (isMobile || isPopupBlocked()) {
           console.log("[Google 로그인] 모바일 환경 감지됨, 리디렉션 방식 사용");
           
           // 모바일에서는 리디렉션 방식으로 인증 시도
