@@ -12,6 +12,7 @@ import { registerSunoRoutes } from "./routes/suno-routes";
 import dreamBookRouter from "./routes/dream-book";
 import imageStyleRouter from "./routes/image-style";
 import jwtAuthRouter from "./routes/jwt-auth";
+import googleOAuthRouter from "./routes/google-oauth";
 
 // Express session 타입 확장
 declare module 'express-session' {
