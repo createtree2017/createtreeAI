@@ -572,7 +572,7 @@ User: ${scenePrompt}
 }
 
 /**
- * 이전 이미지를 참조하여 일관된 캐릭터로 새 장면 생성
+ * 이전 이미지를 직접 편집하여 일관된 캐릭터로 새 장면 생성 (OpenAI Image Edit API 사용)
  * @param prompt 장면 생성 프롬프트
  * @param referenceImageBase64 참조할 이전 장면 이미지 (base64)
  * @returns 생성된 장면 이미지 URL
@@ -585,13 +585,15 @@ async function generateCharacterImageWithReference(prompt: string, referenceImag
       return SERVICE_UNAVAILABLE;
     }
     
-    const headers = {
+    logInfo('OpenAI 이미지 편집 API를 사용하여 캐릭터 일관성 유지', { promptLength: prompt.length });
+    
+    // 먼저 GPT-4o Vision으로 캐릭터 분석 및 편집 지시사항 생성
+    const analysisHeaders = {
       "Authorization": `Bearer ${API_KEY}`,
       "Content-Type": "application/json"
     };
     
-    // GPT-4o Vision을 사용하여 이미지 기반 새 장면 생성
-    const requestBody = {
+    const analysisRequest = {
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
         {
@@ -599,50 +601,128 @@ async function generateCharacterImageWithReference(prompt: string, referenceImag
           content: [
             {
               type: "text",
-              text: `이 이미지를 참조하여 동일한 캐릭터로 새로운 장면을 생성해주세요. 
-              
+              text: `이 이미지에서 캐릭터는 그대로 유지하고 배경과 상황만 다음과 같이 변경해주세요:
+
 ${prompt}
 
-새로운 이미지를 DALL-E로 생성하기 위한 상세한 프롬프트를 작성해주세요.
-캐릭터의 모든 특징(얼굴, 헤어스타일, 의상, 표정 등)을 정확히 묘사하고 새로운 장면 설정을 포함해주세요.`
+이미지 편집을 위한 간결하고 명확한 영어 프롬프트를 작성해주세요. 캐릭터의 얼굴, 헤어스타일, 표정은 절대 변경하지 말고 배경과 주변 환경만 수정하도록 지시해주세요.`
             },
             {
               type: "image_url",
               image_url: {
-                url: `data:image/jpeg;base64,${referenceImageBase64}`
+                url: `data:image/png;base64,${referenceImageBase64}`
               }
             }
           ]
         }
       ],
-      max_tokens: 1000
+      max_tokens: 500
     };
     
-    const visionResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+    const analysisResponse = await fetch("https://api.openai.com/v1/chat/completions", {
       method: 'POST',
-      headers: headers,
-      body: JSON.stringify(requestBody)
+      headers: analysisHeaders,
+      body: JSON.stringify(analysisRequest)
     });
     
-    if (!visionResponse.ok) {
-      logError('GPT-4o Vision API 호출 실패', { status: visionResponse.status });
+    if (!analysisResponse.ok) {
+      logError('캐릭터 분석 실패, 기본 방식으로 폴백', { status: analysisResponse.status });
+      return await generateDreamImage(prompt);
+    }
+    
+    const analysisData: any = await analysisResponse.json();
+    const editPrompt = analysisData.choices?.[0]?.message?.content || prompt;
+    
+    logInfo('이미지 편집 프롬프트 생성 완료', { editPrompt: editPrompt.substring(0, 100) + '...' });
+    
+    // OpenAI Image Edit API 사용하여 이미지 편집
+    const formData = new FormData();
+    
+    // 이미지를 Buffer로 변환하여 FormData에 추가
+    const imageBuffer = Buffer.from(referenceImageBase64, 'base64');
+    formData.append('image', imageBuffer, {
+      filename: 'reference.png',
+      contentType: 'image/png'
+    });
+    
+    // 편집 프롬프트 추가
+    formData.append('prompt', editPrompt);
+    formData.append('n', '1');
+    formData.append('size', '1024x1024');
+    
+    const editHeaders = {
+      "Authorization": `Bearer ${API_KEY}`,
+      ...formData.getHeaders()
+    };
+    
+    logInfo('OpenAI 이미지 편집 API 호출 시작');
+    const editResponse = await fetch("https://api.openai.com/v1/images/edits", {
+      method: 'POST',
+      headers: editHeaders,
+      body: formData
+    });
+    
+    if (!editResponse.ok) {
+      const errorText = await editResponse.text();
+      logError('이미지 편집 API 실패, DALL-E로 폴백', { 
+        status: editResponse.status, 
+        error: errorText.substring(0, 200) 
+      });
+      return await generateDreamImage(prompt);
+    }
+    
+    const editData: any = await editResponse.json();
+    
+    if (!editData.data || editData.data.length === 0) {
+      logError('편집된 이미지 데이터가 없습니다');
+      return await generateDreamImage(prompt);
+    }
+    
+    const editedImageUrl = editData.data[0].url;
+    
+    if (!editedImageUrl) {
+      logError('편집된 이미지 URL이 없습니다');
+      return await generateDreamImage(prompt);
+    }
+    
+    logInfo('이미지 편집 성공, 로컬 저장 시작', { editedImageUrl });
+    
+    // 편집된 이미지를 로컬에 저장
+    const imageResponse = await fetch(editedImageUrl);
+    if (!imageResponse.ok) {
+      logError('편집된 이미지 다운로드 실패');
       return SERVICE_UNAVAILABLE;
     }
     
-    const visionData: any = await visionResponse.json();
-    const detailedPrompt = visionData.choices?.[0]?.message?.content || prompt;
+    const imageArrayBuffer = await imageResponse.arrayBuffer();
+    const imageBuffer2 = Buffer.from(imageArrayBuffer);
     
-    logInfo('이미지 참조 기반 상세 프롬프트 생성 완료', { 
-      originalLength: prompt.length,
-      detailedLength: detailedPrompt.length 
+    // 파일 저장
+    const timestamp = Date.now();
+    const randomId = Math.floor(Math.random() * 10000);
+    const filename = `dreambook-edited-${timestamp}-${randomId}.png`;
+    const uploadPath = path.join(process.cwd(), 'static', 'uploads', 'dream-books');
+    
+    // 디렉토리 생성
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    }
+    
+    const filePath = path.join(uploadPath, filename);
+    fs.writeFileSync(filePath, imageBuffer2);
+    
+    const localImageUrl = `/static/uploads/dream-books/${filename}`;
+    
+    logInfo('편집된 이미지 로컬 저장 완료', { 
+      filePath,
+      accessUrl: localImageUrl 
     });
     
-    // 상세 프롬프트로 DALL-E 이미지 생성
-    return await generateDreamImage(detailedPrompt);
+    return localImageUrl;
     
   } catch (error) {
-    logError('이미지 참조 기반 생성 실패', error);
-    return SERVICE_UNAVAILABLE;
+    logError('이미지 편집 과정에서 오류 발생, 기본 방식으로 폴백', error);
+    return await generateDreamImage(prompt);
   }
 }
 
