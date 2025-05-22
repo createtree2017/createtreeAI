@@ -411,28 +411,87 @@ export function useAuth() {
           }
         };
         
-        // 로그인 방식 선택 (모바일이거나 팝업이 차단된 경우 리디렉션 사용)
-        if (isMobile || isPopupBlocked()) {
-          console.log("[Google 로그인] 모바일 환경 감지됨, 리디렉션 방식 사용");
+        // 모바일 환경에서 먼저 팝업 방식 시도 (더 안정적)
+        console.log("[Google 로그인] 팝업 방식으로 로그인 시도");
+        
+        try {
+          // 팝업으로 로그인 시도
+          const result = await signInWithPopup(firebaseAuth, googleProvider);
+          const user = result.user;
           
-          // 모바일에서는 리디렉션 방식으로 인증 시도
-          try {
-            // 리디렉션 전에 진행 상태 저장
-            localStorage.setItem('auth_redirect_started', 'true');
-            localStorage.setItem('auth_redirect_time', Date.now().toString());
-            
-            // 리디렉션 방식으로 로그인
-            await signInWithRedirect(firebaseAuth, googleProvider);
-            console.log("[Google 로그인] 리디렉션 로그인 시작됨");
-            
-            // 리디렉션되므로 이 이후 코드는 실행되지 않음
-            return { redirected: true };
-          } catch (redirectError) {
-            console.error("[Google 로그인] 리디렉션 시작 오류:", redirectError);
-            throw new Error("Google 로그인을 시작할 수 없습니다: " + 
-              (redirectError instanceof Error ? redirectError.message : "알 수 없는 오류"));
+          if (!user) {
+            throw new Error("로그인은 성공했으나 사용자 정보를 가져올 수 없습니다.");
           }
-        } else {
+          
+          // 사용자 정보 로깅 (개인정보 일부 마스킹)
+          console.log("[Google 로그인] 팝업 로그인 성공, 사용자:", {
+            email: user.email ? user.email.substring(0, 3) + "..." : "없음",
+            name: user.displayName || "이름 없음", 
+            uid: user.uid ? user.uid.substring(0, 5) + "..." : "없음"
+          });
+          
+          // 서버에 Firebase 사용자 정보 전송
+          const userData = {
+            uid: user.uid,
+            email: user.email || "",
+            displayName: user.displayName || ""
+          };
+          
+          // 서버 인증 API 호출
+          console.log("[Google 로그인] 서버 인증 요청 중...");
+          const response = await fetch("/api/auth/firebase-login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user: userData }),
+            credentials: "include"  // 쿠키 포함 (세션 인증에 필요)
+          });
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error("[Google 로그인] 서버 인증 실패:", response.status, errorText);
+            throw new Error("서버 인증에 실패했습니다: " + 
+              (errorText || `상태 코드 ${response.status}`));
+          }
+          
+          // 응답 처리
+          const data = await response.json();
+          console.log("[Google 로그인] 서버 인증 성공:", data);
+          return data;
+        } catch (popupError: any) {
+          console.log("[Google 로그인] 팝업 로그인 실패, 리디렉션 방식으로 재시도:", popupError.message);
+          
+          // 팝업이 실패한 경우에만 리디렉션 방식 사용
+          if (popupError.code === 'auth/popup-blocked' || 
+              popupError.code === 'auth/popup-closed-by-user' ||
+              isMobile) {
+            console.log("[Google 로그인] 리디렉션 방식으로 전환");
+            
+            try {
+              // 리디렉션 전에 진행 상태 저장
+              localStorage.setItem('auth_redirect_started', 'true');
+              localStorage.setItem('auth_redirect_time', Date.now().toString());
+              
+              // 리디렉션 방식으로 로그인
+              await signInWithRedirect(firebaseAuth, googleProvider);
+              console.log("[Google 로그인] 리디렉션 로그인 시작됨");
+              
+              // 리디렉션되므로 이 이후 코드는 실행되지 않음
+              return { redirected: true };
+            } catch (redirectError) {
+              console.error("[Google 로그인] 리디렉션 시작 오류:", redirectError);
+              throw new Error("Google 로그인을 시작할 수 없습니다: " + 
+                (redirectError instanceof Error ? redirectError.message : "알 수 없는 오류"));
+            }
+          } else {
+            // 다른 오류는 그대로 전파
+            throw popupError;
+          }
+        }
+        
+        // 이 코드는 실행되지 않음 (위에서 return하므로)
+        if (false) {
+          // 데스크탑에서는 팝업 방식 사용
+          console.log("[Google 로그인] 데스크탑 환경, 팝업 방식 사용");
           // 데스크탑에서는 팝업 방식 사용
           console.log("[Google 로그인] 데스크탑 환경, 팝업 방식 사용");
           
