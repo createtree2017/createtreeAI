@@ -413,6 +413,7 @@ export function useAuth() {
         
         // 모바일 환경에서 먼저 팝업 방식 시도 (더 안정적)
         console.log("[Google 로그인] 팝업 방식으로 로그인 시도");
+        console.log("[Google 로그인] 모바일 환경 감지:", isMobile);
         
         try {
           // 팝업으로 로그인 시도

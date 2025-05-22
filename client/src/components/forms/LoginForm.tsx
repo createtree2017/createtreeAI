@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useAuthContext } from "@/lib/AuthProvider";
+import { useMobileGoogleLogin } from "@/hooks/useMobileAuth";
 import { Loader2 } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import { Separator } from "@/components/ui/separator";
@@ -24,6 +25,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 const LoginForm: React.FC = () => {
   const { login, loginWithGoogle, isLoginLoading, isGoogleLoginLoading } = useAuthContext();
+  const { loginWithGoogle: mobileLoginWithGoogle } = useMobileGoogleLogin();
 
   // React Hook Form 설정
   const form = useForm<LoginFormValues>({
@@ -49,31 +51,10 @@ const LoginForm: React.FC = () => {
       console.log("모바일 환경 감지:", isMobile ? "예" : "아니오");
       
       if (isMobile) {
-        // 모바일에서는 단순 리다이렉트 방식 사용
-        import('firebase/auth').then(async ({ getAuth, signInWithRedirect, GoogleAuthProvider }) => {
-          try {
-            const auth = getAuth();
-            const provider = new GoogleAuthProvider();
-            
-            // 리다이렉트 로그인으로 인증 - Firebase 기본 경로 사용
-            console.log("모바일 환경에서 리다이렉트 로그인 시도 중...");
-            
-            // 리다이렉션 전 URL 저장 (로그인 완료 후 돌아올 경로)
-            localStorage.setItem('login_redirect_url', window.location.href);
-            
-            // Firebase 기본 경로(/__/auth/handler)로 리다이렉션하도록 설정
-            // 이 경로는 Firebase가 기본적으로 지원하는 경로입니다
-            await signInWithRedirect(auth, provider);
-            
-            // 리다이렉트 되기 때문에 이 아래 코드는 실행되지 않음
-            console.log("리다이렉트 로그인 시작됨 (이 메시지는 표시되지 않아야 함)");
-          } catch (error) {
-            console.error("Google 리다이렉트 로그인 오류:", error);
-            alert("Google 로그인 중 오류가 발생했습니다.");
-          }
-        });
+        console.log("모바일 환경 - JWT 인증 방식 사용");
+        await mobileLoginWithGoogle();
       } else {
-        // 데스크탑에서는 기존 방식 사용
+        console.log("데스크탑 환경 - 세션 인증 방식 사용");
         loginWithGoogle();
       }
     } catch (error) {
