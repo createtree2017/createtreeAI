@@ -79,6 +79,13 @@ const LoginForm: React.FC = () => {
       const auth = getAuth(app);
       const provider = new GoogleAuthProvider();
       
+      // 팝업 방식 강제 설정 (모바일 호환성)
+      provider.setCustomParameters({
+        prompt: 'select_account',
+        login_hint: undefined,
+        access_type: 'online'
+      });
+      
       console.log('✅ Firebase 앱 초기화 완료, 팝업 로그인 시작');
       
       // 팝업으로 Google 로그인
