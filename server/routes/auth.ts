@@ -766,16 +766,21 @@ router.post("/firebase-login", async (req, res) => {
     
     console.log('🎫 ID 토큰 수신 완료:', idToken.substring(0, 50) + '...');
     
-    // JWT 토큰에서 사용자 정보 디코딩
+    // Firebase Admin SDK로 ID 토큰 검증
     try {
-      const base64Url = idToken.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(Buffer.from(base64, 'base64').toString().split('').map(function(c) {
-          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-      }).join(''));
+      // Firebase Admin 설정 확인
+      const admin = await import('firebase-admin');
       
-      const decoded = JSON.parse(jsonPayload);
-      const { sub: uid, email, name } = decoded;
+      if (!admin.apps.length) {
+        // Firebase Admin 초기화 (프로젝트 ID만 필요)
+        admin.initializeApp({
+          projectId: process.env.VITE_FIREBASE_PROJECT_ID || 'createtreeai'
+        });
+      }
+      
+      // ID 토큰 검증
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      const { uid, email, name } = decodedToken;
       
       console.log('👤 토큰에서 추출된 사용자 정보:', { uid, email, name });
       
