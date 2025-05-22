@@ -10,8 +10,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-jwt-secret-key';
 // Google OAuth2 설정
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-// Google Cloud Console에는 도메인만 등록 (경로 제외)
-const REDIRECT_URI = `https://${process.env.REPL_SLUG || 'd0d77b78-7584-4870-90de-7e90bf483a1c-00-2fox4esnjilty'}.${process.env.REPL_OWNER || 'kirk'}.replit.dev/api/google-oauth/bridge`;
+// 개발환경에서는 localhost 사용 (Google OAuth에서 허용)
+const REDIRECT_URI = 'http://localhost:5000/api/google-oauth/callback';
 
 console.log('🔐 Google OAuth2 설정 확인:', {
   CLIENT_ID: GOOGLE_CLIENT_ID ? '설정됨' : '없음',
@@ -54,69 +54,6 @@ router.get('/login', (req, res) => {
       message: '로그인 URL 생성에 실패했습니다.'
     });
   }
-});
-
-/**
- * Google OAuth2 콜백 브릿지 페이지
- * GET /api/google-oauth/bridge
- */
-router.get('/bridge', (req, res) => {
-  const htmlContent = `
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Google 로그인 처리 중...</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        .container {
-            text-align: center;
-            padding: 2rem;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-        }
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-top: 4px solid white;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="spinner"></div>
-        <div>Google 로그인 처리 중...</div>
-    </div>
-    <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get('code');
-        if (code) {
-            window.location.href = window.location.origin + '/api/google-oauth/callback?code=' + encodeURIComponent(code);
-        }
-    </script>
-</body>
-</html>`;
-  res.send(htmlContent);
 });
 
 /**
