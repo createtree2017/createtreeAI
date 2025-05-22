@@ -59,8 +59,8 @@ const LoginForm: React.FC = () => {
       setIsGoogleLoginInProgress(true);
       console.log("🚀 서버 Google OAuth2 로그인 시작");
       
-      // 서버의 Google OAuth 엔드포인트로 리디렉션
-      const googleAuthUrl = '/api/google-oauth/login';
+      // 서버의 Google OAuth 엔드포인트로 리디렉션 (캐시 방지)
+      const googleAuthUrl = `/api/google-oauth/login?t=${Date.now()}`;
       console.log('🔗 서버 OAuth URL:', googleAuthUrl);
       
       // 현재 페이지를 Google OAuth로 리디렉션
