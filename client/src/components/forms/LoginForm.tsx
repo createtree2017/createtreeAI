@@ -49,10 +49,27 @@ const LoginForm: React.FC = () => {
     try {
       console.log("🚀 Firebase Google 팝업 로그인 시작");
       
-      // Firebase 동적 임포트
+      // Firebase 동적 임포트 및 앱 초기화
+      const { initializeApp } = await import('firebase/app');
       const { signInWithPopup, GoogleAuthProvider, getAuth } = await import('firebase/auth');
-      const auth = getAuth();
+      
+      // Firebase 앱 초기화
+      const firebaseConfig = {
+        apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+        authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
+        projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+        storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
+        messagingSenderId: "527763789648",
+        appId: import.meta.env.VITE_FIREBASE_APP_ID
+      };
+      
+      console.log('🔥 Firebase 앱 초기화 중...');
+      const app = initializeApp(firebaseConfig);
+      
+      const auth = getAuth(app);
       const provider = new GoogleAuthProvider();
+      
+      console.log('✅ Firebase 앱 초기화 완료, 팝업 로그인 시작');
       
       // 팝업으로 Google 로그인
       const result = await signInWithPopup(auth, provider);
