@@ -159,15 +159,9 @@ export const ProtectedRoute: React.FC<{
   }
   
   // 로그인 되었지만 추가 정보 입력이 필요한 경우 프로필 작성 페이지로 리다이렉션
-  // 현재 페이지가 이미 프로필 작성 페이지가 아닌 경우에만 리다이렉션 수행
-  if ((user as any).needSignup === true && window.location.pathname !== "/signup/complete-profile") {
-    console.log('[Auth] 추가 정보 입력 필요 감지 - 프로필 작성 페이지로 리다이렉션');
-    return <Redirect to="/signup/complete-profile" />;
-  }
-  
-  // 또는 전화번호나 출산예정일이 없는 경우도 추가 정보 입력이 필요한 것으로 간주
-  if (!user.phoneNumber && window.location.pathname !== "/signup/complete-profile") {
-    console.log('[Auth] 전화번호 정보 없음 - 프로필 작성 페이지로 리다이렉션');
+  // needProfileComplete가 명시적으로 true인 경우에만 리다이렉션
+  if ((user as any).needProfileComplete === true && window.location.pathname !== "/signup/complete-profile") {
+    console.log('[Auth] needProfileComplete=true 감지 - 프로필 작성 페이지로 리다이렉션');
     return <Redirect to="/signup/complete-profile" />;
   }
 
