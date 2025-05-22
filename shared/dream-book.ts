@@ -70,6 +70,7 @@ export const createDreamBookSchema = z.object({
   dreamer: z.string().min(1, "꿈을 꾼 사람은 필수입니다"),
   style: z.union([z.string(), z.number(), z.coerce.number()]).transform(val => String(val)),
   characterImageUrl: z.string().min(1, "캐릭터 이미지는 필수입니다"),
+  scene0ImageUrl: z.string().optional(), // 캐릭터+배경 통합 이미지 URL (선택적)
   peoplePrompt: z.string().min(1, "인물 표현은 필수입니다"),
   backgroundPrompt: z.string().min(1, "배경 표현은 필수입니다"),
   numberOfScenes: z.number().min(1).max(4).default(4),
