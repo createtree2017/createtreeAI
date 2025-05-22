@@ -2,7 +2,7 @@ import express from 'express';
 import { db } from "@db";
 import { dreamBooks, dreamBookImages, DREAM_BOOK_STYLES } from '@shared/dream-book';
 import { createDreamBookSchema, createCharacterSchema } from '@shared/dream-book';
-import { generateDreamImage, generateCharacterImage, generateDreamSceneImage, getStylePrompt, SERVICE_UNAVAILABLE } from '../services/dream-service';
+import { generateDreamImage, generateCharacterImage, generateDreamSceneImage, getStylePrompt, SERVICE_UNAVAILABLE, analyzeCharacterImage } from '../services/dream-service';
 import { authMiddleware } from '../common/middleware/auth';
 import { ZodError } from 'zod';
 import { eq, and, asc, desc } from 'drizzle-orm';
@@ -416,12 +416,17 @@ router.post('/', [authMiddleware, upload.none()], async (req: express.Request, r
       // 첫 번째 장면 프롬프트를 대표 내용으로, summaryText에는 간단한 설명 저장
       const summaryText = `${dreamer}가 꾼 ${babyName}의 태몽동화 (${filteredScenePrompts.length}개 장면)`;
       
-      // scene0ImageUrl이 있으면 사용, 없으면 characterImageUrl 사용
-      const scene0ImageUrl = validationData.scene0ImageUrl || characterImageUrl;
+      // scene0ImageUrl 처리
+      let scene0ImageUrl = characterImageUrl;
+      
+      // body에 scene0ImageUrl이 있으면 사용
+      if (typeof req.body.scene0ImageUrl === 'string' && req.body.scene0ImageUrl) {
+        scene0ImageUrl = req.body.scene0ImageUrl;
+      }
       
       // 통합 이미지 로그 기록
       logInfo('캐릭터+배경 통합 이미지 정보', { 
-        hasScene0Image: !!validationData.scene0ImageUrl,
+        hasScene0Image: !!req.body.scene0ImageUrl,
         scene0ImageUrl: scene0ImageUrl ? '있음' : '없음'
       });
       

@@ -162,8 +162,8 @@ export default function CreateDreamBook() {
     }
   });
 
-  // 태몽동화 생성 뮤테이션
-  const createDreamBookMutation = useMutation({
+  // 태몽동화 생성 뮤테이션 (FormData 사용)
+  const createDreamBookMutation = useMutation<any, Error, FormData>({
     mutationFn: async (formData: FormData) => {
       if (!characterImage) {
         throw new Error('캐릭터 이미지가 필요합니다. 먼저 캐릭터를 생성해주세요.');
