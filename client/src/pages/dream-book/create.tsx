@@ -72,6 +72,7 @@ const dreamBookSchema = z.object({
 export default function CreateDreamBook() {
   const [activeScene, setActiveScene] = useState(0);
   const [characterImage, setCharacterImage] = useState<string | null>(null);
+  const [scene0Image, setScene0Image] = useState<string | null>(null); // 캐릭터+배경 통합 이미지 URL 저장
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCharacterDialogOpen, setIsCharacterDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -128,10 +129,20 @@ export default function CreateDreamBook() {
     onSuccess: (data) => {
       if (data.result && data.result.characterImageUrl) {
         setCharacterImage(data.result.characterImageUrl);
+        
+        // scene0ImageUrl이 있으면 저장 (캐릭터+배경 통합 이미지)
+        if (data.result.scene0ImageUrl) {
+          setScene0Image(data.result.scene0ImageUrl);
+          console.log('캐릭터+배경 통합 이미지 저장:', data.result.scene0ImageUrl);
+        } else {
+          // 캐릭터 이미지를 scene0Image로도 설정 (이전 버전 호환성)
+          setScene0Image(data.result.characterImageUrl);
+        }
+        
         setIsCharacterDialogOpen(false);
         toast({
           title: '캐릭터 생성 완료',
-          description: '태몽동화에 사용될 캐릭터가 생성되었습니다.'
+          description: '태몽동화에 사용될 캐릭터와 배경이 생성되었습니다.'
         });
       } else {
         toast({
@@ -337,7 +348,9 @@ export default function CreateDreamBook() {
     createDreamBookMutation.mutate({
       ...values,
       // 필요한 경우 특정 필드 형식 조정
-      styleId: String(values.styleId)
+      styleId: String(values.styleId),
+      // 캐릭터+배경 이미지 URL 추가
+      scene0ImageUrl: scene0Image || characterImage
     });
   };
 
