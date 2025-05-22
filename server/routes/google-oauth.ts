@@ -10,8 +10,10 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-jwt-secret-key';
 // Google OAuth2 설정
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-// 개발환경에서는 localhost 사용 (Google OAuth에서 허용)
-const REDIRECT_URI = 'http://localhost:5000/api/google-oauth/callback';
+// Replit 환경에 맞는 동적 redirect URI 설정
+const REDIRECT_URI = process.env.NODE_ENV === 'production' 
+  ? `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}/api/google-oauth/callback`
+  : 'http://localhost:5000/api/google-oauth/callback';
 
 console.log('🔐 Google OAuth2 설정 확인:', {
   CLIENT_ID: GOOGLE_CLIENT_ID ? '설정됨' : '없음',
