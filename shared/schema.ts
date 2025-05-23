@@ -508,6 +508,58 @@ export type MilestoneInsert = typeof milestones.$inferInsert;
 export const insertUserMilestoneSchema = createInsertSchema(userMilestones);
 export const insertPregnancyProfileSchema = createInsertSchema(pregnancyProfiles);
 
+// ===============================================
+// Dream Book 이미지 일관성 고도화 테이블들
+// ===============================================
+
+// 1-1) style_templates 테이블 - 스타일 템플릿 관리
+export const styleTemplates = pgTable("style_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(), // 스타일 이름 (예: "디즈니풍", "지브리풍")
+  prompt: text("prompt").notNull(), // 스타일 프롬프트
+  thumbnailUrl: text("thumbnail_url"), // 썸네일 이미지 URL
+  isDefault: boolean("is_default").notNull().default(false), // 기본 스타일 여부
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// 1-2) global_prompt_rules 테이블 - 전역 프롬프트 규칙 관리
+export const globalPromptRules = pgTable("global_prompt_rules", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(), // 규칙 이름 (예: "기본 비율 설정")
+  jsonRules: jsonb("json_rules").notNull(), // JSON 형태의 규칙 (ratio, subject, extra 등)
+  isActive: boolean("is_active").notNull().default(false), // 활성화 여부 (항상 1개만 활성화)
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Zod 스키마 생성
+export const insertStyleTemplateSchema = createInsertSchema(styleTemplates, {
+  name: (schema) => schema.min(2, "스타일 이름은 2글자 이상이어야 합니다"),
+  prompt: (schema) => schema.min(10, "프롬프트는 10글자 이상이어야 합니다")
+});
+
+export const insertGlobalPromptRuleSchema = createInsertSchema(globalPromptRules, {
+  name: (schema) => schema.min(2, "규칙 이름은 2글자 이상이어야 합니다"),
+  jsonRules: (schema) => schema.refine(
+    (val) => {
+      try {
+        const parsed = typeof val === 'string' ? JSON.parse(val) : val;
+        return typeof parsed === 'object' && parsed !== null;
+      } catch {
+        return false;
+      }
+    },
+    { message: "유효한 JSON 형태여야 합니다" }
+  )
+});
+
+// 타입 정의
+export type StyleTemplate = typeof styleTemplates.$inferSelect;
+export type StyleTemplateInsert = typeof styleTemplates.$inferInsert;
+export type GlobalPromptRule = typeof globalPromptRules.$inferSelect;
+export type GlobalPromptRuleInsert = typeof globalPromptRules.$inferInsert;
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
