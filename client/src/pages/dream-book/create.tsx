@@ -81,13 +81,13 @@ export default function CreateDreamBook() {
   const [, navigate] = useLocation();
   const { user } = useAuthContext();
 
-  // 이미지 스타일 목록 가져오기
+  // 스타일 템플릿 목록 가져오기 (작업지시서 6단계)
   const { data: styles, isLoading: isLoadingStyles } = useQuery({
-    queryKey: ['/api/image-styles'],
+    queryKey: ['/api/admin/style-templates'],
     queryFn: async () => {
-      const response = await fetch('/api/image-styles');
+      const response = await fetch('/api/admin/style-templates');
       if (!response.ok) {
-        throw new Error('이미지 스타일 목록을 불러오는데 실패했습니다');
+        throw new Error('스타일 템플릿 목록을 불러오는데 실패했습니다');
       }
       return response.json();
     },
@@ -105,6 +105,16 @@ export default function CreateDreamBook() {
       scenePrompts: ['', '', '', ''],
     },
   });
+
+  // 기본 스타일 자동 선택 (작업지시서 6단계)
+  useEffect(() => {
+    if (styles && styles.length > 0 && !form.getValues('styleId')) {
+      const defaultStyle = styles.find((style: any) => style.isDefault);
+      if (defaultStyle) {
+        form.setValue('styleId', defaultStyle.id.toString());
+      }
+    }
+  }, [styles, form]);
 
   // 스타일 변경 시 캐릭터 이미지 초기화
   const selectedStyleId = form.watch('styleId');
@@ -324,11 +334,11 @@ export default function CreateDreamBook() {
     });
 
     setIsGenerating(true);
-    // 필요한 데이터 준비
+    // 필요한 데이터 준비 (작업지시서 6단계: style_id 포함)
     const formData = new FormData();
     formData.append('babyName', values.babyName);
     formData.append('dreamer', values.dreamer);
-    formData.append('style', String(values.styleId));
+    formData.append('styleId', String(values.styleId)); // 새로운 style_templates 테이블의 ID
     formData.append('characterImageUrl', characterImage || '');
     formData.append('peoplePrompt', values.peoplePrompt);
     formData.append('backgroundPrompt', values.backgroundPrompt);
@@ -374,8 +384,11 @@ export default function CreateDreamBook() {
                       </SelectTrigger>
                       <SelectContent>
                         {styles?.map((style: any) => (
-                          <SelectItem key={style.styleId} value={style.styleId}>
+                          <SelectItem key={style.id} value={style.id.toString()}>
                             {style.name}
+                            {style.isDefault && (
+                              <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-1 rounded">기본값</span>
+                            )}
                           </SelectItem>
                         ))}
                       </SelectContent>
